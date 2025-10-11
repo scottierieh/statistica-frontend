@@ -12,15 +12,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, Star, ArrowLeft, ArrowRight, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
-import { Textarea } from './ui/textarea';
-import { Progress } from './ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { produce } from 'immer';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Question, ConjointAttribute, Survey, SurveyResponse, Criterion } from '@/entities/Survey';
 import { useToast } from '@/hooks/use-toast';
-import { Slider } from './ui/slider';
+import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
@@ -196,9 +196,9 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
                 <Table className="text-xs">
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50%] text-xs">Item</TableHead>
-                            <TableHead className="text-center w-[25%]"><ThumbsUp className="mx-auto w-4 h-4"/></TableHead>
-                            <TableHead className="text-center w-[25%]"><ThumbsDown className="mx-auto w-4 h-4"/></TableHead>
+                            <TableHead className="w-1/2 text-xs">Item</TableHead>
+                            <TableHead className="text-center w-1/4"><ThumbsUp className="mx-auto w-4 h-4"/></TableHead>
+                            <TableHead className="text-center w-1/4"><ThumbsDown className="mx-auto w-4 h-4"/></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -587,15 +587,87 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
     );
 };
 
+// 디바이스 프레임 컴포넌트
+const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tablet'; children: React.ReactNode }) => {
+    const frameStyles = {
+        mobile: {
+            width: '320px',
+            height: '580px',
+            borderRadius: '32px',
+        },
+        tablet: {
+            width: '600px',
+            height: '800px',
+            borderRadius: '20px',
+        }
+    };
+
+    const style = frameStyles[device];
+
+    return (
+        <div className="relative mx-auto" style={{ width: style.width, height: style.height }}>
+            <div 
+                className="relative overflow-hidden bg-black"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: style.borderRadius,
+                    border: device === 'mobile' ? '10px solid #1f2937' : '12px solid #1f2937',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.3), inset 0 0 6px rgba(255,255,255,0.1)',
+                }}
+            >
+                
+                <div className="w-full h-full overflow-y-auto bg-white">
+                    {children}
+                </div>
+                
+                {device === 'mobile' && (
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gray-400 rounded-full" />
+                )}
+            </div>
+            
+            <div 
+                className="absolute bg-gray-700 rounded-r"
+                style={{
+                    right: '-3px',
+                    top: device === 'mobile' ? '100px' : '140px',
+                    width: '3px',
+                    height: '50px',
+                }}
+            />
+            
+            <div 
+                className="absolute bg-gray-700 rounded-l"
+                style={{
+                    left: '-3px',
+                    top: device === 'mobile' ? '85px' : '120px',
+                    width: '3px',
+                    height: '30px',
+                }}
+            />
+            <div 
+                className="absolute bg-gray-700 rounded-l"
+                style={{
+                    left: '-3px',
+                    top: device === 'mobile' ? '125px' : '160px',
+                    width: '3px',
+                    height: '30px',
+                }}
+            />
+        </div>
+    );
+};
+
 
 interface SurveyViewProps {
   survey?: any;
   previewStyles?: any;
   isPreview?: boolean;
+  previewDevice?: 'mobile' | 'tablet' | 'desktop';
 }
 
 
-export default function SurveyView({ survey: surveyProp, previewStyles, isPreview }: SurveyViewProps) {
+export default function SurveyView({ survey: surveyProp, previewStyles, isPreview, previewDevice }: SurveyViewProps) {
     const params = useParams();
     const { toast } = useToast();
     const surveyId = params.id as string;
@@ -623,18 +695,22 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                 
                 if (loadedSurvey) {
                     setSurvey(loadedSurvey);
-                    const now = new Date();
-                    const startDate = loadedSurvey.startDate ? new Date(loadedSurvey.startDate) : null;
-                    const endDate = loadedSurvey.endDate ? new Date(loadedSurvey.endDate) : null;
-                    
-                    if (loadedSurvey.status === 'closed') {
-                        setIsSurveyActive(false);
-                    } else if (startDate && now < startDate) {
-                        setIsSurveyActive(false);
-                    } else if (endDate && now > endDate) {
-                        setIsSurveyActive(false);
-                    } else {
+                    if (isPreview) {
                         setIsSurveyActive(true);
+                    } else {
+                         const now = new Date();
+                        const startDate = loadedSurvey.startDate ? new Date(loadedSurvey.startDate) : null;
+                        const endDate = loadedSurvey.endDate ? new Date(loadedSurvey.endDate) : null;
+                        
+                        if (loadedSurvey.status === 'closed') {
+                            setIsSurveyActive(false);
+                        } else if (startDate && now < startDate) {
+                            setIsSurveyActive(false);
+                        } else if (endDate && now > endDate) {
+                            setIsSurveyActive(false);
+                        } else {
+                            setIsSurveyActive(true);
+                        }
                     }
 
                 } else {
@@ -741,7 +817,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     
     const surveyStyles = survey?.styles || {};
 
-    if (!isSurveyActive) {
+    if (!isSurveyActive && !isPreview) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
                 <Card className="w-full max-w-md text-center p-6">
@@ -779,6 +855,77 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                 </motion.div>
             </div>
         );
+    }
+
+    // 미리보기 모드일 때 디바이스 프레임으로 감싸기
+    if (isPreview && survey) {
+        const surveyContent = (
+             <div className="min-h-screen flex items-center justify-center p-4" style={{backgroundColor: surveyStyles?.secondaryColor}}>
+                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg">
+                    <CardHeader className="text-center p-4">
+                        <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
+                        <CardDescription className="text-xs">{survey.description}</CardDescription>
+                        <Progress value={((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100} className="mt-3 h-2" />
+                    </CardHeader>
+                    <CardContent className="min-h-[300px] overflow-hidden p-4">
+                         <AnimatePresence mode="wait">
+                            {currentQuestionIndex === -1 ? (
+                                 <motion.div key="intro" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}><p>This is the start screen. Click 'Start' to begin.</p></motion.div>
+                             ) : (
+                                <motion.div key={currentQuestionIndex} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
+                                    {QuestionComponent && (<QuestionComponent question={currentQuestion} answer={answers[currentQuestion.id]} onAnswerChange={() => {}} styles={surveyStyles} />)}
+                                </motion.div>
+                             )}
+                         </AnimatePresence>
+                    </CardContent>
+                    <CardFooter className="flex justify-between p-4">
+                        <Button onClick={() => setCurrentQuestionIndex(p => p-1)} disabled={currentQuestionIndex === -1} variant="outline" size="sm" className="transition-transform active:scale-95">
+                            <ArrowLeft className="mr-1 h-4 w-4" /> Previous
+                        </Button>
+                        {currentQuestionIndex < survey.questions.length - 1 ? (
+                            <Button onClick={() => setCurrentQuestionIndex(p => p+1)} size="sm" className="transition-transform active:scale-95">
+                                {currentQuestionIndex === -1 ? "Start" : "Next"} <ArrowRight className="ml-1 h-4 w-4" />
+                            </Button>
+                        ) : (
+                            <Button disabled size="sm">Submit</Button>
+                        )}
+                    </CardFooter>
+                 </Card>
+             </div>
+        );
+
+        if (previewDevice === 'mobile') {
+            return <DeviceFrame device="mobile">{surveyContent}</DeviceFrame>;
+        } else if (previewDevice === 'tablet') {
+            return <DeviceFrame device="tablet">{surveyContent}</DeviceFrame>;
+        } else {
+             return (
+                <div className="relative" style={{ width: '1200px', maxWidth: '90vw' }}>
+                    <div className="relative bg-gray-900 rounded-t-2xl pt-6 px-6 pb-0 shadow-2xl">
+                        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-gray-700"></div>
+                        <div className="bg-white rounded-t-xl shadow-inner overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                            <div className="h-8 bg-gray-100 border-b border-gray-200 flex items-center px-4 gap-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="text-xs font-semibold">🌐 Survey Preview</div>
+                                </div>
+                                <div className="flex-1 bg-white rounded-md px-3 py-0.5 text-xs text-gray-500 border border-gray-200">
+                                    https://survey.example.com/preview
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto" style={{ height: 'calc(100% - 32px)' }}>
+                                <div className="max-w-3xl mx-auto">
+                                    {surveyContent}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="h-2.5 bg-gradient-to-b from-gray-800 to-gray-700 rounded-b-2xl shadow-xl"></div>
+                    <div className="relative h-5 mt-0.5">
+                        <div className="absolute inset-0 bg-gray-700 rounded-b-[32px] shadow-2xl" style={{ clipPath: 'polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%)' }}></div>
+                    </div>
+                </div>
+            );
+        }
     }
     
     const progress = survey ? ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100 : 0;

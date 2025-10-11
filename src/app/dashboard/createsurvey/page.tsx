@@ -31,14 +31,14 @@ export default function CreateSurveyPage() {
   const [styles, setStyles] = useState({
     theme: 'default',
     primaryColor: '#3C5462',
-    secondaryColor: '#F3F4F6', // Changed to a slightly different gray
+    secondaryColor: '#F3F4F6',
     font: 'Default',
     foregroundColor: 'Medium',
     questionSpacing: 'Comfortable',
     questionTextSize: 22,
     answerTextSize: 16
   });
-  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
 
   useEffect(() => {
     const loadSurvey = async () => {
@@ -127,7 +127,7 @@ export default function CreateSurveyPage() {
         if (surveyId) {
             const index = allSurveys.findIndex((s: any) => s.id === surveyId);
             if (index > -1) {
-                created_date = allSurveys[index].created_date; // Preserve original creation date
+                created_date = allSurveys[index].created_date;
                 allSurveys[index] = { ...allSurveys[index], title, description, questions, status, styles, created_date };
             } else {
                  allSurveys.push({ title, description, questions, status, styles, id: surveyId, created_date });
@@ -165,12 +165,6 @@ export default function CreateSurveyPage() {
     };
     setQuestions(prev => [...prev, newQuestion]);
   };
-  
-  const deviceWidths = {
-    desktop: 'max-w-4xl',
-    tablet: 'max-w-3xl',
-    mobile: 'max-w-sm',
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -185,13 +179,14 @@ export default function CreateSurveyPage() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                         <DialogContent className={cn("h-[90vh] flex flex-col p-0 transition-all duration-300", deviceWidths[previewDevice])}>
-                           <DialogHeader className="p-4 border-b">
+                         <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0">
+                           <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
                                 <DialogTitle>Survey Preview</DialogTitle>
                            </DialogHeader>
-                           <div className="flex-1 overflow-y-auto">
+                           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-8">
                                 <SurveyView 
                                     isPreview={true}
+                                    previewDevice={previewDevice}
                                     survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
                                     previewStyles={styles}
                                 />
@@ -236,3 +231,6 @@ export default function CreateSurveyPage() {
     </div>
   );
 }
+
+
+
