@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -588,9 +589,9 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
-    mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg',
-    tablet: 'w-full max-w-[500px] aspect-[3/4] h-[95%] max-h-[1024px] rounded-[24px] p-3 shadow-xl',
-    desktop: 'w-full max-w-[800px] aspect-[4/3] h-auto rounded-lg p-3 shadow-xl',
+    mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
+    tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
+    desktop: 'w-full max-w-4xl aspect-[4/3] h-auto rounded-lg p-3 shadow-2xl bg-white',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -601,10 +602,12 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const innerStyle = innerFrameStyles[device];
   
   return (
-    <div className={cn('relative mx-auto bg-gray-800 transition-all duration-300', style)}>
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-800 rounded-b-lg z-20">
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
-      </div>
+    <div className={cn('relative mx-auto transition-all duration-300', style)}>
+      {device !== 'desktop' && (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-800 rounded-b-lg z-20">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
+        </div>
+      )}
       {device === 'mobile' && (
         <>
           <div className="absolute left-0 top-16 h-6 w-1 bg-gray-700 rounded-r-sm"></div>
