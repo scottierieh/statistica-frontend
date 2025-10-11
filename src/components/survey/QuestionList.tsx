@@ -47,24 +47,16 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
                 <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                    <CardTitle>Survey Details</CardTitle>
+                    <CardTitle>Start Page Configuration</CardTitle>
                 </div>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-                 <div className="space-y-1">
-                    <Label htmlFor="survey-title" className="text-sm font-medium">Survey Title</Label>
-                    <Input id="survey-title" value={survey.title} onChange={(e) => handleSurveyChange(draft => { draft.title = e.target.value; })} />
-                </div>
-                 <div className="space-y-1">
-                    <Label htmlFor="survey-description" className="text-sm font-medium">Description</Label>
-                    <Textarea id="survey-description" value={survey.description} onChange={(e) => handleSurveyChange(draft => { draft.description = e.target.value; })} />
-                </div>
                 
                 <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/10"
+                    className="space-y-4"
                 >
                     <div className="flex items-center gap-2 mb-2">
                         <Info className="w-4 h-4 text-indigo-600" />
@@ -421,7 +413,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                <Button 
+                 <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -752,13 +744,13 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemove(index)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                                 </div>
                                 <div className="flex items-center justify-between gap-2">
-                                    <span className="text-sm font-medium text-muted-foreground">{left}</span>
-                                    <div className="flex gap-2">
+                                    <span className="text-sm font-medium text-muted-foreground w-1/4 text-left">{left}</span>
+                                    <div className="flex-1 flex justify-center gap-2">
                                         {[...Array(question.numScalePoints || 7)].map((_, i) => (
                                             <RadioGroup key={i}><RadioGroupItem value={`${i}`} disabled /></RadioGroup>
                                         ))}
                                     </div>
-                                    <span className="text-sm font-medium text-muted-foreground">{right}</span>
+                                    <span className="text-sm font-medium text-muted-foreground w-1/4 text-right">{right}</span>
                                 </div>
                             </div>
                         )
@@ -826,9 +818,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                     </TableHead>
                                     {(question.scale || []).map((col: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                            <div className="flex justify-center">
-                                                <RadioGroupItem value={col} disabled />
-                                            </div>
+                                            <RadioGroup><div className="flex justify-center"><RadioGroupItem value={col} disabled /></div></RadioGroup>
                                         </TableCell>
                                     ))}
                                     <TableCell></TableCell>
@@ -1105,4 +1095,3 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
-
