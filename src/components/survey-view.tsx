@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -590,12 +589,11 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 
 interface SurveyViewProps {
   survey?: any;
-  isPreview?: boolean;
   previewStyles?: any;
 }
 
 
-export default function SurveyView({ survey: surveyProp, isPreview = false, previewStyles }: SurveyViewProps) {
+export default function SurveyView({ survey: surveyProp, previewStyles }: SurveyViewProps) {
     const params = useParams();
     const { toast } = useToast();
     const surveyId = params.id as string;
@@ -607,15 +605,16 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     const [error, setError] = useState("");
     const [respondentName, setRespondentName] = useState("");
     const [respondentEmail, setRespondentEmail] = useState("");
-    const [loading, setLoading] = useState(!isPreview);
+    const [loading, setLoading] = useState(!surveyProp);
     const [isSurveyActive, setIsSurveyActive] = useState(false);
 
     useEffect(() => {
-        if (isPreview) {
+        if (surveyProp && previewStyles) {
             setSurvey({...surveyProp, styles: previewStyles});
             setIsSurveyActive(true);
             setLoading(false);
         } else if (surveyId) {
+            setLoading(true);
             try {
                 const surveys = JSON.parse(localStorage.getItem('surveys') || '[]');
                 const loadedSurvey = surveys.find((s: any) => s.id === surveyId);
@@ -646,7 +645,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                 setLoading(false);
             }
         }
-    }, [surveyId, isPreview, surveyProp, previewStyles]);
+    }, [surveyId, surveyProp, previewStyles]);
     
     const handleAnswerChange = (questionId: string, value: any) => {
         setAnswers((prev: any) => ({
@@ -668,7 +667,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     };
 
     const handleSubmit = () => {
-        if (isPreview || !surveyId) {
+        if (!surveyId) {
             setIsCompleted(true);
             return;
         }
@@ -738,9 +737,9 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         return <div className="min-h-screen flex items-center justify-center text-sm">{error}</div>;
     }
     
-    const surveyStyles = isPreview ? previewStyles : survey?.styles;
+    const surveyStyles = survey?.styles || {};
 
-    if (!isSurveyActive && !isPreview) {
+    if (!isSurveyActive) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
                 <Card className="w-full max-w-md text-center p-6">
