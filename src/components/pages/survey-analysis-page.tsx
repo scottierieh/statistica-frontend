@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3 } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -48,11 +48,11 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
         const answer = response.answers[questionId];
         if (answer) {
              totalResponses++;
-            if (Array.isArray(answer)) { // Multiple choice
+            if (Array.isArray(answer)) {
                 answer.forEach(opt => {
                     counts[opt] = (counts[opt] || 0) + 1;
                 });
-            } else { // Single choice
+            } else {
                 counts[String(answer)] = (counts[String(answer)] || 0) + 1;
             }
         }
@@ -85,7 +85,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         const iqr = jStat.percentile(values, 0.75) - jStat.percentile(values, 0.25);
         let binWidth;
         if (iqr > 0) {
-            binWidth = 2 * iqr * Math.pow(n, -1/3); // Freedman-Diaconis rule
+            binWidth = 2 * iqr * Math.pow(n, -1/3);
         } else {
             const range = Math.max(...values) - Math.min(...values);
             binWidth = range > 0 ? range / 10 : 1;
@@ -120,7 +120,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         name: questionId,
         box: [q1, median, q3],
         whisker: [Math.min(...values), Math.max(...values)],
-        outliers: [] // Placeholder for outlier detection
+        outliers: []
     }];
 
     return { mean, median, std, count: values.length, skewness, histogram: histogramData, boxplot, values };
@@ -203,9 +203,27 @@ const processNPS = async (responses: SurveyResponse[], questionId: string) => {
 };
 
 
-// --- Chart Components ---
-const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+// --- Improved Color Palette ---
+const COLORS = [
+    '#6366f1', // Indigo
+    '#8b5cf6', // Violet
+    '#ec4899', // Pink
+    '#f59e0b', // Amber
+    '#10b981', // Emerald
+    '#06b6d4', // Cyan
+    '#f97316', // Orange
+    '#84cc16', // Lime
+    '#a855f7', // Purple
+];
 
+const GRADIENT_COLORS = {
+    primary: 'from-indigo-500 to-purple-600',
+    success: 'from-emerald-500 to-teal-600',
+    warning: 'from-amber-500 to-orange-600',
+    danger: 'from-rose-500 to-pink-600',
+};
+
+// --- Enhanced Treemap Component ---
 const CustomizedTreemapContent = (props: any) => {
   const { root, depth, x, y, width, height, index, payload, rank, name, percentage } = props;
 
@@ -220,7 +238,9 @@ const CustomizedTreemapContent = (props: any) => {
           fill: COLORS[index % COLORS.length],
           stroke: '#fff',
           strokeWidth: 2,
+          strokeOpacity: 0.5,
         }}
+        className="transition-opacity hover:opacity-80"
       />
       {width > 80 && height > 40 && (
         <text
@@ -229,10 +249,11 @@ const CustomizedTreemapContent = (props: any) => {
           textAnchor="middle"
           fill="#fff"
           fontSize={14}
+          fontWeight={600}
           dominantBaseline="middle"
         >
           <tspan x={x + width / 2} dy="-0.5em">{name}</tspan>
-          <tspan x={x + width / 2} dy="1.2em">{percentage?.toFixed(1)}%</tspan>
+          <tspan x={x + width / 2} dy="1.2em" fontSize={12}>{percentage?.toFixed(1)}%</tspan>
         </text>
       )}
     </g>
@@ -240,88 +261,180 @@ const CustomizedTreemapContent = (props: any) => {
 };
 
 
+// --- Enhanced Categorical Chart ---
 const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
     
     const interpretation = useMemo(() => {
         if (!data || data.length === 0) return null;
         const mode = data.reduce((prev, current) => (prev.count > current.count) ? prev : current);
+        const total = data.reduce((sum, item) => sum + item.count, 0);
         return {
-            title: "Summary",
-            text: `The most common response was <strong>'${mode.name}'</strong>, accounting for <strong>${mode.percentage.toFixed(1)}%</strong> of all answers.`,
-            variant: "default"
+            title: "Key Insights",
+            text: `The most popular choice is <strong>'${mode.name}'</strong>, selected by <strong>${mode.count}</strong> respondents (<strong>${mode.percentage.toFixed(1)}%</strong> of total responses).`,
+            variant: "default",
+            icon: <TrendingUp className="h-4 w-4" />
         };
     }, [data]);
     
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>{title}</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Response distribution analysis</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={onDownload}
+                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
                 </div>
             </CardHeader>
-             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
-                    <TabsList>
-                        <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
-                        <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
-                        <TabsTrigger value="treemap"><Grid3x3 className="w-4 h-4 mr-2"/>Treemap</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="bar" className="mt-4">
-                         <ChartContainer config={{}} className="w-full h-64">
-                            <ResponsiveContainer>
-                                <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
-                                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                  <XAxis type="number" dataKey="count" />
-                                  <YAxis dataKey="name" type="category" width={100} />
-                                  <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} cursor={{fill: 'hsl(var(--muted))'}} />
-                                  <Bar dataKey="count" name="Frequency" radius={4}>
-                                  <LabelList dataKey="count" position="right" style={{ fill: '#000', fontSize: 12, fontWeight: 'bold' }} />                                    {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                  </Bar>
-                            </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </TabsContent>
-                     <TabsContent value="pie" className="mt-4">
-                        <ChartContainer config={{}} className="w-full h-64">
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={data} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
-                                         {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </TabsContent>
-                    <TabsContent value="treemap" className="mt-4">
-                        <ChartContainer config={{}} className="w-full h-64">
-                            <ResponsiveContainer>
-                                <Treemap
-                                    data={data}
-                                    dataKey="count"
-                                    nameKey="name"
-                                    aspectRatio={16 / 9}
-                                    stroke="#fff"
-                                    content={<CustomizedTreemapContent />}
-                                />
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </TabsContent>
-                </Tabs>
-                <div className="col-span-1 space-y-4">
-                     <Table>
-                        <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                        <TableBody>{data.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody>
-                    </Table>
-                    {interpretation && (
-                        <Alert variant={interpretation.variant as any}>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>{interpretation.title}</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
-                        </Alert>
-                    )}
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                    <div className="xl:col-span-3">
+                        <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                                <TabsTrigger value="bar" className="flex items-center gap-2">
+                                    <BarChartIcon className="w-4 h-4"/>
+                                    <span className="hidden sm:inline">Bar</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="pie" className="flex items-center gap-2">
+                                    <PieChartIcon className="w-4 h-4"/>
+                                    <span className="hidden sm:inline">Pie</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="treemap" className="flex items-center gap-2">
+                                    <Grid3x3 className="w-4 h-4"/>
+                                    <span className="hidden sm:inline">Treemap</span>
+                                </TabsTrigger>
+                            </TabsList>
+                            
+                            <TabsContent value="bar" className="mt-0">
+                                <ChartContainer config={{}} className="w-full h-80">
+                                    <ResponsiveContainer>
+                                        <BarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                                            <XAxis type="number" dataKey="count" />
+                                            <YAxis 
+                                                dataKey="name" 
+                                                type="category" 
+                                                width={150}
+                                                tick={{ fontSize: 12 }}
+                                            />
+                                            <Tooltip 
+                                                content={<ChartTooltipContent 
+                                                    formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} 
+                                                />} 
+                                                cursor={{fill: 'hsl(var(--muted))', opacity: 0.1}} 
+                                            />
+                                            <Bar dataKey="count" name="Frequency" radius={[0, 8, 8, 0]}>
+                                                <LabelList 
+                                                    dataKey="count" 
+                                                    position="right" 
+                                                    style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }} 
+                                                />
+                                                {data.map((_entry: any, index: number) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </TabsContent>
+                            
+                            <TabsContent value="pie" className="mt-0">
+                                <ChartContainer config={{}} className="w-full h-80">
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Pie 
+                                                data={data} 
+                                                dataKey="count" 
+                                                nameKey="name" 
+                                                cx="50%" 
+                                                cy="50%" 
+                                                outerRadius={100}
+                                                label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}
+                                                labelLine={{stroke: '#94a3b8', strokeWidth: 1}}
+                                            >
+                                                {data.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </TabsContent>
+                            
+                            <TabsContent value="treemap" className="mt-0">
+                                <ChartContainer config={{}} className="w-full h-80">
+                                    <ResponsiveContainer>
+                                        <Treemap
+                                            data={data}
+                                            dataKey="count"
+                                            nameKey="name"
+                                            aspectRatio={16 / 9}
+                                            stroke="#fff"
+                                            content={<CustomizedTreemapContent />}
+                                        />
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+                    
+                    <div className="xl:col-span-2 space-y-4">
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Option</TableHead>
+                                        <TableHead className="text-right font-semibold">Count</TableHead>
+                                        <TableHead className="text-right font-semibold">%</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.map((item, index) => (
+                                        <TableRow key={`${item.name}-${index}`} className="hover:bg-muted/30 transition-colors">
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    <div 
+                                                        className="w-3 h-3 rounded-full" 
+                                                        style={{backgroundColor: COLORS[index % COLORS.length]}}
+                                                    />
+                                                    {item.name}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">{item.count}</TableCell>
+                                            <TableCell className="text-right font-mono font-semibold">
+                                                {item.percentage.toFixed(1)}%
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {interpretation && (
+                            <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                                <div className="flex gap-2">
+                                    {interpretation.icon}
+                                    <div className="flex-1">
+                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
+                                        <AlertDescription 
+                                            className="text-sm" 
+                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
+                                        />
+                                    </div>
+                                </div>
+                            </Alert>
+                        )}
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -329,26 +442,33 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 };
 
 
-
+// --- Enhanced Numeric Chart ---
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
     const interpretation = useMemo(() => {
         if (!data || isNaN(data.mean)) return null;
         let skewText = '';
+        let variant = 'default';
+        let icon = <BarChart3 className="h-4 w-4" />;
+        
         const skewness = data.skewness;
         if (!isNaN(skewness)) {
           if (Math.abs(skewness) > 1) {
-              skewText = `The distribution is <strong>highly ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}). This suggests the presence of outliers or a non-symmetrical pattern in responses.`;
+              skewText = `The distribution shows <strong>significant ${skewness > 0 ? 'right-skew' : 'left-skew'}</strong> (skewness = ${skewness.toFixed(2)}), indicating outliers or asymmetry.`;
+              variant = 'destructive';
+              icon = <AlertTriangle className="h-4 w-4" />;
           } else if (Math.abs(skewness) > 0.5) {
-              skewText = `The data is <strong>moderately ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`;
+              skewText = `The data shows <strong>moderate ${skewness > 0 ? 'right-skew' : 'left-skew'}</strong>.`;
           } else {
-              skewText = `The data appears to be roughly <strong>symmetrical</strong>.`;
+              skewText = `The data appears <strong>well-balanced and symmetrical</strong>.`;
+              icon = <CheckCircle className="h-4 w-4" />;
           }
         }
         
         return {
-            title: "Summary",
-            text: `The average response is <strong>${data.mean.toFixed(2)}</strong> with a standard deviation of <strong>${data.std.toFixed(2)}</strong>. ${skewText}`,
-            variant: Math.abs(skewness) > 1 ? "destructive" : "default"
+            title: "Statistical Summary",
+            text: `Average: <strong>${data.mean.toFixed(2)}</strong> | Std Dev: <strong>${data.std.toFixed(2)}</strong>. ${skewText}`,
+            variant,
+            icon
         };
     }, [data]);
     
@@ -359,64 +479,132 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
             <CardTitle>{title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>No data available for this numeric question.</p>
+            <p className="text-muted-foreground">No data available for this numeric question.</p>
           </CardContent>
         </Card>
       );
     }
     
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>{title}</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={onDownload}
+                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-64">
-                    <ResponsiveContainer>
-                        <BarChart data={data.histogram}>
-                            <CartesianGrid />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={50} />
-                            <YAxis />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-                <div className="space-y-4">
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{data.mean.toFixed(3)}</TableCell></TableRow>
-                            <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{data.median}</TableCell></TableRow>
-                            <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{data.std.toFixed(3)}</TableCell></TableRow>
-                            <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{data.count}</TableCell></TableRow>
-                        </TableBody>
-                    </Table>
-                    {interpretation && (
-                        <Alert variant={interpretation.variant as any}>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>{interpretation.title}</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
-                        </Alert>
-                    )}
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                    <div className="xl:col-span-3">
+                        <ChartContainer config={{count: {label: 'Frequency'}}} className="w-full h-80">
+                            <ResponsiveContainer>
+                                <BarChart data={data.histogram}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        angle={-45} 
+                                        textAnchor="end" 
+                                        height={80}
+                                        fontSize={11}
+                                    />
+                                    <YAxis />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar 
+                                        dataKey="count" 
+                                        name="Frequency" 
+                                        fill="url(#colorGradient)" 
+                                        radius={[8, 8, 0, 0]}
+                                    />
+                                    <defs>
+                                        <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#6366f1" stopOpacity={1}/>
+                                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                                        </linearGradient>
+                                    </defs>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+                    
+                    <div className="xl:col-span-2 space-y-4">
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Metric</TableHead>
+                                        <TableHead className="text-right font-semibold">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Mean</TableCell>
+                                        <TableCell className="text-right font-mono text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+                                            {data.mean.toFixed(3)}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Median</TableCell>
+                                        <TableCell className="text-right font-mono">{data.median.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Std. Deviation</TableCell>
+                                        <TableCell className="text-right font-mono">{data.std.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Total Responses</TableCell>
+                                        <TableCell className="text-right font-mono font-semibold">{data.count}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {interpretation && (
+                            <Alert className={cn(
+                                "border-l-4",
+                                interpretation.variant === 'destructive' 
+                                    ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
+                                    : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                            )}>
+                                <div className="flex gap-2">
+                                    {interpretation.icon}
+                                    <div className="flex-1">
+                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
+                                        <AlertDescription 
+                                            className="text-sm" 
+                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
+                                        />
+                                    </div>
+                                </div>
+                            </Alert>
+                        )}
+                    </div>
                 </div>
             </CardContent>
         </Card>
     );
 };
 
+// --- Enhanced Rating Chart ---
 const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number, mean: number, std: number }, title: string, onDownload: () => void }) => {
     if (!data || data.values.length === 0) {
         return (
             <Card>
                 <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-                <CardContent><p>No data available for this rating question.</p></CardContent>
+                <CardContent><p className="text-muted-foreground">No data available for this rating question.</p></CardContent>
             </Card>
         );
     }
+    
     const ratingCounts: {[key: number]: number} = {};
     const scale = Array.from({length: 5}, (_, i) => i + 1);
     scale.forEach(s => ratingCounts[s] = 0);
@@ -438,57 +626,119 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
     const interpretation = useMemo(() => {
         if (!tableData || tableData.length === 0) return null;
         const mode = tableData.reduce((prev, current) => (prev.count > current.count) ? prev : current);
+        let sentiment = '';
+        let variant = 'default';
+        
+        if (averageRating >= 4) {
+            sentiment = 'excellent';
+            variant = 'success';
+        } else if (averageRating >= 3) {
+            sentiment = 'good';
+            variant = 'default';
+        } else {
+            sentiment = 'needs improvement';
+            variant = 'warning';
+        }
+        
         return {
-            title: "Summary",
-            text: `The average rating is <strong>${averageRating.toFixed(2)} out of 5</strong>. The most common rating was <strong>${mode.name} stars</strong>, given by <strong>${mode.percentage.toFixed(1)}%</strong> of respondents.`,
-            variant: "default"
+            title: "Rating Analysis",
+            text: `Average rating of <strong>${averageRating.toFixed(2)}/5.0</strong> indicates <strong>${sentiment}</strong> performance. Most common rating: <strong>${mode.name} stars</strong> (${mode.percentage.toFixed(1)}%).`,
+            variant,
+            icon: <Star className="h-4 w-4" />
         };
     }, [tableData, averageRating]);
 
     return (
-        <Card>
-            <CardHeader>
-                 <div className="flex justify-between items-center">
-                    <CardTitle>{title}</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                 <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Star rating distribution</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={onDownload}
+                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div className="flex flex-col items-center justify-center">
-                    <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
-                    <div className="flex items-center mt-2">
-                        {[...Array(5)].map((_, i) => (
-                           <Star key={i} className={cn("w-7 h-7 text-yellow-300", averageRating > i && "fill-yellow-400")} />
-                        ))}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
-                </div>
-                 <div className="space-y-4">
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Rating</TableHead>
-                                <TableHead className="text-right">Count</TableHead>
-                                <TableHead className="text-right">%</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {tableData.map((item) => (
-                                <TableRow key={item.name}>
-                                    <TableCell>{item.name}</TableCell>
-                                    <TableCell className="text-right">{item.count}</TableCell>
-                                    <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
-                                </TableRow>
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+                        <p className="text-7xl font-bold bg-gradient-to-br from-amber-500 to-orange-600 bg-clip-text text-transparent">
+                            {averageRating.toFixed(1)}
+                        </p>
+                        <div className="flex items-center mt-4 gap-1">
+                            {[...Array(5)].map((_, i) => (
+                               <Star 
+                                   key={i} 
+                                   className={cn(
+                                       "w-8 h-8 transition-all",
+                                       averageRating > i 
+                                           ? "fill-amber-400 text-amber-400" 
+                                           : "text-gray-300"
+                                   )} 
+                               />
                             ))}
-                        </TableBody>
-                    </Table>
-                      {interpretation && (
-                        <Alert variant={interpretation.variant as any}>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>{interpretation.title}</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
-                        </Alert>
-                    )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-3 font-medium">Average Rating</p>
+                        <p className="text-xs text-muted-foreground">Based on {data.count} responses</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Rating</TableHead>
+                                        <TableHead className="text-right font-semibold">Count</TableHead>
+                                        <TableHead className="text-right font-semibold">Percentage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {tableData.reverse().map((item) => (
+                                        <TableRow key={item.name} className="hover:bg-muted/30">
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex">
+                                                        {[...Array(parseInt(item.name))].map((_, i) => (
+                                                            <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">{item.count}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Progress value={item.percentage} className="w-20 h-2" />
+                                                    <span className="font-mono text-sm w-12">{item.percentage.toFixed(1)}%</span>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {interpretation && (
+                            <Alert className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+                                <div className="flex gap-2">
+                                    {interpretation.icon}
+                                    <div className="flex-1">
+                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
+                                        <AlertDescription 
+                                            className="text-sm" 
+                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
+                                        />
+                                    </div>
+                                </div>
+                            </Alert>
+                        )}
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -496,34 +746,31 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
 };
 
 
+// --- Enhanced NPS Chart ---
 const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promoters: number; passives: number; detractors: number; total: number, interpretation: string }, title: string, onDownload: () => void }) => {
     const GaugeChart = ({ score }: { score: number }) => {
       const getLevel = (s: number) => {
-        if (s >= 70) return { level: 'Excellent', color: '#10b981' };  // 초록
-        if (s >= 50) return { level: 'Good', color: '#eab308' };       // 노랑
-        if (s >= 30) return { level: 'Fair', color: '#f97316' };       // 주황 (겹치지 않게)
-        return { level: 'Needs Improvement', color: '#ef4444' };       // 빨강
+        if (s >= 70) return { level: 'Excellent', color: '#10b981', gradient: 'from-emerald-500 to-teal-600' };
+        if (s >= 50) return { level: 'Good', color: '#eab308', gradient: 'from-amber-500 to-yellow-600' };
+        if (s >= 30) return { level: 'Fair', color: '#f97316', gradient: 'from-orange-500 to-amber-600' };
+        return { level: 'Needs Improvement', color: '#ef4444', gradient: 'from-rose-500 to-pink-600' };
       };
 
-
-
-
-
-      const { level, color } = getLevel(score);
+      const { level, color, gradient } = getLevel(score);
       const gaugeValue = score + 100;
       const gaugeData = [{ value: gaugeValue }, { value: 200 - gaugeValue }];
 
       return (
         <div className="relative flex flex-col items-center justify-center">
-          <PieChart width={300} height={200}>
+          <PieChart width={320} height={200}>
             <Pie
               data={gaugeData}
-              cx={150}
-              cy={150}
+              cx={160}
+              cy={160}
               startAngle={180}
               endAngle={0}
-              innerRadius={80}
-              outerRadius={120}
+              innerRadius={90}
+              outerRadius={130}
               dataKey="value"
               paddingAngle={0}
             >
@@ -532,11 +779,11 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
             </Pie>
           </PieChart>
           
-          <div className="absolute top-24 flex flex-col items-center">
-            <div className="text-5xl font-bold" style={{ color }}>
+          <div className="absolute top-28 flex flex-col items-center">
+            <div className={cn("text-6xl font-bold bg-gradient-to-r bg-clip-text text-transparent", gradient)}>
               {Math.round(score)}
             </div>
-            <div className="text-lg text-gray-600 mt-2">
+            <div className="text-base text-muted-foreground mt-2 font-medium">
               {level}
             </div>
           </div>
@@ -547,51 +794,110 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
     const formattedInterpretation = data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-                <CardTitle>{title}</CardTitle>
-                <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+            <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                    <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">Net Promoter Score analysis</p>
+                </div>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onDownload}
+                    className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                >
+                    <Download className="w-4 h-4" />
+                </Button>
             </div>
           </CardHeader>
-           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div className="flex flex-col items-center justify-center">
-                    <GaugeChart score={data.npsScore} />
-                    <div className="mt-4 space-y-2 text-sm text-gray-700 text-center">
-                        <p><strong>NPS Score</strong> is calculated as<br/>(% Promoters - % Detractors).</p>
+           <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+                        <GaugeChart score={data.npsScore} />
+                        <div className="mt-6 space-y-2 text-sm text-center max-w-xs">
+                            <p className="text-muted-foreground">
+                                <strong className="text-foreground">NPS Score</strong> measures customer loyalty
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Calculated as (% Promoters − % Detractors)
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div className="space-y-4">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Group</TableHead>
-                                <TableHead className="text-right">Count</TableHead>
-                                <TableHead className="text-right">Percentage</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell><Badge className="bg-green-500 hover:bg-green-600">Promoters (9-10)</Badge></TableCell>
-                                <TableCell className="text-right font-mono">{data.promoters}</TableCell>
-                                <TableCell className="text-right font-mono">{data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Passives (7-8)</Badge></TableCell>
-                                <TableCell className="text-right font-mono">{data.passives}</TableCell>
-                                <TableCell className="text-right font-mono">{data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell><Badge variant="destructive">Detractors (0-6)</Badge></TableCell>
-                                <TableCell className="text-right font-mono">{data.detractors}</TableCell>
-                                <TableCell className="text-right font-mono">{data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Alert>
-                        <AlertTitle className="flex items-center gap-2"> <Info className="inline-block align-middle h-4 w-4 text-500" /> Summary                        </AlertTitle>
-                        <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
-                    </Alert>
+                    
+                    <div className="space-y-4">
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Segment</TableHead>
+                                        <TableHead className="text-right font-semibold">Count</TableHead>
+                                        <TableHead className="text-right font-semibold">Percentage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow className="hover:bg-emerald-50/30 dark:hover:bg-emerald-950/10">
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                                                <span className="font-medium">Promoters</span>
+                                                <span className="text-xs text-muted-foreground">(9-10)</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono font-semibold">{data.promoters}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge className="bg-emerald-500 hover:bg-emerald-600">
+                                                {data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-amber-50/30 dark:hover:bg-amber-950/10">
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                                                <span className="font-medium">Passives</span>
+                                                <span className="text-xs text-muted-foreground">(7-8)</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono font-semibold">{data.passives}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge className="bg-amber-500 hover:bg-amber-600">
+                                                {data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-rose-50/30 dark:hover:bg-rose-950/10">
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-rose-500" />
+                                                <span className="font-medium">Detractors</span>
+                                                <span className="text-xs text-muted-foreground">(0-6)</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono font-semibold">{data.detractors}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant="destructive">
+                                                {data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                            <div className="flex gap-2">
+                                <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <AlertTitle className="text-sm font-semibold mb-1">Analysis Summary</AlertTitle>
+                                    <AlertDescription 
+                                        className="text-sm" 
+                                        dangerouslySetInnerHTML={{ __html: formattedInterpretation }} 
+                                    />
+                                </div>
+                            </div>
+                        </Alert>
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -599,7 +905,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
 };
 
 
-
+// --- Text Responses Display (keeping similar structure with minor enhancements) ---
 const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], title: string, onDownload: () => void }) => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -637,44 +943,78 @@ const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], tit
     performAnalysis(newExcludedWords);
   };
 
-  if (isLoading) return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><Skeleton className="h-64" /></CardContent></Card>;
+  if (isLoading) return (
+    <Card className="border-0 shadow-lg">
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent><Skeleton className="h-64" /></CardContent>
+    </Card>
+  );
+  
   if (!analysisResult) return null;
 
   return (
-    <Card>
-        <CardHeader>
-            <div className="flex justify-between items-center">
-                <CardTitle>{title}</CardTitle>
-                <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+    <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+            <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                    <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">Text analysis and word frequency</p>
+                </div>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onDownload}
+                    className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                >
+                    <Download className="w-4 h-4" />
+                </Button>
             </div>
         </CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-6">
-            <div>
-                {plotData ? (
-                    <Plot
-                        data={plotData.data}
-                        layout={plotData.layout}
-                        useResizeHandler
-                        className="w-full h-[300px]"
-                    />
-                ) : <Skeleton className="h-[300px] w-full" />}
-            </div>
-            <div>
-                <h3 className="font-semibold text-center mb-2">Word Frequency</h3>
-                <ScrollArea className="h-[300px] border rounded-md">
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Frequency</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {Object.entries(analysisResult.frequencies).map(([word, count]) => (
-                                <TableRow key={word}>
-                                    <TableCell>{word}</TableCell>
-                                    <TableCell className="text-right">{count as number}</TableCell>
-                                    <TableCell><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleWordDelete(word)}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell>
+        <CardContent className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="rounded-lg border bg-card p-4">
+                    {plotData ? (
+                        <Plot
+                            data={plotData.data}
+                            layout={plotData.layout}
+                            useResizeHandler
+                            className="w-full h-[300px]"
+                        />
+                    ) : <Skeleton className="h-[300px] w-full" />}
+                </div>
+                
+                <div>
+                    <h3 className="font-semibold text-center mb-3 text-sm">Word Frequency Analysis</h3>
+                    <ScrollArea className="h-[300px] border rounded-lg">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-background">
+                                <TableRow className="bg-muted/50">
+                                    <TableHead className="font-semibold">Word</TableHead>
+                                    <TableHead className="text-right font-semibold">Frequency</TableHead>
+                                    <TableHead className="w-12"></TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
+                            </TableHeader>
+                            <TableBody>
+                                {Object.entries(analysisResult.frequencies).map(([word, count]) => (
+                                    <TableRow key={word} className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">{word}</TableCell>
+                                        <TableCell className="text-right font-mono">{count as number}</TableCell>
+                                        <TableCell>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-7 w-7 hover:bg-destructive/10" 
+                                                onClick={() => handleWordDelete(word)}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5 text-destructive"/>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </div>
             </div>
         </CardContent>
     </Card>
@@ -682,6 +1022,7 @@ const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], tit
 };
 
 
+// --- Best Worst Chart (keeping similar with enhancements) ---
 const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], interpretation: string }, title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
@@ -697,45 +1038,83 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
     const formattedInterpretation = data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
-        <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                   <CardTitle>{title}</CardTitle>
-                   <div className="flex items-top gap-2">
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+              <div className="flex justify-between items-start">
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Best-Worst scaling analysis</p>
+                   </div>
+                   <div className="flex items-center gap-2">
                        <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
-                            <TabsList>
-                                <TabsTrigger value="net_score">Net Score</TabsTrigger>
-                                <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
+                            <TabsList className="h-9">
+                                <TabsTrigger value="net_score" className="text-xs">Net Score</TabsTrigger>
+                                <TabsTrigger value="best_vs_worst" className="text-xs">Best vs Worst</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={onDownload}
+                            className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                        >
+                            <Download className="w-4 h-4" />
+                        </Button>
                    </div>
                 </div>
             </CardHeader>
-            <CardContent>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <ChartContainer config={{}} className="w-full h-[300px]">
+            <CardContent className="p-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <ChartContainer config={{}} className="w-full h-[350px]">
                         <ResponsiveContainer>
                             {chartType === 'net_score' ? (
-                                <BarChart data={[...chartData].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
-                                    <YAxis type="category" dataKey="name" width={100} />
+                                <BarChart data={[...chartData].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                                    <YAxis 
+                                        type="category" 
+                                        dataKey="name" 
+                                        width={150}
+                                        tick={{ fontSize: 12 }}
+                                    />
                                     <XAxis type="number" />
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
-                                    <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))">
-                                        <LabelList dataKey="netScore" position="right" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                    <Bar dataKey="netScore" name="Net Score" fill="url(#netScoreGradient)" radius={[0, 8, 8, 0]}>
+                                        <LabelList 
+                                            dataKey="netScore" 
+                                            position="right" 
+                                            formatter={(value: number) => `${value.toFixed(1)}%`} 
+                                            style={{ fontSize: 11, fontWeight: 600 }} 
+                                        />
                                     </Bar>
+                                    <defs>
+                                        <linearGradient id="netScoreGradient" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#6366f1" />
+                                            <stop offset="100%" stopColor="#8b5cf6" />
+                                        </linearGradient>
+                                    </defs>
                                 </BarChart>
                             ) : (
-                                <BarChart data={chartData} margin={{ left: 20 }}>
+                                <BarChart data={chartData} margin={{ left: 20, bottom: 60 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
                                     <YAxis />
-                                    <XAxis type="category" dataKey="name" />
+                                    <XAxis type="category" dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={11} />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
                                     <Legend />
-                                    <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))">
-                                        <LabelList dataKey="bestPct" position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                    <Bar dataKey="bestPct" name="Best %" fill="#10b981" radius={[8, 8, 0, 0]}>
+                                        <LabelList 
+                                            dataKey="bestPct" 
+                                            position="top" 
+                                            formatter={(value: number) => `${value.toFixed(1)}%`} 
+                                            style={{ fontSize: 10 }} 
+                                        />
                                     </Bar>
-                                    <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))">
-                                        <LabelList dataKey="worstPct" position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                    <Bar dataKey="worstPct" name="Worst %" fill="#ef4444" radius={[8, 8, 0, 0]}>
+                                        <LabelList 
+                                            dataKey="worstPct" 
+                                            position="top" 
+                                            formatter={(value: number) => `${value.toFixed(1)}%`} 
+                                            style={{ fontSize: 10 }} 
+                                        />
                                     </Bar>
                                 </BarChart>
                             )}
@@ -743,29 +1122,44 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                     </ChartContainer>
                     
                     <div className="space-y-4">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Item</TableHead>
-                                    <TableHead className="text-right">Net Score</TableHead>
-                                    <TableHead className="text-right">Best %</TableHead>
-                                    <TableHead className="text-right">Worst %</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {[...chartData].sort((a, b) => b.netScore - a.netScore).map(item => (
-                                    <TableRow key={item.name}>
-                                        <TableCell>{item.name}</TableCell>
-                                        <TableCell className="text-right font-mono">{item.netScore.toFixed(1)}</TableCell>
-                                        <TableCell className="text-right font-mono">{item.bestPct.toFixed(1)}%</TableCell>
-                                        <TableCell className="text-right font-mono">{item.worstPct.toFixed(1)}%</TableCell>
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Item</TableHead>
+                                        <TableHead className="text-right font-semibold">Net Score</TableHead>
+                                        <TableHead className="text-right font-semibold">Best %</TableHead>
+                                        <TableHead className="text-right font-semibold">Worst %</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                         <Alert>
-                            <AlertTitle className="flex items-center gap-2"> <Info className="inline-block align-middle h-4 w-4 text-500" /> Summary</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation}} />
+                                </TableHeader>
+                                <TableBody>
+                                    {[...chartData].sort((a, b) => b.netScore - a.netScore).map(item => (
+                                        <TableRow key={item.name} className="hover:bg-muted/30">
+                                            <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell className="text-right font-mono font-semibold">{item.netScore.toFixed(1)}</TableCell>
+                                            <TableCell className="text-right font-mono text-emerald-600 dark:text-emerald-400">
+                                                {item.bestPct.toFixed(1)}%
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono text-rose-600 dark:text-rose-400">
+                                                {item.worstPct.toFixed(1)}%
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                            <div className="flex gap-2">
+                                <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <AlertTitle className="text-sm font-semibold mb-1">Analysis Summary</AlertTitle>
+                                    <AlertDescription 
+                                        className="text-sm" 
+                                        dangerouslySetInnerHTML={{ __html: formattedInterpretation}} 
+                                    />
+                                </div>
+                            </div>
                         </Alert>
                     </div>
                 </div>
@@ -775,6 +1169,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
 };
 
 
+// --- Matrix Chart (keeping similar with enhancements) ---
 const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const [tableFormat, setTableFormat] = useState('counts');
@@ -801,27 +1196,27 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                 return { row: rowName, avgScore: totalCount > 0 ? totalScore / totalCount : 0 };
             }).sort((a,b) => b.avgScore - a.avgScore);
 
-            if (averageScores.length < 2) return { title: "Not enough data for summary.", text: "", variant: "default"};
+            if (averageScores.length < 2) return { title: "Not enough data", text: "", variant: "default"};
             const highest = averageScores[0];
             const lowest = averageScores[averageScores.length - 1];
             
             detailedBreakdown = data.rows.map((rowName: string) => {
                 const rowData = data.heatmapData[rowName];
                 const totalResponses = Object.values(rowData).reduce((acc: number, val: any) => acc + val, 0);
-                if (totalResponses === 0) return `For <strong>'${rowName}'</strong>, there were no responses.`;
+                if (totalResponses === 0) return `<strong>'${rowName}'</strong>: No responses`;
                 
                 const distributionData = Object.entries(rowData).map(([col, count]) => ({
                     col,
                     pct: (count as number / totalResponses * 100)
                 })).sort((a,b) => b.pct - a.pct);
                 
-                return `For <strong>'${rowName}'</strong>, the response distribution was: ${distributionData.map(d => `'${d.col}' (${d.pct.toFixed(1)}%)`).join(', ')}.`;
+                return `<strong>'${rowName}'</strong>: ${distributionData.map(d => `${d.col} (${d.pct.toFixed(1)}%)`).join(', ')}`;
 
-            }).join('<br><br>');
+            }).join('<br>');
 
              return {
-                title: "Performance Summary",
-                text: `<strong>Overall: '${highest.row}'</strong> received the highest average rating (${highest.avgScore.toFixed(2)}), while <strong>'${lowest.row}'</strong> received the lowest (${lowest.avgScore.toFixed(2)}). <br><br><strong>Detailed Breakdown:</strong><br>${detailedBreakdown}`,
+                title: "Performance Comparison",
+                text: `<strong>Top performer:</strong> '${highest.row}' (avg: ${highest.avgScore.toFixed(2)})<br><strong>Needs attention:</strong> '${lowest.row}' (avg: ${lowest.avgScore.toFixed(2)})<br><br>${detailedBreakdown}`,
                 variant: 'default',
             }
 
@@ -829,7 +1224,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
             detailedBreakdown = data.rows.map((rowName: string) => {
                 const rowData = data.heatmapData[rowName];
                 const totalResponses = Object.values(rowData).reduce((acc: number, val: any) => acc + val, 0);
-                if (totalResponses === 0) return `For <strong>'${rowName}'</strong>, there were no responses.`;
+                if (totalResponses === 0) return `<strong>'${rowName}'</strong>: No responses`;
                 
                 const distributionData = Object.entries(rowData).map(([col, count]) => ({
                     col,
@@ -839,10 +1234,11 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                 
                 const mostCommon = distributionData[0];
 
-                 return `For <strong>'${rowName}'</strong>, the most common response was <strong>'${mostCommon.col}'</strong> (${mostCommon.pct.toFixed(1)}%).`;
+                 return `<strong>'${rowName}'</strong>: Most common response was <strong>'${mostCommon.col}'</strong> (${mostCommon.pct.toFixed(1)}%)`;
             }).join('<br>');
+            
              return {
-                title: "Summary",
+                title: "Response Distribution",
                 text: detailedBreakdown,
                 variant: 'default',
             };
@@ -867,7 +1263,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                      return `${((count / colTotals[colIndex]) * 100 || 0).toFixed(1)}%`;
                 case 'total_percent':
                      return `${((count / total) * 100 || 0).toFixed(1)}%`;
-                default: // counts
+                default:
                     return count;
             }
         };
@@ -877,7 +1273,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                 case 'row_percent':
                     return '100.0%';
                 case 'col_percent':
-                    return ''; // 열 % 모드에서는 행 합계 숨김
+                    return '';
                 case 'total_percent':
                     return ((rowTotals[rowIndex] / total) * 100 || 0).toFixed(1) + '%';
                 default:
@@ -888,7 +1284,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         const getColTotal = (colIndex: number) => {
             switch(tableFormat) {
                 case 'row_percent':
-                    return ''; // 행%/열% 모드에서는 열 합계 숨김
+                    return '';
                 case 'col_percent':
                     return '100.0%';
                 case 'total_percent':
@@ -902,7 +1298,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
             switch(tableFormat) {
                 case 'row_percent':
                 case 'col_percent':
-                    return ''; // 행%/열% 모드에서는 전체 합계 숨김
+                    return '';
                 case 'total_percent':
                     return '100.0%';
                 default:
@@ -913,23 +1309,27 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         return (
              <Table>
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>{title}</TableHead>
-                        {columns.map((c: string) => <TableHead key={c} className="text-right">{c}</TableHead>)}
-                        <TableHead className="text-right font-bold">Total</TableHead>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="font-semibold">{title}</TableHead>
+                        {columns.map((c: string) => <TableHead key={c} className="text-right font-semibold">{c}</TableHead>)}
+                        <TableHead className="text-right font-semibold">Total</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {rows.map((r: string, rowIndex: number) => (
-                        <TableRow key={r}>
-                            <TableHead>{r}</TableHead>
-                            {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
+                        <TableRow key={r} className="hover:bg-muted/30">
+                            <TableHead className="font-medium">{r}</TableHead>
+                            {columns.map((c: string, colIndex: number) => 
+                                <TableCell key={c} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>
+                            )}
                             <TableCell className="text-right font-bold font-mono">{getRowTotal(rowIndex)}</TableCell>
                         </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted/50">
-                        <TableHead>Total</TableHead>
-                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>)}
+                        <TableHead className="font-semibold">Total</TableHead>
+                         {columns.map((c: string, colIndex: number) => 
+                             <TableCell key={c} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>
+                         )}
                         <TableCell className="text-right font-mono">{getGrandTotal()}</TableCell>
                     </TableRow>
                 </TableBody>
@@ -938,70 +1338,107 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
     }
     
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>{title}</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Matrix question analysis</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={onDownload}
+                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
                 </div>
             </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
-                        <TabsList>
-                            <TabsTrigger value="stacked">Stacked</TabsTrigger>
-                            <TabsTrigger value="grouped">Grouped</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="stacked">
-                            <ChartContainer config={{}} className="w-full h-[400px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={data.chartData} layout="vertical" margin={{ left: 100 }}>
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mb-4">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="stacked">Stacked View</TabsTrigger>
+                                <TabsTrigger value="grouped">Grouped View</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        
+                        <ChartContainer config={{}} className="w-full h-[400px]">
+                            <ResponsiveContainer>
+                                {chartType === 'stacked' ? (
+                                    <BarChart data={data.chartData} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                         <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
-                                        <YAxis type="category" dataKey="name" width={120} />
+                                        <YAxis 
+                                            type="category" 
+                                            dataKey="name" 
+                                            width={150}
+                                            tick={{ fontSize: 12 }}
+                                        />
                                         <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
                                         <Legend />
                                         {data.columns.map((col: string, i: number) => (
                                             <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]}>
-                                                <LabelList dataKey={`${col}_pct`} position="center" formatter={(value: number) => value > 5 ? `${value.toFixed(1)}%` : ''} style={{ fill: '#fff', fontSize: 12, fontWeight: 'bold' }} />
+                                                <LabelList 
+                                                    dataKey={`${col}_pct`} 
+                                                    position="center" 
+                                                    formatter={(value: number) => value > 5 ? `${value.toFixed(0)}%` : ''} 
+                                                    style={{ fill: '#fff', fontSize: 11, fontWeight: 600 }} 
+                                                />
                                             </Bar>
                                         ))}
                                     </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </TabsContent>
-                        <TabsContent value="grouped">
-                            <ChartContainer config={{}} className="w-full h-[400px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={data.chartData}>
-                                        <XAxis dataKey="name" />
+                                ) : (
+                                    <BarChart data={data.chartData} margin={{ bottom: 60 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={11} />
                                         <YAxis unit="%"/>
                                         <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
                                         <Legend />
                                         {data.columns.map((col: string, i: number) => (
-                                            <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]}>
-                                                <LabelList dataKey={`${col}_pct`} position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                            <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]} radius={[8, 8, 0, 0]}>
+                                                <LabelList 
+                                                    dataKey={`${col}_pct`} 
+                                                    position="top" 
+                                                    formatter={(value: number) => `${value.toFixed(0)}%`} 
+                                                    style={{ fontSize: 10 }} 
+                                                />
                                             </Bar>
                                         ))}
                                     </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </TabsContent>
-                    </Tabs>
-                    <div className="overflow-x-auto space-y-4">
+                                )}
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+                    
+                    <div className="space-y-4">
                         <Tabs value={tableFormat} onValueChange={setTableFormat} className="w-full">
-                            <TabsList>
-                                <TabsTrigger value="counts">Counts</TabsTrigger>
-                                <TabsTrigger value="row_percent">Row %</TabsTrigger>
-                                <TabsTrigger value="col_percent">Col %</TabsTrigger>
-                                <TabsTrigger value="total_percent">Total %</TabsTrigger>
+                            <TabsList className="grid w-full grid-cols-4">
+                                <TabsTrigger value="counts" className="text-xs">Counts</TabsTrigger>
+                                <TabsTrigger value="row_percent" className="text-xs">Row %</TabsTrigger>
+                                <TabsTrigger value="col_percent" className="text-xs">Col %</TabsTrigger>
+                                <TabsTrigger value="total_percent" className="text-xs">Total %</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        {renderContingencyTable()}
+                        
+                        <div className="overflow-x-auto rounded-lg border bg-card">
+                            {renderContingencyTable()}
+                        </div>
+                        
                          {interpretation && (
-                            <Alert variant={interpretation.variant as any}>
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>{interpretation.title}</AlertTitle>
-                                <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                            <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                                <div className="flex gap-2">
+                                    <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1">
+                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
+                                        <AlertDescription 
+                                            className="text-sm" 
+                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
+                                        />
+                                    </div>
+                                </div>
                             </Alert>
                         )}
                     </div>
@@ -1082,86 +1519,137 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     }, []);
 
     if (loading) {
-        return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
+        return (
+            <div className="space-y-6 p-4 md:p-6">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-96 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+        );
     }
 
     if (!survey) {
-        return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>Survey not found.</AlertDescription></Alert>;
+        return (
+            <Alert variant="destructive" className="m-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>Survey not found.</AlertDescription>
+            </Alert>
+        );
     }
     
     const tabs = [
-        { key: 'results', label: 'Results' },
-        ...specialAnalyses,
-        { key: 'further_analysis', label: 'Further Analysis' }
+        { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
+        ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
+        { key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> }
     ];
 
     return (
-        <div className="space-y-6 p-4 md:p-6">
-            <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" onClick={() => router.push("/dashboard/survey2")}>
-                    <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <div>
-                    <h1 className="font-headline text-3xl">{survey.title}</h1>
-                    <p className="text-muted-foreground">
-                        A summary of <Badge variant="secondary">{responses.length} responses</Badge>.
-                    </p>
-                </div>
-            </div>
-            
-             <Tabs defaultValue="results" className="w-full">
-                <TabsList>
-                    {tabs.map(tab => <TabsTrigger key={tab.key} value={tab.key}>{tab.label}</TabsTrigger>)}
-                </TabsList>
-                <TabsContent value="results" className="mt-4">
-                    <div className="space-y-6">
-                        {analysisData.map((result, index) => {
-                            if (!result || !result.data) return null;
-                            const chartId = `chart-${index}`;
-                            return (
-                                <div key={index} ref={el => chartRefs.current[chartId] = el}>
-                                {(() => {
-                                    switch (result.type) {
-                                        case 'categorical':
-                                            return <CategoricalChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
-                                        case 'numeric':
-                                            return <NumericChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
-                                        case 'rating':
-                                            return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
-                                        case 'nps':
-                                            return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
-                                        case 'text':
-                                             return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
-                                        case 'best-worst':
-                                            return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
-                                        case 'matrix':
-                                            return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
-                                        default:
-                                            return null;
-                                    }
-                                })()}
-                                </div>
-                            );
-                        })}
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <div className="max-w-7xl mx-auto space-y-8 p-4 md:p-8">
+                {/* Header Section */}
+                <div className="flex items-start gap-6">
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => router.push("/dashboard/survey2")}
+                        className="mt-1 shrink-0"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="flex-1 space-y-3">
+                        <div>
+                            <h1 className="font-headline text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                                {survey.title}
+                            </h1>
+                            <p className="text-muted-foreground mt-2 flex items-center gap-2">
+                                Analysis summary based on
+                                <Badge variant="secondary" className="font-semibold">
+                                    <Users className="w-3 h-3 mr-1" />
+                                    {responses.length} responses
+                                </Badge>
+                            </p>
+                        </div>
                     </div>
-                </TabsContent>
-                {specialAnalyses.map(analysis => (
-                    <TabsContent key={analysis.key} value={analysis.key} className="mt-4">
-                        {analysis.component}
+                </div>
+                
+                {/* Tabs Section */}
+                <Tabs defaultValue="results" className="w-full">
+                    <TabsList className="inline-flex h-11 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground w-full overflow-x-auto">
+                        {tabs.map(tab => (
+                            <TabsTrigger 
+                                key={tab.key} 
+                                value={tab.key}
+                                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow gap-2"
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    
+                    <TabsContent value="results" className="mt-8">
+                        <div className="space-y-8">
+                            {analysisData.map((result, index) => {
+                                if (!result || !result.data) return null;
+                                const chartId = `chart-${index}`;
+                                return (
+                                    <div key={index} ref={el => chartRefs.current[chartId] = el}>
+                                    {(() => {
+                                        switch (result.type) {
+                                            case 'categorical':
+                                                return <CategoricalChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
+                                            case 'numeric':
+                                                return <NumericChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
+                                            case 'rating':
+                                                return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                            case 'nps':
+                                                return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                            case 'text':
+                                                 return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
+                                            case 'best-worst':
+                                                return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                            case 'matrix':
+                                                return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                            default:
+                                                return null;
+                                        }
+                                    })()}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </TabsContent>
-                ))}
-                <TabsContent value="further_analysis" className="mt-4">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Further Analysis</CardTitle>
-                            <CardDescription>This section is under construction. More advanced analysis tools are coming soon!</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <p className="text-muted-foreground">Stay tuned for updates.</p>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                    
+                    {specialAnalyses.map(analysis => (
+                        <TabsContent key={analysis.key} value={analysis.key} className="mt-8">
+                            {analysis.component}
+                        </TabsContent>
+                    ))}
+                    
+                    <TabsContent value="further_analysis" className="mt-8">
+                         <Card className="border-0 shadow-lg">
+                            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+                                <div className="flex items-center gap-2">
+                                    <BeakerIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                                    <CardTitle>Further Analysis</CardTitle>
+                                </div>
+                                <CardDescription>Advanced analysis tools coming soon</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-8">
+                                <div className="text-center space-y-4">
+                                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950 dark:to-purple-950">
+                                        <Sparkles className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <p className="text-muted-foreground max-w-md mx-auto">
+                                        We're working on bringing you more powerful analysis capabilities. Stay tuned for updates!
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     );
 }

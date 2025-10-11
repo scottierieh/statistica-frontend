@@ -7,8 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function RegisterPage() {
+    const [agreed, setAgreed] = useState(false);
+
     return (
         <div className="flex items-center justify-center min-h-screen bg-muted/40">
             <Card className="w-full max-w-sm">
@@ -33,9 +37,26 @@ export default function RegisterPage() {
                         <Label htmlFor="password">Password</Label>
                         <Input id="password" type="password" required />
                     </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked as boolean)} />
+                        <label
+                            htmlFor="terms"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            I agree to the{' '}
+                            <Link href="#" className="underline text-primary">
+                                Terms of Service
+                            </Link>{' '}
+                            and{' '}
+                            <Link href="#" className="underline text-primary">
+                                Privacy Policy
+                            </Link>
+                            .
+                        </label>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <Button className="w-full">Create Account</Button>
+                    <Button className="w-full" disabled={!agreed}>Create Account</Button>
                      <div className="text-center text-sm">
                         Already have an account?{' '}
                         <Link href="/login" className="underline">
