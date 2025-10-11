@@ -435,7 +435,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
     
     return (
         <div className="p-3 rounded-lg bg-background shadow-sm">
-            <h3 className="text-base font-semibold mb-3">{question.title}</h3>
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
             
              <div className="bg-blue-50 border-l-4 border-blue-500 p-2 rounded-md mb-4">
@@ -589,7 +589,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-[126mm] h-[178mm] p-0 bg-white shadow-2xl rounded-lg',
+    desktop: 'w-full aspect-[4/3] max-h-[90%] p-0 bg-white shadow-2xl rounded-lg',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -842,7 +842,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                 <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center"
+                className="text-center"
                 >
                 <motion.div
                     initial={{ scale: 0 }}
