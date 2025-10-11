@@ -80,9 +80,9 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
    );
 };
 
-const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
+const DropdownQuestion = ({ question, answer, onAnswerChange, styles}: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
           {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
           <Select value={answer} onValueChange={onAnswerChange}>
@@ -97,16 +97,16 @@ const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Ques
       );
 };
 
-const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-3 rounded-lg bg-background shadow-sm">
+const TextQuestion = ({ question, answer, onAnswerChange, styles}: { question: Question, answer: string, onAnswerChange: (value: string) => void, styles: any }) => (
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
         <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} className="text-sm"/>
     </div>
 );
 
-const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: any) => void }) => (
-    <div className="p-3 rounded-lg bg-background shadow-sm">
+const NumberQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: string, onAnswerChange: (value: any) => void, styles: any }) => (
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
         {question.description && <p className="text-xs text-muted-foreground mb-3 whitespace-pre-wrap">{question.description}</p>}
@@ -125,26 +125,26 @@ const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 );
 
 
-const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-3 rounded-lg bg-background shadow-sm">
+const PhoneQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: string, onAnswerChange: (value: string) => void, styles: any }) => (
+    <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
         <Input type="tel" placeholder="Enter phone number..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} className="text-sm"/>
     </div>
 );
 
-const EmailQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-3 rounded-lg bg-background shadow-sm">
+const EmailQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: string, onAnswerChange: (value: string) => void, styles: any }) => (
+    <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
         <Input type="email" placeholder="Enter email address..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} className="text-sm"/>
     </div>
 );
 
-const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => {
+const RatingQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: number; onAnswerChange: (value: number) => void; styles: any }) => {
     const scale = question.scale || ['1','2','3','4','5'];
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
             <div className="flex items-center justify-center gap-2">
@@ -154,8 +154,8 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     );
 }
 
-const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => (
-    <div className="p-3 rounded-lg bg-background shadow-sm">
+const NPSQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: number; onAnswerChange: (value: number) => void; styles: any }) => (
+    <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
       <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
       <div className="flex items-center justify-between gap-1 flex-wrap">
@@ -178,16 +178,16 @@ const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question;
     </div>
 );
 
-const DescriptionBlock = ({ question }: { question: Question }) => (
-    <div className="p-3 prose dark:prose-invert max-w-none prose-sm">
+const DescriptionBlock = ({ question, styles }: { question: Question, styles: any }) => (
+    <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
       <h3 className="text-base font-semibold">{question.title}</h3>
       <p className="text-sm">{question.content}</p>
     </div>
 );
 
-const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void }) => {
+const BestWorstQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void, styles: any }) => {
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
             <div className="overflow-x-auto -mx-3 px-3">
@@ -227,11 +227,11 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
 };
 
 
-const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
+const MatrixQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: any, onAnswerChange: (value: any) => void, styles: any }) => {
     const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
     
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
@@ -434,7 +434,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
     };
     
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
             
@@ -500,7 +500,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
 };
 
 
-const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
+const ConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: string; onAnswerChange: (value: string) => void; styles: any }) => {
     const { attributes = [], profiles = [] } = question;
     
     if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
@@ -508,7 +508,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Ques
     const profileSet = profiles[0] || [];
 
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
              <div className="grid grid-cols-2 gap-2">
@@ -537,7 +537,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Ques
     );
 };
 
-const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: { [profileId: string]: number }, onAnswerChange: (value: any) => void; }) => {
+const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: { [profileId: string]: number }, onAnswerChange: (value: any) => void; styles: any }) => {
     const { attributes = [], profiles = [] } = question;
 
     const handleRatingChange = (profileId: string, value: string) => {
@@ -550,7 +550,7 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
     if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
 
     return (
-        <div className="p-3 rounded-lg bg-background shadow-sm">
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
              <div className="grid grid-cols-2 gap-2">
@@ -589,7 +589,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full h-full p-0 bg-white',
+    desktop: 'w-full h-full p-0 bg-white md:w-[794px] md:h-[1123px] md:scale-[0.8] md:origin-top md:shadow-2xl md:rounded-lg',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
