@@ -589,12 +589,13 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full max-w-4xl h-full p-0 bg-white shadow-2xl rounded-lg',
+    desktop: 'w-[126mm] h-[178mm] p-0 bg-white shadow-2xl rounded-lg',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
       tablet: 'rounded-[14px]',
       desktop: 'rounded-lg'
+      
   }
   const style = frameStyles[device];
   const innerStyle = innerFrameStyles[device];
