@@ -589,29 +589,17 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
-    mobile: {
-      width: '320px',
-      height: '560px',
-      borderRadius: '32px',
-      padding: '8px',
-      boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-    },
-    tablet: {
-      width: '100%',
-      maxWidth: '768px',
-      height: '800px',
-      borderRadius: '24px',
-      padding: '14px',
-      boxShadow: '0 15px 40px rgba(0,0,0,0.2)',
-    },
-    desktop: {
-      width: '100%',
-      height: '100%',
-      borderRadius: '8px',
-      padding: '0',
-    },
+    mobile: 'w-[320px] h-[560px] rounded-[32px] p-2 shadow-lg',
+    tablet: 'w-full h-[800px] rounded-[24px] p-3 shadow-xl',
+    desktop: 'w-full h-full rounded-lg',
   };
+  const innerFrameStyles = {
+      mobile: 'rounded-[24px]',
+      tablet: 'rounded-[14px]',
+      desktop: 'rounded-lg'
+  }
   const style = frameStyles[device];
+  const innerStyle = innerFrameStyles[device];
 
   if (device === 'desktop') {
     return <div className="h-full w-full bg-white shadow-2xl rounded-lg overflow-y-auto">{children}</div>;
@@ -620,12 +608,11 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   return (
     <div
       className={cn(
-        'relative mx-auto bg-gray-800 shadow-2xl transition-all duration-300',
-        device === 'mobile' ? 'p-2 rounded-[40px]' : 'p-3 rounded-[24px]'
+        'relative mx-auto bg-gray-800 transition-all duration-300',
+        style
       )}
-      style={style}
     >
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-800 rounded-b-md z-20">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-800 rounded-b-lg z-20">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
       </div>
       {device === 'mobile' && (
@@ -635,7 +622,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
           <div className="absolute right-0 top-24 h-12 w-1 bg-gray-700 rounded-l-sm"></div>
         </>
       )}
-       <div className="h-full w-full bg-white rounded-[24px] overflow-y-auto">
+       <div className={cn("h-full w-full bg-white overflow-y-auto", innerStyle)}>
         {children}
       </div>
     </div>
@@ -746,7 +733,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     
     const canProceed = () => {
         if (currentQuestionIndex === -1) {
-          return respondentName.trim() && respondentEmail.trim();
+          return true;
         }
         if(!survey) return false;
         const question = survey.questions[currentQuestionIndex];
@@ -843,7 +830,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
 
     const surveyContent = (
              <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg flex-1 flex flex-col">
+                 <Card className="w-full bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg flex-1 flex flex-col">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                         <CardDescription className="text-xs">{survey.description}</CardDescription>
@@ -902,5 +889,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     return surveyContent;
 }
 
-
-  
