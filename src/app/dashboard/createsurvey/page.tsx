@@ -160,7 +160,7 @@ export default function CreateSurveyPage() {
       numScalePoints: ['semantic-differential', 'likert'].includes(type) ? 7 : undefined,
       content: type === 'description' ? 'This is a description block.' : '',
       attributes: type === 'conjoint' || type === 'rating-conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
-      criteria: type === 'ahp' ? ['Quality', 'Price', 'Service'] : [],
+      criteria: type === 'ahp' ? [{id:'c1', name:'Quality'}, {id:'c2', name:'Price'}, {id:'c3', name:'Service'}] : [],
       alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
     setQuestions(prev => [...prev, newQuestion]);
@@ -179,9 +179,14 @@ export default function CreateSurveyPage() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                         <DialogContent className="h-[95vh] flex flex-col p-0 w-full max-w-5xl">
+                         <DialogContent className={cn("h-[95vh] flex flex-col p-0 w-full", "max-w-5xl")}>
                            <DialogHeader className="p-4 border-b">
                                 <DialogTitle>Survey Preview</DialogTitle>
+                                 <div className="flex items-center justify-center space-x-2 mt-2">
+                                    <Button variant={previewDevice === 'desktop' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('desktop')}><Monitor className="w-5 h-5"/></Button>
+                                    <Button variant={previewDevice === 'tablet' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('tablet')}><Tablet className="w-5 h-5"/></Button>
+                                    <Button variant={previewDevice === 'mobile' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('mobile')}><Smartphone className="w-5 h-5"/></Button>
+                                </div>
                            </DialogHeader>
                            <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                                 <SurveyView
