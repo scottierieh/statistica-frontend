@@ -938,9 +938,11 @@ interface QuestionListProps {
     styles: any;
     saveSurvey?: (status: string) => void;
     isSaving?: boolean;
+    survey?: any;
+    setSurvey?: (survey: any) => void;
 }
 
-export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, isPreview, styles, saveSurvey, isSaving }: QuestionListProps) {
+export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, isPreview, styles, saveSurvey, isSaving, survey, setSurvey }: QuestionListProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -1016,6 +1018,22 @@ export default function QuestionList({ title, setTitle, setDescription, descript
             <CardContent className="space-y-4">
                 <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
                 <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+                {survey && setSurvey && (
+                    <div className="flex items-center space-x-2 pt-2">
+                        <Switch id="start-page-toggle" checked={survey.showStartPage} onCheckedChange={(checked) => setSurvey({...survey, showStartPage: checked})}/>
+                        <Label htmlFor="start-page-toggle">Show Start Page</Label>
+                    </div>
+                )}
+                {survey?.showStartPage && (
+                    <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+                        <Label>Start Page Title</Label>
+                        <Input value={survey.startPage?.title || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, title: e.target.value}})} placeholder="e.g., Welcome to our Survey!"/>
+                        <Label>Start Page Description</Label>
+                        <Textarea value={survey.startPage?.description || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, description: e.target.value}})} placeholder="e.g., Your feedback is important to us."/>
+                        <Label>Start Page Button Text</Label>
+                        <Input value={survey.startPage?.buttonText || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, buttonText: e.target.value}})} placeholder="e.g., Start Survey"/>
+                    </div>
+                )}
             </CardContent>
         </Card>
       )}

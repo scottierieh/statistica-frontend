@@ -1,4 +1,5 @@
 
+
 export interface Criterion {
   id: string;
   name: string;
@@ -42,6 +43,12 @@ type SurveyData = {
     response_count?: number;
     id?: string;
     created_at?: string;
+    showStartPage?: boolean;
+    startPage?: {
+        title?: string;
+        description?: string;
+        buttonText?: string;
+    };
 }
 
 // In-memory store
@@ -98,6 +105,12 @@ export interface Survey {
   startDate?: string;
   endDate?: string;
   styles?: any;
+  showStartPage?: boolean;
+  startPage?: {
+    title?: string;
+    description?: string;
+    buttonText?: string;
+  };
 }
 
 export interface SurveyResponse {

@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Star, ArrowLeft, ArrowRight, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CheckCircle2, Star, ArrowLeft, ArrowRight, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
@@ -591,7 +591,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full max-w-4xl aspect-[4/3] h-auto rounded-lg p-3 shadow-2xl bg-white',
+    desktop: 'w-full max-w-lg aspect-[1/1.414] h-auto rounded-lg p-3 bg-white shadow-2xl',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -620,6 +620,22 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
       </div>
     </div>
   );
+};
+
+const StartPage = ({ survey, onStart }: { survey: Survey, onStart: () => void }) => {
+    const startPageConfig = survey.startPage || {};
+    return (
+        <div className="flex flex-col h-full text-center p-8">
+            <div className="flex-1 flex flex-col justify-center items-center">
+                <FileText className="w-16 h-16 text-primary mb-4" />
+                <h2 className="text-2xl font-bold">{startPageConfig.title || survey.title}</h2>
+                <p className="text-muted-foreground mt-2">{startPageConfig.description || survey.description}</p>
+            </div>
+            <Button onClick={onStart} className="w-full">
+                {startPageConfig.buttonText || 'Start Survey'}
+            </Button>
+        </div>
+    );
 };
 
 
@@ -651,6 +667,11 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
             setSurvey({...surveyProp, styles: previewStyles});
             setIsSurveyActive(true);
             setLoading(false);
+            if (!surveyProp.showStartPage) {
+                setCurrentQuestionIndex(0);
+            } else {
+                setCurrentQuestionIndex(-1);
+            }
         } else if (surveyId) {
             setLoading(true);
             try {
@@ -671,6 +692,9 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                         setIsSurveyActive(false);
                     } else {
                         setIsSurveyActive(true);
+                    }
+                    if (!loadedSurvey.showStartPage) {
+                        setCurrentQuestionIndex(0);
                     }
                 } else {
                     setError("Survey not found.");
@@ -698,7 +722,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     };
 
     const handlePrev = () => {
-        if (currentQuestionIndex >= 0) {
+        if (currentQuestionIndex > (survey?.showStartPage ? -1 : 0)) {
             setCurrentQuestionIndex(prev => prev - 1);
         }
     };
@@ -827,15 +851,17 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                         <CardDescription className="text-xs">{survey.description}</CardDescription>
-                        <Progress value={((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100} className="mt-3 h-2" />
+                        <Progress value={((currentQuestionIndex + 1) / (survey.questions.length)) * 100} className="mt-3 h-2" />
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto min-h-[300px] p-4">
                          <AnimatePresence mode="wait">
-                            {currentQuestionIndex === -1 ? (
-                                 <motion.div key="intro" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}><p>This is the start screen. Click 'Start' to begin.</p></motion.div>
+                            {currentQuestionIndex === -1 && survey.showStartPage ? (
+                                 <motion.div key="intro" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
+                                    <StartPage survey={survey} onStart={() => setCurrentQuestionIndex(0)} />
+                                 </motion.div>
                              ) : (
                                 <motion.div key={currentQuestionIndex} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
-                                    {QuestionComponent && survey && (
+                                    {QuestionComponent && survey && currentQuestion && (
                                         <div key={currentQuestion.id}>
                                             <QuestionComponent
                                                 question={currentQuestion}
@@ -850,14 +876,14 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                          </AnimatePresence>
                     </CardContent>
                     <CardFooter className="flex justify-between p-4">
-                        <Button onClick={handlePrev} disabled={currentQuestionIndex === -1} variant="outline" size="sm" className="transition-transform active:scale-95">
+                        <Button onClick={handlePrev} disabled={currentQuestionIndex <= (survey.showStartPage ? -1 : 0)} variant="outline" size="sm" className="transition-transform active:scale-95">
                             <ArrowLeft className="mr-1 h-4 w-4" /> Previous
                         </Button>
-                        {currentQuestionIndex < survey.questions.length - 1 ? (
+                        {currentQuestionIndex < survey.questions.length - 1 && currentQuestionIndex !== -1 ? (
                             <Button onClick={handleNext} size="sm" className="transition-transform active:scale-95">
                                 Next <ArrowRight className="ml-1 h-4 w-4" />
                             </Button>
-                        ) : (
+                        ) : currentQuestionIndex !== -1 && (
                             <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} size="sm" className="transition-transform active:scale-95">
                                  {isSubmitting ? "Submitting..." : "Submit"}
                             </Button>
