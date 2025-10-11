@@ -168,7 +168,7 @@ export default function CreateSurveyPage() {
   
   const deviceWidths = {
     desktop: 'max-w-4xl',
-    tablet: 'max-w-2xl',
+    tablet: 'max-w-3xl',
     mobile: 'max-w-sm',
   };
 
@@ -189,16 +189,10 @@ export default function CreateSurveyPage() {
                            <DialogHeader className="p-4 border-b">
                                 <DialogTitle>Survey Preview</DialogTitle>
                                 <DialogDescription>See how your survey will look on different devices.</DialogDescription>
-                                <div className="flex justify-center items-center gap-2 pt-2">
-                                     <Button variant={previewDevice === 'desktop' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('desktop')}><Monitor/></Button>
-                                     <Button variant={previewDevice === 'tablet' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('tablet')}><Tablet/></Button>
-                                     <Button variant={previewDevice === 'mobile' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('mobile')}><Smartphone/></Button>
-                                </div>
                            </DialogHeader>
                            <div className="flex-1 overflow-y-auto">
                                 <SurveyView 
                                     survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
-                                    previewStyles={styles}
                                 />
                            </div>
                         </DialogContent>
