@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -702,18 +703,21 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
     );
 };
 const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+    
     const handleUpdate = (index: number, value: string) => {
         const newArr = [...(question.rows || [])];
         newArr[index] = value;
         onUpdate?.({ ...question, rows: newArr });
     };
+
     const handleAdd = () => {
         onUpdate?.({ ...question, rows: [...(question.rows || []), 'Left vs Right'] });
     };
+
     const handleRemove = (index: number) => {
         onUpdate?.({ ...question, rows: (question.rows || []).filter((_: any, i: number) => i !== index) });
     };
-
+    
     return (
         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
             <CardContent className="p-6 space-y-4">
@@ -726,26 +730,31 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                <div className="space-y-3">
+                 <div className="space-y-3">
                     {(question.rows || []).map((rowText: string, index: number) => {
                         const [left, right] = (rowText || ' vs ').split(' vs ').map(s => s.trim());
                         return (
-                            <div key={index} className="p-3 border rounded-lg">
-                                <Input value={rowText} onChange={e => handleUpdate(index, e.target.value)} className="mb-2" />
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">{left}</span>
+                             <div key={index} className="p-3 border rounded-lg space-y-3">
+                                <div className="flex items-center gap-2">
+                                     <Input value={left} onChange={e => handleUpdate(index, `${e.target.value} vs ${right}`)} className="text-center font-semibold" placeholder="Left Adjective"/>
+                                     <span className="text-muted-foreground">vs</span>
+                                     <Input value={right} onChange={e => handleUpdate(index, `${left} vs ${e.target.value}`)} className="text-center font-semibold" placeholder="Right Adjective" />
+                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemove(index)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-medium text-muted-foreground">{left}</span>
                                     <div className="flex gap-2">
                                         {[...Array(question.numScalePoints || 7)].map((_, i) => (
                                             <RadioGroup key={i}><RadioGroupItem value={`${i}`} disabled /></RadioGroup>
                                         ))}
                                     </div>
-                                    <span className="text-sm font-medium">{right}</span>
+                                    <span className="text-sm font-medium text-muted-foreground">{right}</span>
                                 </div>
                             </div>
                         )
                     })}
                 </div>
-                <Button variant="outline" size="sm" onClick={handleAdd}><PlusCircle className="mr-2 h-4 w-4" /> Add Scale</Button>
+                 <Button variant="outline" size="sm" onClick={handleAdd}><PlusCircle className="mr-2 h-4 w-4" /> Add Scale</Button>
             </CardContent>
         </Card>
     )
@@ -1084,3 +1093,4 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
+
