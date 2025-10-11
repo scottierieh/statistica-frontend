@@ -596,7 +596,8 @@ const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tab
             padding: '8px'
         },
         tablet: {
-            width: '600px', // Width for tablet view
+            width: '100%',
+            maxWidth: '768px',
             height: '800px',
             borderRadius: '24px',
             padding: '14px'
@@ -795,7 +796,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     
     const surveyStyles = survey?.styles || {};
 
-    if (!isSurveyActive) {
+    if (!isSurveyActive && !isPreview) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
                 <Card className="w-full max-w-md text-center p-6">
@@ -836,8 +837,8 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     }
 
     const surveyContent = (
-             <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg mx-auto my-auto flex-1 flex flex-col">
+             <div className="h-full flex flex-col items-center justify-center" style={{backgroundColor: surveyStyles?.secondaryColor}}>
+                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg flex-1 flex flex-col">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                         <CardDescription className="text-xs">{survey.description}</CardDescription>
@@ -883,16 +884,11 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
 
     // Preview mode rendering
     if (isPreview && survey) {
-        if (previewDevice === 'mobile') {
-            return <DeviceFrame device="mobile">{surveyContent}</DeviceFrame>;
-        }
-        if (previewDevice === 'tablet') {
-             return <DeviceFrame device="tablet">{surveyContent}</DeviceFrame>;
-        }
-        // Desktop preview
         return (
-            <div className="w-full h-full flex items-center justify-center p-8">
-                {surveyContent}
+             <div className="w-full h-full flex items-center justify-center">
+                 <DeviceFrame device={previewDevice}>
+                    {surveyContent}
+                </DeviceFrame>
             </div>
         );
     }
@@ -900,3 +896,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+
+```
+- src/components/ui/date-picker-with-range.tsx
+- src/components/ui/progress.tsx
