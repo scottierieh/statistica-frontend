@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -14,8 +15,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2 } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Survey, Question, ConjointAttribute, Criterion } from '@/entities/Survey';
@@ -24,11 +25,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
+
 interface SurveyDetailsCardProps {
     survey: Survey;
     setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
     onImageUpload: (target: { type: 'startPage', field: 'logo' | 'image' }) => void;
 }
+
 
 const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCardProps) => {
     
@@ -101,7 +104,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 <Input 
                                     value={survey.startPage?.title || ''} 
                                     onChange={(e) => handleSurveyChange(draft => {
-                                        if (!draft.startPage) draft.startPage = {};
+                                        if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
                                         draft.startPage.title = e.target.value;
                                     })} 
                                     placeholder="e.g., Welcome to our Survey!"
@@ -115,7 +118,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 <Textarea 
                                     value={survey.startPage?.description || ''} 
                                     onChange={(e) => handleSurveyChange(draft => {
-                                         if (!draft.startPage) draft.startPage = {};
+                                         if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
                                         draft.startPage.description = e.target.value
                                     })} 
                                     placeholder="e.g., Your feedback helps us improve our services."
@@ -130,7 +133,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 <Input 
                                     value={survey.startPage?.buttonText || 'Start Survey'} 
                                     onChange={(e) => handleSurveyChange(draft => {
-                                        if (!draft.startPage) draft.startPage = {};
+                                        if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
                                         draft.startPage.buttonText = e.target.value
                                     })} 
                                     placeholder="e.g., Begin Survey"
@@ -143,6 +146,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
         </Card>
     );
 };
+
 
 interface QuestionHeaderProps {
     question: Question;
@@ -282,7 +286,7 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
     };
 
     const deleteOption = (index: number) => {
-        if (question.options.length <= 2) return; // Minimum 2 options
+        if (question.options.length <= 2) return;
         const newOptions = question.options.filter((_:any, i:number) => i !== index);
         onUpdate?.({ ...question, options: newOptions });
     };
@@ -355,33 +359,32 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
 };
 
 const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
-   const [answer, setAnswer] = React.useState<string[] | undefined>();
+   const [answer, setAnswer] = React.useState<string[]>([]);
    const choiceStyle = { fontSize: `${styles.answerTextSize}px` };
-   
-    const handleOptionChange = (index: number, value: string) => {
-       const newOptions = [...question.options];
+
+   const handleOptionChange = (index: number, value: string) => {
+       const newOptions = [...(question.options || [])];
        newOptions[index] = value;
        onUpdate?.({ ...question, options: newOptions });
-    };
+   };
 
-    const addOption = () => {
-       const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+   const addOption = () => {
+       const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
        onUpdate?.({ ...question, options: newOptions });
-    };
+   };
 
-    const deleteOption = (index: number) => {
-       if (question.options.length <= 1) return;
-       const newOptions = question.options.filter((_:any, i:number) => i !== index);
+   const deleteOption = (index: number) => {
+       const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
        onUpdate?.({ ...question, options: newOptions });
-    };
-    
-    const handleCheckChange = (checked: boolean, opt: string) => {
-        const currentAnswers = answer || [];
-        const newAnswers = checked
-            ? [...currentAnswers, opt]
-            : currentAnswers.filter((a: string) => a !== opt);
-        setAnswer(newAnswers);
-    }
+   };
+
+   const handleCheckChange = (checked: boolean, opt: string) => {
+       const currentAnswers = answer || [];
+       const newAnswers = checked
+           ? [...currentAnswers, opt]
+           : currentAnswers.filter((a: string) => a !== opt);
+       setAnswer(newAnswers);
+   }
    
    return (
        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
@@ -402,7 +405,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                                id={`q${question.id}-o${index}`} 
                                disabled 
                                checked={answer?.includes(option)}
-                            />
+                           />
                            <Input 
                                 placeholder={`Option ${index + 1}`} 
                                 className="border-none focus-visible:ring-0 bg-transparent flex-1" 
@@ -416,7 +419,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                 <Button 
+                <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -448,7 +451,7 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
     };
     return (
         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-6">
                  <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
@@ -463,7 +466,7 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                     <Label>Options</Label>
                     {(question.options || []).map((option: string, index: number) => (
                         <div key={index} className="flex items-center gap-2">
-                            <Input value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                            <Input value={option} onChange={e => handleOptionChange(index, e.target.value)} />
                              <Button variant="ghost" size="icon" onClick={() => deleteOption(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
                         </div>
                     ))}
@@ -870,7 +873,7 @@ const SortableCard = ({ id, children, questionNumber }: {
     );
 };
 
-const EmptyState = ({ onAddQuestion }: { onAddQuestion: () => void }) => {
+const EmptyState = () => {
     return (
         <Card className="border-2 border-dashed border-slate-200 bg-slate-50/50">
             <CardContent className="p-12 text-center">
@@ -894,7 +897,6 @@ const EmptyState = ({ onAddQuestion }: { onAddQuestion: () => void }) => {
     );
 };
 
-
 interface QuestionListProps {
   survey: Survey;
   setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
@@ -908,7 +910,9 @@ interface QuestionListProps {
 
 
 export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions, onImageUpload, onDuplicate, styles, saveSurvey, isSaving }: QuestionListProps) {
-    const [activeId, setActiveId] = React.useState<string | null>(null);
+    const [activeId, React.useState<string | null>(null);
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
 
     const handleUpdateQuestion = (updatedQuestion: Question) => {
         setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? { ...q, ...updatedQuestion } : q));
@@ -929,11 +933,6 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         }
         setActiveId(null);
     };
-    
-    const sensors = useSensors(
-        useSensor(PointerSensor), 
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
     
     const QuestionComponents: { [key: string]: React.ComponentType<any> } = {
         single: SingleSelectionQuestion,
@@ -965,7 +964,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
             />
 
             {survey.questions.length === 0 ? (
-                 <EmptyState onAddQuestion={() => {}} />
+                 <EmptyState />
             ) : (
                 <DndContext 
                     sensors={sensors} 
@@ -999,7 +998,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
                 </DndContext>
             )}
 
-            {!isSaving && (
+            {!isSaving && survey.questions.length > 0 && (
                 <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
                     <Button variant="outline" size="lg" onClick={() => saveSurvey && saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
                     <Button size="lg" onClick={() => saveSurvey && saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
@@ -1008,3 +1007,6 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
+
+
+    
