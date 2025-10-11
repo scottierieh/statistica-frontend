@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye, Monitor, Tablet, Smartphone } from "lucide-react";
 import { motion } from 'framer-motion';
-import type { Question } from '@/entities/Survey';
+import type { Survey, Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
@@ -24,9 +24,21 @@ export default function CreateSurveyPage() {
   const surveyId = searchParams.get("id");
   const template = searchParams.get("template");
 
-  const [title, setTitle] = useState("My New Survey");
-  const [description, setDescription] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [survey, setSurvey] = useState<Survey>({
+    id: surveyId || '',
+    title: "My New Survey",
+    description: "",
+    questions: [],
+    status: 'draft',
+    created_date: '',
+    showStartPage: true,
+    startPage: {
+        title: "Welcome to the Survey",
+        description: "Your feedback is important to us. Please take a few moments to complete this survey.",
+        buttonText: "Start Survey"
+    }
+  });
+  
   const [isSaving, setIsSaving] = useState(false);
   const [styles, setStyles] = useState({
     theme: 'default',
@@ -43,13 +55,16 @@ export default function CreateSurveyPage() {
   useEffect(() => {
     const loadSurvey = async () => {
       const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-      const survey = allSurveys.find((s:any) => s.id === surveyId);
-      if (survey) {
-        setTitle(survey.title);
-        setDescription(survey.description || "");
-        setQuestions(survey.questions || []);
-        if (survey.styles) {
-            setStyles(prev => ({...prev, ...survey.styles}));
+      const foundSurvey = allSurveys.find((s:any) => s.id === surveyId);
+      if (foundSurvey) {
+        setSurvey(prev => ({
+            ...prev,
+            ...foundSurvey,
+            showStartPage: foundSurvey.showStartPage !== undefined ? foundSurvey.showStartPage : true,
+            startPage: foundSurvey.startPage || prev.startPage
+        }));
+        if (foundSurvey.styles) {
+            setStyles(prevStyles => ({...prevStyles, ...foundSurvey.styles}));
         }
       }
     };
@@ -102,9 +117,12 @@ export default function CreateSurveyPage() {
             default:
                 return;
         }
-        setTitle(selectedTemplate.title);
-        setDescription(selectedTemplate.description);
-        setQuestions(selectedTemplate.questions as Question[]);
+        setSurvey(prev => ({
+            ...prev,
+            title: selectedTemplate.title,
+            description: selectedTemplate.description,
+            questions: selectedTemplate.questions as Question[],
+        }));
     }
 
     if (surveyId) {
@@ -114,26 +132,29 @@ export default function CreateSurveyPage() {
     }
   }, [surveyId, template]);
 
-  const saveSurvey = async (status = "draft") => {
-    if (!title.trim()) { alert("Please enter a survey title"); return; }
-    if (questions.length === 0) { alert("Please add at least one question"); return; }
+  const saveSurveyAction = async (status = "draft") => {
+    if (!survey.title.trim()) { alert("Please enter a survey title"); return; }
+    if (survey.questions.length === 0) { alert("Please add at least one question"); return; }
 
     setIsSaving(true);
     try {
         const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
         
-        let created_date = new Date().toISOString();
+        let finalSurvey = { ...survey, status, styles };
 
         if (surveyId) {
             const index = allSurveys.findIndex((s: any) => s.id === surveyId);
             if (index > -1) {
-                created_date = allSurveys[index].created_date;
-                allSurveys[index] = { ...allSurveys[index], title, description, questions, status, styles, created_date };
+                finalSurvey.created_date = allSurveys[index].created_date; // Preserve original creation date
+                allSurveys[index] = finalSurvey;
             } else {
-                 allSurveys.push({ title, description, questions, status, styles, id: surveyId, created_date });
+                 finalSurvey.created_date = new Date().toISOString();
+                 allSurveys.push(finalSurvey);
             }
         } else {
-            allSurveys.push({ title, description, questions, status, styles, id: Date.now().toString(), created_date });
+            finalSurvey.id = Date.now().toString();
+            finalSurvey.created_date = new Date().toISOString();
+            allSurveys.push(finalSurvey);
         }
 
         localStorage.setItem('surveys', JSON.stringify(allSurveys));
@@ -163,7 +184,15 @@ export default function CreateSurveyPage() {
       criteria: type === 'ahp' ? [{id:'c1', name:'Quality'}, {id:'c2', name:'Price'}, {id:'c3', name:'Service'}] : [],
       alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
-    setQuestions(prev => [...prev, newQuestion]);
+    setSurvey(prev => ({...prev, questions: [...prev.questions, newQuestion]}));
+  };
+  
+  const handleQuestionsUpdate = (newQuestions: Question[] | ((prev: Question[]) => Question[])) => {
+    if (typeof newQuestions === 'function') {
+      setSurvey(prev => ({ ...prev, questions: newQuestions(prev.questions) }));
+    } else {
+      setSurvey(prev => ({ ...prev, questions: newQuestions }));
+    }
   };
 
   return (
@@ -192,7 +221,7 @@ export default function CreateSurveyPage() {
                                 <SurveyView
                                     isPreview={true}
                                     previewDevice={previewDevice}
-                                    survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
+                                    survey={survey}
                                     previewStyles={styles}
                                 />
                            </div>
@@ -211,15 +240,17 @@ export default function CreateSurveyPage() {
                                 <SpecialAnalysisPalette />
                             </div>
                             <QuestionList 
-                                title={title}
-                                setTitle={setTitle}
-                                description={description}
-                                setDescription={setDescription}
-                                questions={questions}
-                                setQuestions={setQuestions}
+                                title={survey.title}
+                                setTitle={(newTitle) => setSurvey(prev => ({...prev, title: newTitle}))}
+                                description={survey.description || ''}
+                                setDescription={(newDesc) => setSurvey(prev => ({...prev, description: newDesc}))}
+                                questions={survey.questions}
+                                setQuestions={handleQuestionsUpdate}
                                 styles={styles}
-                                saveSurvey={saveSurvey}
+                                saveSurvey={saveSurveyAction}
                                 isSaving={isSaving}
+                                survey={survey}
+                                setSurvey={setSurvey}
                             />
                         </div>
                     </TabsContent>
