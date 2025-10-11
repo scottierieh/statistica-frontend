@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface SurveyDetailsCardProps {
     survey: Survey;
@@ -39,6 +39,8 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
     const handleSurveyChange = (updateFn: (draft: Survey) => void) => {
         setSurvey(produce(updateFn));
     };
+
+    const defaultImage = PlaceHolderImages.find(img => img.id === 'survey-start-default');
 
     return (
         <Card className="border-0 shadow-sm">
@@ -107,6 +109,34 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 })} 
                                 placeholder="e.g., Begin Survey"
                             />
+                        </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs font-medium text-muted-foreground">Logo Image</Label>
+                                <Button variant="outline" className="w-full" onClick={() => onImageUpload({ type: 'startPage', field: 'logo' })}>
+                                    <ImageIcon className="w-4 h-4 mr-2" />
+                                    Upload Logo
+                                </Button>
+                                {survey.startPage?.logo?.src && (
+                                    <div className="relative mt-2">
+                                        <Image src={survey.startPage.logo.src} alt="Survey logo preview" width={80} height={80} className="rounded-md border p-1" />
+                                        <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => draft.startPage!.logo!.src = undefined)}><X className="w-3 h-3"/></Button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs font-medium text-muted-foreground">Content Image</Label>
+                                <Button variant="outline" className="w-full" onClick={() => onImageUpload({ type: 'startPage', field: 'image' })}>
+                                    <ImageIcon className="w-4 h-4 mr-2" />
+                                    Upload Image
+                                </Button>
+                                { (survey.startPage?.imageUrl || defaultImage?.imageUrl) && (
+                                     <div className="relative mt-2">
+                                        <Image src={survey.startPage?.imageUrl || defaultImage!.imageUrl} alt="Survey content image preview" width={150} height={75} className="rounded-md border p-1" />
+                                         <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => draft.startPage!.imageUrl = undefined)}><X className="w-3 h-3"/></Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </motion.div>
@@ -387,7 +417,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                <Button 
+                 <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -916,7 +946,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         'best-worst': BestWorstQuestion,
         matrix: MatrixQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
-        likert: LikertQuestion,
+        likert: SemanticDifferentialQuestion,
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
         ahp: AHPQuestion,
@@ -928,7 +958,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
             <SurveyDetailsCard 
                 survey={survey}
                 setSurvey={setSurvey}
-                onImageUpload={(target) => onImageUpload({ type: 'startPage', field: target as any })}
+                onImageUpload={(target) => onImageUpload({ type: 'startPage', field: target.field as 'logo' | 'image' })}
             />
 
             {survey.questions.length === 0 ? (

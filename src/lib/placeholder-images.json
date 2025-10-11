@@ -23,6 +23,12 @@
       "description": "An image representing enterprise system integrations and dashboards.",
       "imageUrl": "https://picsum.photos/seed/enterprise/600/500",
       "imageHint": "dashboard integration"
+    },
+    {
+      "id": "survey-start-default",
+      "description": "A default image for a survey start page.",
+      "imageUrl": "https://picsum.photos/seed/survey_start/800/400",
+      "imageHint": "welcome abstract"
     }
   ]
 }

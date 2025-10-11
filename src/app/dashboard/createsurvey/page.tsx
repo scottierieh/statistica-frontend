@@ -16,6 +16,7 @@ import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, 
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 import SurveyView from '@/components/survey-view';
 import { cn } from '@/lib/utils';
+import { produce } from 'immer';
 
 
 export default function CreateSurveyPage() {
@@ -23,6 +24,7 @@ export default function CreateSurveyPage() {
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
   const template = searchParams.get("template");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [survey, setSurvey] = useState<Survey>({
     id: surveyId || '',
@@ -215,8 +217,38 @@ export default function CreateSurveyPage() {
   };
 
   const handleImageUpload = (target: { type: 'question'; id: string } | { type: 'startPage'; field: 'logo' | 'image' }) => {
-    // This is a placeholder for the actual image upload logic
-    console.log("Upload image for:", target);
+    const input = fileInputRef.current;
+    if (input) {
+      input.onchange = (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files[0]) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const imageUrl = event.target?.result as string;
+            if (target.type === 'question') {
+              setSurvey(produce(draft => {
+                const question = draft.questions.find(q => q.id === target.id);
+                if (question) {
+                  question.imageUrl = imageUrl;
+                }
+              }));
+            } else { // startPage
+              setSurvey(produce(draft => {
+                if (!draft.startPage) draft.startPage = {};
+                if (target.field === 'logo') {
+                  if (!draft.startPage.logo) draft.startPage.logo = {};
+                  draft.startPage.logo.src = imageUrl;
+                } else {
+                  draft.startPage.imageUrl = imageUrl;
+                }
+              }));
+            }
+          };
+          reader.readAsDataURL(files[0]);
+        }
+      };
+      input.click();
+    }
   };
   
   const handleDuplicateQuestion = (questionId: string) => {
@@ -234,6 +266,7 @@ export default function CreateSurveyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex items-center gap-4 mb-8">
@@ -302,4 +335,3 @@ export default function CreateSurveyPage() {
     </div>
   );
 }
-
