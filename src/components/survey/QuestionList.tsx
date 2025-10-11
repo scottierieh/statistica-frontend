@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -15,18 +14,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw, Save, Replace, Plus, Copy, Sparkles } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Survey, Question, ConjointAttribute, Criterion } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 interface SurveyDetailsCardProps {
     survey: Survey;
-    setSurvey: (survey: Survey | ((prev: Survey) => Survey)) => void;
+    setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
     onImageUpload: (target: { type: 'startPage', field: 'logo' | 'image' }) => void;
 }
 
@@ -80,97 +80,69 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                 
                 <Separator />
                 
-                {/* Start Page Toggle */}
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center">
-                                <Sparkles className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                                <Label 
-                                    htmlFor="start-page-toggle" 
-                                    className="font-medium cursor-pointer"
-                                >
-                                    Enable Start Page
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Show a welcome screen before questions
-                                </p>
-                            </div>
+                {/* Start Page Configuration */}
+                {survey.showStartPage && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/10"
+                    >
+                        <div className="flex items-center gap-2 mb-2">
+                            <Info className="w-4 h-4 text-indigo-600" />
+                            <h4 className="font-semibold text-sm">Start Page Configuration</h4>
                         </div>
-                        <Switch 
-                            id="start-page-toggle" 
-                            checked={survey.showStartPage} 
-                            onCheckedChange={(checked) => handleSurveyChange(draft => { draft.showStartPage = checked })}
-                        />
-                    </div>
-                    
-                    {/* Start Page Configuration */}
-                    {survey.showStartPage && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="space-y-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/10"
-                        >
-                            <div className="flex items-center gap-2 mb-2">
-                                <Info className="w-4 h-4 text-indigo-600" />
-                                <h4 className="font-semibold text-sm">Start Page Configuration</h4>
+                        
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <Label className="text-xs font-medium text-muted-foreground">
+                                    Welcome Title
+                                </Label>
+                                <Input 
+                                    value={survey.startPage?.title || ''} 
+                                    onChange={(e) => handleSurveyChange(draft => {
+                                        if (!draft.startPage) draft.startPage = {};
+                                        draft.startPage.title = e.target.value;
+                                    })} 
+                                    placeholder="e.g., Welcome to our Survey!"
+                                />
                             </div>
                             
-                            <div className="space-y-3">
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-medium text-muted-foreground">
-                                        Welcome Title
-                                    </Label>
-                                    <Input 
-                                        value={survey.startPage?.title || ''} 
-                                        onChange={(e) => handleSurveyChange(draft => {
-                                            if (!draft.startPage) draft.startPage = {};
-                                            draft.startPage.title = e.target.value;
-                                        })} 
-                                        placeholder="e.g., Welcome to our Survey!"
-                                    />
-                                </div>
-                                
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-medium text-muted-foreground">
-                                        Description
-                                    </Label>
-                                    <Textarea 
-                                        value={survey.startPage?.description || ''} 
-                                        onChange={(e) => handleSurveyChange(draft => {
-                                             if (!draft.startPage) draft.startPage = {};
-                                            draft.startPage.description = e.target.value
-                                        })} 
-                                        placeholder="e.g., Your feedback helps us improve our services."
-                                        rows={2}
-                                    />
-                                </div>
-                                
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-medium text-muted-foreground">
-                                        Button Text
-                                    </Label>
-                                    <Input 
-                                        value={survey.startPage?.buttonText || 'Start Survey'} 
-                                        onChange={(e) => handleSurveyChange(draft => {
-                                            if (!draft.startPage) draft.startPage = {};
-                                            draft.startPage.buttonText = e.target.value
-                                        })} 
-                                        placeholder="e.g., Begin Survey"
-                                    />
-                                </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs font-medium text-muted-foreground">
+                                    Description
+                                </Label>
+                                <Textarea 
+                                    value={survey.startPage?.description || ''} 
+                                    onChange={(e) => handleSurveyChange(draft => {
+                                         if (!draft.startPage) draft.startPage = {};
+                                        draft.startPage.description = e.target.value
+                                    })} 
+                                    placeholder="e.g., Your feedback helps us improve our services."
+                                    rows={2}
+                                />
                             </div>
-                        </motion.div>
-                    )}
-                </div>
+                            
+                            <div className="space-y-1">
+                                <Label className="text-xs font-medium text-muted-foreground">
+                                    Button Text
+                                </Label>
+                                <Input 
+                                    value={survey.startPage?.buttonText || 'Start Survey'} 
+                                    onChange={(e) => handleSurveyChange(draft => {
+                                        if (!draft.startPage) draft.startPage = {};
+                                        draft.startPage.buttonText = e.target.value
+                                    })} 
+                                    placeholder="e.g., Begin Survey"
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
             </CardContent>
         </Card>
     );
 };
-
 
 interface QuestionHeaderProps {
     question: Question;
@@ -293,150 +265,6 @@ const QuestionHeader = ({
     );
 };
 
-// ... other question components (MultipleSelection, Dropdown etc. would be here, using QuestionHeader)
-
-interface QuestionListProps {
-  survey: Survey;
-  setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
-  onUpdate: (questions: Question[] | ((prev: Question[]) => Question[])) => void;
-  onImageUpload: (target: { type: 'question'; id: string } | { type: 'startPage'; field: 'logo' | 'image' }) => void;
-  onDuplicate: (questionId: string) => void;
-  styles: any;
-  saveSurvey?: (status: string) => void;
-  isSaving?: boolean;
-}
-
-
-export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions, onImageUpload, onDuplicate, styles, saveSurvey, isSaving }: QuestionListProps) {
-    const { toast } = useToast();
-    const [activeId, setActiveId] = React.useState<string | null>(null);
-
-    const handleUpdateQuestion = (updatedQuestion: Question) => {
-        setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? { ...q, ...updatedQuestion } : q));
-    };
-    
-    const handleDeleteQuestion = (id: string) => {
-        setQuestions(prev => prev.filter(q => q.id !== id));
-    };
-
-    const handleReorder = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            setQuestions((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                return arrayMove(items, oldIndex, newIndex);
-            });
-        }
-        setActiveId(null);
-    };
-
-    const handleAddQuestion = () => {
-        const newQuestion: Question = {
-            id: Date.now().toString(),
-            type: 'single',
-            title: "New Question",
-            required: true,
-            options: ['Option 1', 'Option 2'],
-        };
-        setQuestions(prev => [...prev, newQuestion]);
-        toast({ title: "Question Added" });
-    };
-
-    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-    
-    const QuestionComponents: { [key: string]: React.ComponentType<any> } = {
-        single: SingleSelectionQuestion,
-        multiple: MultipleSelectionQuestion,
-        dropdown: DropdownQuestion,
-        text: TextQuestion,
-        number: NumberQuestion,
-        phone: PhoneQuestion,
-        email: EmailQuestion,
-        rating: RatingQuestion,
-        nps: NPSQuestion,
-        description: DescriptionBlock,
-        'best-worst': BestWorstQuestion,
-        matrix: MatrixQuestion,
-        'semantic-differential': SemanticDifferentialQuestion,
-        likert: LikertQuestion,
-        conjoint: ConjointQuestion,
-        'rating-conjoint': RatingConjointQuestion,
-        ahp: AHPQuestion,
-        servqual: ServqualQuestion,
-    };
-
-    return (
-        <div className="space-y-6">
-            <SurveyDetailsCard 
-                survey={survey}
-                setSurvey={setSurvey}
-                onImageUpload={(target) => onImageUpload({ type: 'startPage', field: target as any })}
-            />
-
-            {survey.questions.length === 0 ? (
-                 <Card className="border-2 border-dashed border-slate-200 bg-slate-50/50">
-                    <CardContent className="p-12 text-center">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mb-4">
-                                <PlusCircle className="w-10 h-10 text-indigo-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">
-                                No questions yet
-                            </h3>
-                            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                                Get started by adding your first question. Choose from various question types to create your perfect survey.
-                            </p>
-                        </motion.div>
-                    </CardContent>
-                </Card>
-            ) : (
-                <DndContext 
-                    sensors={sensors} 
-                    collisionDetection={closestCenter} 
-                    onDragStart={({ active }) => setActiveId(active.id as string)}
-                    onDragEnd={handleReorder}
-                    onDragCancel={() => setActiveId(null)}
-                >
-                    <SortableContext items={survey.questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                        <AnimatePresence>
-                            {survey.questions.map((q, index) => {
-                                const QuestionComponent = QuestionComponents[q.type];
-                                return (
-                                    <SortableCard key={q.id} id={q.id} questionNumber={index + 1}>
-                                        {QuestionComponent ? (
-                                            <QuestionComponent 
-                                                question={q} 
-                                                onUpdate={handleUpdateQuestion} 
-                                                onDelete={() => handleDeleteQuestion(q.id)}
-                                                onImageUpload={() => onImageUpload({ type: 'question', id: q.id })}
-                                                onDuplicate={() => onDuplicate(q.id)}
-                                                styles={styles}
-                                                questionNumber={index + 1}
-                                            />
-                                        ) : <p>Unknown question type: {q.type}</p>}
-                                    </SortableCard>
-                                );
-                            })}
-                        </AnimatePresence>
-                    </SortableContext>
-                </DndContext>
-            )}
-
-            {!isSaving && (
-                <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
-                    <Button variant="outline" size="lg" onClick={() => saveSurvey && saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
-                    <Button size="lg" onClick={() => saveSurvey && saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
-                </div>
-            )}
-        </div>
-    );
-}
-
 const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     const [answer, setAnswer] = React.useState<string | undefined>();
     const theme = styles.theme || 'default';
@@ -527,24 +355,33 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
 };
 
 const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+   const [answer, setAnswer] = React.useState<string[] | undefined>();
    const choiceStyle = { fontSize: `${styles.answerTextSize}px` };
    
-   const handleOptionChange = (index: number, value: string) => {
+    const handleOptionChange = (index: number, value: string) => {
        const newOptions = [...question.options];
        newOptions[index] = value;
        onUpdate?.({ ...question, options: newOptions });
-   };
+    };
 
-   const addOption = () => {
+    const addOption = () => {
        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
        onUpdate?.({ ...question, options: newOptions });
-   };
+    };
 
-   const deleteOption = (index: number) => {
+    const deleteOption = (index: number) => {
        if (question.options.length <= 1) return;
        const newOptions = question.options.filter((_:any, i:number) => i !== index);
        onUpdate?.({ ...question, options: newOptions });
-   };
+    };
+    
+    const handleCheckChange = (checked: boolean, opt: string) => {
+        const currentAnswers = answer || [];
+        const newAnswers = checked
+            ? [...currentAnswers, opt]
+            : currentAnswers.filter((a: string) => a !== opt);
+        setAnswer(newAnswers);
+    }
    
    return (
        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
@@ -561,7 +398,11 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
                        <div key={index} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                           <Checkbox id={`q${question.id}-o${index}`} disabled />
+                           <Checkbox 
+                               id={`q${question.id}-o${index}`} 
+                               disabled 
+                               checked={answer?.includes(option)}
+                            />
                            <Input 
                                 placeholder={`Option ${index + 1}`} 
                                 className="border-none focus-visible:ring-0 bg-transparent flex-1" 
@@ -569,15 +410,13 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                                 value={option} 
                                 onChange={(e) => handleOptionChange(index, e.target.value)}
                             />
-                             {question.options.length > 1 && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteOption(index)}>
-                                    <X className="w-4 h-4"/>
-                                </Button>
-                             )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteOption(index)}>
+                                <X className="w-4 h-4"/>
+                            </Button>
                        </div>
                    ))}
                </div>
-                <Button 
+                 <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -599,12 +438,12 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
     };
 
     const addOption = () => {
-        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
         onUpdate?.({ ...question, options: newOptions });
     };
 
     const deleteOption = (index: number) => {
-        const newOptions = question.options.filter((_:any, i:number) => i !== index);
+        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
         onUpdate?.({ ...question, options: newOptions });
     };
     return (
@@ -747,7 +586,7 @@ const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate,
     )
 };
 
-const DescriptionBlock = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const DescriptionBlock = ({ question, onUpdate, onDelete, onDuplicate, styles, questionNumber }: any) => {
     return (
         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
             <CardContent className="p-6 space-y-4">
@@ -755,6 +594,8 @@ const DescriptionBlock = ({ question, onUpdate, onDelete, styles, questionNumber
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={() => {}}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -764,7 +605,7 @@ const DescriptionBlock = ({ question, onUpdate, onDelete, styles, questionNumber
     );
 };
 
-const BestWorstQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
              <CardContent className="p-6 space-y-4">
@@ -772,6 +613,8 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, styles, questionNumbe
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={onImageUpload}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -791,8 +634,7 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, styles, questionNumbe
         </Card>
     );
 };
-const MatrixQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
-    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     
     const handleUpdate = (type: 'rows' | 'columns' | 'scale', index: number, value: string) => {
         const newArr = [...(question[type] || [])];
@@ -811,12 +653,14 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }
     };
     
     return (
-        <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
             <CardContent className="p-6">
                 <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={onImageUpload}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -861,49 +705,53 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }
         </Card>
     );
 };
-const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
             <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={onImageUpload}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                {/* Simplified view for brevity */}
-                 <div className="text-center text-muted-foreground py-4">Semantic Differential Scale Editor</div>
+                <div className="text-center text-muted-foreground py-4">Semantic Differential Scale Editor</div>
             </CardContent>
         </Card>
     )
 };
-const LikertQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
      return (
-         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
             <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={onImageUpload}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                {/* Simplified view for brevity */}
-                 <div className="text-center text-muted-foreground py-4">Likert Scale Editor</div>
+                <div className="text-center text-muted-foreground py-4">Likert Scale Editor</div>
             </CardContent>
         </Card>
     )
 };
 
-const ConjointQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
             <CardContent className="p-6">
                  <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={onImageUpload}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -930,18 +778,20 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, styles, questionNumber
         </Card>
     );
 };
-const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
-    return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} styles={styles} questionNumber={questionNumber} />;
+const RatingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+    return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} onImageUpload={onImageUpload} onDuplicate={onDuplicate} styles={styles} questionNumber={questionNumber} />;
 };
 
-const AHPQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const AHPQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
   return (
-    <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+    <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
       <CardContent className="p-6 space-y-4">
         <QuestionHeader 
             question={question}
             onUpdate={onUpdate}
             onDelete={onDelete}
+            onImageUpload={onImageUpload}
+            onDuplicate={onDuplicate}
             styles={styles}
             questionNumber={questionNumber}
         />
@@ -950,14 +800,16 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: a
     </Card>
   );
 };
-const ServqualQuestion = ({ question, onUpdate, onDelete, styles, questionNumber }: any) => {
+const ServqualQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
              <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={onImageUpload}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -966,3 +818,193 @@ const ServqualQuestion = ({ question, onUpdate, onDelete, styles, questionNumber
         </Card>
     )
 };
+
+
+const SortableCard = ({ id, children, questionNumber }: { 
+    id: any; 
+    children: React.ReactNode;
+    questionNumber: number;
+}) => {
+    const { 
+        attributes, 
+        listeners, 
+        setNodeRef, 
+        transform, 
+        transition, 
+        isDragging 
+    } = useSortable({ id });
+    
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : 'auto',
+    };
+    
+    return (
+        <motion.div 
+            ref={setNodeRef} 
+            style={style} 
+            className="flex items-start gap-3 group"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            layout
+        >
+            <div 
+                {...attributes} 
+                {...listeners} 
+                className={cn(
+                    "p-2 cursor-grab active:cursor-grabbing mt-3",
+                    "hover:bg-slate-100 rounded-lg transition-colors",
+                    "opacity-0 group-hover:opacity-100"
+                )}
+            >
+                <GripVertical className="w-5 h-5 text-muted-foreground" />
+            </div>
+            
+            <div className="flex-1 relative">
+                {children}
+            </div>
+        </motion.div>
+    );
+};
+
+const EmptyState = ({ onAddQuestion }: { onAddQuestion: () => void }) => {
+    return (
+        <Card className="border-2 border-dashed border-slate-200 bg-slate-50/50">
+            <CardContent className="p-12 text-center">
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mb-4">
+                        <PlusCircle className="w-10 h-10 text-indigo-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">
+                        No questions yet
+                    </h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        Get started by adding your first question. Choose from various question types to create your perfect survey.
+                    </p>
+                </motion.div>
+            </CardContent>
+        </Card>
+    );
+};
+
+
+interface QuestionListProps {
+  survey: Survey;
+  setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
+  onUpdate: (questions: Question[] | ((prev: Question[]) => Question[])) => void;
+  onImageUpload: (target: { type: 'question'; id: string } | { type: 'startPage'; field: 'logo' | 'image' }) => void;
+  onDuplicate: (questionId: string) => void;
+  styles: any;
+  saveSurvey?: (status: string) => void;
+  isSaving?: boolean;
+}
+
+
+export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions, onImageUpload, onDuplicate, styles, saveSurvey, isSaving }: QuestionListProps) {
+    const [activeId, setActiveId] = React.useState<string | null>(null);
+
+    const handleUpdateQuestion = (updatedQuestion: Question) => {
+        setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? { ...q, ...updatedQuestion } : q));
+    };
+    
+    const handleDeleteQuestion = (id: string) => {
+        setQuestions(prev => prev.filter(q => q.id !== id));
+    };
+
+    const handleReorder = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setQuestions((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+        setActiveId(null);
+    };
+    
+    const sensors = useSensors(
+        useSensor(PointerSensor), 
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+    
+    const QuestionComponents: { [key: string]: React.ComponentType<any> } = {
+        single: SingleSelectionQuestion,
+        multiple: MultipleSelectionQuestion,
+        dropdown: DropdownQuestion,
+        text: TextQuestion,
+        number: NumberQuestion,
+        phone: PhoneQuestion,
+        email: EmailQuestion,
+        rating: RatingQuestion,
+        nps: NPSQuestion,
+        description: DescriptionBlock,
+        'best-worst': BestWorstQuestion,
+        matrix: MatrixQuestion,
+        'semantic-differential': SemanticDifferentialQuestion,
+        likert: LikertQuestion,
+        conjoint: ConjointQuestion,
+        'rating-conjoint': RatingConjointQuestion,
+        ahp: AHPQuestion,
+        servqual: ServqualQuestion,
+    };
+
+    return (
+        <div className="space-y-6">
+            <SurveyDetailsCard 
+                survey={survey}
+                setSurvey={setSurvey}
+                onImageUpload={(target) => onImageUpload({ type: 'startPage', field: target as any })}
+            />
+
+            {survey.questions.length === 0 ? (
+                 <EmptyState onAddQuestion={() => {}} />
+            ) : (
+                <DndContext 
+                    sensors={sensors} 
+                    collisionDetection={closestCenter} 
+                    onDragStart={({ active }) => setActiveId(active.id as string)}
+                    onDragEnd={handleReorder}
+                    onDragCancel={() => setActiveId(null)}
+                >
+                    <SortableContext items={survey.questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                        <AnimatePresence>
+                            {survey.questions.map((q, index) => {
+                                const QuestionComponent = QuestionComponents[q.type];
+                                return (
+                                    <SortableCard key={q.id} id={q.id} questionNumber={index + 1}>
+                                        {QuestionComponent ? (
+                                            <QuestionComponent 
+                                                question={q} 
+                                                onUpdate={handleUpdateQuestion} 
+                                                onDelete={() => handleDeleteQuestion(q.id)}
+                                                onImageUpload={() => onImageUpload({ type: 'question', id: q.id })}
+                                                onDuplicate={() => onDuplicate(q.id)}
+                                                styles={styles}
+                                                questionNumber={index + 1}
+                                            />
+                                        ) : <p>Unknown question type: {q.type}</p>}
+                                    </SortableCard>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </SortableContext>
+                </DndContext>
+            )}
+
+            {!isSaving && (
+                <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
+                    <Button variant="outline" size="lg" onClick={() => saveSurvey && saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
+                    <Button size="lg" onClick={() => saveSurvey && saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
+                </div>
+            )}
+        </div>
+    );
+}
