@@ -51,6 +51,14 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                 </div>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
+                 <div className="space-y-1">
+                    <Label htmlFor="survey-title" className="text-sm font-medium">Survey Title</Label>
+                    <Input id="survey-title" value={survey.title} onChange={(e) => handleSurveyChange(draft => { draft.title = e.target.value; })} />
+                </div>
+                 <div className="space-y-1">
+                    <Label htmlFor="survey-description" className="text-sm font-medium">Description</Label>
+                    <Textarea id="survey-description" value={survey.description} onChange={(e) => handleSurveyChange(draft => { draft.description = e.target.value; })} />
+                </div>
                 
                 <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -688,7 +696,9 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                     </TableHead>
                                     {(question.columns || []).map((col: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                            <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
+                                            <div className="flex justify-center">
+                                                <RadioGroupItem value={col} disabled />
+                                            </div>
                                         </TableCell>
                                     ))}
                                     <TableCell></TableCell>
@@ -816,7 +826,9 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                     </TableHead>
                                     {(question.scale || []).map((col: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                            <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
+                                            <div className="flex justify-center">
+                                                <RadioGroupItem value={col} disabled />
+                                            </div>
                                         </TableCell>
                                     ))}
                                     <TableCell></TableCell>
