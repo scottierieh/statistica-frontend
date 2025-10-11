@@ -589,8 +589,8 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
-    mobile: 'w-[320px] h-[560px] rounded-[32px] p-2 shadow-lg',
-    tablet: 'w-full max-w-[768px] h-[95%] max-h-[1024px] rounded-[24px] p-3 shadow-xl',
+    mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg',
+    tablet: 'w-full max-w-[600px] aspect-[4/3] rounded-[24px] p-3 shadow-xl',
     desktop: 'w-full h-full rounded-lg',
   };
   const innerFrameStyles = {
@@ -888,3 +888,4 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+
