@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2, Star } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Survey, Question, ConjointAttribute, Criterion } from '@/entities/Survey';
@@ -417,7 +417,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                 <Button 
+                <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -433,18 +433,18 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
 
 const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...(question.options || [])];
+        const newOptions = [...question.options];
         newOptions[index] = value;
         onUpdate?.({ ...question, options: newOptions });
     };
 
     const addOption = () => {
-        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
         onUpdate?.({ ...question, options: newOptions });
     };
 
     const deleteOption = (index: number) => {
-        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
+        const newOptions = question.options.filter((_:any, i:number) => i !== index);
         onUpdate?.({ ...question, options: newOptions });
     };
     return (
