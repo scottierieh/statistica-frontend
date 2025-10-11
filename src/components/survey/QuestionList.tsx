@@ -286,7 +286,7 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
     };
 
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
@@ -381,7 +381,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
    }
    
    return (
-       <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+       <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                <QuestionHeader 
                     question={question}
@@ -444,7 +444,7 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
         onUpdate?.({ ...question, options: newOptions });
     };
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
                  <QuestionHeader 
                     question={question}
@@ -472,7 +472,7 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
 };
 const TextQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
@@ -490,7 +490,7 @@ const TextQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate
 };
 const NumberQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
@@ -508,7 +508,7 @@ const NumberQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
 };
 const PhoneQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
@@ -526,7 +526,7 @@ const PhoneQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicat
 };
 const EmailQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
@@ -544,7 +544,7 @@ const EmailQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicat
 };
 const RatingQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
      return (
-         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
@@ -564,7 +564,7 @@ const RatingQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
 };
 const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}
@@ -585,7 +585,7 @@ const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate,
 
 const DescriptionBlock = ({ question, onUpdate, onDelete, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
@@ -604,7 +604,7 @@ const DescriptionBlock = ({ question, onUpdate, onDelete, onDuplicate, styles, q
 
 const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
              <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
@@ -650,7 +650,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
     };
     
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
                 <QuestionHeader 
                     question={question}
@@ -725,7 +725,7 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
     };
     
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
@@ -784,7 +784,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
     };
     
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
                 <QuestionHeader 
                     question={question}
@@ -845,7 +845,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
 
 const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
                  <QuestionHeader 
                     question={question}
@@ -885,7 +885,7 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, o
 
 const AHPQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
   return (
-    <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+    <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
       <CardContent className="p-6 space-y-4">
         <QuestionHeader 
             question={question}
@@ -903,7 +903,7 @@ const AHPQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate,
 };
 const ServqualQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return (
-        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+        <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
              <CardContent className="p-6 space-y-4">
                  <QuestionHeader 
                     question={question}

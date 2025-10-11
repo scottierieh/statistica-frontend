@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -5,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "../ui/button";
 import { Minus, Plus } from "lucide-react";
+import { Switch } from "../ui/switch";
 
 interface SurveyStylePanelProps {
     styles: any;
@@ -50,6 +52,13 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                         <Input type="color" value={styles.secondaryColor} onChange={e => handleStyleChange('secondaryColor', e.target.value)} className="p-1 h-10"/>
                         <Input value={styles.secondaryColor} onChange={e => handleStyleChange('secondaryColor', e.target.value)} />
                     </div>
+                </div>
+                 <div className="flex items-center justify-between">
+                    <Label>Transparent Question Background</Label>
+                    <Switch
+                        checked={styles.questionBackground === 'transparent'}
+                        onCheckedChange={(checked) => handleStyleChange('questionBackground', checked ? 'transparent' : 'white')}
+                    />
                 </div>
                 <div>
                     <Label>Typography</Label>

@@ -26,7 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     return (
-        <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-sm font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={280} height={180} className="rounded-md mb-3 max-h-32 w-auto" />}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2">
@@ -60,7 +60,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
        onAnswerChange(newAnswers);
    }
    return (
-       <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+       <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-sm font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={280} height={180} className="rounded-md mb-3 max-h-32 w-auto" />}
            <div className="space-y-2">
@@ -277,7 +277,7 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     }));
   
     return (
-      <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         <div className="space-y-3">
           {(question.rows || []).map((rowText, index) => {
@@ -328,7 +328,7 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
     const showPerception = question.servqualType !== 'Expectation';
 
     return (
-        <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             <p className="text-xs text-muted-foreground mb-3">Rate 1 (Strongly Disagree) to 7 (Strongly Agree)</p>
             <div className="space-y-3">
@@ -589,7 +589,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full aspect-[4/3] max-h-[90%] p-0 bg-white shadow-2xl rounded-lg',
+    desktop: 'w-full h-full p-0 bg-white',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -927,4 +927,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
-
