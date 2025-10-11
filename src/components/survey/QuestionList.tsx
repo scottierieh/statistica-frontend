@@ -6,6 +6,7 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { produce } from 'immer';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,97 +52,64 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                 </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-                {/* Basic Info */}
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="survey-title" className="text-sm font-medium flex items-center gap-2">
-                            Survey Title
-                            <Badge variant="destructive" className="text-xs">Required</Badge>
-                        </Label>
-                        <Input 
-                            id="survey-title"
-                            value={survey.title} 
-                            onChange={(e) => handleSurveyChange(draft => { draft.title = e.target.value })} 
-                            placeholder="e.g., Customer Satisfaction Survey"
-                            className="text-lg font-semibold"
-                        />
-                    </div>
-                    
-                    <div className="space-y-2">
-                        <Label htmlFor="survey-description" className="text-sm font-medium">
-                            Description
-                        </Label>
-                        <Textarea 
-                            id="survey-description"
-                            value={survey.description} 
-                            onChange={(e) => handleSurveyChange(draft => { draft.description = e.target.value })} 
-                            placeholder="Briefly describe the purpose of this survey..."
-                            rows={3}
-                        />
-                    </div>
-                </div>
-                
-                <Separator />
                 
                 {/* Start Page Configuration */}
-                {survey.showStartPage && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/10"
-                    >
-                        <div className="flex items-center gap-2 mb-2">
-                            <Info className="w-4 h-4 text-indigo-600" />
-                            <h4 className="font-semibold text-sm">Start Page Configuration</h4>
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/10"
+                >
+                    <div className="flex items-center gap-2 mb-2">
+                        <Info className="w-4 h-4 text-indigo-600" />
+                        <h4 className="font-semibold text-sm">Start Page Configuration</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        <div className="space-y-1">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Welcome Title
+                            </Label>
+                            <Input 
+                                value={survey.startPage?.title || ''} 
+                                onChange={(e) => handleSurveyChange(draft => {
+                                    if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
+                                    draft.startPage.title = e.target.value;
+                                })} 
+                                placeholder="e.g., Welcome to our Survey!"
+                            />
                         </div>
                         
-                        <div className="space-y-3">
-                            <div className="space-y-1">
-                                <Label className="text-xs font-medium text-muted-foreground">
-                                    Welcome Title
-                                </Label>
-                                <Input 
-                                    value={survey.startPage?.title || ''} 
-                                    onChange={(e) => handleSurveyChange(draft => {
-                                        if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
-                                        draft.startPage.title = e.target.value;
-                                    })} 
-                                    placeholder="e.g., Welcome to our Survey!"
-                                />
-                            </div>
-                            
-                            <div className="space-y-1">
-                                <Label className="text-xs font-medium text-muted-foreground">
-                                    Description
-                                </Label>
-                                <Textarea 
-                                    value={survey.startPage?.description || ''} 
-                                    onChange={(e) => handleSurveyChange(draft => {
-                                         if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
-                                        draft.startPage.description = e.target.value
-                                    })} 
-                                    placeholder="e.g., Your feedback helps us improve our services."
-                                    rows={2}
-                                />
-                            </div>
-                            
-                            <div className="space-y-1">
-                                <Label className="text-xs font-medium text-muted-foreground">
-                                    Button Text
-                                </Label>
-                                <Input 
-                                    value={survey.startPage?.buttonText || 'Start Survey'} 
-                                    onChange={(e) => handleSurveyChange(draft => {
-                                        if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
-                                        draft.startPage.buttonText = e.target.value
-                                    })} 
-                                    placeholder="e.g., Begin Survey"
-                                />
-                            </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Description
+                            </Label>
+                            <Textarea 
+                                value={survey.startPage?.description || ''} 
+                                onChange={(e) => handleSurveyChange(draft => {
+                                     if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
+                                    draft.startPage.description = e.target.value
+                                })} 
+                                placeholder="e.g., Your feedback helps us improve our services."
+                                rows={2}
+                            />
                         </div>
-                    </motion.div>
-                )}
+                        
+                        <div className="space-y-1">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Button Text
+                            </Label>
+                            <Input 
+                                value={survey.startPage?.buttonText || 'Start Survey'} 
+                                onChange={(e) => handleSurveyChange(draft => {
+                                    if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
+                                    draft.startPage.buttonText = e.target.value
+                                })} 
+                                placeholder="e.g., Begin Survey"
+                            />
+                        </div>
+                    </div>
+                </motion.div>
             </CardContent>
         </Card>
     );
