@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense } from 'react';
@@ -8,7 +7,7 @@ export default function SurveyPage() {
   return (
     <Suspense fallback={<div>Loading survey...</div>}>
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-0 md:p-4">
-        <div className="w-full h-full md:max-w-4xl bg-white md:shadow-2xl md:rounded-lg">
+        <div className="w-full h-full md:max-w-2xl bg-white md:shadow-2xl md:rounded-lg">
           <SurveyView />
         </div>
       </div>
