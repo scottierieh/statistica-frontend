@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
-import { Calculator } from 'lucide-react';
+import { ArrowLeft, Calculator, Chrome } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,13 +22,23 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-muted/40">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-muted/40">
+            <header className="fixed top-0 left-0 right-0 px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm z-50">
+                <div className="w-full max-w-6xl mx-auto flex items-center">
+                    <div className="flex-1 flex justify-start">
+                        <Button variant="outline" asChild><Link href="/"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Home</Link></Button>
+                    </div>
+                    <div className="flex-1 flex justify-center">
+                         <Link href="/" className="flex items-center justify-center gap-2">
+                            <Calculator className="h-6 w-6 text-primary" />
+                            <h1 className="text-xl font-headline font-bold">Skarii</h1>
+                        </Link>
+                    </div>
+                    <div className="flex-1" />
+                </div>
+            </header>
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
-                    <div className="flex justify-center items-center gap-2 mb-4">
-                        <Calculator className="h-8 w-8 text-primary" />
-                        <h1 className="text-2xl font-bold font-headline">Skarii</h1>
-                    </div>
                     <CardTitle>Welcome Back</CardTitle>
                     <CardDescription>Enter your credentials to access your account.</CardDescription>
                 </CardHeader>
@@ -43,7 +53,21 @@ export default function LoginPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <Button className="w-full" onClick={handleLogin}>Login</Button>
+                     <Button className="w-full" onClick={handleLogin}>Login</Button>
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                            OR
+                            </span>
+                        </div>
+                    </div>
+                     <Button variant="outline" className="w-full">
+                        <Chrome className="mr-2 h-4 w-4" />
+                        Continue with Google
+                    </Button>
                     <div className="text-center text-sm">
                         Don&apos;t have an account?{' '}
                         <Link href="/register" className="underline">
