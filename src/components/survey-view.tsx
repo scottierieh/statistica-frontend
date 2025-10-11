@@ -590,7 +590,7 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
     mobile: 'w-[320px] h-[560px] rounded-[32px] p-2 shadow-lg',
-    tablet: 'w-full h-[800px] rounded-[24px] p-3 shadow-xl',
+    tablet: 'w-full max-w-[768px] h-[95%] max-h-[1024px] rounded-[24px] p-3 shadow-xl',
     desktop: 'w-full h-full rounded-lg',
   };
   const innerFrameStyles = {
@@ -602,7 +602,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const innerStyle = innerFrameStyles[device];
 
   if (device === 'desktop') {
-    return <div className="h-full w-full bg-white shadow-2xl rounded-lg overflow-y-auto">{children}</div>;
+    return <div className="h-full w-full bg-white shadow-2xl rounded-lg overflow-hidden">{children}</div>;
   }
 
   return (
@@ -877,7 +877,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Preview mode rendering
     if (isPreview && survey) {
         return (
-             <div className="w-full h-full flex justify-center">
+             <div className="w-full h-full flex items-center justify-center">
                  <DeviceFrame device={previewDevice}>
                     {surveyContent}
                 </DeviceFrame>
@@ -888,4 +888,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
-
