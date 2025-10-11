@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -435,7 +435,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
 
 const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...question.options];
+        const newOptions = [...(question.options || [])];
         newOptions[index] = value;
         onUpdate?.({ ...question, options: newOptions });
     };
@@ -582,7 +582,7 @@ const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate,
                     questionNumber={questionNumber}
                 />
                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    {[...Array(11)].map((_, i) => <Button key={i} variant='outline' size="icon" className="h-8 w-8 text-xs">{i}</Button>)}
+                    {[...Array(11)].map((_, i) => <Button key={i} variant='outline' size="icon" className="h-8 w-7 text-xs p-0">{i}</Button>)}
                 </div>
             </CardContent>
         </Card>
@@ -910,7 +910,7 @@ interface QuestionListProps {
 
 
 export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions, onImageUpload, onDuplicate, styles, saveSurvey, isSaving }: QuestionListProps) {
-    const [activeId, React.useState<string | null>(null);
+    const [activeId, setActiveId] = React.useState<string | null>(null);
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
 
@@ -1007,6 +1007,3 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
-
-
-    
