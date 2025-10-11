@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -590,7 +591,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl',
-    desktop: 'w-full aspect-[4/3] max-w-[800px] h-auto rounded-lg p-3 shadow-xl',
+    desktop: 'w-full max-w-[800px] aspect-[4/3] h-auto rounded-lg p-3 shadow-xl',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -878,3 +879,5 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+
+```
