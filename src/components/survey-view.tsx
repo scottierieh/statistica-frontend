@@ -148,9 +148,7 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
             <div className="flex items-center justify-center gap-2">
-                {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={cn("w-7 h-7 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
-                ))}
+                {[...Array(5)].map((_, i) => <Star key={i} className={cn("w-7 h-7 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (i + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(i + 1)}/>)}
             </div>
         </div>
     );
@@ -598,7 +596,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
       tablet: 'rounded-[14px]',
-      desktop: 'rounded-lg'
+      desktop: 'rounded-none'
   }
   const style = frameStyles[device];
   const innerStyle = innerFrameStyles[device];
@@ -868,11 +866,10 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
 
     const surveyContent = (
              <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full bg-card/80 backdrop-blur-sm rounded-2xl flex-1 flex flex-col border-0 shadow-none">
+                 <Card className="w-full bg-card/80 backdrop-blur-sm rounded-none flex-1 flex flex-col border-0 shadow-none">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
-                        <CardDescription className="text-xs">{survey.description}</CardDescription>
-                        <Progress value={((currentQuestionIndex + 1) / (survey.questions.length)) * 100} className="mt-3 h-2" />
+                        {currentQuestionIndex !== -1 && <Progress value={((currentQuestionIndex + 1) / (survey.questions.length)) * 100} className="mt-3 h-2" />}
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto min-h-[300px] p-4">
                          <AnimatePresence mode="wait">
@@ -897,9 +894,11 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                          </AnimatePresence>
                     </CardContent>
                     <CardFooter className="flex justify-between p-4">
-                        <Button onClick={handlePrev} disabled={currentQuestionIndex <= (survey.showStartPage ? -1 : 0)} variant="outline" size="sm" className="transition-transform active:scale-95">
-                            <ArrowLeft className="mr-1 h-4 w-4" /> Previous
-                        </Button>
+                        {currentQuestionIndex !== -1 && (
+                            <Button onClick={handlePrev} disabled={currentQuestionIndex <= (survey.showStartPage ? 0 : 0)} variant="outline" size="sm" className="transition-transform active:scale-95">
+                                <ArrowLeft className="mr-1 h-4 w-4" /> Previous
+                            </Button>
+                        )}
                         {currentQuestionIndex < survey.questions.length - 1 && currentQuestionIndex !== -1 ? (
                             <Button onClick={handleNext} size="sm" className="transition-transform active:scale-95">
                                 Next <ArrowRight className="ml-1 h-4 w-4" />
@@ -929,4 +928,228 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     return surveyContent;
 }
 
+```
+- src/hooks/use-onclick-outside.ts:
+```ts
+"use client"
+
+import * as React from "react"
+
+type EventType = "mousedown" | "mouseup" | "touchstart" | "touchend" | "focusin"
+
+export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
+  ref: React.RefObject<T> | React.RefObject<T>[],
+  handler: (event: MouseEvent | TouchEvent) => void,
+  eventType: EventType = "mousedown"
+) {
+  React.useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      const refs = Array.isArray(ref) ? ref : [ref]
+      const isOutside = refs.every((r) => {
+        return r.current && !r.current.contains(event.target as Node)
+      })
+
+      if (isOutside) {
+        handler(event)
+      }
+    }
+
+    document.addEventListener(eventType, listener)
+    return () => {
+      document.removeEventListener(eventType, listener)
+    }
+  }, [ref, handler, eventType])
+}
+
+```
+- src/hooks/useControllableState.tsx:
+```tsx
+"use client"
+
+import * as React from "react"
+import * as ReactDOM from "react-dom"
+
+type UseControllableStateProps<T> = {
+  prop?: T | undefined
+  defaultProp?: T | undefined
+  onChange?: (state: T) => void
+}
+
+type SetStateFn<T> = (prevState?: T) => T
+
+/**
+ * A custom hook that manages a state value, allowing it to be either controlled
+ * or uncontrolled.
+ *
+ * @see https://github.com/radix-ui/primitives/blob/main/packages/core/react-compose-refs/src/composeRefs.tsx
+ * @param prop - The controlled value.
+ * @param defaultProp - The default value for the uncontrolled state.
+ * @param onChange - An optional callback that is called when the state changes.
+ * @returns A tuple containing the state value and a function to update it.
+ */
+function useControllableState<T>({
+  prop,
+  defaultProp,
+  onChange = () => {},
+}: UseControllableStateProps<T>) {
+  const [uncontrolledProp, setUncontrolledProp] = useUncontrolledState({
+    defaultProp,
+    onChange,
+  })
+  const isControlled = prop !== undefined
+  const value = isControlled ? prop : uncontrolledProp
+  const handleChange = useFunction(onChange)
+
+  const setValue: React.Dispatch<React.SetStateAction<T | undefined>> =
+    React.useCallback(
+      (nextValue) => {
+        if (isControlled) {
+          const setter = nextValue as SetStateFn<T>
+          const value = typeof nextValue === "function" ? setter(prop) : nextValue
+          if (value !== prop) handleChange(value as T)
+        } else {
+          setUncontrolledProp(nextValue)
+        }
+      },
+      [isControlled, prop, setUncontrolledProp, handleChange]
+    )
+
+  return [value, setValue] as const
+}
+
+function useUncontrolledState<T>({
+  defaultProp,
+  onChange,
+}: Omit<UseControllableStateProps<T>, "prop">) {
+  const uncontrolledState = React.useState<T | undefined>(defaultProp)
+  const [value] = uncontrolledState
+  const prevValueRef = React.useRef(value)
+  const handleChange = useFunction(onChange)
+
+  React.useEffect(() => {
+    if (prevValueRef.current !== value) {
+      handleChange(value as T)
+      prevValueRef.current = value
+    }
+  }, [value, prevValueRef, handleChange])
+
+  return uncontrolledState
+}
+
+/**
+ * A custom hook that converts a callback to a ref to avoid triggering re-renders when passed as a
+ * prop or within a hook dependency array.
+ *
+ * @see https://github.com/radix-ui/primitives/blob/main/packages/core/react-use-callback-ref/src/useCallbackRef.tsx
+ * @param callback - The callback function to be converted to a ref.
+ * @returns The callback function as a ref.
+ */
+function useFunction<T extends (...args: any[]) => any>(
+  callback: T | undefined
+): T {
+  const callbackRef = React.useRef(callback)
+
+  React.useEffect(() => {
+    callbackRef.current = callback
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return React.useMemo(() => ((...args: any[]) => callbackRef.current?.(...args)) as T, [])
+}
+
+const useLayoutEffect =
+  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect
+
+export { useControllableState, useFunction, useLayoutEffect, ReactDOM }
+
+```
+- src/hooks/useCopyToClipboard.ts:
+```tsx
+import { useState } from 'react';
+
+export function useCopyToClipboard() {
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const copy = async (text: string) => {
+    if (!navigator?.clipboard) {
+      console.warn('Clipboard not supported');
+      return false;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(text);
+      return true;
+    } catch (error) {
+      console.warn('Copy failed', error);
+      setCopiedText(null);
+      return false;
+    }
+  };
+
+  return { copiedText, copy };
+}
+
+```
+- src/hooks/useLockBody.ts:
+```tsx
+"use client"
+
+import * as React from "react"
+import { useLayoutEffect } from "./useControllableState"
+
+export function useLockBody(locked = false, elementRef?: React.RefObject<HTMLElement>) {
+  useLayoutEffect((): (() => void) => {
+    const originalStyle = window.getComputedStyle(document.body).overflow
+    if (locked) {
+      document.body.style.overflow = "hidden"
+    }
+
+    const scrollableElement = elementRef?.current || document.body
     
+    return () => {
+      if (locked) {
+        document.body.style.overflow = originalStyle
+      }
+    }
+  }, [locked, elementRef])
+}
+
+```
+- next.config.mjs:
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'picsum.photos',
+                port: '',
+                pathname: '**',
+            },
+        ],
+    },
+    webpack: (config) => {
+        config.externals.push({
+            "onnxruntime-node": "commonjs onnxruntime-node"
+        });
+        return config;
+    },
+};
+
+export default nextConfig;
+
+```
+- postcss.config.mjs:
+```js
+/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+
+export default config;
+```
