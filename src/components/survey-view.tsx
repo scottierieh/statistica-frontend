@@ -200,25 +200,25 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange, styles }: { quest
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <RadioGroup asChild onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
-                            <RadioGroup asChild onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
-                                {(question.items || []).map((item: string, index: number) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="text-xs py-2">{item}</TableCell>
-                                        <TableCell className="text-center py-2">
-                                            <div className="flex justify-center">
-                                                <RadioGroupItem value={item} checked={answer?.best === item} className="h-4 w-4"/>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center py-2">
-                                            <div className="flex justify-center">
-                                                <RadioGroupItem value={item} checked={answer?.worst === item} className="h-4 w-4"/>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </RadioGroup>
-                        </RadioGroup>
+                        {(question.items || []).map((item: string, index: number) => (
+                            <TableRow key={index}>
+                                <TableCell className="text-xs py-2">{item}</TableCell>
+                                <TableCell className="text-center py-2">
+                                    <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
+                                        <div className="flex justify-center">
+                                            <RadioGroupItem value={item} className="h-4 w-4"/>
+                                        </div>
+                                    </RadioGroup>
+                                </TableCell>
+                                <TableCell className="text-center py-2">
+                                     <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
+                                        <div className="flex justify-center">
+                                            <RadioGroupItem value={item} className="h-4 w-4"/>
+                                        </div>
+                                    </RadioGroup>
+                                </TableCell>
+                            </TableRow>
+                        ))}
                     </TableBody>
                 </Table>
             </div>
@@ -249,18 +249,18 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, styles }: { question
                     </TableHeader>
                     <TableBody>
                         {(question.rows || []).map((row: string, rowIndex: number) => (
-                            <RadioGroup key={`row-${rowIndex}`} value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))} asChild>
-                                <TableRow>
-                                    <TableHead className="text-xs py-2">{row}</TableHead>
-                                        {(question.columns || []).map((col: string, colIndex: number) => (
-                                            <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
-                                                <div className="flex justify-center">
-                                                    <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} className="h-4 w-4"/>
-                                                </div>
-                                            </TableCell>
-                                        ))}
-                                </TableRow>
-                            </RadioGroup>
+                            <TableRow key={`row-${rowIndex}`}>
+                                <TableHead className="text-xs py-2">{row}</TableHead>
+                                {(question.columns || []).map((col: string, colIndex: number) => (
+                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
+                                        <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                            <div className="flex justify-center">
+                                                <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} className="h-4 w-4"/>
+                                            </div>
+                                        </RadioGroup>
+                                    </TableCell>
+                                ))}
+                            </TableRow>
                         ))}
                     </TableBody>
                 </Table>
@@ -398,24 +398,39 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
             pairs: createPairs(criteria)
         }];
 
-        criteria.forEach(c => {
-            if (c.subCriteria && c.subCriteria.length > 1) {
-                comparisons.push({
-                    title: `For "${c.name}", which sub-criterion is more important?`,
-                    matrixKey: `sub_criteria_${c.id}`,
-                    pairs: createPairs(c.subCriteria)
-                });
-            }
-        });
+        const getLeafCriteria = (nodes: Criterion[]): Criterion[] => {
+            let leaves: Criterion[] = [];
+            nodes.forEach(node => {
+                if (!node.subCriteria || node.subCriteria.length === 0) {
+                    leaves.push(node);
+                } else {
+                    leaves = [...leaves, ...getLeafCriteria(node.subCriteria)];
+                }
+            });
+            return leaves;
+        };
         
+        // Sub-criteria comparisons
+        const traverseForSubCriteria = (nodes: Criterion[]) => {
+             nodes.forEach(c => {
+                if (c.subCriteria && c.subCriteria.length > 1) {
+                    comparisons.push({
+                        title: `For "${c.name}", which sub-criterion is more important?`,
+                        matrixKey: `sub_criteria_${c.id}`,
+                        pairs: createPairs(c.subCriteria)
+                    });
+                    traverseForSubCriteria(c.subCriteria);
+                }
+            });
+        };
+        traverseForSubCriteria(criteria);
+        
+        // Alternatives comparisons
         if (alternatives.length > 1) {
-            const lowestLevelCriteria = criteria.flatMap(c => 
-                (c.subCriteria && c.subCriteria.length > 0) ? c.subCriteria.map(sc => ({...sc, parent: c.name})) : [{...c, parent: null}]
-            );
-
-            lowestLevelCriteria.forEach(criterion => {
+            const leafCriteria = getLeafCriteria(criteria);
+            leafCriteria.forEach(criterion => {
                 comparisons.push({
-                    title: `For "${criterion.parent ? `${criterion.parent} -> ${criterion.name}`: criterion.name}", which alternative is better?`,
+                    title: `For "${criterion.name}", which alternative is better?`,
                     matrixKey: `alt_${criterion.id}`,
                     pairs: createPairs(alternatives)
                 });
@@ -589,7 +604,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full h-full p-0 bg-white md:w-[794px] md:h-[1123px] md:scale-[0.8] md:origin-top md:shadow-2xl md:rounded-lg',
+    desktop: 'w-[794px] h-[1123px] p-0 bg-white shadow-2xl rounded-lg scale-[0.8] origin-top',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -840,24 +855,24 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
         return (
             <div className="min-h-screen flex items-center justify-center p-4">
                 <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center"
                 >
-                <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: "spring" }}
-                    className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/30"
-                >
-                    <CheckCircle2 className="w-8 h-8 text-white" />
-                </motion.div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                    Thank You!
-                </h2>
-                <p className="text-slate-600 text-sm">
-                    Your response has been recorded.
-                </p>
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2, type: "spring" }}
+                        className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/30"
+                    >
+                        <CheckCircle2 className="w-8 h-8 text-white" />
+                    </motion.div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                        Thank You!
+                    </h2>
+                    <p className="text-slate-600 text-sm">
+                        Your response has been recorded.
+                    </p>
                 </motion.div>
             </div>
         );
