@@ -587,54 +587,59 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
     );
 };
 
-const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
-    const frameStyles = {
-        mobile: {
-            width: '280px', // Slightly smaller
-            height: '560px',
-            borderRadius: '32px',
-            padding: '8px'
-        },
-        tablet: {
-            width: '100%',
-            maxWidth: '768px',
-            height: '800px',
-            borderRadius: '24px',
-            padding: '14px'
-        },
-        desktop: {
-            width: '100%',
-            height: '100%',
-            borderRadius: '8px',
-            padding: '0'
-        }
-    };
-    const style = frameStyles[device];
+const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
+  const frameStyles = {
+    mobile: {
+      width: '320px',
+      height: '560px',
+      borderRadius: '32px',
+      padding: '8px',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+    },
+    tablet: {
+      width: '100%',
+      maxWidth: '768px',
+      height: '800px',
+      borderRadius: '24px',
+      padding: '14px',
+      boxShadow: '0 15px 40px rgba(0,0,0,0.2)',
+    },
+    desktop: {
+      width: '100%',
+      height: '100%',
+      borderRadius: '8px',
+      padding: '0',
+    },
+  };
+  const style = frameStyles[device];
 
-    if (device === 'desktop') {
-        return <div className="h-full w-full bg-white shadow-2xl rounded-lg overflow-y-auto">{children}</div>;
-    }
+  if (device === 'desktop') {
+    return <div className="h-full w-full bg-white shadow-2xl rounded-lg overflow-y-auto">{children}</div>;
+  }
 
-    return (
-        <div
-            className="relative mx-auto bg-gray-800 shadow-2xl transition-all duration-300"
-            style={style}
-        >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-800 rounded-b-md z-20">
-                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
-            </div>
-            {device === 'mobile' && (
-                <>
-                <div className="absolute left-0 top-16 h-6 w-1 bg-gray-700 rounded-r-sm"></div>
-                <div className="absolute left-0 top-24 h-12 w-1 bg-gray-700 rounded-r-sm"></div>
-                <div className="absolute right-0 top-24 h-12 w-1 bg-gray-700 rounded-l-sm"></div>
-                </>
-            )}
-            <div className="h-full w-full bg-white rounded-[24px] overflow-y-auto">
-                 {children}
-            </div>
-        </div>
-    );
+  return (
+    <div
+      className={cn(
+        'relative mx-auto bg-gray-800 shadow-2xl transition-all duration-300',
+        device === 'mobile' ? 'p-2 rounded-[40px]' : 'p-3 rounded-[24px]'
+      )}
+      style={style}
+    >
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-800 rounded-b-md z-20">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
+      </div>
+      {device === 'mobile' && (
+        <>
+          <div className="absolute left-0 top-16 h-6 w-1 bg-gray-700 rounded-r-sm"></div>
+          <div className="absolute left-0 top-24 h-12 w-1 bg-gray-700 rounded-r-sm"></div>
+          <div className="absolute right-0 top-24 h-12 w-1 bg-gray-700 rounded-l-sm"></div>
+        </>
+      )}
+       <div className="h-full w-full bg-white rounded-[24px] overflow-y-auto">
+        {children}
+      </div>
+    </div>
+  );
 };
 
 
@@ -837,7 +842,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     }
 
     const surveyContent = (
-             <div className="h-full flex flex-col items-center justify-center" style={{backgroundColor: surveyStyles?.secondaryColor}}>
+             <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
                  <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg flex-1 flex flex-col">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
@@ -885,7 +890,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Preview mode rendering
     if (isPreview && survey) {
         return (
-             <div className="w-full h-full flex items-center justify-center">
+             <div className="w-full h-full flex justify-center">
                  <DeviceFrame device={previewDevice}>
                     {surveyContent}
                 </DeviceFrame>
@@ -897,6 +902,5 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     return surveyContent;
 }
 
-```
-- src/components/ui/date-picker-with-range.tsx
-- src/components/ui/progress.tsx
+
+  
