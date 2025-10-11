@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2, Star } from "lucide-react";
+import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2, Star, Sigma } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Survey, Question, ConjointAttribute, Criterion } from '@/entities/Survey';
@@ -55,7 +55,6 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
             </CardHeader>
             <CardContent className="p-6 space-y-6">
                 
-                {/* Start Page Configuration */}
                 <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -120,7 +119,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 {survey.startPage?.logo?.src && (
                                     <div className="relative mt-2">
                                         <Image src={survey.startPage.logo.src} alt="Survey logo preview" width={80} height={80} className="rounded-md border p-1" />
-                                        <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => draft.startPage!.logo!.src = undefined)}><X className="w-3 h-3"/></Button>
+                                        <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => { if (draft.startPage?.logo) draft.startPage.logo.src = undefined; })}><X className="w-3 h-3"/></Button>
                                     </div>
                                 )}
                             </div>
@@ -133,7 +132,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 { (survey.startPage?.imageUrl || defaultImage?.imageUrl) && (
                                      <div className="relative mt-2">
                                         <Image src={survey.startPage?.imageUrl || defaultImage!.imageUrl} alt="Survey content image preview" width={150} height={75} className="rounded-md border p-1" />
-                                         <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => draft.startPage!.imageUrl = undefined)}><X className="w-3 h-3"/></Button>
+                                         <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => { if (draft.startPage) draft.startPage.imageUrl = undefined; })}><X className="w-3 h-3"/></Button>
                                     </div>
                                 )}
                             </div>
@@ -725,10 +724,27 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
     )
 };
 const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
-     return (
-         <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
-            <CardContent className="p-6 space-y-4">
-                 <QuestionHeader 
+    
+    const handleUpdate = (type: 'rows' | 'scale', index: number, value: string) => {
+        const newArr = [...(question[type] || [])];
+        newArr[index] = value;
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const handleAdd = (type: 'rows' | 'scale') => {
+        const newArr = [...(question[type] || []), `New ${type === 'rows' ? 'Statement' : 'Scale Point'}`];
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const handleRemove = (type: 'rows' | 'scale', index: number) => {
+        const newArr = (question[type] || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+    
+    return (
+        <Card className="relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible">
+            <CardContent className="p-6">
+                <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
@@ -737,10 +753,46 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                <div className="text-center text-muted-foreground py-4">Likert Scale Editor</div>
+                <div className="overflow-x-auto mt-4">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-1/3 min-w-[150px]">Statements</TableHead>
+                                {(question.scale || []).map((header: string, colIndex: number) => (
+                                    <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
+                                        <div className="flex items-center gap-1 justify-center">
+                                            <Input value={header} onChange={e => handleUpdate('scale', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('scale', colIndex)}><X className="h-3 w-3"/></Button>
+                                        </div>
+                                    </TableHead>
+                                ))}
+                                <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd('scale')}><PlusCircle className="w-4"/></Button></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {(question.rows || []).map((row: string, rowIndex: number) => (
+                                <TableRow key={`row-${rowIndex}`}>
+                                    <TableHead>
+                                        <div className="flex items-center gap-1">
+                                            <Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" />
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
+                                        </div>
+                                    </TableHead>
+                                    {(question.scale || []).map((col: string, colIndex: number) => (
+                                        <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
+                                            <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
+                                        </TableCell>
+                                    ))}
+                                    <TableCell></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                 <Button variant="link" size="sm" className="mt-2" onClick={() => handleAdd('rows')}><PlusCircle className="w-4 h-4 mr-2" /> Add Statement</Button>
             </CardContent>
         </Card>
-    )
+    );
 };
 
 const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
@@ -946,7 +998,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         'best-worst': BestWorstQuestion,
         matrix: MatrixQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
-        likert: SemanticDifferentialQuestion,
+        likert: LikertQuestion,
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
         ahp: AHPQuestion,
