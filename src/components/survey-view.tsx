@@ -590,7 +590,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl',
-    desktop: 'w-full h-full rounded-lg',
+    desktop: 'w-full aspect-[4/3] max-w-[800px] h-auto rounded-lg p-3 shadow-xl',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -599,11 +599,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   }
   const style = frameStyles[device];
   const innerStyle = innerFrameStyles[device];
-
-  if (device === 'desktop') {
-    return <div className="h-full w-full bg-white shadow-2xl rounded-lg overflow-hidden">{children}</div>;
-  }
-
+  
   return (
     <div className={cn('relative mx-auto bg-gray-800 transition-all duration-300', style)}>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-800 rounded-b-lg z-20">
