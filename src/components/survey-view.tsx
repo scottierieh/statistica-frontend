@@ -590,10 +590,10 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tablet'; children: React.ReactNode }) => {
     const frameStyles = {
         mobile: {
-            width: '320px',
-            height: '640px',
+            width: '300px',
+            height: '600px',
             borderRadius: '36px',
-            padding: '12px'
+            padding: '10px'
         },
         tablet: {
             width: '600px',
@@ -605,18 +605,18 @@ const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tab
     const style = frameStyles[device];
 
     return (
-        <div 
-            className="relative mx-auto bg-gray-800 shadow-2xl" 
+        <div
+            className="relative mx-auto bg-gray-800 shadow-2xl"
             style={style}
         >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-4 bg-gray-800 rounded-b-md z-20">
-                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gray-900 rounded-full"></div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-800 rounded-b-md z-20">
+                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
             </div>
-            <div className="absolute left-0 top-16 h-8 w-1 bg-gray-700 rounded-r-sm"></div>
-            <div className="absolute left-0 top-28 h-16 w-1 bg-gray-700 rounded-r-sm"></div>
-            <div className="absolute right-0 top-24 h-16 w-1 bg-gray-700 rounded-l-sm"></div>
-            <div className="h-full w-full bg-white rounded-[24px] overflow-hidden">
-                 <div className="h-full w-full">{children}</div>
+            <div className="absolute left-0 top-16 h-6 w-1 bg-gray-700 rounded-r-sm"></div>
+            <div className="absolute left-0 top-24 h-12 w-1 bg-gray-700 rounded-r-sm"></div>
+            <div className="absolute right-0 top-24 h-12 w-1 bg-gray-700 rounded-l-sm"></div>
+            <div className="h-full w-full bg-white rounded-[24px] overflow-y-auto">
+                 {children}
             </div>
         </div>
     );
@@ -709,6 +709,10 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     };
 
     const handleSubmit = () => {
+        if (isPreview) {
+             setIsCompleted(true);
+            return;
+        }
         if (!surveyId) {
             setIsCompleted(true);
             return;
@@ -822,14 +826,14 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     }
 
     const surveyContent = (
-             <div className="min-h-screen p-4" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg mx-auto">
+             <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
+                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg mx-auto my-auto flex-1 flex flex-col">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                         <CardDescription className="text-xs">{survey.description}</CardDescription>
                         <Progress value={((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100} className="mt-3 h-2" />
                     </CardHeader>
-                    <CardContent className="min-h-[300px] overflow-hidden p-4">
+                    <CardContent className="flex-1 overflow-y-auto min-h-[300px] p-4">
                          <AnimatePresence mode="wait">
                             {currentQuestionIndex === -1 ? (
                                  <motion.div key="intro" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}><p>This is the start screen. Click 'Start' to begin.</p></motion.div>
