@@ -188,11 +188,12 @@ export default function CreateSurveyPage() {
                          <DialogContent className={cn("h-[90vh] flex flex-col p-0 transition-all duration-300", deviceWidths[previewDevice])}>
                            <DialogHeader className="p-4 border-b">
                                 <DialogTitle>Survey Preview</DialogTitle>
-                                <DialogDescription>See how your survey will look on different devices.</DialogDescription>
                            </DialogHeader>
                            <div className="flex-1 overflow-y-auto">
                                 <SurveyView 
+                                    isPreview={true}
                                     survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
+                                    previewStyles={styles}
                                 />
                            </div>
                         </DialogContent>

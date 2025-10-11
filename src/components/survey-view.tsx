@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -590,10 +591,11 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 interface SurveyViewProps {
   survey?: any;
   previewStyles?: any;
+  isPreview?: boolean;
 }
 
 
-export default function SurveyView({ survey: surveyProp, previewStyles }: SurveyViewProps) {
+export default function SurveyView({ survey: surveyProp, previewStyles, isPreview }: SurveyViewProps) {
     const params = useParams();
     const { toast } = useToast();
     const surveyId = params.id as string;
@@ -609,7 +611,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles }: Survey
     const [isSurveyActive, setIsSurveyActive] = useState(false);
 
     useEffect(() => {
-        if (surveyProp && previewStyles) {
+        if (isPreview && surveyProp) {
             setSurvey({...surveyProp, styles: previewStyles});
             setIsSurveyActive(true);
             setLoading(false);
@@ -645,7 +647,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles }: Survey
                 setLoading(false);
             }
         }
-    }, [surveyId, surveyProp, previewStyles]);
+    }, [surveyId, surveyProp, previewStyles, isPreview]);
     
     const handleAnswerChange = (questionId: string, value: any) => {
         setAnswers((prev: any) => ({
