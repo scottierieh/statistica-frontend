@@ -590,7 +590,7 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg',
-    tablet: 'w-full max-w-[600px] aspect-[3/4] rounded-[24px] p-3 shadow-xl',
+    tablet: 'w-full max-w-[600px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl',
     desktop: 'w-full h-full rounded-lg',
   };
   const innerFrameStyles = {
@@ -606,12 +606,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   }
 
   return (
-    <div
-      className={cn(
-        'relative mx-auto bg-gray-800 transition-all duration-300',
-        style
-      )}
-    >
+    <div className={cn('relative mx-auto bg-gray-800 transition-all duration-300', style)}>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-800 rounded-b-lg z-20">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-gray-900 rounded-full"></div>
       </div>
@@ -888,169 +883,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
-
-```
-- src/lib/placeholder-images.ts:
-```ts
-import data from './placeholder-images.json';
-
-export type ImagePlaceholder = {
-  id: string;
-  description: string;
-  imageUrl: string;
-  imageHint: string;
-};
-
-export const PlaceHolderImages: ImagePlaceholder[] = data.placeholderImages;
-
-```
-- src/lib/utils.ts:
-```ts
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-```
-- src/types/survey.ts:
-```ts
-export interface Survey {
-  id: string;
-  title: string;
-  description: string;
-  questions: Question[];
-  status: 'draft' | 'active' | 'closed';
-  created_date: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface SurveyResponse {
-  id: string;
-  survey_id: string;
-  submittedAt: string; // Changed from submitted_at
-  answers: {
-    [questionId: string]: any;
-  };
-}
-
-export interface ConjointAttribute {
-  id: string;
-  name: string;
-  levels: string[];
-}
-
-export interface Question {
-  id: string;
-  type: string;
-  title: string;
-  text?: string;
-  description?: string;
-  options?: string[];
-  items?: string[];
-  columns?: string[];
-  scale?: string[];
-  required?: boolean;
-  content?: string;
-  imageUrl?: string;
-  rows?: string[];
-  // For Conjoint Analysis
-  attributes?: ConjointAttribute[];
-}
-
-```
-- tailwind.config.ts:
-```ts
-import type {Config} from 'tailwindcss';
-
-export default {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {
-      fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
-        code: ['monospace'],
-      },
-      colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config;
-
-```
