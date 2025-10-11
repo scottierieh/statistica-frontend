@@ -38,7 +38,7 @@ export default function CreateSurveyPage() {
     questionTextSize: 22,
     answerTextSize: 16
   });
-  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   useEffect(() => {
     const loadSurvey = async () => {
@@ -180,7 +180,7 @@ export default function CreateSurveyPage() {
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
                          <DialogContent className="h-[95vh] flex flex-col p-0 w-full max-w-5xl">
-                           <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
+                           <DialogHeader className="p-4 border-b">
                                 <DialogTitle>Survey Preview</DialogTitle>
                            </DialogHeader>
                            <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
