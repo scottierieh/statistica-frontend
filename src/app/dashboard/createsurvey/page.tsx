@@ -167,9 +167,9 @@ export default function CreateSurveyPage() {
   };
   
   const deviceWidths = {
-    desktop: 'max-w-6xl',
-    tablet: 'max-w-3xl',
-    mobile: 'max-w-md',
+    desktop: 'max-w-4xl',
+    tablet: 'max-w-2xl',
+    mobile: 'max-w-sm',
   };
 
   return (
@@ -198,7 +198,6 @@ export default function CreateSurveyPage() {
                            <div className="flex-1 overflow-y-auto">
                                 <SurveyView 
                                     survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
-                                    isPreview={true}
                                     previewStyles={styles}
                                 />
                            </div>

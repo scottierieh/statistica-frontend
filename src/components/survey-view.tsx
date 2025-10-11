@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -26,23 +27,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     return (
         <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            <h3 className="text-sm font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={280} height={180} className="rounded-md mb-3 max-h-32 w-auto" />}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
                      <Label
                         key={index}
                         htmlFor={`q${question.id}-o${index}`}
                         className={cn(
-                          "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer text-sm",
+                          "flex items-center space-x-2 p-2.5 rounded-lg border-2 transition-all cursor-pointer text-sm",
                           answer === option 
                             ? "bg-primary/10 border-primary shadow-md" 
                             : "bg-background hover:bg-accent/50 hover:border-primary/50"
                         )}
                       >
-                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
-                        <span className="flex-1 font-medium">{option}</span>
-                        {answer === option && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} className="shrink-0" />
+                        <span className="flex-1 font-medium leading-tight">{option}</span>
+                        {answer === option && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                     </Label>
                 ))}
             </RadioGroup>
@@ -60,17 +61,18 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
    }
    return (
        <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-           {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            <h3 className="text-sm font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+           {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={280} height={180} className="rounded-md mb-3 max-h-32 w-auto" />}
            <div className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
-                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer text-sm", answer?.includes(option) ? 'bg-primary/10 border-primary shadow-md' : 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
+                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-2 p-2.5 rounded-lg border-2 transition-all cursor-pointer text-sm", answer?.includes(option) ? 'bg-primary/10 border-primary shadow-md' : 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
                        <Checkbox
                            id={`q${question.id}-o${index}`}
                            checked={answer?.includes(option)}
                            onCheckedChange={(checked) => handleCheckChange(!!checked, option)}
+                           className="shrink-0"
                        />
-                       <span className="flex-1 font-medium">{option}</span>
+                       <span className="flex-1 font-medium leading-tight">{option}</span>
                    </Label>
                ))}
            </div>
@@ -586,79 +588,6 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 };
 
 
-// 디바이스 프레임 컴포넌트
-const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tablet'; children: React.ReactNode }) => {
-    const frameStyles = {
-        mobile: {
-            width: '375px',
-            height: '667px',
-            borderRadius: '36px',
-        },
-        tablet: {
-            width: '768px',
-            height: '1024px',
-            borderRadius: '24px',
-        }
-    };
-
-    const style = frameStyles[device];
-
-    return (
-        <div className="relative mx-auto" style={{ width: style.width, height: style.height }}>
-            <div 
-                className="relative overflow-hidden bg-black"
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: style.borderRadius,
-                    border: device === 'mobile' ? '12px solid #1f2937' : '16px solid #1f2937',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.3), inset 0 0 6px rgba(255,255,255,0.1)',
-                }}
-            >
-
-                
-                <div className="w-full h-full overflow-y-auto bg-white">
-                    {children}
-                </div>
-                
-                {device === 'mobile' && (
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-400 rounded-full" />
-                )}
-            </div>
-            
-            <div 
-                className="absolute bg-gray-700 rounded-r"
-                style={{
-                    right: '-4px',
-                    top: device === 'mobile' ? '120px' : '180px',
-                    width: '4px',
-                    height: '60px',
-                }}
-            />
-            
-            <div 
-                className="absolute bg-gray-700 rounded-l"
-                style={{
-                    left: '-4px',
-                    top: device === 'mobile' ? '100px' : '150px',
-                    width: '4px',
-                    height: '40px',
-                }}
-            />
-            <div 
-                className="absolute bg-gray-700 rounded-l"
-                style={{
-                    left: '-4px',
-                    top: device === 'mobile' ? '150px' : '200px',
-                    width: '4px',
-                    height: '40px',
-                }}
-            />
-        </div>
-    );
-};
-
-
 interface SurveyViewProps {
   survey?: any;
   isPreview?: boolean;
@@ -680,7 +609,6 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     const [respondentEmail, setRespondentEmail] = useState("");
     const [loading, setLoading] = useState(!isPreview);
     const [isSurveyActive, setIsSurveyActive] = useState(false);
-    const [deviceView, setDeviceView] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
 
     useEffect(() => {
         if (isPreview) {
@@ -812,132 +740,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     
     const surveyStyles = isPreview ? previewStyles : survey?.styles;
 
-    if (isPreview && survey) {
-        const surveyContent = (
-            <div className="w-full h-full p-6" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
-                <h2 className="text-lg font-bold mb-2">{survey.title}</h2>
-                <p className="text-xs mb-4">{survey.description}</p>
-                <div className="space-y-3">
-                    {survey.questions.map((q: Question) => {
-                        const QuestionComp = questionComponents[q.type];
-                        return QuestionComp ? (
-                            <div key={q.id}>
-                                <QuestionComp 
-                                    question={q} 
-                                    answer={answers[q.id]} 
-                                    onAnswerChange={() => {}} 
-                                    styles={surveyStyles} 
-                                />
-                            </div>
-                        ) : null;
-                    })}
-                </div>
-            </div>
-        );
-
-        return (
-            <div className="fixed inset-0 bg-white z-50 flex">
-                {/* 왼쪽 Dock */}
-                <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
-                    <button
-                        onClick={() => setDeviceView('mobile')}
-                        className={cn(
-                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
-                            deviceView === 'mobile' 
-                                ? 'bg-blue-500 shadow-lg scale-110' 
-                                : 'bg-white hover:bg-gray-100 border border-gray-200'
-                        )}
-                    >
-                        <span className="text-3xl">📱</span>
-                    </button>
-                    <button
-                        onClick={() => setDeviceView('tablet')}
-                        className={cn(
-                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
-                            deviceView === 'tablet' 
-                                ? 'bg-blue-500 shadow-lg scale-110' 
-                                : 'bg-white hover:bg-gray-100 border border-gray-200'
-                        )}
-                    >
-                        <span className="text-3xl">📱</span>
-                    </button>
-                    <button
-                        onClick={() => setDeviceView('desktop')}
-                        className={cn(
-                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
-                            deviceView === 'desktop' 
-                                ? 'bg-blue-500 shadow-lg scale-110' 
-                                : 'bg-white hover:bg-gray-100 border border-gray-200'
-                        )}
-                    >
-                        <span className="text-3xl">💻</span>
-                    </button>
-                </div>
-
-                {/* 메인 프리뷰 영역 */}
-                <div className="flex-1 flex items-center justify-center p-12 bg-gradient-to-br from-gray-50 to-gray-100">
-                    {deviceView === 'mobile' ? (
-                        <DeviceFrame device="mobile">
-                            <div className="w-full h-full overflow-y-auto">
-                                {surveyContent}
-                            </div>
-                        </DeviceFrame>
-                    ) : deviceView === 'tablet' ? (
-                        <DeviceFrame device="tablet">
-                            <div className="w-full h-full overflow-y-auto">
-                                {surveyContent}
-                            </div>
-                        </DeviceFrame>
-                    ) : (
-                        // 데스크톱 화면
-                        <div className="relative w-full max-w-7xl h-full">
-                            <div className="relative bg-gray-900 rounded-t-3xl pt-10 px-10 pb-0 shadow-2xl h-full flex flex-col">
-                                {/* 맥북 상단 버튼 */}
-                                <div className="absolute top-4 left-8 flex gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                </div>
-                                
-                                {/* 카메라 */}
-                                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-700"></div>
-                                
-                                {/* 화면 */}
-                                <div className="flex-1 bg-white rounded-t-2xl shadow-inner overflow-hidden flex flex-col min-h-0">
-                                    {/* 브라우저 상단 바 */}
-                                    <div className="h-10 bg-gray-100 border-b border-gray-200 flex items-center px-6 gap-4 flex-shrink-0">
-                                        <div className="flex items-center gap-2">
-                                            <div className="text-sm font-semibold">🌐 Survey Preview</div>
-                                        </div>
-                                        <div className="flex-1 bg-white rounded-lg px-4 py-1.5 text-xs text-gray-500 border border-gray-200">
-                                            https://survey.example.com/preview
-                                        </div>
-                                    </div>
-                                    
-                                    {/* 설문 내용 - 스크롤 가능 */}
-                                    <div className="flex-1 overflow-y-auto min-h-0">
-                                        <div className="max-w-3xl mx-auto">
-                                            {surveyContent}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* 맥북 베이스 */}
-                            <div className="h-4 bg-gradient-to-b from-gray-800 to-gray-700 rounded-b-3xl shadow-xl"></div>
-                            <div className="relative h-8 mt-1">
-                                <div className="absolute inset-0 bg-gray-700 rounded-b-[40px] shadow-2xl" style={{ 
-                                    clipPath: 'polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%)'
-                                }}></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    if (!isSurveyActive) {
+    if (!isSurveyActive && !isPreview) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
                 <Card className="w-full max-w-md text-center p-6">
