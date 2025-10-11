@@ -413,7 +413,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                 <Button 
+                <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -686,13 +686,17 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
-                                    {(question.columns || []).map((col: string, colIndex: number) => (
-                                        <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                            <div className="flex justify-center">
-                                                <RadioGroupItem value={col} disabled />
-                                            </div>
-                                        </TableCell>
-                                    ))}
+                                    <RadioGroup asChild>
+                                        <>
+                                            {(question.columns || []).map((col: string, colIndex: number) => (
+                                                <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
+                                                     <div className="flex justify-center">
+                                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled/>
+                                                    </div>
+                                                </TableCell>
+                                            ))}
+                                        </>
+                                    </RadioGroup>
                                     <TableCell></TableCell>
                                 </TableRow>
                             ))}
@@ -737,7 +741,7 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
                         const [left, right] = (rowText || ' vs ').split(' vs ').map(s => s.trim());
                         return (
                              <div key={index} className="p-3 border rounded-lg space-y-3">
-                                <div className="flex items-center gap-2">
+                                 <div className="flex items-center gap-2">
                                      <Input value={left} onChange={e => handleUpdate(index, `${e.target.value} vs ${right}`)} className="text-center font-semibold" placeholder="Left Adjective"/>
                                      <span className="text-muted-foreground">vs</span>
                                      <Input value={right} onChange={e => handleUpdate(index, `${left} vs ${e.target.value}`)} className="text-center font-semibold" placeholder="Right Adjective" />
@@ -745,11 +749,11 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
                                 </div>
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-sm font-medium text-muted-foreground w-1/4 text-left">{left}</span>
-                                    <div className="flex-1 flex justify-center gap-2">
+                                    <RadioGroup className="flex-1 flex justify-center gap-2">
                                         {[...Array(question.numScalePoints || 7)].map((_, i) => (
-                                            <RadioGroup key={i}><RadioGroupItem value={`${i}`} disabled /></RadioGroup>
+                                            <RadioGroupItem key={i} value={`${i}`} disabled />
                                         ))}
-                                    </div>
+                                    </RadioGroup>
                                     <span className="text-sm font-medium text-muted-foreground w-1/4 text-right">{right}</span>
                                 </div>
                             </div>
@@ -816,11 +820,17 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
-                                    {(question.scale || []).map((col: string, colIndex: number) => (
-                                        <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                            <RadioGroup><div className="flex justify-center"><RadioGroupItem value={col} disabled /></div></RadioGroup>
-                                        </TableCell>
-                                    ))}
+                                    <RadioGroup asChild>
+                                        <>
+                                            {(question.scale || []).map((col: string, colIndex: number) => (
+                                                <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
+                                                    <div className="flex justify-center">
+                                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled />
+                                                    </div>
+                                                </TableCell>
+                                            ))}
+                                        </>
+                                    </RadioGroup>
                                     <TableCell></TableCell>
                                 </TableRow>
                             ))}
