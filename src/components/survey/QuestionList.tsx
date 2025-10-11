@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -1019,23 +1020,33 @@ export default function QuestionList({ title, setTitle, setDescription, descript
                 <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
                 <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
                 {survey && setSurvey && (
-                    <div className="flex items-center space-x-2 pt-2">
-                        <Switch id="start-page-toggle" checked={survey.showStartPage} onCheckedChange={(checked) => setSurvey({...survey, showStartPage: checked})}/>
-                        <Label htmlFor="start-page-toggle">Show Start Page</Label>
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center space-x-2">
+                            <Switch id="start-page-toggle" checked={survey.showStartPage} onCheckedChange={(checked) => setSurvey({...survey, showStartPage: checked})}/>
+                            <Label htmlFor="start-page-toggle">Show Start Page</Label>
+                        </div>
+                        {survey.showStartPage && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="space-y-3 p-4 border rounded-lg bg-muted/50 overflow-hidden">
+                                <Label>Start Page Title</Label>
+                                <Input value={survey.startPage?.title || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, title: e.target.value}})} placeholder="e.g., Welcome to our Survey!"/>
+                                
+                                <Label>Start Page Description</Label>
+                                <Textarea value={survey.startPage?.description || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, description: e.target.value}})} placeholder="e.g., Your feedback is important to us."/>
+                                
+                                <Label>Start Page Button Text</Label>
+                                <Input value={survey.startPage?.buttonText || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, buttonText: e.target.value}})} placeholder="e.g., Start Survey"/>
+                                
+                                <Label>Logo URL (Optional)</Label>
+                                <Input value={survey.startPage?.logo?.src || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, logo: {...survey.startPage?.logo, src: e.target.value}}})} placeholder="https://example.com/logo.png"/>
+
+                                <Label>Image URL (Optional)</Label>
+                                <Input value={survey.startPage?.imageUrl || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, imageUrl: e.target.value}})} placeholder="https://example.com/image.png"/>
+                            </motion.div>
+                        )}
                     </div>
-                )}
-                {survey?.showStartPage && (
-                    <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="space-y-2 p-4 border rounded-lg bg-muted/50 overflow-hidden">
-                        <Label>Start Page Title</Label>
-                        <Input value={survey.startPage?.title || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, title: e.target.value}})} placeholder="e.g., Welcome to our Survey!"/>
-                        <Label>Start Page Description</Label>
-                        <Textarea value={survey.startPage?.description || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, description: e.target.value}})} placeholder="e.g., Your feedback is important to us."/>
-                        <Label>Start Page Button Text</Label>
-                        <Input value={survey.startPage?.buttonText || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, buttonText: e.target.value}})} placeholder="e.g., Start Survey"/>
-                    </motion.div>
                 )}
             </CardContent>
         </Card>

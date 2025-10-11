@@ -50,6 +50,11 @@ export interface Survey {
     title?: string;
     description?: string;
     buttonText?: string;
+    logo?: {
+      src?: string;
+      alt?: string;
+    };
+    imageUrl?: string;
   };
 }
 

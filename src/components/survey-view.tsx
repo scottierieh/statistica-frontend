@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -10,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Star, ArrowLeft, ArrowRight, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
+import { CheckCircle2, Star, ArrowLeft, ArrowRight, ThumbsUp, ThumbsDown, FileText, Clock, BarChart } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
@@ -160,7 +161,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question;
     <div className="p-3 rounded-lg bg-background shadow-sm">
       <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
-      <div className="flex items-center justify-between gap-1">
+      <div className="flex items-center justify-between gap-1 flex-wrap">
         {[...Array(11)].map((_, i) => (
             <Button 
                 key={i} 
@@ -623,16 +624,35 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
 };
 
 const StartPage = ({ survey, onStart }: { survey: Survey, onStart: () => void }) => {
-    const startPageConfig = survey.startPage || {};
+    const { startPage = {}, styles = {} } = survey;
+    const { title, description, buttonText, logo, imageUrl } = startPage;
+
     return (
-        <div className="flex flex-col h-full text-center p-8">
+        <div className="flex flex-col h-full text-center p-6 bg-background rounded-lg">
+             {logo?.src && (
+                <div className="mb-4">
+                    <img src={logo.src} alt={logo.alt || 'Survey Logo'} className="max-h-20 mx-auto" />
+                </div>
+            )}
             <div className="flex-1 flex flex-col justify-center items-center">
-                <FileText className="w-16 h-16 text-primary mb-4" />
-                <h2 className="text-2xl font-bold">{startPageConfig.title || survey.title}</h2>
-                <p className="text-muted-foreground mt-2">{startPageConfig.description || survey.description}</p>
+                <h2 className="text-2xl font-bold" style={{ color: styles.primaryColor }}>
+                    {title || survey.title}
+                </h2>
+                <p className="text-muted-foreground mt-2 text-sm" style={{ color: styles.primaryColor, opacity: 0.8 }}>
+                    {description || survey.description}
+                </p>
+                {imageUrl && (
+                     <div className="mt-6 w-full">
+                        <img src={imageUrl} alt="Survey introduction" className="rounded-lg shadow-md max-w-full h-auto mx-auto" />
+                    </div>
+                )}
             </div>
-            <Button onClick={onStart} className="w-full">
-                {startPageConfig.buttonText || 'Start Survey'}
+            <Button 
+                onClick={onStart} 
+                className="w-full mt-8" 
+                style={{ backgroundColor: styles.primaryColor }}
+            >
+                {buttonText || 'Start Survey'}
             </Button>
         </div>
     );
