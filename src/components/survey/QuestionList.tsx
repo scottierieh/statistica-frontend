@@ -1025,14 +1025,17 @@ export default function QuestionList({ title, setTitle, setDescription, descript
                     </div>
                 )}
                 {survey?.showStartPage && (
-                    <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+                    <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-2 p-4 border rounded-lg bg-muted/50 overflow-hidden">
                         <Label>Start Page Title</Label>
                         <Input value={survey.startPage?.title || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, title: e.target.value}})} placeholder="e.g., Welcome to our Survey!"/>
                         <Label>Start Page Description</Label>
                         <Textarea value={survey.startPage?.description || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, description: e.target.value}})} placeholder="e.g., Your feedback is important to us."/>
                         <Label>Start Page Button Text</Label>
                         <Input value={survey.startPage?.buttonText || ''} onChange={(e) => setSurvey({...survey, startPage: {...survey.startPage, buttonText: e.target.value}})} placeholder="e.g., Start Survey"/>
-                    </div>
+                    </motion.div>
                 )}
             </CardContent>
         </Card>
@@ -1076,3 +1079,4 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
+
