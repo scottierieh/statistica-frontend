@@ -200,25 +200,25 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {(question.items || []).map((item: string, index: number) => (
-                            <TableRow key={index}>
-                                <TableCell className="text-xs py-2">{item}</TableCell>
-                                <TableCell className="text-center py-2">
-                                    <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
-                                        <div className="flex justify-center">
-                                            <RadioGroupItem value={item} className="h-4 w-4"/>
-                                        </div>
-                                    </RadioGroup>
-                                </TableCell>
-                                <TableCell className="text-center py-2">
-                                    <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
-                                        <div className="flex justify-center">
-                                            <RadioGroupItem value={item} className="h-4 w-4"/>
-                                        </div>
-                                    </RadioGroup>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        <RadioGroup asChild onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
+                            <RadioGroup asChild onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
+                                {(question.items || []).map((item: string, index: number) => (
+                                    <TableRow key={index}>
+                                        <TableCell className="text-xs py-2">{item}</TableCell>
+                                        <TableCell className="text-center py-2">
+                                            <div className="flex justify-center">
+                                                <RadioGroupItem value={item} checked={answer?.best === item} className="h-4 w-4"/>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center py-2">
+                                            <div className="flex justify-center">
+                                                <RadioGroupItem value={item} checked={answer?.worst === item} className="h-4 w-4"/>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </RadioGroup>
+                        </RadioGroup>
                     </TableBody>
                 </Table>
             </div>
@@ -249,10 +249,9 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                     </TableHeader>
                     <TableBody>
                         {(question.rows || []).map((row: string, rowIndex: number) => (
-                            <TableRow key={`row-${rowIndex}`}>
-                                <TableHead className="text-xs py-2">{row}</TableHead>
-                                <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))} asChild>
-                                    <>
+                            <RadioGroup key={`row-${rowIndex}`} value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))} asChild>
+                                <TableRow>
+                                    <TableHead className="text-xs py-2">{row}</TableHead>
                                         {(question.columns || []).map((col: string, colIndex: number) => (
                                             <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
                                                 <div className="flex justify-center">
@@ -260,9 +259,8 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                                                 </div>
                                             </TableCell>
                                         ))}
-                                    </>
-                                </RadioGroup>
-                            </TableRow>
+                                </TableRow>
+                            </RadioGroup>
                         ))}
                     </TableBody>
                 </Table>
@@ -591,7 +589,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full max-w-lg aspect-[1/1.414] h-auto rounded-lg p-3',
+    desktop: 'w-full h-full p-0',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -741,7 +739,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     };
 
     const handlePrev = () => {
-        if (currentQuestionIndex > (survey?.showStartPage ? -1 : 0)) {
+        if (currentQuestionIndex > (survey?.showStartPage ? 0 : 0)) {
             setCurrentQuestionIndex(prev => prev - 1);
         }
     };
@@ -866,10 +864,10 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
 
     const surveyContent = (
              <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full bg-card/80 backdrop-blur-sm rounded-none flex-1 flex flex-col border-0 shadow-none">
+                 <Card className="w-full rounded-none border-0 shadow-none flex-1 flex flex-col bg-transparent">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
-                        {currentQuestionIndex !== -1 && <Progress value={((currentQuestionIndex + 1) / (survey.questions.length)) * 100} className="mt-3 h-2" />}
+                         {currentQuestionIndex !== -1 && <Progress value={((currentQuestionIndex + 1) / (survey.questions.length)) * 100} className="mt-3 h-2" />}
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto min-h-[300px] p-4">
                          <AnimatePresence mode="wait">
@@ -894,11 +892,12 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                          </AnimatePresence>
                     </CardContent>
                     <CardFooter className="flex justify-between p-4">
-                        {currentQuestionIndex !== -1 && (
-                            <Button onClick={handlePrev} disabled={currentQuestionIndex <= (survey.showStartPage ? 0 : 0)} variant="outline" size="sm" className="transition-transform active:scale-95">
+                       {currentQuestionIndex > (survey.showStartPage ? 0 : 0) ? (
+                            <Button onClick={handlePrev} variant="outline" size="sm" className="transition-transform active:scale-95">
                                 <ArrowLeft className="mr-1 h-4 w-4" /> Previous
                             </Button>
-                        )}
+                        ) : <div />}
+
                         {currentQuestionIndex < survey.questions.length - 1 && currentQuestionIndex !== -1 ? (
                             <Button onClick={handleNext} size="sm" className="transition-transform active:scale-95">
                                 Next <ArrowRight className="ml-1 h-4 w-4" />
@@ -928,228 +927,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     return surveyContent;
 }
 
-```
-- src/hooks/use-onclick-outside.ts:
-```ts
-"use client"
-
-import * as React from "react"
-
-type EventType = "mousedown" | "mouseup" | "touchstart" | "touchend" | "focusin"
-
-export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
-  ref: React.RefObject<T> | React.RefObject<T>[],
-  handler: (event: MouseEvent | TouchEvent) => void,
-  eventType: EventType = "mousedown"
-) {
-  React.useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      const refs = Array.isArray(ref) ? ref : [ref]
-      const isOutside = refs.every((r) => {
-        return r.current && !r.current.contains(event.target as Node)
-      })
-
-      if (isOutside) {
-        handler(event)
-      }
-    }
-
-    document.addEventListener(eventType, listener)
-    return () => {
-      document.removeEventListener(eventType, listener)
-    }
-  }, [ref, handler, eventType])
-}
-
-```
-- src/hooks/useControllableState.tsx:
-```tsx
-"use client"
-
-import * as React from "react"
-import * as ReactDOM from "react-dom"
-
-type UseControllableStateProps<T> = {
-  prop?: T | undefined
-  defaultProp?: T | undefined
-  onChange?: (state: T) => void
-}
-
-type SetStateFn<T> = (prevState?: T) => T
-
-/**
- * A custom hook that manages a state value, allowing it to be either controlled
- * or uncontrolled.
- *
- * @see https://github.com/radix-ui/primitives/blob/main/packages/core/react-compose-refs/src/composeRefs.tsx
- * @param prop - The controlled value.
- * @param defaultProp - The default value for the uncontrolled state.
- * @param onChange - An optional callback that is called when the state changes.
- * @returns A tuple containing the state value and a function to update it.
- */
-function useControllableState<T>({
-  prop,
-  defaultProp,
-  onChange = () => {},
-}: UseControllableStateProps<T>) {
-  const [uncontrolledProp, setUncontrolledProp] = useUncontrolledState({
-    defaultProp,
-    onChange,
-  })
-  const isControlled = prop !== undefined
-  const value = isControlled ? prop : uncontrolledProp
-  const handleChange = useFunction(onChange)
-
-  const setValue: React.Dispatch<React.SetStateAction<T | undefined>> =
-    React.useCallback(
-      (nextValue) => {
-        if (isControlled) {
-          const setter = nextValue as SetStateFn<T>
-          const value = typeof nextValue === "function" ? setter(prop) : nextValue
-          if (value !== prop) handleChange(value as T)
-        } else {
-          setUncontrolledProp(nextValue)
-        }
-      },
-      [isControlled, prop, setUncontrolledProp, handleChange]
-    )
-
-  return [value, setValue] as const
-}
-
-function useUncontrolledState<T>({
-  defaultProp,
-  onChange,
-}: Omit<UseControllableStateProps<T>, "prop">) {
-  const uncontrolledState = React.useState<T | undefined>(defaultProp)
-  const [value] = uncontrolledState
-  const prevValueRef = React.useRef(value)
-  const handleChange = useFunction(onChange)
-
-  React.useEffect(() => {
-    if (prevValueRef.current !== value) {
-      handleChange(value as T)
-      prevValueRef.current = value
-    }
-  }, [value, prevValueRef, handleChange])
-
-  return uncontrolledState
-}
-
-/**
- * A custom hook that converts a callback to a ref to avoid triggering re-renders when passed as a
- * prop or within a hook dependency array.
- *
- * @see https://github.com/radix-ui/primitives/blob/main/packages/core/react-use-callback-ref/src/useCallbackRef.tsx
- * @param callback - The callback function to be converted to a ref.
- * @returns The callback function as a ref.
- */
-function useFunction<T extends (...args: any[]) => any>(
-  callback: T | undefined
-): T {
-  const callbackRef = React.useRef(callback)
-
-  React.useEffect(() => {
-    callbackRef.current = callback
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return React.useMemo(() => ((...args: any[]) => callbackRef.current?.(...args)) as T, [])
-}
-
-const useLayoutEffect =
-  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect
-
-export { useControllableState, useFunction, useLayoutEffect, ReactDOM }
-
-```
-- src/hooks/useCopyToClipboard.ts:
-```tsx
-import { useState } from 'react';
-
-export function useCopyToClipboard() {
-  const [copiedText, setCopiedText] = useState<string | null>(null);
-
-  const copy = async (text: string) => {
-    if (!navigator?.clipboard) {
-      console.warn('Clipboard not supported');
-      return false;
-    }
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedText(text);
-      return true;
-    } catch (error) {
-      console.warn('Copy failed', error);
-      setCopiedText(null);
-      return false;
-    }
-  };
-
-  return { copiedText, copy };
-}
-
-```
-- src/hooks/useLockBody.ts:
-```tsx
-"use client"
-
-import * as React from "react"
-import { useLayoutEffect } from "./useControllableState"
-
-export function useLockBody(locked = false, elementRef?: React.RefObject<HTMLElement>) {
-  useLayoutEffect((): (() => void) => {
-    const originalStyle = window.getComputedStyle(document.body).overflow
-    if (locked) {
-      document.body.style.overflow = "hidden"
-    }
-
-    const scrollableElement = elementRef?.current || document.body
-    
-    return () => {
-      if (locked) {
-        document.body.style.overflow = originalStyle
-      }
-    }
-  }, [locked, elementRef])
-}
-
-```
-- next.config.mjs:
-```js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-    images: {
-        remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: 'picsum.photos',
-                port: '',
-                pathname: '**',
-            },
-        ],
-    },
-    webpack: (config) => {
-        config.externals.push({
-            "onnxruntime-node": "commonjs onnxruntime-node"
-        });
-        return config;
-    },
-};
-
-export default nextConfig;
-
-```
-- postcss.config.mjs:
-```js
-/** @type {import('postcss-load-config').Config} */
-const config = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-
-export default config;
-```
