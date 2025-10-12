@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -41,24 +42,24 @@ export default function LandingPage() {
         title: "Advanced Statistical Analysis",
         description: "From T-Tests to Structural Equation Modeling, run over 40 complex statistical analyses with a simple interface. Get results and AI-powered interpretations in seconds.",
         image: PlaceHolderImages.find(img => img.id === "hero-image"),
-        gradient: "from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-950/30",
-        textColor: "text-blue-900 dark:text-blue-100",
+        gradient: "from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-950/30",
+        textColor: "text-slate-800 dark:text-slate-200",
         buttonHref: "/dashboard/statistica"
     },
     {
         title: "Purpose-Built Survey Tools",
         description: "Design and deploy specialized market research surveys like Conjoint, TURF, and Van Westendorp. Go from data collection to advanced analysis seamlessly.",
         image: PlaceHolderImages.find(img => img.id === "market-research-banner"),
-        gradient: "from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-950/30",
-        textColor: "text-purple-900 dark:text-purple-100",
+        gradient: "from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-950/30",
+        textColor: "text-slate-800 dark:text-slate-200",
         buttonHref: "/dashboard/survey2"
     },
     {
         title: "Integrated AI-Powered Workflow",
         description: "Leverage AI at every step. Get smart recommendations for analysis, automated interpretation of results, and clear, actionable insights to drive your decisions.",
         image: PlaceHolderImages.find(img => img.id === "enterprise-feature"),
-        gradient: "from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-950/30",
-        textColor: "text-emerald-900 dark:text-emerald-100",
+        gradient: "from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-950/30",
+        textColor: "text-slate-800 dark:text-slate-200",
         buttonHref: "/dashboard"
     }
   ];
@@ -319,3 +320,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
