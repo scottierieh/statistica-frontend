@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle, CheckSquare, Gauge } from "lucide-react";
@@ -24,7 +24,96 @@ import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import Autoplay from "embla-carousel-autoplay";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
+const TemplateCarousel = () => {
+    const autoplayPlugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
+
+    const carouselItems = [
+        {
+            title: "IPA Survey Templates",
+            description: "Professional survey templates for Importance-Performance Analysis",
+            href: "/dashboard/createsurvey?template=ipa",
+            image: PlaceHolderImages.find(img => img.id === "ipa-banner"),
+            gradient: "from-slate-100 to-slate-200",
+            textColor: "text-slate-800",
+            buttonColor: "bg-slate-800 text-white"
+        },
+        {
+            title: "Customer Satisfaction Survey",
+            description: "Measure customer satisfaction with pre-built CSAT templates",
+            href: "/dashboard/createsurvey?template=csat",
+            image: PlaceHolderImages.find(img => img.id === "csat-banner"),
+            gradient: "from-amber-100 to-yellow-200",
+            textColor: "text-amber-800",
+            buttonColor: "bg-amber-800 text-white"
+        },
+        {
+            title: "Employee Engagement Survey",
+            description: "Boost team morale with comprehensive engagement surveys",
+            href: "#",
+            image: PlaceHolderImages.find(img => img.id === "engagement-banner"),
+            gradient: "from-blue-100 to-blue-200",
+            textColor: "text-blue-800",
+            buttonColor: "bg-blue-800 text-white"
+        },
+        {
+            title: "Market Research Template",
+            description: "Gather valuable market insights with ready-to-use templates",
+            href: "#",
+            image: PlaceHolderImages.find(img => img.id === "market-research-banner"),
+            gradient: "from-emerald-100 to-green-200",
+            textColor: "text-emerald-800",
+            buttonColor: "bg-emerald-800 text-white"
+        },
+        {
+            title: "Product Feedback Survey",
+            description: "Collect actionable product feedback from your users",
+            href: "#",
+            image: PlaceHolderImages.find(img => img.id === "product-feedback-banner"),
+            gradient: "from-pink-100 to-rose-200",
+            textColor: "text-rose-800",
+            buttonColor: "bg-rose-800 text-white"
+        },
+    ];
+
+    return (
+        <Carousel
+            plugins={[autoplayPlugin.current]}
+            className="w-full mb-8"
+            opts={{ loop: true }}
+        >
+            <CarouselContent>
+                {carouselItems.map((item, index) => (
+                    <CarouselItem key={index}>
+                        <div className={cn("p-8 md:p-12 rounded-xl flex items-center justify-between bg-gradient-to-r", item.gradient)}>
+                            <div className="flex-1 space-y-4">
+                                <h2 className={cn("text-3xl md:text-4xl font-bold", item.textColor)}>{item.title}</h2>
+                                <p className={cn("text-base md:text-lg opacity-90", item.textColor)}>{item.description}</p>
+                                <Link href={item.href}>
+                                    <Button className={cn("mt-4 transition-transform hover:scale-105", item.buttonColor)}>Learn More</Button>
+                                </Link>
+                            </div>
+                            {item.image && (
+                                <Image
+                                    src={item.image.imageUrl}
+                                    alt={item.image.description}
+                                    width={280}
+                                    height={280}
+                                    className="hidden md:block w-72 h-72 object-cover rounded-xl shadow-lg"
+                                    data-ai-hint={item.image.imageHint}
+                                />
+                            )}
+                        </div>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+    )
+}
 
 const TemplateCard = ({ icon: Icon, title, description, href, learnMoreLink }: { icon: React.ElementType, title: string, description: string, href: string, learnMoreLink?: string }) => (
     <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
@@ -168,6 +257,7 @@ export default function Survey2Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+       <TemplateCarousel />
       <div className="mb-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

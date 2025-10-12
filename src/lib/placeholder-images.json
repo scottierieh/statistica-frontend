@@ -29,6 +29,36 @@
       "description": "A default image for a survey start page.",
       "imageUrl": "https://picsum.photos/seed/survey_start/800/400",
       "imageHint": "welcome abstract"
+    },
+    {
+      "id": "ipa-banner",
+      "description": "An image for the IPA survey template banner.",
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=400&fit=crop",
+      "imageHint": "analytics chart"
+    },
+    {
+      "id": "csat-banner",
+      "description": "An image for the customer satisfaction survey banner.",
+      "imageUrl": "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=400&h=400&fit=crop",
+      "imageHint": "customer service"
+    },
+    {
+      "id": "engagement-banner",
+      "description": "An image for the employee engagement survey banner.",
+      "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&h=400&fit=crop",
+      "imageHint": "team meeting"
+    },
+    {
+      "id": "market-research-banner",
+      "description": "An image for the market research template banner.",
+      "imageUrl": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=400&fit=crop",
+      "imageHint": "market research"
+    },
+    {
+      "id": "product-feedback-banner",
+      "description": "An image for the product feedback survey banner.",
+      "imageUrl": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=400&fit=crop",
+      "imageHint": "product design"
     }
   ]
 }
