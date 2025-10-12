@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -576,9 +575,8 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview 
                         <CardFooter className="p-2 bg-muted/50">
                             <div className="w-full flex items-center justify-center">
                                 <RadioGroup value={answer}>
-                                    <RadioGroupItem value={profile.id} />
+                                    <RadioGroupItem value={profile.id} id={`q${question.id}-${profile.id}`} />
                                 </RadioGroup>
-                                <Label htmlFor={profile.id} className="ml-2 text-xs">Choose this option</Label>
                             </div>
                         </CardFooter>
                     </Card>
@@ -979,3 +977,5 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+
+    
