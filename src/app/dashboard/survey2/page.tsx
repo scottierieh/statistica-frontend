@@ -30,7 +30,7 @@ import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 const TemplateCarousel = () => {
-    const autoplayPlugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
+    const autoplayPlugin = React.useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
 
     const carouselItems = [
         {
@@ -82,7 +82,7 @@ const TemplateCarousel = () => {
 
     return (
         <Carousel
-            plugins={[autoplayPlugin.current]}
+            plugins={React.useMemo(() => [autoplayPlugin.current], [autoplayPlugin])}
             className="w-full mb-8"
             opts={{ loop: true }}
         >
@@ -257,7 +257,6 @@ export default function Survey2Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-       <TemplateCarousel />
       <div className="mb-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -343,6 +342,10 @@ export default function Survey2Dashboard() {
           icon={BarChart3}
           gradient="from-orange-400 to-amber-400"
         />
+      </div>
+      
+      <div className="mb-8">
+        <TemplateCarousel />
       </div>
 
       <div className="flex justify-between items-center mb-6">
