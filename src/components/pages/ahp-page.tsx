@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
 
 const renderBarChart = (title: string, data: any[], consistency: any) => {
