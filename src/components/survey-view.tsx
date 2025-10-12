@@ -377,150 +377,11 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
 };
 
 
-const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any; }) => {
-    const { criteria = [], alternatives = [] } = question;
-
-    const allPairs = useMemo(() => {
-        const createPairs = (items: (string | Criterion)[]) => {
-            const pairs: { pair: [string, string] }[] = [];
-            const itemNames = items.map(i => typeof i === 'string' ? i : i.name);
-            for (let i = 0; i < itemNames.length; i++) {
-                for (let j = i + 1; j < itemNames.length; j++) {
-                    pairs.push({ pair: [itemNames[i], itemNames[j]] });
-                }
-            }
-            return pairs;
-        };
-
-        let comparisons = [{
-            title: "Which criterion is more important?",
-            matrixKey: "criteria",
-            pairs: createPairs(criteria)
-        }];
-
-        const getLeafCriteria = (nodes: Criterion[]): Criterion[] => {
-            let leaves: Criterion[] = [];
-            nodes.forEach(node => {
-                if (!node.subCriteria || node.subCriteria.length === 0) {
-                    leaves.push(node);
-                } else {
-                    leaves = [...leaves, ...getLeafCriteria(node.subCriteria)];
-                }
-            });
-            return leaves;
-        };
-        
-        // Sub-criteria comparisons
-        const traverseForSubCriteria = (nodes: Criterion[]) => {
-             nodes.forEach(c => {
-                if (c.subCriteria && c.subCriteria.length > 1) {
-                    comparisons.push({
-                        title: `For "${c.name}", which sub-criterion is more important?`,
-                        matrixKey: `sub_criteria_${c.id}`,
-                        pairs: createPairs(c.subCriteria)
-                    });
-                    traverseForSubCriteria(c.subCriteria);
-                }
-            });
-        };
-        traverseForSubCriteria(criteria);
-        
-        // Alternatives comparisons
-        if (alternatives.length > 1) {
-            const leafCriteria = getLeafCriteria(criteria);
-            leafCriteria.forEach(criterion => {
-                comparisons.push({
-                    title: `For "${criterion.name}", which alternative is better?`,
-                    matrixKey: `alt_${criterion.id}`,
-                    pairs: createPairs(alternatives)
-                });
-            });
-        }
-        
-        return comparisons;
-
-    }, [criteria, alternatives]);
-
-    const handleValueChange = (pairKey: string, matrixKey: string, value: number) => {
-        onAnswerChange(produce(answer || {}, (draft: any) => {
-            if (!draft[matrixKey]) draft[matrixKey] = {};
-            draft[matrixKey][pairKey] = value;
-        }));
-    };
-    
-    return (
-        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
-            
-             <div className="bg-blue-50 border-l-4 border-blue-500 p-2 rounded-md mb-4">
-                <div className="font-semibold text-blue-800 mb-1 text-xs">Scale Guide</div>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-blue-700">
-                    <div><strong>1:</strong> Equal</div>
-                    <div><strong>3:</strong> Moderate</div>
-                    <div><strong>5:</strong> Important</div>
-                    <div><strong>7:</strong> Very</div>
-                    <div><strong>9:</strong> Extreme</div>
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                {allPairs.map(group => (
-                    <div key={group.matrixKey}>
-                         <h4 className="font-semibold text-sm mb-3 text-center">{group.title}</h4>
-                        {group.pairs.map(({ pair }) => {
-                             const pairKey = `${pair[0]} vs ${pair[1]}`;
-                            const value = answer?.[group.matrixKey]?.[pairKey];
-                            return (
-                                <div key={pairKey} className="p-3 rounded-lg border bg-white mb-3 shadow-sm">
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex justify-between font-bold text-xs">
-                                            <span className="text-left w-[40%] text-primary">{pair[0]}</span>
-                                            <span className="text-center text-muted-foreground">vs</span>
-                                            <span className="text-right w-[40%] text-primary">{pair[1]}</span>
-                                        </div>
-                                        <RadioGroup 
-                                            className="flex justify-between gap-0.5"
-                                            value={String(value)} 
-                                            onValueChange={(v) => handleValueChange(pairKey, group.matrixKey, parseInt(v))}
-                                        >
-                                           {[9, 7, 5, 3, 1, 3, 5, 7, 9].map((v, index) => {
-                                                const radioValue = index < 4 ? -v : v;
-                                                return (
-                                                    <div key={index} className="flex flex-col items-center space-y-1">
-                                                         <RadioGroupItem 
-                                                            value={String(radioValue)} 
-                                                            id={`pair-${group.matrixKey}-${pair.join('-')}-${radioValue}`} 
-                                                            className={cn("h-6 w-6", value === radioValue && "bg-primary text-primary-foreground")}
-                                                        />
-                                                        <Label htmlFor={`pair-${group.matrixKey}-${pair.join('-')}-${radioValue}`} className="text-[10px] text-muted-foreground">{v}</Label>
-                                                    </div>
-                                                )
-                                            })}
-                                        </RadioGroup>
-                                        <div className="flex justify-between text-[9px] text-muted-foreground">
-                                            <span className="text-left">Prefer {pair[0]}</span>
-                                            <span className="text-center">Neutral</span>
-                                            <span className="text-right">Prefer {pair[1]}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-
 const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview }: { question: Question; answer: string; onAnswerChange: (value: string) => void; styles: any; isPreview?: boolean; }) => {
     const { attributes = [], designMethod = 'full-factorial', sets = 5, cardsPerSet = 3 } = question;
     let { profiles = [] } = question;
     
-    // Generate profiles for preview if not present
-    if (profiles.length === 0 && attributes.length > 0 && isPreview) {
+    if (profiles.length === 0 && attributes.length > 0) {
         const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
         let generatedProfiles = [];
         if (designMethod === 'full-factorial' || totalCombinations < (sets || 3) * (cardsPerSet || 3)) {
@@ -638,7 +499,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-[794px] h-[1123px] p-0 bg-white shadow-2xl rounded-lg scale-[0.8] origin-top',
+    desktop: 'w-full h-full p-0 bg-white shadow-2xl rounded-lg',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -978,4 +839,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     return surveyContent;
 }
 
-    
