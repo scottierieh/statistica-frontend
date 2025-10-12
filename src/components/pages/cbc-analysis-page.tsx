@@ -9,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Bar } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line, Bar } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -274,11 +274,12 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
                     <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal</TabsTrigger>
                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
+                    <TabsTrigger value="sensitivity">Sensitivity</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -352,7 +353,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                             <div className="grid md:grid-cols-3 gap-4 mb-4">
                                 {scenarios.map((scenario, index) => (
                                     <Card key={index}>
-                                        <CardHeader><CardTitle>{scenario.name}</CardTitle></CardHeader>
+                                        <CardHeader><Input value={scenario.name} onChange={(e) => handleScenarioChange(index, 'name', e.target.value)} /></CardHeader>
                                         <CardContent className="space-y-2">
                                             {attributeCols.map((attrName) => (
                                                 <div key={attrName}>
@@ -383,6 +384,33 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                                     </ChartContainer>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="sensitivity" className="mt-4">
+                    <Card>
+                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute, holding others at their base level.</CardDescription></CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-2 gap-4 items-center">
+                                <div>
+                                    <Label>Attribute to Analyze</Label>
+                                    <Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{attributeCols.map(attr => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                 <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
+                                  <ResponsiveContainer>
+                                      <LineChart data={sensitivityData}>
+                                          <CartesianGrid strokeDasharray="3 3" />
+                                          <XAxis dataKey="level" />
+                                          <YAxis />
+                                          <Tooltip content={<ChartTooltipContent />} />
+                                          <Line type="monotone" dataKey="utility" stroke="hsl(var(--primary))" strokeWidth={2} />
+                                      </LineChart>
+                                  </ResponsiveContainer>
+                                </ChartContainer>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
