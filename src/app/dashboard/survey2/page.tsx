@@ -38,52 +38,52 @@ const TemplateCarousel = () => {
             description: "Professional survey templates for Importance-Performance Analysis",
             href: "/dashboard/createsurvey?template=ipa",
             image: PlaceHolderImages.find(img => img.id === "ipa-banner"),
-            gradient: "from-slate-100 to-slate-200",
+            gradient: "from-slate-50 to-slate-100",
             textColor: "text-slate-800",
-            buttonColor: "bg-slate-800 text-white"
+            buttonColor: "bg-slate-700 hover:bg-slate-800 text-white"
         },
         {
             title: "Customer Satisfaction Survey",
             description: "Measure customer satisfaction with pre-built CSAT templates",
             href: "/dashboard/createsurvey?template=csat",
             image: PlaceHolderImages.find(img => img.id === "csat-banner"),
-            gradient: "from-amber-100 to-yellow-200",
+            gradient: "from-amber-50 to-yellow-100",
             textColor: "text-amber-800",
-            buttonColor: "bg-amber-800 text-white"
+            buttonColor: "bg-amber-500 hover:bg-amber-600 text-white"
         },
         {
             title: "Employee Engagement Survey",
             description: "Boost team morale with comprehensive engagement surveys",
             href: "#",
             image: PlaceHolderImages.find(img => img.id === "engagement-banner"),
-            gradient: "from-blue-100 to-blue-200",
+            gradient: "from-blue-50 to-blue-100",
             textColor: "text-blue-800",
-            buttonColor: "bg-blue-800 text-white"
+            buttonColor: "bg-blue-500 hover:bg-blue-600 text-white"
         },
         {
             title: "Market Research Template",
             description: "Gather valuable market insights with ready-to-use templates",
             href: "#",
             image: PlaceHolderImages.find(img => img.id === "market-research-banner"),
-            gradient: "from-emerald-100 to-green-200",
+            gradient: "from-emerald-50 to-green-100",
             textColor: "text-emerald-800",
-            buttonColor: "bg-emerald-800 text-white"
+            buttonColor: "bg-emerald-500 hover:bg-emerald-600 text-white"
         },
         {
             title: "Product Feedback Survey",
             description: "Collect actionable product feedback from your users",
             href: "#",
             image: PlaceHolderImages.find(img => img.id === "product-feedback-banner"),
-            gradient: "from-pink-100 to-rose-200",
+            gradient: "from-pink-50 to-rose-100",
             textColor: "text-rose-800",
-            buttonColor: "bg-rose-800 text-white"
+            buttonColor: "bg-rose-500 hover:bg-rose-600 text-white"
         },
     ];
 
     return (
         <Carousel
-            plugins={React.useMemo(() => [autoplayPlugin.current], [autoplayPlugin])}
-            className="w-full mb-8"
+            plugins={React.useMemo(() => [autoplayPlugin.current], [])}
+            className="w-full"
             opts={{ loop: true }}
         >
             <CarouselContent>
