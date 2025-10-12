@@ -526,24 +526,36 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles }: { questi
         <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
-             <div className="grid grid-cols-2 gap-2">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {profileSet.map((profile: any, index: number) => (
-                    <Card key={profile.id} className={cn("text-center transition-all", answer === profile.id && "ring-2 ring-primary")}>
-                        <CardHeader className="p-2 pb-1">
-                            <CardTitle className="text-xs font-semibold">Option {index + 1}</CardTitle>
+                    <Card 
+                        key={profile.id} 
+                        className={cn(
+                            "text-left transition-all overflow-hidden cursor-pointer", 
+                            answer === profile.id 
+                                ? "ring-2 ring-primary bg-primary/5" 
+                                : "hover:shadow-md hover:-translate-y-1"
+                        )}
+                        onClick={() => onAnswerChange(profile.id)}
+                    >
+                        <CardHeader className="p-4 bg-muted/50">
+                            <CardTitle className="text-base font-semibold">Option {index + 1}</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-2 space-y-1">
+                        <CardContent className="p-4 space-y-2">
                              {(attributes || []).map(attr => (
-                                <div key={attr.id} className="flex justify-between items-center text-xs py-1 border-b last:border-b-0">
-                                    <span className="font-medium text-muted-foreground w-16 text-left">{attr.name}:</span>
-                                    <span className="font-semibold flex-1 text-right">{profile[attr.name]}</span>
+                                <div key={attr.id} className="flex justify-between items-center text-sm py-1 border-b last:border-b-0">
+                                    <span className="font-medium text-muted-foreground">{attr.name}:</span>
+                                    <span className="font-bold text-foreground">{profile[attr.name]}</span>
                                 </div>
                             ))}
                         </CardContent>
-                        <CardFooter className="p-2">
-                            <Button size="sm" className="w-full text-xs h-7" variant={answer === profile.id ? 'default' : 'outline'} onClick={() => onAnswerChange(profile.id)}>
-                                {answer === profile.id ? 'Selected' : 'Select'}
-                            </Button>
+                        <CardFooter className="p-3 bg-muted/50">
+                            <div className="w-full flex items-center justify-center">
+                                <RadioGroup value={answer}>
+                                    <RadioGroupItem value={profile.id} />
+                                </RadioGroup>
+                                <Label htmlFor={profile.id} className="ml-2">Choose this option</Label>
+                            </div>
                         </CardFooter>
                     </Card>
                 ))}
@@ -942,3 +954,5 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+
+    
