@@ -190,8 +190,6 @@ export default function Survey2Dashboard() {
   const handleDeleteSelected = () => {
     const updatedSurveys = surveys.filter(s => !selectedSurveys.includes(s.id));
     
-    // This part assumes responses are linked to surveys by survey.id, which might need adjustment
-    // based on actual data structure. Let's assume survey_id exists in response.
     const updatedResponses: SurveyResponse[] = [];
     updatedSurveys.forEach(survey => {
       const surveyResponses = JSON.parse(localStorage.getItem(`${survey.id}_responses`) || '[]');
@@ -199,7 +197,7 @@ export default function Survey2Dashboard() {
     });
 
     setSurveys(updatedSurveys);
-    setResponses(updatedResponses); // This line is for local state, actual persistence is next
+    setResponses(updatedResponses); 
     localStorage.setItem('surveys', JSON.stringify(updatedSurveys));
     selectedSurveys.forEach(id => localStorage.removeItem(`${id}_responses`));
     
@@ -313,6 +311,10 @@ export default function Survey2Dashboard() {
            </Dialog>
         </motion.div>
       </div>
+      
+      <div className="mb-8">
+        <TemplateCarousel />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <StatsCard
@@ -342,10 +344,6 @@ export default function Survey2Dashboard() {
           icon={BarChart3}
           gradient="from-orange-400 to-amber-400"
         />
-      </div>
-      
-      <div className="mb-8">
-        <TemplateCarousel />
       </div>
 
       <div className="flex justify-between items-center mb-6">
