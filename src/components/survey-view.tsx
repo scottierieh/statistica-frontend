@@ -381,7 +381,8 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview 
     const { attributes = [], designMethod = 'full-factorial', sets = 5, cardsPerSet = 3 } = question;
     let { profiles = [] } = question;
     
-    if (profiles.length === 0 && attributes.length > 0) {
+    // Generate profiles for preview if not present
+    if (profiles.length === 0 && attributes.length > 0 && isPreview) {
         const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
         let generatedProfiles = [];
         if (designMethod === 'full-factorial' || totalCombinations < (sets || 3) * (cardsPerSet || 3)) {
@@ -494,6 +495,124 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles }: { 
         </div>
     );
 };
+
+const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any; }) => {
+    
+    const scale = [-9, -7, -5, -3, 1, 3, 5, 7, 9];
+
+    const generatePairs = (items: any[]) => {
+        const pairs: [any, any][] = [];
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                pairs.push([items[i], items[j]]);
+            }
+        }
+        return pairs;
+    };
+    
+    const criteriaPairs = useMemo(() => generatePairs(question.criteria || []), [question.criteria]);
+    const alternativePairsByCriterion = useMemo(() => {
+        const result: {[criterionId: string]: [string, string][]} = {};
+        if (question.alternatives && question.alternatives.length > 1) {
+            const altPairs = generatePairs(question.alternatives);
+            (question.criteria || []).forEach(c => {
+                 result[c.id] = altPairs;
+            });
+        }
+        return result;
+    }, [question.criteria, question.alternatives]);
+
+
+    const handleComparisonChange = (matrixKey: string, pairKey: string, value: number) => {
+        onAnswerChange(produce(answer || {}, (draft: any) => {
+            if (!draft[matrixKey]) draft[matrixKey] = {};
+            draft[matrixKey][pairKey] = value;
+        }));
+    };
+    
+    const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
+        const pairKey = `${pair[0]} vs ${pair[1]}`;
+        const value = answer?.[matrixKey]?.[pairKey];
+
+        return (
+            <div className="p-4 rounded-lg border bg-white mb-2 shadow-sm">
+                <div className="relative flex flex-col items-center justify-between gap-3">
+                    <div className="flex w-full justify-between font-bold text-sm">
+                        <span className="text-left w-2/5 text-primary" style={{ color: styles.primaryColor }}>{pair[0]}</span>
+                        <span className="text-center w-1/5 text-muted-foreground">vs</span>
+                        <span className="text-right w-2/5 text-primary" style={{ color: styles.primaryColor }}>{pair[1]}</span>
+                    </div>
+                     <RadioGroup 
+                        className="flex justify-between gap-1 sm:gap-2 w-full"
+                        value={String(value)}
+                        onValueChange={(v) => handleComparisonChange(matrixKey, pairKey, Number(v))}
+                    >
+                       {scale.map((v) => (
+                            <div key={v} className="flex flex-col items-center space-y-1">
+                                <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="text-xs text-muted-foreground">{Math.abs(v)}</Label>
+                                <RadioGroupItem 
+                                    value={String(v)} 
+                                    id={`pair-${matrixKey}-${pair.join('-')}-${v}`} 
+                                    className={cn(value === v && "bg-primary text-primary-foreground")}
+                                />
+                            </div>
+                        ))}
+                    </RadioGroup>
+                    <div className="w-full flex justify-between text-xs text-muted-foreground mt-1 px-1">
+                        <span className="text-left text-[10px] sm:text-xs">Strongly Prefer {pair[0]}</span>
+                        <span className="text-center text-[10px] sm:text-xs">Neutral</span>
+                        <span className="text-right text-[10px] sm:text-xs">Strongly Prefer {pair[1]}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="p-4 rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
+            <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>
+                {question.title}
+            </h3>
+            <div className="space-y-6">
+                {criteriaPairs.length > 0 && (
+                    <div>
+                        <div className="legend bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-4">
+                           <div className="legend-title font-semibold text-blue-800 mb-2">Importance Scale Guide</div>
+                           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-700">
+                               <div><strong>1:</strong> Equal Importance</div>
+                               <div><strong>3:</strong> Moderate Importance</div>
+                               <div><strong>5:</strong> Strong Importance</div>
+                               <div><strong>7:</strong> Very Strong Importance</div>
+                               <div><strong>9:</strong> Extreme Importance</div>
+                           </div>
+                        </div>
+                        <h4 className="font-semibold text-lg mb-2">Criteria Comparison</h4>
+                        {criteriaPairs.map((pair, index) => (
+                             <PairwiseComparison key={index} pair={[pair[0].name, pair[1].name]} matrixKey="criteria" />
+                        ))}
+                    </div>
+                )}
+                 {Object.entries(alternativePairsByCriterion).length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-lg mb-2">Alternative Comparison</h4>
+                        {Object.entries(alternativePairsByCriterion).map(([criterionId, pairs]) => {
+                             const criterion = question.criteria?.find(c => c.id === criterionId);
+                             return (
+                                <div key={criterionId} className="mb-4">
+                                    <h5 className="font-medium text-center p-2 bg-slate-100 rounded-md mb-2">Which alternative is better for: <strong>{criterion?.name}</strong></h5>
+                                    {pairs.map((pair, index) => (
+                                        <PairwiseComparison key={index} pair={pair} matrixKey={`alt_${criterionId}`} />
+                                    ))}
+                                </div>
+                            )
+                        })}
+                    </div>
+                 )}
+            </div>
+        </div>
+    );
+};
+
 
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
@@ -838,4 +957,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
-
