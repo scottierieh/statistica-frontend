@@ -9,7 +9,7 @@
     {
       "id": "hero-image",
       "description": "A hero image for the main landing page, showing data and insights.",
-      "imageUrl": "https://picsum.photos/seed/hero/1200/600",
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=600&fit=crop",
       "imageHint": "data analysis"
     },
     {
@@ -21,7 +21,7 @@
     {
       "id": "enterprise-feature",
       "description": "An image representing enterprise system integrations and dashboards.",
-      "imageUrl": "https://picsum.photos/seed/enterprise/600/500",
+      "imageUrl": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&h=500&fit=crop",
       "imageHint": "dashboard integration"
     },
     {

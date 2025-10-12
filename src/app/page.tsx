@@ -1,10 +1,15 @@
 
+'use client';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowRight, BarChart2, CheckCircle, ClipboardList, Cpu, MoveRight, Users, TrendingUp, Link2, GitBranch, Network, Layers, Map, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, FlaskConical, LineChart, Target, Calculator, Handshake, Palette, FileUp, Database, BrainCircuit, Activity, ZoomIn, HeartPulse } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
+import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
   const features = {
@@ -32,13 +37,41 @@ export default function LandingPage() {
     ]
   };
 
-  const heroImage = PlaceHolderImages.find(img => img.id === 'hero-image');
+  const carouselItems = [
+    {
+        title: "Advanced Statistical Analysis",
+        description: "From T-Tests to Structural Equation Modeling, run over 40 complex statistical analyses with a simple interface. Get results and AI-powered interpretations in seconds.",
+        image: PlaceHolderImages.find(img => img.id === "hero-image"),
+        gradient: "from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-950/30",
+        textColor: "text-blue-900 dark:text-blue-100",
+        buttonHref: "/dashboard/statistica"
+    },
+    {
+        title: "Purpose-Built Survey Tools",
+        description: "Design and deploy specialized market research surveys like Conjoint, TURF, and Van Westendorp. Go from data collection to advanced analysis seamlessly.",
+        image: PlaceHolderImages.find(img => img.id === "market-research-banner"),
+        gradient: "from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-950/30",
+        textColor: "text-purple-900 dark:text-purple-100",
+        buttonHref: "/dashboard/survey2"
+    },
+    {
+        title: "Integrated AI-Powered Workflow",
+        description: "Leverage AI at every step. Get smart recommendations for analysis, automated interpretation of results, and clear, actionable insights to drive your decisions.",
+        image: PlaceHolderImages.find(img => img.id === "enterprise-feature"),
+        gradient: "from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-950/30",
+        textColor: "text-emerald-900 dark:text-emerald-100",
+        buttonHref: "/dashboard"
+    }
+  ];
+
   const securityImage = PlaceHolderImages.find(img => img.id === 'security-feature');
   const enterpriseImage = PlaceHolderImages.find(img => img.id === 'enterprise-feature');
+  
+  const autoplayPlugin = React.useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
-       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50 dark:bg-slate-950/80 dark:border-slate-800">
         <div className="w-full max-w-6xl mx-auto flex items-center">
             <div className="flex-1 flex justify-start">
                  <Link href="/" className="flex items-center justify-center gap-2">
@@ -46,7 +79,7 @@ export default function LandingPage() {
                     <h1 className="text-xl font-headline font-bold">Skarii</h1>
                 </Link>
             </div>
-            <nav className="flex items-center gap-4 sm:gap-6">
+            <nav className="hidden md:flex items-center gap-4 sm:gap-6">
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">Features</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">About</Link>
@@ -59,8 +92,8 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="relative w-full py-20 md:py-32 lg:py-40 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-           <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(to_bottom,white_10%,transparent_90%)]"></div>
+        <section className="relative w-full py-20 md:py-32 lg:py-40 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-pink-950/20">
+           <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(to_bottom,white_10%,transparent_90%)] dark:bg-grid-slate-900"></div>
           <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-6 text-center">
               <div className="space-y-4">
@@ -79,19 +112,40 @@ export default function LandingPage() {
                   <Link href="/dashboard/survey2">Create a Survey</Link>
                 </Button>
               </div>
-               {heroImage && (
+               
                 <div className="mt-12 w-full max-w-5xl">
-                    <Image 
-                        src={heroImage.imageUrl} 
-                        alt={heroImage.description}
-                        width={1200}
-                        height={600}
-                        className="rounded-xl shadow-2xl"
-                        data-ai-hint={heroImage.imageHint}
-                        priority
-                    />
+                    <Carousel
+                        plugins={[autoplayPlugin.current]}
+                        className="w-full"
+                        opts={{ loop: true }}
+                    >
+                        <CarouselContent>
+                            {carouselItems.map((item, index) => (
+                                <CarouselItem key={index}>
+                                    <div className={cn("p-8 md:p-12 rounded-2xl flex items-center justify-between bg-gradient-to-r shadow-2xl border", item.gradient, "dark:border-slate-800")}>
+                                        <div className="flex-1 space-y-4">
+                                            <h2 className={cn("text-3xl md:text-4xl font-bold font-headline", item.textColor)}>{item.title}</h2>
+                                            <p className={cn("text-base md:text-lg opacity-90 max-w-lg", item.textColor)}>{item.description}</p>
+                                            <Link href={item.buttonHref}>
+                                                <Button className={cn("mt-4 transition-transform hover:scale-105")}>Learn More <ArrowRight className="ml-2 w-4 h-4"/></Button>
+                                            </Link>
+                                        </div>
+                                        {item.image && (
+                                            <Image
+                                                src={item.image.imageUrl}
+                                                alt={item.image.description}
+                                                width={280}
+                                                height={280}
+                                                className="hidden lg:block w-72 h-72 object-cover rounded-xl shadow-lg"
+                                                data-ai-hint={item.image.imageHint}
+                                            />
+                                        )}
+                                    </div>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                    </Carousel>
                 </div>
-              )}
             </div>
           </div>
         </section>
@@ -147,7 +201,7 @@ export default function LandingPage() {
           </div>
         </section>
         
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-slate-900">
           <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">Your All-in-One Data Platform</div>
@@ -254,7 +308,7 @@ export default function LandingPage() {
         </section>
 
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-muted/40">
+      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-muted/40 dark:bg-slate-900/50 dark:border-slate-800">
         <p className="text-xs text-muted-foreground">
           &copy; 2024 Skarii. All rights reserved.
         </p>
