@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -75,8 +76,10 @@ def main():
 
         # --- Plotting ---
         results_df = pd.DataFrame(results_list)
+        colors = ['green' if score >= 0 else 'red' for score in results_df['net_score']]
+        
         plt.figure(figsize=(10, 6))
-        sns.barplot(x='net_score', y='item', data=results_df, palette='viridis', orient='h')
+        sns.barplot(x='net_score', y='item', data=results_df, palette=colors, orient='h')
         plt.title('MaxDiff Analysis: Net Preference Score')
         plt.xlabel('Net Score (% Best - % Worst)')
         plt.ylabel('Item')
