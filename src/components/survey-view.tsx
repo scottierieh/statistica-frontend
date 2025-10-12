@@ -382,7 +382,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview 
     let { profiles = [] } = question;
     
     // Generate profiles for preview if not present
-    if (profiles.length === 0 && attributes.length > 0 && isPreview) {
+    if (profiles.length === 0 && attributes.length > 0) {
         const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
         let generatedProfiles = [];
         if (designMethod === 'full-factorial' || totalCombinations < (sets || 3) * (cardsPerSet || 3)) {
