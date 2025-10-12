@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -263,7 +264,7 @@ const CustomizedTreemapContent = (props: any) => {
 
 // --- Enhanced Categorical Chart ---
 const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
-    const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
+    const [chartType, setChartType] = useState<'bar' | 'pie' | 'donut' | 'treemap'>('bar');
     
     const interpretation = useMemo(() => {
         if (!data || data.length === 0) return null;
@@ -299,7 +300,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                     <div className="xl:col-span-3">
                         <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsList className="grid w-full grid-cols-4 mb-4">
                                 <TabsTrigger value="bar" className="flex items-center gap-2">
                                     <BarChartIcon className="w-4 h-4"/>
                                     <span className="hidden sm:inline">Bar</span>
@@ -307,6 +308,10 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                 <TabsTrigger value="pie" className="flex items-center gap-2">
                                     <PieChartIcon className="w-4 h-4"/>
                                     <span className="hidden sm:inline">Pie</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="donut" className="flex items-center gap-2">
+                                    <PieChartIcon className="w-4 h-4"/>
+                                    <span className="hidden sm:inline">Donut</span>
                                 </TabsTrigger>
                                 <TabsTrigger value="treemap" className="flex items-center gap-2">
                                     <Grid3x3 className="w-4 h-4"/>
@@ -336,11 +341,9 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                                 <LabelList 
                                                     dataKey="count" 
                                                     position="right" 
-                                                    style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }} 
+                                                    style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 'bold' }} 
                                                 />
-                                                {data.map((_entry: any, index: number) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
+                                                {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                             </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
@@ -357,6 +360,31 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                                 nameKey="name" 
                                                 cx="50%" 
                                                 cy="50%" 
+                                                outerRadius={100}
+                                                label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}
+                                                labelLine={{stroke: '#94a3b8', strokeWidth: 1}}
+                                            >
+                                                {data.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </TabsContent>
+
+                            <TabsContent value="donut" className="mt-0">
+                                <ChartContainer config={{}} className="w-full h-80">
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Pie 
+                                                data={data} 
+                                                dataKey="count" 
+                                                nameKey="name" 
+                                                cx="50%" 
+                                                cy="50%" 
+                                                innerRadius={60}
                                                 outerRadius={100}
                                                 label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}
                                                 labelLine={{stroke: '#94a3b8', strokeWidth: 1}}
@@ -651,19 +679,19 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-                 <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                        <p className="text-sm text-muted-foreground">Star rating distribution</p>
-                    </div>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={onDownload}
-                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                    >
-                        <Download className="w-4 h-4" />
-                    </Button>
+              <div className="flex justify-between items-start">
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Star rating distribution</p>
+                   </div>
+                   <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                   >
+                       <Download className="w-4 h-4" />
+                   </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-6">
@@ -797,20 +825,20 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
             <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                    <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">Net Promoter Score analysis</p>
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Net Promoter Score analysis</p>
+                   </div>
+                   <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                   >
+                       <Download className="w-4 h-4" />
+                   </Button>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={onDownload}
-                    className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                >
-                    <Download className="w-4 h-4" />
-                </Button>
-            </div>
-          </CardHeader>
+            </CardHeader>
            <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -892,7 +920,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
                                     <AlertTitle className="text-sm font-semibold mb-1">Analysis Summary</AlertTitle>
                                     <AlertDescription 
                                         className="text-sm" 
-                                        dangerouslySetInnerHTML={{ __html: formattedInterpretation }} 
+                                        dangerouslySetInnerHTML={{ __html: formattedInterpretation}} 
                                     />
                                 </div>
                             </div>
@@ -1169,7 +1197,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
 };
 
 
-// --- Matrix Chart (keeping similar with enhancements) ---
+// --- Enhanced Matrix Chart ---
 const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const [tableFormat, setTableFormat] = useState('counts');
