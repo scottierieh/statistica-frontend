@@ -1,4 +1,5 @@
 
+
 import type { Question, Criterion } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
@@ -23,7 +24,7 @@ export const choiceBasedConjointTemplate = {
                 { id: `attr-4`, name: 'Battery', levels: ['4000mAh', '5000mAh'] },
             ],
             designMethod: 'full-factorial',
-            sets: 3,
+            sets: 5,
             cardsPerSet: 3,
             profiles: [],
         },

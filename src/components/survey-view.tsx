@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -516,53 +517,55 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
 
 
 const ConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: string; onAnswerChange: (value: string) => void; styles: any }) => {
-    const { attributes = [], designMethod, sets, cardsPerSet } = question;
-    let { profiles = [] } = question;
-    
-    // Generate profiles for preview if not present
-    if (profiles.length === 0 && attributes.length > 0 && isPreview) {
-        const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
-        let generatedProfiles = [];
-        if (designMethod === 'full-factorial' || totalCombinations < (sets || 3) * (cardsPerSet || 3)) {
-            const levelIndices = attributes.map(() => 0);
-            while (true) {
-                const profile: any = { id: `preview_profile_${generatedProfiles.length}`};
-                attributes.forEach((attr, i) => {
-                    profile[attr.name] = attr.levels[levelIndices[i]];
-                });
-                generatedProfiles.push(profile);
-                
-                let i = 0;
-                while (i < attributes.length) {
-                    levelIndices[i]++;
-                    if (levelIndices[i] < attributes[i].levels.length) break;
-                    levelIndices[i] = 0;
-                    i++;
-                }
-                if (i === attributes.length) break;
-            }
-        } else { // Random for large designs
-            for (let i = 0; i < (sets || 3) * (cardsPerSet || 3); i++) {
-                const profile: any = { id: `preview_profile_${i}` };
-                attributes.forEach(attr => {
-                    profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
-                });
-                generatedProfiles.push(profile);
-            }
-        }
-        profiles = [generatedProfiles.slice(0, cardsPerSet || 3)];
+    const { attributes = [], profiles = [] } = question;
+
+    if (profiles.length === 0) {
+        if (attributes.length === 0) return <div className="p-3 text-sm">Conjoint attributes not defined.</div>;
+
+        // Generate a sample preview
+        const sampleProfiles = Array.from({ length: 3 }, (_, i) => {
+            const profile: any = { id: `preview_${i}`};
+            attributes.forEach(attr => {
+                profile[attr.name] = attr.levels[i % attr.levels.length];
+            });
+            return profile;
+        });
+
+        return (
+            <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+                {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {sampleProfiles.map((profile, index) => (
+                        <Card key={profile.id} className="text-left transition-all overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1">
+                            <CardHeader className="p-4 bg-muted/50"><CardTitle className="text-base font-semibold">Option {index + 1}</CardTitle></CardHeader>
+                            <CardContent className="p-4 space-y-2">
+                                {attributes.map(attr => (
+                                    <div key={attr.id} className="flex justify-between items-center text-sm py-1 border-b last:border-b-0">
+                                        <span className="font-medium text-muted-foreground">{attr.name}:</span>
+                                        <span className="font-bold text-foreground">{profile[attr.name]}</span>
+                                    </div>
+                                ))}
+                            </CardContent>
+                            <CardFooter className="p-3 bg-muted/50">
+                                <div className="w-full flex items-center justify-center">
+                                    <RadioGroup><RadioGroupItem value={profile.id} disabled/></RadioGroup>
+                                    <Label htmlFor={profile.id} className="ml-2">Choose this option</Label>
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
     }
     
-    if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
-    
-    const profileSet = profiles[0] || [];
-
     return (
         <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {profileSet.map((profile: any, index: number) => (
+                {profiles.map((profile: any, index: number) => (
                     <Card 
                         key={profile.id} 
                         className={cn(

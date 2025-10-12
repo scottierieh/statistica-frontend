@@ -23,7 +23,7 @@ export type Question = {
     numScalePoints?: number;
     // For Conjoint Analysis
     attributes?: ConjointAttribute[];
-    designMethod?: 'full-factorial' | 'random';
+    designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid';
     sets?: number;
     cardsPerSet?: number;
     profiles?: any[]; // For generated profiles

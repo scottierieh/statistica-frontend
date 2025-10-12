@@ -576,7 +576,7 @@ const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate,
                     questionNumber={questionNumber}
                 />
                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    {[...Array(11)].map((_, i) => <Button key={i} variant='outline' size="icon" className="h-8 w-7 text-xs p-0">{i}</Button>)}
+                    {[...Array(11)].map((_, i) => <Button key={i} variant='outline' size="sm" className="h-8 w-7 text-xs p-0">{i}</Button>)}
                 </div>
             </CardContent>
         </Card>
@@ -844,6 +844,32 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
 };
 
 const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+    
+    const handleUpdate = (type: 'attributes' | 'sets' | 'cardsPerSet' | 'designMethod', value: any) => {
+        onUpdate?.({ ...question, [type]: value });
+    };
+
+    const handleAttrChange = (attrIndex: number, field: 'name' | 'levels', value: string) => {
+        const newAttributes = produce(question.attributes, (draft: ConjointAttribute[]) => {
+            if (field === 'levels') {
+                draft[attrIndex][field] = value.split(',').map(s => s.trim());
+            } else {
+                draft[attrIndex][field] = value;
+            }
+        });
+        handleUpdate('attributes', newAttributes);
+    };
+
+    const addAttribute = () => {
+        const newAttr: ConjointAttribute = { id: `attr-${Date.now()}`, name: `Attribute ${question.attributes.length + 1}`, levels: ['Level A', 'Level B'] };
+        handleUpdate('attributes', [...question.attributes, newAttr]);
+    };
+    
+    const removeAttribute = (index: number) => {
+        const newAttributes = question.attributes.filter((_: any, i: number) => i !== index);
+        handleUpdate('attributes', newAttributes);
+    };
+    
     return (
         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
@@ -860,20 +886,40 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                      <Label>Description</Label>
                      <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Explain the choice task to the user."/>
                  </div>
+                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div>
+                        <Label>Design Method</Label>
+                        <Select value={question.designMethod} onValueChange={(v) => handleUpdate('designMethod', v)}>
+                            <SelectTrigger><SelectValue/></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="full-factorial">Full-profile</SelectItem>
+                                <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
+                                <SelectItem value="randomized">Randomized design</SelectItem>
+                                <SelectItem value="hybrid">Hybrid design</SelectItem>
+                            </SelectContent>
+                        </Select>
+                     </div>
+                      <div>
+                        <Label>Number of Sets</Label>
+                        <Input type="number" value={question.sets} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
+                     </div>
+                      <div>
+                        <Label>Cards per Set</Label>
+                        <Input type="number" value={question.cardsPerSet} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                     </div>
+                 </div>
                  <div className="mt-4 space-y-4">
                     <h4 className="font-semibold">Attributes & Levels</h4>
                     {(question.attributes || []).map((attr: ConjointAttribute, index: number) => (
-                        <div key={attr.id} className="p-2 border rounded-md">
-                            <Input value={attr.name} onChange={e => {
-                                const newAttrs = produce(question.attributes, (draft: ConjointAttribute[]) => { draft[index].name = e.target.value });
-                                onUpdate?.({...question, attributes: newAttrs});
-                            }} placeholder="Attribute Name (e.g., Brand)" className="font-semibold" />
-                             <Input value={attr.levels.join(', ')} onChange={e => {
-                                const newAttrs = produce(question.attributes, (draft: ConjointAttribute[]) => { draft[index].levels = e.target.value.split(',').map(s => s.trim()) });
-                                onUpdate?.({...question, attributes: newAttrs});
-                            }} placeholder="Levels, comma-separated (e.g., Apple, Samsung)" className="text-sm mt-1" />
+                        <div key={attr.id} className="p-3 border rounded-lg space-y-2">
+                            <div className="flex justify-between items-center">
+                                <Input value={attr.name} onChange={e => handleAttrChange(index, 'name', e.target.value)} placeholder="Attribute Name (e.g., Brand)" className="font-semibold text-sm" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeAttribute(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                            </div>
+                             <Textarea value={attr.levels.join(', ')} onChange={e => handleAttrChange(index, 'levels', e.target.value)} placeholder="Levels, comma-separated (e.g., Apple, Samsung)" className="text-xs" rows={1} />
                         </div>
                     ))}
+                    <Button variant="outline" size="sm" onClick={addAttribute}><PlusCircle className="mr-2"/>Add Attribute</Button>
                  </div>
             </CardContent>
         </Card>
