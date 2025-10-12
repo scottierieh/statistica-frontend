@@ -516,7 +516,42 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
 
 
 const ConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: string; onAnswerChange: (value: string) => void; styles: any }) => {
-    const { attributes = [], profiles = [] } = question;
+    const { attributes = [], designMethod, sets, cardsPerSet } = question;
+    let { profiles = [] } = question;
+    
+    // Generate profiles for preview if not present
+    if (profiles.length === 0 && attributes.length > 0 && isPreview) {
+        const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
+        let generatedProfiles = [];
+        if (designMethod === 'full-factorial' || totalCombinations < (sets || 3) * (cardsPerSet || 3)) {
+            const levelIndices = attributes.map(() => 0);
+            while (true) {
+                const profile: any = { id: `preview_profile_${generatedProfiles.length}`};
+                attributes.forEach((attr, i) => {
+                    profile[attr.name] = attr.levels[levelIndices[i]];
+                });
+                generatedProfiles.push(profile);
+                
+                let i = 0;
+                while (i < attributes.length) {
+                    levelIndices[i]++;
+                    if (levelIndices[i] < attributes[i].levels.length) break;
+                    levelIndices[i] = 0;
+                    i++;
+                }
+                if (i === attributes.length) break;
+            }
+        } else { // Random for large designs
+            for (let i = 0; i < (sets || 3) * (cardsPerSet || 3); i++) {
+                const profile: any = { id: `preview_profile_${i}` };
+                attributes.forEach(attr => {
+                    profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
+                });
+                generatedProfiles.push(profile);
+            }
+        }
+        profiles = [generatedProfiles.slice(0, cardsPerSet || 3)];
+    }
     
     if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
     
@@ -912,6 +947,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                                                 answer={answers[currentQuestion.id]}
                                                 onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
                                                 styles={survey.styles || {}}
+                                                isPreview={isPreview}
                                             />
                                         </div>
                                     )}
