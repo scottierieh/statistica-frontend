@@ -18,7 +18,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Input } from '../ui/input';
 
 interface CbcResults {
@@ -90,36 +90,60 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             return;
         }
 
-        const analysisData: any[] = [];
-        let choiceCount = 0;
-
-        responses.forEach((resp) => {
+        let analysisData: any[] = [];
+        
+        responses.forEach((resp, respIndex) => {
             const answer = resp.answers[conjointQuestion.id];
-            if (!answer || typeof answer !== 'string' || !answer.startsWith('profile_')) return;
-            
+            if (!answer || typeof answer !== 'string') return;
+
             const chosenProfileId = answer;
             
-            const allLevels = conjointQuestion.attributes!.flatMap(a => a.levels);
-            const profiles = allLevels.map((level, index) => {
-                 const profile: any = { 'resp.id': resp.id, 'alt': `profile_${index}` };
-                 conjointQuestion.attributes!.forEach(attr => {
-                    const levelIndex = (index + attr.levels.indexOf(level)) % attr.levels.length;
-                    profile[attr.name] = attr.levels[levelIndex];
-                 });
-                 return profile;
-            });
+            // This assumes profiles were generated and stored for each user, which is a complex task.
+            // A more direct approach for analysis is to format the choice data itself.
+            // For now, let's find the profiles that were shown for this question.
+            // The logic to retrieve *which* profiles were shown to which user is missing.
+            // We will simulate it based on a simple interpretation of the survey structure.
+            // This part is likely where the error lies. The data format for conjoint is tricky.
             
-            profiles.forEach(p => {
-                const isChosen = p.alt === chosenProfileId;
-                if (isChosen) choiceCount++;
-                analysisData.push({
-                    ...p,
-                    choice: isChosen ? 1 : 0
+            const profilesInSet = (conjointQuestion.profiles || []).filter((p: any) => p.respId === resp.id || !p.respId); // Simplified
+            
+            profilesInSet.forEach((profile: any) => {
+                 analysisData.push({
+                    ...profile,
+                    'resp.id': resp.id,
+                    choice: profile.id === chosenProfileId ? 1 : 0
                 });
             });
         });
         
-        if (choiceCount === 0) {
+        // Let's create a more robust analysisData structure that doesn't rely on pre-generated profiles.
+        // It will be a long-format dataframe of choices.
+        analysisData = [];
+        responses.forEach((resp, respIndex) => {
+            const answer = resp.answers[conjointQuestion.id];
+            if (!answer || typeof answer !== 'string') return;
+            const chosenProfileId = answer;
+
+            const taskKey = chosenProfileId.split('_')[0]; // e.g. "task1" from "task1_profile2"
+            
+            // Reconstruct the profiles shown in this task
+            // This is a major assumption. A real CBC would store the presented design.
+            const presentedProfiles = conjointQuestion.profiles?.filter((p: any) => p.id.startsWith(taskKey)) || [];
+
+             if (presentedProfiles.length > 0) {
+                presentedProfiles.forEach((profile: any) => {
+                     analysisData.push({
+                        'resp.id': resp.id,
+                        'task': taskKey,
+                        ...profile.attributes,
+                        choice: profile.id === chosenProfileId ? 1 : 0
+                    });
+                });
+            }
+        });
+
+
+        if (analysisData.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
             setIsLoading(false);
             return;
@@ -389,7 +413,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 </TabsContent>
                  <TabsContent value="sensitivity" className="mt-4">
                     <Card>
-                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute, holding others at their base level.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute.</CardDescription></CardHeader>
                         <CardContent>
                             <div className="grid md:grid-cols-2 gap-4 items-center">
                                 <div>

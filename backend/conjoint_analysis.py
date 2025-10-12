@@ -44,8 +44,13 @@ def main():
             independent_vars = [attr for attr, props in sub_attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
             
             all_cols_to_check = independent_vars + [target_variable]
-            sub_df_clean = sub_df[all_cols_to_check].copy().dropna()
+            sub_df_clean = sub_df[all_cols_to_check].copy()
             
+            for col in all_cols_to_check:
+                sub_df_clean[col] = pd.to_numeric(sub_df_clean[col], errors='coerce') if col == target_variable else sub_df_clean[col].astype(str)
+
+            sub_df_clean.dropna(inplace=True)
+
             if sub_df_clean.empty: return None
 
             for attr_name in independent_vars:
@@ -67,6 +72,10 @@ def main():
             X = pd.concat(X_list, axis=1)
             y = sub_df_clean[target_variable]
             
+            # Additional check for sufficient data
+            if len(X) < len(feature_names) + 1:
+                return None
+
             model = LinearRegression()
             model.fit(X, y)
             y_pred = model.predict(X)
@@ -128,7 +137,7 @@ def main():
                 utility = analysis_res['regression']['intercept']
                 for attr, level in profile.items():
                     if attr == 'name': continue
-                    pw = next((p for p in analysis_res['partWorths'] if p['attribute'] == attr and p['level'] == level), None)
+                    pw = next((p for p in analysis_res['partWorths'] if p['attribute'] == attr and str(p['level']) == str(level)), None)
                     if pw:
                         utility += pw['value']
                 return utility
@@ -178,3 +187,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
