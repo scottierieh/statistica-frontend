@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3 } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -28,9 +28,11 @@ import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 
-const Plot = dynamic(() => import('react-plotly.js'), {
+const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[300px]" />,
 });
@@ -86,7 +88,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         const iqr = jStat.percentile(values, 0.75) - jStat.percentile(values, 0.25);
         let binWidth;
         if (iqr > 0) {
-            binWidth = 2 * iqr * Math.pow(n, -1/3);
+            binWidth = 2 * iqr * Math.pow(n, -1/3); // Freedman-Diaconis rule
         } else {
             const range = Math.max(...values) - Math.min(...values);
             binWidth = range > 0 ? range / 10 : 1;
@@ -1106,20 +1108,17 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                                     <XAxis type="number" />
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
-                                    <Bar dataKey="netScore" name="Net Score" fill="url(#netScoreGradient)" radius={[0, 8, 8, 0]}>
+                                    <Bar dataKey="netScore" name="Net Score" radius={[0, 8, 8, 0]}>
                                         <LabelList 
                                             dataKey="netScore" 
                                             position="right" 
                                             formatter={(value: number) => `${value.toFixed(1)}%`} 
                                             style={{ fontSize: 11, fontWeight: 600 }} 
                                         />
+                                         {chartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.netScore > 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-5))"} />
+                                        ))}
                                     </Bar>
-                                    <defs>
-                                        <linearGradient id="netScoreGradient" x1="0" y1="0" x2="1" y2="0">
-                                            <stop offset="0%" stopColor="#6366f1" />
-                                            <stop offset="100%" stopColor="#8b5cf6" />
-                                        </linearGradient>
-                                    </defs>
                                 </BarChart>
                             ) : (
                                 <BarChart data={chartData} margin={{ left: 20, bottom: 60 }}>
@@ -1546,6 +1545,49 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         }
     }, []);
 
+    const handleDownload = useCallback((format: 'csv' | 'excel') => {
+        if (!responses || responses.length === 0) {
+            toast({ title: 'No data to download', variant: 'destructive' });
+            return;
+        }
+
+        // Flatten the data
+        const flattenedData = responses.map(response => {
+            const row: Record<string, any> = {
+                respondent_id: response.id,
+                submitted_at: response.submittedAt,
+            };
+            survey.questions.forEach(question => {
+                const answer = response.answers[question.id];
+                if (Array.isArray(answer)) {
+                    row[question.title] = answer.join(', ');
+                } else if (typeof answer === 'object' && answer !== null) {
+                    row[question.title] = JSON.stringify(answer);
+                } else {
+                    row[question.title] = answer;
+                }
+            });
+            return row;
+        });
+        
+        if (format === 'csv') {
+            const csv = Papa.unparse(flattenedData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${survey.title.replace(/\s+/g, '_')}_responses.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } else { // Excel
+            const worksheet = XLSX.utils.json_to_sheet(flattenedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Responses");
+            XLSX.writeFile(workbook, `${survey.title.replace(/\s+/g, '_')}_responses.xlsx`);
+        }
+
+    }, [responses, survey, toast]);
+
     if (loading) {
         return (
             <div className="space-y-6 p-4 md:p-6">
@@ -1576,8 +1618,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
             <div className="max-w-7xl mx-auto space-y-8 p-4 md:p-8">
                 {/* Header Section */}
-                <div className="flex items-start gap-6">
-                    <Button 
+                <div className="flex items-start justify-between gap-6">
+                     <Button 
                         variant="outline" 
                         size="icon" 
                         onClick={() => router.push("/dashboard/survey2")}
@@ -1598,6 +1640,16 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                 </Badge>
                             </p>
                         </div>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => handleDownload('csv')}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            CSV
+                        </Button>
+                         <Button variant="outline" onClick={() => handleDownload('excel')}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Excel
+                        </Button>
                     </div>
                 </div>
                 
@@ -1681,3 +1733,5 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+
+```
