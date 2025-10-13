@@ -33,13 +33,12 @@ def setup_virtual_filesystem(base_path='virtual_fruits'):
 
 
 def main():
+    VIRTUAL_FRUITS_DIR = 'virtual_fruits_data'
     try:
         # Load data from stdin
         payload = json.load(sys.stdin)
         user_image_data_url = payload.get('image')
         
-        VIRTUAL_FRUITS_DIR = 'virtual_fruits_data'
-
         # Set up the dummy file system
         if not Path(VIRTUAL_FRUITS_DIR).exists():
              setup_virtual_filesystem(VIRTUAL_FRUITS_DIR)
@@ -137,8 +136,8 @@ def main():
         sys.exit(1)
     finally:
         # Clean up virtual file system
-        if os.path.exists('virtual_fruits'):
-            shutil.rmtree('virtual_fruits')
+        if os.path.exists(VIRTUAL_FRUITS_DIR):
+            shutil.rmtree(VIRTUAL_FRUITS_DIR)
 
 
 if __name__ == '__main__':

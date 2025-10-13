@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,8 +7,7 @@ import { AlertTriangle, Loader2, Brain, TrendingUp, TrendingDown, Eye, Heart, Aw
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface BrandStages {
@@ -70,7 +68,6 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedBrand, setSelectedBrand] = useState<string>('all');
-    const [activeTab, setActiveTab] = useState('overview');
 
     const brands = useMemo(() => (results?.funnel_data ? Object.keys(results.funnel_data) : []), [results]);
     
@@ -128,33 +125,13 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 throw new Error("No survey data or responses");
             }
 
-            const q_aware = survey.questions.find(q => 
-                q.title.toLowerCase().includes('heard of') || 
-                q.title.toLowerCase().includes('aware') ||
-                q.title.toLowerCase().includes('know')
-            );
-            const q_consider = survey.questions.find(q => 
-                q.title.toLowerCase().includes('consider') ||
-                q.title.toLowerCase().includes('thinking about')
-            );
-            const q_prefer = survey.questions.find(q => 
-                q.title.toLowerCase().includes('prefer') ||
-                q.title.toLowerCase().includes('favorite')
-            );
-            const q_usage = survey.questions.find(q => 
-                q.title.toLowerCase().includes('used') ||
-                q.title.toLowerCase().includes('currently use') ||
-                q.title.toLowerCase().includes('using')
-            );
+            const q_aware = survey.questions.find(q => q.title.toLowerCase().includes('heard of'));
+            const q_consider = survey.questions.find(q => q.title.toLowerCase().includes('consider'));
+            const q_prefer = survey.questions.find(q => q.title.toLowerCase().includes('prefer'));
+            const q_usage = survey.questions.find(q => q.title.toLowerCase().includes('used'));
 
             if (!q_aware || !q_consider || !q_prefer || !q_usage) {
-                const missing = [];
-                if (!q_aware) missing.push('Awareness (e.g., "Which brands have you heard of?")');
-                if (!q_consider) missing.push('Consideration (e.g., "Which brands would you consider?")');
-                if (!q_prefer) missing.push('Preference (e.g., "Which brand do you prefer?")');
-                if (!q_usage) missing.push('Usage (e.g., "Which brands have you used?")');
-                
-                throw new Error(`Missing required funnel questions:\n${missing.join('\n')}\n\nAvailable questions:\n${survey.questions.map(q => `- ${q.title}`).join('\n')}`);
+                throw new Error("Missing required funnel questions (awareness, consideration, preference, usage).");
             }
 
             const brandList = q_aware.options || [];
@@ -302,7 +279,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                         <div className="flex items-center gap-1 mt-2">
                                             <TrendingDown className="h-3 w-3 text-red-600" />
                                             <span className="text-xs text-red-600 font-semibold">
-                                                -{Math.round(prevValue - value)} ({((prevValue - value) / (prevValue > 0 ? prevValue : 1) * 100).toFixed(1)}%)
+                                                -{Math.round(prevValue - value)} ({((prevValue - value) / prevValue * 100).toFixed(1)}%)
                                             </span>
                                         </div>
                                     )}
@@ -374,333 +351,464 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 </Card>
             </div>
 
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-5 bg-muted p-1 rounded-xl">
-                    <TabsTrigger value="overview" className="rounded-lg">
-                        <Target className="h-4 w-4 mr-2" />
-                        Overview
-                    </TabsTrigger>
-                    <TabsTrigger value="comparison" className="rounded-lg">
-                        <Users className="h-4 w-4 mr-2" />
-                        Compare
-                    </TabsTrigger>
-                    <TabsTrigger value="conversion" className="rounded-lg">
-                        <Zap className="h-4 w-4 mr-2" />
-                        Conversion
-                    </TabsTrigger>
-                    <TabsTrigger value="details" className="rounded-lg">
-                        <Award className="h-4 w-4 mr-2" />
-                        Details
-                    </TabsTrigger>
-                    <TabsTrigger value="insights" className="rounded-lg">
-                        <Brain className="h-4 w-4 mr-2" />
-                        Insights
-                    </TabsTrigger>
-                </TabsList>
+            {/* Overview Section */}
+            {displayData && (
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Target className="h-5 w-5 text-indigo-600" />
+                            {isAllBrands ? 'Industry Average Funnel' : `${selectedBrand} Funnel`}
+                        </CardTitle>
+                        <CardDescription>
+                            {isAllBrands
+                                ? 'Average consumer journey across all brands'
+                                : 'Consumer journey through each stage'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {/* Visual Funnel */}
+                        <div className="space-y-3 mb-6">
+                            {Object.entries(displayData).map(([stage, value], idx) => {
+                                const widthPercentage = (value / displayData.awareness) * 100;
+                                const Icon = STAGE_ICONS[stage as keyof typeof STAGE_ICONS];
+                                const color = STAGE_COLORS[stage as keyof typeof STAGE_COLORS];
+                                const prevValue = idx > 0 ? Object.values(displayData)[idx - 1] : null;
 
-                {/* Overview Tab */}
-                <TabsContent value="overview" className="space-y-6">
-                    {displayData && (
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Target className="h-5 w-5 text-indigo-600" />
-                                    {isAllBrands ? 'Industry Average Funnel' : `${selectedBrand} Funnel`}
-                                </CardTitle>
-                                <CardDescription>
-                                    {isAllBrands
-                                        ? 'Average consumer journey across all brands'
-                                        : 'Consumer journey through each stage'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {/* Visual Funnel */}
-                                <div className="space-y-3 mb-6">
-                                    {Object.entries(displayData).map(([stage, value], idx) => {
-                                        const widthPercentage = (value / (displayData.awareness > 0 ? displayData.awareness : 1)) * 100;
-                                        const Icon = STAGE_ICONS[stage as keyof typeof STAGE_ICONS];
-                                        const color = STAGE_COLORS[stage as keyof typeof STAGE_COLORS];
-                                        const prevValue = idx > 0 ? Object.values(displayData)[idx - 1] : null;
-
-                                        return (
-                                            <div key={stage}>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <Icon className="h-4 w-4" style={{ color }} />
-                                                        <span className="font-semibold text-sm capitalize">{stage}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-mono text-gray-600">{Math.round(value)} people</span>
-                                                        <span className="text-lg font-bold" style={{ color }}>
-                                                            {((value / responses.length) * 100).toFixed(1)}%
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="relative h-16 bg-gray-100 rounded-lg overflow-hidden">
-                                                    <div
-                                                        className="h-full rounded-lg flex items-center justify-center text-white font-bold transition-all duration-500"
-                                                        style={{
-                                                            width: `${widthPercentage}%`,
-                                                            backgroundColor: color,
-                                                        }}
-                                                    >
-                                                        {widthPercentage.toFixed(1)}%
-                                                    </div>
-                                                </div>
-                                                {prevValue && (
-                                                    <div className="flex items-center gap-2 mt-2 ml-4">
-                                                        <TrendingDown className="h-4 w-4 text-red-600" />
-                                                        <span className="text-sm text-red-600">
-                                                            Drop-off: {((prevValue - value) / (prevValue > 0 ? prevValue : 1) * 100).toFixed(1)}%
-                                                            ({Math.round(prevValue - value)} people)
-                                                        </span>
-                                                    </div>
-                                                )}
+                                return (
+                                    <div key={stage}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <Icon className="h-4 w-4" style={{ color }} />
+                                                <span className="font-semibold text-sm capitalize">{stage}</span>
                                             </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-mono text-gray-600">{Math.round(value)} people</span>
+                                                <span className="text-lg font-bold" style={{ color }}>
+                                                    {((value / responses.length) * 100).toFixed(1)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="relative h-16 bg-gray-100 rounded-lg overflow-hidden">
+                                            <div
+                                                className="h-full rounded-lg flex items-center justify-center text-white font-bold transition-all duration-500"
+                                                style={{
+                                                    width: `${widthPercentage}%`,
+                                                    backgroundColor: color,
+                                                }}
+                                            >
+                                                {widthPercentage.toFixed(1)}%
+                                            </div>
+                                        </div>
+                                        {prevValue && (
+                                            <div className="flex items-center gap-2 mt-2 ml-4">
+                                                <TrendingDown className="h-4 w-4 text-red-600" />
+                                                <span className="text-sm text-red-600">
+                                                    Drop-off: {((prevValue - value) / prevValue * 100).toFixed(1)}%
+                                                    ({Math.round(prevValue - value)} people)
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {!isAllBrands && currentBrandData?.conversion && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                                <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                                    <p className="text-xs text-gray-600 mb-1">Awareness → Consideration</p>
+                                    <p className="text-2xl font-bold text-blue-600">
+                                        {currentBrandData.conversion.awareness_to_consideration.toFixed(1)}%
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+                                    <p className="text-xs text-gray-600 mb-1">Consideration → Preference</p>
+                                    <p className="text-2xl font-bold text-purple-600">
+                                        {currentBrandData.conversion.consideration_to_preference.toFixed(1)}%
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-pink-50 rounded-lg border-2 border-pink-200">
+                                    <p className="text-xs text-gray-600 mb-1">Preference → Usage</p>
+                                    <p className="text-2xl font-bold text-pink-600">
+                                        {currentBrandData.conversion.preference_to_usage.toFixed(1)}%
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                                    <p className="text-xs text-gray-600 mb-1">Overall Conversion</p>
+                                    <p className="text-2xl font-bold text-green-600">
+                                        {currentBrandData.conversion.awareness_to_usage.toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Brand Comparison Chart */}
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-purple-600" />
+                        Brand Comparison
+                    </CardTitle>
+                    <CardDescription>Compare all brands across funnel stages</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={funnelDataForChart}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="stage" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            {brands.map((brand, i) => (
+                                <Bar
+                                    key={brand}
+                                    dataKey={brand.replace(/\s/g, '_')}
+                                    name={brand}
+                                    fill={COLORS[i % COLORS.length]}
+                                    radius={[4, 4, 0, 0]}
+                                />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+
+            {/* Conversion Rates Table */}
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-amber-600" />
+                        Conversion Rates
+                    </CardTitle>
+                    <CardDescription>Stage-to-stage conversion performance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-muted/50 border-b">
+                                    <th className="text-left p-3 font-bold">Brand</th>
+                                    <th className="text-right p-3 font-bold">Aware→Consider</th>
+                                    <th className="text-right p-3 font-bold">Consider→Prefer</th>
+                                    <th className="text-right p-3 font-bold">Prefer→Usage</th>
+                                    <th className="text-right p-3 font-bold">Overall</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {brands.map((brand, idx) => {
+                                    const conversionData = results.conversion_rates[brand];
+                                    return (
+                                        <tr key={brand} className="border-b hover:bg-muted/30">
+                                            <td className="p-3 font-semibold flex items-center gap-2">
+                                                <div
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                                                />
+                                                {brand}
+                                            </td>
+                                            <td className="text-right p-3">
+                                                {(conversionData?.awareness_to_consideration ?? 0).toFixed(1)}%
+                                            </td>
+                                            <td className="text-right p-3">
+                                                {(conversionData?.consideration_to_preference ?? 0).toFixed(1)}%
+                                            </td>
+                                            <td className="text-right p-3">
+                                                {(conversionData?.preference_to_usage ?? 0).toFixed(1)}%
+                                            </td>
+                                            <td className="text-right p-3">
+                                                <Badge variant="default">
+                                                    {(conversionData?.awareness_to_usage ?? 0).toFixed(1)}%
+                                                </Badge>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Detailed Data Grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+                {/* Counts Table */}
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Response Counts</CardTitle>
+                        <CardDescription>Number of respondents at each stage</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 border-b">
+                                        <th className="text-left p-2 font-bold">Brand</th>
+                                        <th className="text-right p-2 font-bold">Aware</th>
+                                        <th className="text-right p-2 font-bold">Consider</th>
+                                        <th className="text-right p-2 font-bold">Prefer</th>
+                                        <th className="text-right p-2 font-bold">Usage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {brands.map(brand => (
+                                        <tr key={brand} className="border-b hover:bg-muted/30">
+                                            <td className="p-2 font-semibold">{brand}</td>
+                                            <td className="text-right p-2">{results.funnel_data[brand]?.awareness ?? 0}</td>
+                                            <td className="text-right p-2">{results.funnel_data[brand]?.consideration ?? 0}</td>
+                                            <td className="text-right p-2">{results.funnel_data[brand]?.preference ?? 0}</td>
+                                            <td className="text-right p-2">{results.funnel_data[brand]?.usage ?? 0}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Market Share Table */}
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Market Share (%)</CardTitle>
+                        <CardDescription>Percentage share at each funnel stage</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 border-b">
+                                        <th className="text-left p-2 font-bold">Brand</th>
+                                        <th className="text-right p-2 font-bold">Aware</th>
+                                        <th className="text-right p-2 font-bold">Consider</th>
+                                        <th className="text-right p-2 font-bold">Prefer</th>
+                                        <th className="text-right p-2 font-bold">Usage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {marketShareData.map(row => (
+                                        <tr key={row.brand} className="border-b hover:bg-muted/30">
+                                            <td className="p-2 font-semibold">{row.brand}</td>
+                                            <td className="text-right p-2">{(row.awareness_share ?? 0).toFixed(1)}%</td>
+                                            <td className="text-right p-2">{(row.consideration_share ?? 0).toFixed(1)}%</td>
+                                            <td className="text-right p-2">{(row.preference_share ?? 0).toFixed(1)}%</td>
+                                            <td className="text-right p-2">{(row.usage_share ?? 0).toFixed(1)}%</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Drop-off Table */}
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Drop-off Analysis</CardTitle>
+                        <CardDescription>Lost respondents between stages</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 border-b">
+                                        <th className="text-left p-2 font-bold">Brand</th>
+                                        <th className="text-right p-2 font-bold">A→C</th>
+                                        <th className="text-right p-2 font-bold">C→P</th>
+                                        <th className="text-right p-2 font-bold">P→U</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {brands.map(brand => {
+                                        const dropOffData = results.drop_off[brand] || {};
+                                        const dropOffValues = Object.values(dropOffData);
+                                        return (
+                                            <tr key={brand} className="border-b hover:bg-muted/30">
+                                                <td className="p-2 font-semibold">{brand}</td>
+                                                {dropOffValues.length > 0 ? (
+                                                    dropOffValues.map((val: any, idx) => (
+                                                        <td key={idx} className="text-right p-2">
+                                                            <div className="font-bold text-red-600 text-xs">{(val?.rate ?? 0).toFixed(1)}%</div>
+                                                            <div className="text-xs text-muted-foreground">({val?.count ?? 0})</div>
+                                                        </td>
+                                                    ))
+                                                ) : (
+                                                    <>
+                                                        <td className="text-right p-2">
+                                                            <div className="font-bold text-red-600 text-xs">0.0%</div>
+                                                            <div className="text-xs text-muted-foreground">(0)</div>
+                                                        </td>
+                                                        <td className="text-right p-2">
+                                                            <div className="font-bold text-red-600 text-xs">0.0%</div>
+                                                            <div className="text-xs text-muted-foreground">(0)</div>
+                                                        </td>
+                                                        <td className="text-right p-2">
+                                                            <div className="font-bold text-red-600 text-xs">0.0%</div>
+                                                            <div className="text-xs text-muted-foreground">(0)</div>
+                                                        </td>
+                                                    </>
+                                                )}
+                                            </tr>
                                         );
                                     })}
-                                </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                                {!isAllBrands && currentBrandData?.conversion && (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                                        <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                                            <p className="text-xs text-gray-600 mb-1">Awareness → Consideration</p>
-                                            <p className="text-2xl font-bold text-blue-600">
-                                                {(currentBrandData.conversion.awareness_to_consideration ?? 0).toFixed(1)}%
-                                            </p>
-                                        </div>
-                                        <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
-                                            <p className="text-xs text-gray-600 mb-1">Consideration → Preference</p>
-                                            <p className="text-2xl font-bold text-purple-600">
-                                                {(currentBrandData.conversion.consideration_to_preference ?? 0).toFixed(1)}%
-                                            </p>
-                                        </div>
-                                        <div className="p-4 bg-pink-50 rounded-lg border-2 border-pink-200">
-                                            <p className="text-xs text-gray-600 mb-1">Preference → Usage</p>
-                                            <p className="text-2xl font-bold text-pink-600">
-                                                {(currentBrandData.conversion.preference_to_usage ?? 0).toFixed(1)}%
-                                            </p>
-                                        </div>
-                                        <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
-                                            <p className="text-xs text-gray-600 mb-1">Overall Conversion</p>
-                                            <p className="text-2xl font-bold text-green-600">
-                                                {(currentBrandData.conversion.awareness_to_usage ?? 0).toFixed(1)}%
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
-                </TabsContent>
-
-                {/* Comparison Tab */}
-                <TabsContent value="comparison" className="space-y-6">
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="h-5 w-5 text-purple-600" />
-                                Brand Comparison
-                            </CardTitle>
-                            <CardDescription>Compare all brands across funnel stages</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={funnelDataForChart}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="stage" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    {brands.map((brand, i) => (
-                                        <Bar
-                                            key={brand}
-                                            dataKey={brand.replace(/\s/g, '_')}
-                                            name={brand}
-                                            fill={COLORS[i % COLORS.length]}
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                    ))}
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Conversion Tab */}
-                <TabsContent value="conversion" className="space-y-6">
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Conversion Rates</CardTitle>
-                            <CardDescription>Stage-to-stage conversion performance</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="bg-muted/50 border-b">
-                                            <th className="text-left p-3 font-bold">Brand</th>
-                                            <th className="text-right p-3 font-bold">Aware→Consider</th>
-                                            <th className="text-right p-3 font-bold">Consider→Prefer</th>
-                                            <th className="text-right p-3 font-bold">Prefer→Usage</th>
-                                            <th className="text-right p-3 font-bold">Overall</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {brands.map((brand, idx) => (
+                {/* Health Score Table */}
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Brand Health Score</CardTitle>
+                        <CardDescription>Overall brand performance metrics</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 border-b">
+                                        <th className="text-left p-2 font-bold">Brand</th>
+                                        <th className="text-right p-2 font-bold">Total</th>
+                                        <th className="text-right p-2 font-bold">Conv.</th>
+                                        <th className="text-right p-2 font-bold">Consist.</th>
+                                        <th className="text-right p-2 font-bold">Vol.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {brands.map((brand, idx) => {
+                                        const health = results.health_scores[brand];
+                                        if (!health) return null;
+                                        return (
                                             <tr key={brand} className="border-b hover:bg-muted/30">
-                                                <td className="p-3 font-semibold flex items-center gap-2">
-                                                    <div
-                                                        className="w-3 h-3 rounded-full"
-                                                        style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                                                    />
-                                                    {brand}
-                                                </td>
-                                                <td className="text-right p-3">
-                                                    {(results.conversion_rates[brand]?.awareness_to_consideration ?? 0).toFixed(1)}%
-                                                </td>
-                                                <td className="text-right p-3">
-                                                    {(results.conversion_rates[brand]?.consideration_to_preference ?? 0).toFixed(1)}%
-                                                </td>
-                                                <td className="text-right p-3">
-                                                    {(results.conversion_rates[brand]?.preference_to_usage ?? 0).toFixed(1)}%
-                                                </td>
-                                                <td className="text-right p-3">
-                                                    <Badge variant="default">
-                                                        {(results.conversion_rates[brand]?.awareness_to_usage ?? 0).toFixed(1)}%
+                                                <td className="p-2 font-semibold">{brand}</td>
+                                                <td className="text-right p-2">
+                                                    <Badge
+                                                        variant={health.total_score > 75 ? 'default' : health.total_score > 50 ? 'secondary' : 'outline'}
+                                                        className="text-xs"
+                                                    >
+                                                        {(health.total_score ?? 0).toFixed(1)}
                                                     </Badge>
                                                 </td>
+                                                <td className="text-right p-2">{(health.conversion_component ?? 0).toFixed(1)}</td>
+                                                <td className="text-right p-2">{(health.consistency_component ?? 0).toFixed(1)}</td>
+                                                <td className="text-right p-2">{(health.volume_component ?? 0).toFixed(1)}</td>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-                {/* Details Tab */}
-                <TabsContent value="details" className="space-y-6">
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Detailed Data</CardTitle>
-                            <CardDescription>Complete funnel metrics by brand</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Insights Tab */}
-                <TabsContent value="insights" className="space-y-6">
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Brain className="h-5 w-5 text-indigo-600" />
-                                AI-Generated Insights
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Alert className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-                                <Brain className="h-4 w-4 text-indigo-600" />
-                                <AlertTitle className="text-indigo-900 text-lg">Strategic Analysis</AlertTitle>
-                                <AlertDescription className="text-indigo-700 mt-2">
-                                    <div
-                                        className="whitespace-pre-wrap"
-                                        dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>') }}
-                                    />
-                                </AlertDescription>
-                            </Alert>
-                        </CardContent>
-                    </Card>
-
-                    {/* Bottlenecks */}
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                                Conversion Bottlenecks
-                            </CardTitle>
-                            <CardDescription>Weakest stages requiring attention</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {results.bottlenecks.map((bottleneck, idx) => (
-                                    <Card
-                                        key={idx}
-                                        className={`border-2 ${
-                                            (bottleneck.conversion_rate ?? 0) < 50
-                                                ? 'border-red-200 bg-red-50'
-                                                : (bottleneck.conversion_rate ?? 0) < 70
-                                                ? 'border-amber-200 bg-amber-50'
-                                                : 'border-blue-200 bg-blue-50'
-                                        }`}
-                                    >
-                                        <CardContent className="pt-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <Badge
-                                                            variant={
-                                                                (bottleneck.conversion_rate ?? 0) < 50
-                                                                    ? 'destructive'
-                                                                    : (bottleneck.conversion_rate ?? 0) < 70
-                                                                    ? 'default'
-                                                                    : 'secondary'
-                                                            }
-                                                        >
-                                                            #{idx + 1}
-                                                        </Badge>
-                                                        <span className="font-bold text-lg">{bottleneck.brand}</span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-700">{bottleneck.bottleneck_stage}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p
-                                                        className="text-3xl font-bold"
-                                                        style={{
-                                                            color:
-                                                                (bottleneck.conversion_rate ?? 0) < 50
-                                                                    ? '#ef4444'
-                                                                    : (bottleneck.conversion_rate ?? 0) < 70
-                                                                    ? '#f59e0b'
-                                                                    : '#3b82f6',
-                                                        }}
-                                                    >
-                                                        {(bottleneck.conversion_rate ?? 0).toFixed(1)}%
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">Conversion Rate</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Action Items */}
-                    <Alert className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-                        <Lightbulb className="h-4 w-4 text-green-600" />
-                        <AlertTitle className="text-green-900 text-lg">Recommended Actions</AlertTitle>
-                        <AlertDescription className="text-green-700 mt-2 space-y-2">
-                            <p>
-                                <strong>Priority 1:</strong> Focus on {results.insights.biggest_opportunity.brand}'s{' '}
-                                {results.insights.biggest_opportunity.bottleneck} stage
-                            </p>
-                            <p>
-                                <strong>Priority 2:</strong> Replicate {results.insights.conversion_champion.brand}'s conversion
-                                strategies
-                            </p>
-                            <p>
-                                <strong>Priority 3:</strong> Improve awareness for brands with low top-of-funnel performance
-                            </p>
+            {/* AI Insights */}
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-indigo-600" />
+                        AI-Generated Insights
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Alert className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+                        <Brain className="h-4 w-4 text-indigo-600" />
+                        <AlertTitle className="text-indigo-900 text-lg">Strategic Analysis</AlertTitle>
+                        <AlertDescription className="text-indigo-700 mt-2">
+                            <div
+                                className="whitespace-pre-wrap"
+                                dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>') }}
+                            />
                         </AlertDescription>
                     </Alert>
-                </TabsContent>
-            </Tabs>
+                </CardContent>
+            </Card>
+
+            {/* Bottlenecks */}
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-amber-600" />
+                        Conversion Bottlenecks
+                    </CardTitle>
+                    <CardDescription>Weakest stages requiring attention</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        {results.bottlenecks.map((bottleneck, idx) => (
+                            <Card
+                                key={idx}
+                                className={`border-2 ${
+                                    bottleneck.conversion_rate < 50
+                                        ? 'border-red-200 bg-red-50'
+                                        : bottleneck.conversion_rate < 70
+                                        ? 'border-amber-200 bg-amber-50'
+                                        : 'border-blue-200 bg-blue-50'
+                                }`}
+                            >
+                                <CardContent className="pt-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Badge
+                                                    variant={
+                                                        bottleneck.conversion_rate < 50
+                                                            ? 'destructive'
+                                                            : bottleneck.conversion_rate < 70
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                >
+                                                    #{idx + 1}
+                                                </Badge>
+                                                <span className="font-bold text-lg">{bottleneck.brand}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-700">{bottleneck.bottleneck_stage}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p
+                                                className="text-3xl font-bold"
+                                                style={{
+                                                    color:
+                                                        bottleneck.conversion_rate < 50
+                                                            ? '#ef4444'
+                                                            : bottleneck.conversion_rate < 70
+                                                            ? '#f59e0b'
+                                                            : '#3b82f6',
+                                                }}
+                                            >
+                                                {bottleneck.conversion_rate.toFixed(1)}%
+                                            </p>
+                                            <p className="text-xs text-gray-500">Conversion Rate</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Action Items */}
+            <Alert className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+                <Lightbulb className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-900 text-lg">Recommended Actions</AlertTitle>
+                <AlertDescription className="text-green-700 mt-2 space-y-2">
+                    <p>
+                        <strong>Priority 1:</strong> Focus on {results.insights.biggest_opportunity.brand}'s{' '}
+                        {results.insights.biggest_opportunity.bottleneck} stage
+                    </p>
+                    <p>
+                        <strong>Priority 2:</strong> Replicate {results.insights.conversion_champion.brand}'s conversion
+                        strategies
+                    </p>
+                    <p>
+                        <strong>Priority 3:</strong> Improve awareness for brands with low top-of-funnel performance
+                    </p>
+                </AlertDescription>
+            </Alert>
         </div>
     );
 }
