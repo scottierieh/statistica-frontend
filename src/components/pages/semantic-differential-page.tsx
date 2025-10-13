@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Loader2, Brain, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
@@ -41,18 +40,18 @@ export default function SemanticDifferentialPage({ survey, responses }: Semantic
     const [error, setError] = useState<string | null>(null);
     const [dimensionMapping, setDimensionMapping] = useState<Record<string, string>>({});
 
-    const sdQuestion = useMemo(() => survey.questions.find(q => q.type === 'semantic-differential' || q.type === 'likert'), [survey]);
+    const sdQuestion = survey.questions.find(q => q.type === 'semantic-differential' || q.type === 'likert');
 
     useEffect(() => {
         if (sdQuestion?.rows) {
             const initialMapping: Record<string, string> = {};
             sdQuestion.rows.forEach((row, index) => {
-                const rowKey = `scale_${index}`;
+                const scaleId = `scale_${index}`;
                 let dimension = 'evaluation';
                 const lowerRow = row.toLowerCase();
                 if (['strong', 'big', 'powerful', '강한', '큰', '튼튼한'].some(k => lowerRow.includes(k))) dimension = 'potency';
                 if (['fast', 'simple', 'innovative', '빠른', '간단한', '혁신적인'].some(k => lowerRow.includes(k))) dimension = 'activity';
-                initialMapping[rowKey] = dimension;
+                initialMapping[scaleId] = dimension;
             });
             setDimensionMapping(initialMapping);
         }
@@ -121,8 +120,11 @@ export default function SemanticDifferentialPage({ survey, responses }: Semantic
     }, [survey, responses, sdQuestion, dimensionMapping, toast]);
 
     useEffect(() => {
-        handleAnalysis();
-    }, []); // Run on initial load
+        // Only run analysis if dimensionMapping is populated
+        if(Object.keys(dimensionMapping).length > 0) {
+            handleAnalysis();
+        }
+    }, [dimensionMapping]); // Depend on dimensionMapping
     
     const handleDimensionChange = (scaleId: string, dimension: string) => {
         setDimensionMapping(prev => ({...prev, [scaleId]: dimension}));
@@ -161,7 +163,7 @@ export default function SemanticDifferentialPage({ survey, responses }: Semantic
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Sigma className="mr-2" />} 
+                        {isLoading ? <Loader2 className="animate-spin mr-2" /> : null} 
                         Re-run Analysis
                     </Button>
                 </CardFooter>
@@ -179,20 +181,6 @@ export default function SemanticDifferentialPage({ survey, responses }: Semantic
                             <Image src={plot!} alt="Semantic Differential Analysis Plot" width={1600} height={1200} className="w-full h-auto rounded-md border" />
                         </CardContent>
                     </Card>
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader><CardTitle>EPA Dimension Scores</CardTitle></CardHeader>
-                            <CardContent>
-                                {/* Content is inside the plot */}
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader><CardTitle>Semantic Profile</CardTitle></CardHeader>
-                            <CardContent>
-                                {/* Content is inside the plot */}
-                            </CardContent>
-                        </Card>
-                    </div>
                 </>
             )}
         </div>
