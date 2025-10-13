@@ -102,7 +102,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
         const analysisData: any[] = [];
         responses.forEach(resp => {
-            const answerBlock = resp.answers[conjointQuestion.id];
+            const answerBlock = (resp.answers as any)[conjointQuestion.id];
             if (!answerBlock || typeof answerBlock !== 'object') return;
             
             Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
@@ -196,7 +196,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         }
     }, [analysisResult, attributeCols, allAttributes]);
 
-    
     const runSimulation = () => {
         handleAnalysis(scenarios);
     };
@@ -443,3 +442,4 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   );
 
     
+
