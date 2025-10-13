@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -413,7 +414,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-               <Button 
+                 <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -691,7 +692,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                             {(question.columns || []).map((col: string, colIndex: number) => (
                                                 <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
                                                      <div className="flex justify-center">
-                                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled/>
+                                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled />
                                                     </div>
                                                 </TableCell>
                                             ))}
@@ -844,7 +845,8 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
 };
 
 const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUpload, styles, questionNumber }: any) => {
-    
+    const [generationMessage, setGenerationMessage] = useState("");
+
     const handleUpdate = (type: 'attributes' | 'sets' | 'cardsPerSet' | 'designMethod', value: any) => {
         onUpdate?.({ ...question, [type]: value });
     };
@@ -870,8 +872,6 @@ const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUp
         handleUpdate('attributes', newAttributes);
     };
     
-     const [generationMessage, setGenerationMessage] = useState("");
-
     const generateProfiles = () => {
         const attributes = question.attributes || [];
         if (attributes.length === 0 || attributes.some((a:any) => a.levels.length === 0)) {
@@ -881,7 +881,6 @@ const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUp
 
         const totalCombinations = attributes.reduce((acc: number, attr: any) => acc * attr.levels.length, 1);
         
-        // This is a simplified random design for preview. The backend should handle complex designs.
         const numToGenerate = (question.sets || 1) * (question.cardsPerSet || 1);
         const generatedProfiles = Array.from({ length: numToGenerate }, (_, i) => {
             const profile: any = { id: `profile_${i}` };
@@ -898,7 +897,7 @@ const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUp
     return (
         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
-                 <QuestionHeader 
+                <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
@@ -907,37 +906,15 @@ const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUp
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                 <div className="mt-4 space-y-2">
-                     <Label>Description</Label>
-                     <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Explain the choice task to the user."/>
-                 </div>
-                  <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-4">
-                     <h4 className="font-semibold text-sm">Experimental Design</h4>
-                     <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                         <div>
-                            <Label>Design Method</Label>
-                            <Select value={question.designMethod} onValueChange={(v) => handleUpdate('designMethod', v)}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="full-factorial">Full-profile</SelectItem>
-                                    <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
-                                    <SelectItem value="randomized">Randomized design</SelectItem>
-                                    <SelectItem value="hybrid">Hybrid design</SelectItem>
-                                </SelectContent>
-                            </Select>
-                         </div>
-                          <div>
-                            <Label>Number of Sets</Label>
-                            <Input type="number" value={question.sets} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
-                         </div>
-                          <div>
-                            <Label>Cards per Set</Label>
-                            <Input type="number" value={question.cardsPerSet} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
-                         </div>
-                     </div>
-                 </div>
-                 <div className="mt-4 space-y-4">
-                    <h4 className="font-semibold">Attributes & Levels</h4>
+                <div className="mt-4 space-y-2">
+                    <Label>Description</Label>
+                    <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Explain the choice task to the user."/>
+                </div>
+
+                <Separator className="my-6" />
+                
+                <div className="space-y-4">
+                    <h4 className="font-semibold text-sm">1. Attributes & Levels</h4>
                     {(question.attributes || []).map((attr: ConjointAttribute, index: number) => (
                         <div key={attr.id} className="p-3 border rounded-lg space-y-2">
                             <div className="flex justify-between items-center">
@@ -948,38 +925,69 @@ const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUp
                         </div>
                     ))}
                     <Button variant="outline" size="sm" onClick={addAttribute}><PlusCircle className="mr-2"/>Add Attribute</Button>
-                 </div>
-                 <div className="mt-6 flex flex-col items-center">
-                    <Button onClick={generateProfiles}><Shuffle className="mr-2 h-4 w-4"/>Generate Design</Button>
-                    {generationMessage && (
-                        <p className="text-xs text-muted-foreground mt-2">{generationMessage}</p>
-                    )}
-                 </div>
+                </div>
+                
+                <Separator className="my-6" />
 
-                 {question.profiles && question.profiles.length > 0 && (
-                    <div className="mt-6">
-                        <h4 className="font-semibold mb-2 text-center">Example Card Set</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
-                            {(question.profiles.slice(0, question.cardsPerSet || 3) || []).map((profile: any, index: number) => (
-                                <Card key={profile.id} className="text-left bg-white">
-                                    <CardHeader className="p-3"><CardTitle className="text-sm">Option {index + 1}</CardTitle></CardHeader>
-                                    <CardContent className="p-3">
-                                        {(question.attributes || []).map((attr: any) => (
-                                            <div key={attr.id} className="text-xs flex justify-between py-1 border-b">
-                                                <span className="font-medium text-muted-foreground">{attr.name}:</span>
-                                                <span className="font-semibold">{profile[attr.name]}</span>
-                                            </div>
-                                        ))}
-                                    </CardContent>
-                                </Card>
-                            ))}
+                <div className="space-y-4">
+                    <h4 className="font-semibold text-sm">2. Experimental Design</h4>
+                    <div className="p-4 border rounded-lg bg-slate-50 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                               <Label>Design Method</Label>
+                               <Select value={question.designMethod || 'full-factorial'} onValueChange={(v) => handleUpdate('designMethod', v)}>
+                                   <SelectTrigger><SelectValue/></SelectTrigger>
+                                   <SelectContent>
+                                       <SelectItem value="full-factorial">Full-profile</SelectItem>
+                                       <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
+                                       <SelectItem value="randomized">Randomized design</SelectItem>
+                                       <SelectItem value="hybrid">Hybrid design</SelectItem>
+                                   </SelectContent>
+                               </Select>
+                            </div>
+                             <div>
+                               <Label>Number of Sets</Label>
+                               <Input type="number" value={question.sets || 5} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
+                            </div>
+                             <div>
+                               <Label>Cards per Set</Label>
+                               <Input type="number" value={question.cardsPerSet || 3} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                            </div>
                         </div>
-                    </div>
-                 )}
+                        <div className="flex flex-col items-center">
+                           <Button onClick={generateProfiles}><Shuffle className="mr-2 h-4 w-4"/>Generate Design</Button>
+                           {generationMessage && (
+                               <p className="text-xs text-muted-foreground mt-2">{generationMessage}</p>
+                           )}
+                        </div>
+                   </div>
+                </div>
+
+                {question.profiles && question.profiles.length > 0 && (
+                   <div className="mt-6">
+                       <h4 className="font-semibold mb-2 text-center text-sm">Example Card Set</h4>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                           {(question.profiles.slice(0, question.cardsPerSet || 3) || []).map((profile: any, index: number) => (
+                               <Card key={profile.id} className="text-left bg-white">
+                                   <CardHeader className="p-3"><CardTitle className="text-sm">Option {index + 1}</CardTitle></CardHeader>
+                                   <CardContent className="p-3">
+                                       {(question.attributes || []).map((attr: any) => (
+                                           <div key={attr.id} className="text-xs flex justify-between py-1 border-b last:border-b-0">
+                                               <span className="font-medium text-muted-foreground">{attr.name}:</span>
+                                               <span className="font-semibold">{profile[attr.name]}</span>
+                                           </div>
+                                       ))}
+                                   </CardContent>
+                               </Card>
+                           ))}
+                       </div>
+                   </div>
+                )}
             </CardContent>
         </Card>
     );
 };
+
 const RatingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} onImageUpload={onImageUpload} onDuplicate={onDuplicate} styles={styles} questionNumber={questionNumber} />;
 };
@@ -1206,3 +1214,4 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
+
