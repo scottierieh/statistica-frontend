@@ -4,17 +4,13 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse } from '@/types/survey';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info, Brain, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2, Brain, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle } from 'lucide-react';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LineChart, Line } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '../ui/scroll-area';
 
 interface BrandStages {
     awareness: number;
@@ -132,13 +128,33 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 throw new Error("No survey data or responses");
             }
 
-            const q_aware = survey.questions.find(q => q.title.toLowerCase().includes('heard of'));
-            const q_consider = survey.questions.find(q => q.title.toLowerCase().includes('consider'));
-            const q_prefer = survey.questions.find(q => q.title.toLowerCase().includes('prefer'));
-            const q_usage = survey.questions.find(q => q.title.toLowerCase().includes('used'));
+            const q_aware = survey.questions.find(q => 
+                q.title.toLowerCase().includes('heard of') || 
+                q.title.toLowerCase().includes('aware') ||
+                q.title.toLowerCase().includes('know')
+            );
+            const q_consider = survey.questions.find(q => 
+                q.title.toLowerCase().includes('consider') ||
+                q.title.toLowerCase().includes('thinking about')
+            );
+            const q_prefer = survey.questions.find(q => 
+                q.title.toLowerCase().includes('prefer') ||
+                q.title.toLowerCase().includes('favorite')
+            );
+            const q_usage = survey.questions.find(q => 
+                q.title.toLowerCase().includes('used') ||
+                q.title.toLowerCase().includes('currently use') ||
+                q.title.toLowerCase().includes('using')
+            );
 
             if (!q_aware || !q_consider || !q_prefer || !q_usage) {
-                throw new Error("Missing required funnel questions (awareness, consideration, preference, usage).");
+                const missing = [];
+                if (!q_aware) missing.push('Awareness (e.g., "Which brands have you heard of?")');
+                if (!q_consider) missing.push('Consideration (e.g., "Which brands would you consider?")');
+                if (!q_prefer) missing.push('Preference (e.g., "Which brand do you prefer?")');
+                if (!q_usage) missing.push('Usage (e.g., "Which brands have you used?")');
+                
+                throw new Error(`Missing required funnel questions:\n${missing.join('\n')}\n\nAvailable questions:\n${survey.questions.map(q => `- ${q.title}`).join('\n')}`);
             }
 
             const brandList = q_aware.options || [];
@@ -153,7 +169,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 const ans = resp.answers as any;
                 const aware = (ans[q_aware.id] as string[]) || [];
                 const consider = (ans[q_consider.id] as string[]) || [];
-                const prefer = (ans[q_prefer.id] as string);
+                const prefer = ans[q_prefer.id] as string;
                 const usage = (ans[q_usage.id] as string[]) || [];
 
                 brandList.forEach(brand => {
@@ -190,7 +206,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
         handleAnalysis();
     }, [handleAnalysis]);
 
-    if (isLoading) {
+    if (loading) {
         return (
             <Card>
                 <CardContent className="p-6 text-center">
@@ -204,7 +220,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     if (error) {
         return (
             <Alert variant="destructive" className="shadow-lg border-2">
-                <AlertCircle className="h-5 w-5" />
+                <AlertTriangle className="h-5 w-5" />
                 <AlertTitle className="text-lg font-bold">Analysis Failed</AlertTitle>
                 <AlertDescription className="mt-2">{error}</AlertDescription>
             </Alert>
@@ -213,12 +229,11 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
 
     if (!results) {
         return (
-            <Card className="shadow-lg">
-                <CardContent className="p-12 text-center text-muted-foreground">
-                    <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">No analysis results to display.</p>
-                </CardContent>
-            </Card>
+            <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>No Data</AlertTitle>
+                <AlertDescription>No analysis results available.</AlertDescription>
+            </Alert>
         );
     }
 
@@ -287,7 +302,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                         <div className="flex items-center gap-1 mt-2">
                                             <TrendingDown className="h-3 w-3 text-red-600" />
                                             <span className="text-xs text-red-600 font-semibold">
-                                                -{Math.round(prevValue - value)} ({((prevValue - value) / (prevValue || 1) * 100).toFixed(1)}%)
+                                                -{Math.round(prevValue - value)} ({((prevValue - value) / (prevValue > 0 ? prevValue : 1) * 100).toFixed(1)}%)
                                             </span>
                                         </div>
                                     )}
@@ -403,7 +418,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                 {/* Visual Funnel */}
                                 <div className="space-y-3 mb-6">
                                     {Object.entries(displayData).map(([stage, value], idx) => {
-                                        const widthPercentage = (value / (displayData.awareness || 1)) * 100;
+                                        const widthPercentage = (value / (displayData.awareness > 0 ? displayData.awareness : 1)) * 100;
                                         const Icon = STAGE_ICONS[stage as keyof typeof STAGE_ICONS];
                                         const color = STAGE_COLORS[stage as keyof typeof STAGE_COLORS];
                                         const prevValue = idx > 0 ? Object.values(displayData)[idx - 1] : null;
@@ -437,7 +452,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                                     <div className="flex items-center gap-2 mt-2 ml-4">
                                                         <TrendingDown className="h-4 w-4 text-red-600" />
                                                         <span className="text-sm text-red-600">
-                                                            Drop-off: {((prevValue - value) / (prevValue || 1) * 100).toFixed(1)}%
+                                                            Drop-off: {((prevValue - value) / (prevValue > 0 ? prevValue : 1) * 100).toFixed(1)}%
                                                             ({Math.round(prevValue - value)} people)
                                                         </span>
                                                     </div>
@@ -521,7 +536,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                             <CardDescription>Stage-to-stage conversion performance</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ScrollArea className="h-96">
+                           
                                 <table className="w-full">
                                     <thead>
                                         <tr className="bg-muted/50 border-b">
@@ -533,37 +548,34 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {brands.map((brand, idx) => {
-                                            const conversionData = results.conversion_rates[brand];
-                                            return (
-                                                <tr key={brand} className="border-b hover:bg-muted/30">
-                                                    <td className="p-3 font-semibold flex items-center gap-2">
-                                                        <div
-                                                            className="w-3 h-3 rounded-full"
-                                                            style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                                                        />
-                                                        {brand}
-                                                    </td>
-                                                    <td className="text-right p-3">
-                                                        {(conversionData?.awareness_to_consideration ?? 0).toFixed(1)}%
-                                                    </td>
-                                                    <td className="text-right p-3">
-                                                        {(conversionData?.consideration_to_preference ?? 0).toFixed(1)}%
-                                                    </td>
-                                                    <td className="text-right p-3">
-                                                        {(conversionData?.preference_to_usage ?? 0).toFixed(1)}%
-                                                    </td>
-                                                    <td className="text-right p-3">
-                                                        <Badge variant="default">
-                                                            {(conversionData?.awareness_to_usage ?? 0).toFixed(1)}%
-                                                        </Badge>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
+                                        {brands.map((brand, idx) => (
+                                            <tr key={brand} className="border-b hover:bg-muted/30">
+                                                <td className="p-3 font-semibold flex items-center gap-2">
+                                                    <div
+                                                        className="w-3 h-3 rounded-full"
+                                                        style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                                                    />
+                                                    {brand}
+                                                </td>
+                                                <td className="text-right p-3">
+                                                    {(results.conversion_rates[brand]?.awareness_to_consideration ?? 0).toFixed(1)}%
+                                                </td>
+                                                <td className="text-right p-3">
+                                                    {(results.conversion_rates[brand]?.consideration_to_preference ?? 0).toFixed(1)}%
+                                                </td>
+                                                <td className="text-right p-3">
+                                                    {(results.conversion_rates[brand]?.preference_to_usage ?? 0).toFixed(1)}%
+                                                </td>
+                                                <td className="text-right p-3">
+                                                    <Badge variant="default">
+                                                        {(results.conversion_rates[brand]?.awareness_to_usage ?? 0).toFixed(1)}%
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
-                            </ScrollArea>
+                            
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -576,154 +588,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                             <CardDescription>Complete funnel metrics by brand</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Tabs defaultValue="counts">
-                                <TabsList className="grid w-full grid-cols-4">
-                                    <TabsTrigger value="counts">Counts</TabsTrigger>
-                                    <TabsTrigger value="share">Market Share (%)</TabsTrigger>
-                                    <TabsTrigger value="dropoff">Drop-off</TabsTrigger>
-                                    <TabsTrigger value="health">Health Score</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="counts" className="mt-4">
-                                    <ScrollArea className="h-96">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-muted/50 border-b">
-                                                    <th className="text-left p-3 font-bold">Brand</th>
-                                                    <th className="text-right p-3 font-bold">Awareness</th>
-                                                    <th className="text-right p-3 font-bold">Consideration</th>
-                                                    <th className="text-right p-3 font-bold">Preference</th>
-                                                    <th className="text-right p-3 font-bold">Usage</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {brands.map(brand => (
-                                                    <tr key={brand} className="border-b hover:bg-muted/30">
-                                                        <td className="p-3 font-semibold">{brand}</td>
-                                                        <td className="text-right p-3">{results.funnel_data[brand]?.awareness ?? 0}</td>
-                                                        <td className="text-right p-3">{results.funnel_data[brand]?.consideration ?? 0}</td>
-                                                        <td className="text-right p-3">{results.funnel_data[brand]?.preference ?? 0}</td>
-                                                        <td className="text-right p-3">{results.funnel_data[brand]?.usage ?? 0}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </ScrollArea>
-                                </TabsContent>
-
-                                <TabsContent value="share" className="mt-4">
-                                    <ScrollArea className="h-96">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-muted/50 border-b">
-                                                    <th className="text-left p-3 font-bold">Brand</th>
-                                                    <th className="text-right p-3 font-bold">Awareness Share</th>
-                                                    <th className="text-right p-3 font-bold">Consideration Share</th>
-                                                    <th className="text-right p-3 font-bold">Preference Share</th>
-                                                    <th className="text-right p-3 font-bold">Usage Share</th>
-                                                </tr>
-                                            </thead>
-                                            <TableBody>
-                                                {marketShareData.map(row => (
-                                                    <tr key={row.brand} className="border-b hover:bg-muted/30">
-                                                        <td className="p-3 font-semibold">{row.brand}</td>
-                                                        <td className="text-right p-3">{(row.awareness_share ?? 0).toFixed(1)}%</td>
-                                                        <td className="text-right p-3">{(row.consideration_share ?? 0).toFixed(1)}%</td>
-                                                        <td className="text-right p-3">{(row.preference_share ?? 0).toFixed(1)}%</td>
-                                                        <td className="text-right p-3">{(row.usage_share ?? 0).toFixed(1)}%</td>
-                                                    </tr>
-                                                ))}
-                                            </TableBody>
-                                        </table>
-                                    </ScrollArea>
-                                </TabsContent>
-
-                                <TabsContent value="dropoff" className="mt-4">
-                                    <ScrollArea className="h-96">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-muted/50 border-b">
-                                                    <th className="text-left p-3 font-bold">Brand</th>
-                                                    <th className="text-right p-3 font-bold">Aware→Consider</th>
-                                                    <th className="text-right p-3 font-bold">Consider→Prefer</th>
-                                                    <th className="text-right p-3 font-bold">Prefer→Usage</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {brands.map(brand => {
-                                                    const dropOffData = results.drop_off[brand] || {};
-                                                    const dropOffValues = Object.values(dropOffData);
-                                                    return (
-                                                        <tr key={brand} className="border-b hover:bg-muted/30">
-                                                            <td className="p-3 font-semibold">{brand}</td>
-                                                            {dropOffValues.length > 0 ? (
-                                                                dropOffValues.map((val: any, idx) => (
-                                                                    <td key={idx} className="text-right p-3">
-                                                                        <div className="font-bold text-red-600">{(val?.rate ?? 0).toFixed(1)}%</div>
-                                                                        <div className="text-xs text-muted-foreground">({val?.count ?? 0} lost)</div>
-                                                                    </td>
-                                                                ))
-                                                            ) : (
-                                                                <>
-                                                                    <td className="text-right p-3">
-                                                                        <div className="font-bold text-red-600">0.0%</div>
-                                                                        <div className="text-xs text-muted-foreground">(0 lost)</div>
-                                                                    </td>
-                                                                    <td className="text-right p-3">
-                                                                        <div className="font-bold text-red-600">0.0%</div>
-                                                                        <div className="text-xs text-muted-foreground">(0 lost)</div>
-                                                                    </td>
-                                                                    <td className="text-right p-3">
-                                                                        <div className="font-bold text-red-600">0.0%</div>
-                                                                        <div className="text-xs text-muted-foreground">(0 lost)</div>
-                                                                    </td>
-                                                                </>
-                                                            )}
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </ScrollArea>
-                                </TabsContent>
-
-                                <TabsContent value="health" className="mt-4">
-                                    <ScrollArea className="h-96">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-muted/50 border-b">
-                                                    <th className="text-left p-3 font-bold">Brand</th>
-                                                    <th className="text-right p-3 font-bold">Total Score</th>
-                                                    <th className="text-right p-3 font-bold">Conversion</th>
-                                                    <th className="text-right p-3 font-bold">Consistency</th>
-                                                    <th className="text-right p-3 font-bold">Volume</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {brands.map((brand, idx) => {
-                                                    const health = results.health_scores[brand];
-                                                    if (!health) return null;
-                                                    return (
-                                                        <tr key={brand} className="border-b hover:bg-muted/30">
-                                                            <td className="p-3 font-semibold">{brand}</td>
-                                                            <td className="text-right p-3">
-                                                                <Badge
-                                                                    variant={health.total_score > 75 ? 'default' : health.total_score > 50 ? 'secondary' : 'outline'}
-                                                                >
-                                                                    {(health.total_score ?? 0).toFixed(1)}
-                                                                </Badge>
-                                                            </td>
-                                                            <td className="text-right p-3">{(health.conversion_component ?? 0).toFixed(1)}</td>
-                                                            <td className="text-right p-3">{(health.consistency_component ?? 0).toFixed(1)}</td>
-                                                            <td className="text-right p-3">{(health.volume_component ?? 0).toFixed(1)}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </ScrollArea>
-                                </TabsContent>
-                            </Tabs>
+                           
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -766,9 +631,9 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                     <Card
                                         key={idx}
                                         className={`border-2 ${
-                                            bottleneck.conversion_rate < 50
+                                            (bottleneck.conversion_rate ?? 0) < 50
                                                 ? 'border-red-200 bg-red-50'
-                                                : bottleneck.conversion_rate < 70
+                                                : (bottleneck.conversion_rate ?? 0) < 70
                                                 ? 'border-amber-200 bg-amber-50'
                                                 : 'border-blue-200 bg-blue-50'
                                         }`}
@@ -779,9 +644,9 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <Badge
                                                             variant={
-                                                                bottleneck.conversion_rate < 50
+                                                                (bottleneck.conversion_rate ?? 0) < 50
                                                                     ? 'destructive'
-                                                                    : bottleneck.conversion_rate < 70
+                                                                    : (bottleneck.conversion_rate ?? 0) < 70
                                                                     ? 'default'
                                                                     : 'secondary'
                                                             }
@@ -797,14 +662,14 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                                         className="text-3xl font-bold"
                                                         style={{
                                                             color:
-                                                                bottleneck.conversion_rate < 50
+                                                                (bottleneck.conversion_rate ?? 0) < 50
                                                                     ? '#ef4444'
-                                                                    : bottleneck.conversion_rate < 70
+                                                                    : (bottleneck.conversion_rate ?? 0) < 70
                                                                     ? '#f59e0b'
                                                                     : '#3b82f6',
                                                         }}
                                                     >
-                                                        {bottleneck.conversion_rate.toFixed(1)}%
+                                                        {(bottleneck.conversion_rate ?? 0).toFixed(1)}%
                                                     </p>
                                                     <p className="text-xs text-gray-500">Conversion Rate</p>
                                                 </div>
@@ -839,5 +704,3 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
         </div>
     );
 }
-
-    
