@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -7,7 +6,7 @@ import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, TrendingUp, Target, Package, AlertTriangle, Users, BarChart3, PieChart } from 'lucide-react';
+import { Loader2, TrendingUp, Target, Package, AlertTriangle, Users, BarChart3, PieChart, Brain, Info } from 'lucide-react';
 import { 
     ResponsiveContainer, 
     BarChart, 
@@ -20,11 +19,6 @@ import {
     Cell,
     LineChart,
     Line,
-    RadarChart,
-    Radar,
-    PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis,
     ScatterChart,
     Scatter,
     ZAxis
@@ -403,7 +397,7 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
 
                     {formattedInterpretation && (
                         <Alert className="border-primary/20 bg-primary/5">
-                            <AlertTriangle className="h-4 w-4 text-primary" />
+                            <Brain className="h-4 w-4 text-primary" />
                             <AlertTitle className="text-primary">Strategic Recommendations</AlertTitle>
                             <AlertDescription 
                                 className="mt-2 text-sm"
