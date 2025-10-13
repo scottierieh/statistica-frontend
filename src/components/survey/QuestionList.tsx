@@ -397,14 +397,14 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        <div key={index} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-slate-50 transition-colors">
                            <Checkbox 
                                id={`q${question.id}-o${index}`} 
-                               disabled 
+                               disabled
                                checked={answer?.includes(option)}
                            />
                            <Input 
                                 placeholder={`Option ${index + 1}`} 
                                 className="border-none focus-visible:ring-0 bg-transparent flex-1" 
                                 style={choiceStyle}
-                                value={option} 
+                                value={option}
                                 onChange={(e) => handleOptionChange(index, e.target.value)}
                             />
                             <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteOption(index)}>
@@ -413,7 +413,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                <Button 
+               <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -799,7 +799,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-1/3 min-w-[150px]">Statements</TableHead>
+                                <TableHead className="w-1/3 min-w-[150px]"></TableHead>
                                 {(question.scale || []).map((header: string, colIndex: number) => (
                                     <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
                                         <div className="flex items-center gap-1 justify-center">
@@ -824,7 +824,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                                         <>
                                             {(question.scale || []).map((col: string, colIndex: number) => (
                                                 <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
-                                                    <div className="flex justify-center">
+                                                     <div className="flex justify-center">
                                                         <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled />
                                                     </div>
                                                 </TableCell>
@@ -843,7 +843,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
     );
 };
 
-const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUpload, styles, questionNumber }: any) => {
     
     const handleUpdate = (type: 'attributes' | 'sets' | 'cardsPerSet' | 'designMethod', value: any) => {
         onUpdate?.({ ...question, [type]: value });
@@ -870,6 +870,31 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
         handleUpdate('attributes', newAttributes);
     };
     
+     const [generationMessage, setGenerationMessage] = useState("");
+
+    const generateProfiles = () => {
+        const attributes = question.attributes || [];
+        if (attributes.length === 0 || attributes.some((a:any) => a.levels.length === 0)) {
+            alert("Please define attributes and levels before generating profiles.");
+            return;
+        }
+
+        const totalCombinations = attributes.reduce((acc: number, attr: any) => acc * attr.levels.length, 1);
+        
+        // This is a simplified random design for preview. The backend should handle complex designs.
+        const numToGenerate = (question.sets || 1) * (question.cardsPerSet || 1);
+        const generatedProfiles = Array.from({ length: numToGenerate }, (_, i) => {
+            const profile: any = { id: `profile_${i}` };
+            attributes.forEach((attr: any) => {
+                profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
+            });
+            return profile;
+        });
+
+        onUpdate?.({ ...question, profiles: generatedProfiles });
+        setGenerationMessage(`Generated ${generatedProfiles.length} profiles from a possible ${totalCombinations} total combinations.`);
+    };
+
     return (
         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
             <CardContent className="p-6">
@@ -886,26 +911,29 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                      <Label>Description</Label>
                      <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Explain the choice task to the user."/>
                  </div>
-                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div>
-                        <Label>Design Method</Label>
-                        <Select value={question.designMethod} onValueChange={(v) => handleUpdate('designMethod', v)}>
-                            <SelectTrigger><SelectValue/></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="full-factorial">Full-profile</SelectItem>
-                                <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
-                                <SelectItem value="randomized">Randomized design</SelectItem>
-                                <SelectItem value="hybrid">Hybrid design</SelectItem>
-                            </SelectContent>
-                        </Select>
-                     </div>
-                      <div>
-                        <Label>Number of Sets</Label>
-                        <Input type="number" value={question.sets} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
-                     </div>
-                      <div>
-                        <Label>Cards per Set</Label>
-                        <Input type="number" value={question.cardsPerSet} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                  <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-4">
+                     <h4 className="font-semibold text-sm">Experimental Design</h4>
+                     <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                         <div>
+                            <Label>Design Method</Label>
+                            <Select value={question.designMethod} onValueChange={(v) => handleUpdate('designMethod', v)}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="full-factorial">Full-profile</SelectItem>
+                                    <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
+                                    <SelectItem value="randomized">Randomized design</SelectItem>
+                                    <SelectItem value="hybrid">Hybrid design</SelectItem>
+                                </SelectContent>
+                            </Select>
+                         </div>
+                          <div>
+                            <Label>Number of Sets</Label>
+                            <Input type="number" value={question.sets} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
+                         </div>
+                          <div>
+                            <Label>Cards per Set</Label>
+                            <Input type="number" value={question.cardsPerSet} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                         </div>
                      </div>
                  </div>
                  <div className="mt-4 space-y-4">
@@ -921,6 +949,33 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                     ))}
                     <Button variant="outline" size="sm" onClick={addAttribute}><PlusCircle className="mr-2"/>Add Attribute</Button>
                  </div>
+                 <div className="mt-6 flex flex-col items-center">
+                    <Button onClick={generateProfiles}><Shuffle className="mr-2 h-4 w-4"/>Generate Design</Button>
+                    {generationMessage && (
+                        <p className="text-xs text-muted-foreground mt-2">{generationMessage}</p>
+                    )}
+                 </div>
+
+                 {question.profiles && question.profiles.length > 0 && (
+                    <div className="mt-6">
+                        <h4 className="font-semibold mb-2 text-center">Example Card Set</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                            {(question.profiles.slice(0, question.cardsPerSet || 3) || []).map((profile: any, index: number) => (
+                                <Card key={profile.id} className="text-left bg-white">
+                                    <CardHeader className="p-3"><CardTitle className="text-sm">Option {index + 1}</CardTitle></CardHeader>
+                                    <CardContent className="p-3">
+                                        {(question.attributes || []).map((attr: any) => (
+                                            <div key={attr.id} className="text-xs flex justify-between py-1 border-b">
+                                                <span className="font-medium text-muted-foreground">{attr.name}:</span>
+                                                <span className="font-semibold">{profile[attr.name]}</span>
+                                            </div>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                 )}
             </CardContent>
         </Card>
     );
