@@ -21,18 +21,18 @@ class SemanticDifferentialAnalysis:
         self.scales = []
         self.responses = []
         
-    def add_scale(self, id, left_adjective, right_adjective, dimension):
+    def add_scale(self, scale_id, left_adjective, right_adjective, dimension):
         """
         척도 추가
         
         Parameters:
-        - id: 척도 ID
+        - scale_id: 척도 ID
         - left_adjective: 왼쪽 형용사 (1점)
         - right_adjective: 오른쪽 형용사 (7점)
         - dimension: EPA 차원 ('evaluation', 'potency', 'activity')
         """
         self.scales.append({
-            'id': id,
+            'id': scale_id,
             'left': left_adjective,
             'right': right_adjective,
             'dimension': dimension
@@ -253,7 +253,7 @@ def main():
         analyzer = SemanticDifferentialAnalysis(item_name)
         
         for scale in scales_data:
-            analyzer.add_scale(**scale)
+            analyzer.add_scale(scale_id=scale['id'], left_adjective=scale['left_adjective'], right_adjective=scale['right_adjective'], dimension=scale['dimension'])
 
         analyzer.add_batch_responses(responses_data)
         
@@ -285,5 +285,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    
