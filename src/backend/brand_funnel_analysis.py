@@ -224,23 +224,34 @@ class BrandFunnelAnalysis:
         return insights
     
     def export_results(self):
-        """Export analysis results to JSON-serializable dictionary"""
-        self.calculate_conversion_rates()
-        results = {
-            'funnel_data': self.funnel_data.to_dict('index'),
-            'conversion_rates': self.conversion_rates.where(pd.notnull(self.conversion_rates), None).to_dict('index'),
-            'market_share': self.calculate_market_share().where(pd.notnull(self.calculate_market_share()), None).to_dict('index'),
-            'efficiency': self.calculate_funnel_efficiency().where(pd.notnull(self.calculate_funnel_efficiency()), None).to_dict('index'),
-            'bottlenecks': self.identify_bottlenecks().to_dict('records'),
-            'drop_off': self.calculate_drop_off(),
-            'health_scores': self.calculate_health_scores(),
-            'insights': self.generate_insights()
-        }
-        
-        # Add interpretation to the results
-        results['interpretation'] = generate_interpretation(results)
-
-        return _to_native_type(results)
+    """Export analysis results to JSON-serializable dictionary"""
+    self.calculate_conversion_rates()
+    
+    # market_share 계산 및 변환
+    market_share_df = self.calculate_market_share().fillna(0)
+    market_share_list = market_share_df.reset_index().rename(columns={'index': 'brand'}).to_dict('records')
+    
+    # ===== 디버깅 로그 =====
+    print("\n=== MARKET SHARE DEBUG ===", file=sys.stderr)
+    print(f"Type: {type(market_share_list)}", file=sys.stderr)
+    print(f"Length: {len(market_share_list)}", file=sys.stderr)
+    print(f"Data: {market_share_list}", file=sys.stderr)
+    print("=" * 50, file=sys.stderr)
+    # =======================
+    
+    results = {
+        'funnel_data': self.funnel_data.to_dict('index'),
+        'conversion_rates': self.conversion_rates.where(pd.notnull(self.conversion_rates), None).to_dict('index'),
+        'market_share': market_share_list,
+        'efficiency': self.calculate_funnel_efficiency().where(pd.notnull(self.calculate_funnel_efficiency()), None).to_dict('index'),
+        'bottlenecks': self.identify_bottlenecks().to_dict('records'),
+        'drop_off': self.calculate_drop_off(),
+        'health_scores': self.calculate_health_scores(),
+        'insights': self.generate_insights()
+    }
+    
+    results['interpretation'] = generate_interpretation(results)
+    return _to_native_type(results)
 
 def main():
     try:

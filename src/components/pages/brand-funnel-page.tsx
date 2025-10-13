@@ -1,8 +1,9 @@
+
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import type { Survey, SurveyResponse } from '@/types/survey';
+import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { AlertTriangle, Loader2, Brain, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -27,7 +28,7 @@ interface ConversionRates {
 interface Results {
     funnel_data: { [brand: string]: BrandStages };
     conversion_rates: { [brand: string]: ConversionRates };
-    market_share: { [stage: string]: { [brand: string]: number } };
+    market_share: { brand: string, [stage_share: string]: number | string }[];
     efficiency: { [brand: string]: { funnel_efficiency: number; drop_off_rate: number } };
     bottlenecks: Array<{ brand: string; bottleneck_stage: string; conversion_rate: number }>;
     drop_off: { [brand: string]: { [stage: string]: { count: number; rate: number } } };
@@ -86,14 +87,8 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     
     const marketShareData = useMemo(() => {
         if (!results?.market_share) return [];
-        return brands.map(brand => {
-            const row: any = { brand };
-            Object.keys(results.market_share).forEach(stageKey => {
-                row[stageKey] = results.market_share[stageKey]?.[brand] ?? 0;
-            });
-            return row;
-        });
-    }, [results, brands]);
+        return results.market_share;
+    }, [results]);
 
     const currentBrandData = useMemo(() => {
         if (!results || selectedBrand === 'all') return null;
@@ -279,7 +274,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                         <div className="flex items-center gap-1 mt-2">
                                             <TrendingDown className="h-3 w-3 text-red-600" />
                                             <span className="text-xs text-red-600 font-semibold">
-                                                -{Math.round(prevValue - value)} ({((prevValue - value) / prevValue * 100).toFixed(1)}%)
+                                                -{Math.round(prevValue - value)} ({((prevValue - value) / (prevValue || 1) * 100).toFixed(1)}%)
                                             </span>
                                         </div>
                                     )}
@@ -369,7 +364,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                         {/* Visual Funnel */}
                         <div className="space-y-3 mb-6">
                             {Object.entries(displayData).map(([stage, value], idx) => {
-                                const widthPercentage = (value / displayData.awareness) * 100;
+                                const widthPercentage = (value / (displayData.awareness || 1)) * 100;
                                 const Icon = STAGE_ICONS[stage as keyof typeof STAGE_ICONS];
                                 const color = STAGE_COLORS[stage as keyof typeof STAGE_COLORS];
                                 const prevValue = idx > 0 ? Object.values(displayData)[idx - 1] : null;
@@ -403,7 +398,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                             <div className="flex items-center gap-2 mt-2 ml-4">
                                                 <TrendingDown className="h-4 w-4 text-red-600" />
                                                 <span className="text-sm text-red-600">
-                                                    Drop-off: {((prevValue - value) / prevValue * 100).toFixed(1)}%
+                                                    Drop-off: {((prevValue - value) / (prevValue || 1) * 100).toFixed(1)}%
                                                     ({Math.round(prevValue - value)} people)
                                                 </span>
                                             </div>
@@ -418,25 +413,25 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                 <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
                                     <p className="text-xs text-gray-600 mb-1">Awareness → Consideration</p>
                                     <p className="text-2xl font-bold text-blue-600">
-                                        {currentBrandData.conversion.awareness_to_consideration.toFixed(1)}%
+                                        {(currentBrandData.conversion.awareness_to_consideration ?? 0).toFixed(1)}%
                                     </p>
                                 </div>
                                 <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
                                     <p className="text-xs text-gray-600 mb-1">Consideration → Preference</p>
                                     <p className="text-2xl font-bold text-purple-600">
-                                        {currentBrandData.conversion.consideration_to_preference.toFixed(1)}%
+                                        {(currentBrandData.conversion.consideration_to_preference ?? 0).toFixed(1)}%
                                     </p>
                                 </div>
                                 <div className="p-4 bg-pink-50 rounded-lg border-2 border-pink-200">
                                     <p className="text-xs text-gray-600 mb-1">Preference → Usage</p>
                                     <p className="text-2xl font-bold text-pink-600">
-                                        {currentBrandData.conversion.preference_to_usage.toFixed(1)}%
+                                        {(currentBrandData.conversion.preference_to_usage ?? 0).toFixed(1)}%
                                     </p>
                                 </div>
                                 <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
                                     <p className="text-xs text-gray-600 mb-1">Overall Conversion</p>
                                     <p className="text-2xl font-bold text-green-600">
-                                        {currentBrandData.conversion.awareness_to_usage.toFixed(1)}%
+                                        {(currentBrandData.conversion.awareness_to_usage ?? 0).toFixed(1)}%
                                     </p>
                                 </div>
                             </div>
@@ -741,9 +736,9 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                             <Card
                                 key={idx}
                                 className={`border-2 ${
-                                    bottleneck.conversion_rate < 50
+                                    (bottleneck.conversion_rate ?? 0) < 50
                                         ? 'border-red-200 bg-red-50'
-                                        : bottleneck.conversion_rate < 70
+                                        : (bottleneck.conversion_rate ?? 0) < 70
                                         ? 'border-amber-200 bg-amber-50'
                                         : 'border-blue-200 bg-blue-50'
                                 }`}
@@ -754,9 +749,9 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Badge
                                                     variant={
-                                                        bottleneck.conversion_rate < 50
+                                                        (bottleneck.conversion_rate ?? 0) < 50
                                                             ? 'destructive'
-                                                            : bottleneck.conversion_rate < 70
+                                                            : (bottleneck.conversion_rate ?? 0) < 70
                                                             ? 'default'
                                                             : 'secondary'
                                                     }
@@ -772,14 +767,14 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                                 className="text-3xl font-bold"
                                                 style={{
                                                     color:
-                                                        bottleneck.conversion_rate < 50
+                                                        (bottleneck.conversion_rate ?? 0) < 50
                                                             ? '#ef4444'
-                                                            : bottleneck.conversion_rate < 70
+                                                            : (bottleneck.conversion_rate ?? 0) < 70
                                                             ? '#f59e0b'
                                                             : '#3b82f6',
                                                 }}
                                             >
-                                                {bottleneck.conversion_rate.toFixed(1)}%
+                                                {(bottleneck.conversion_rate ?? 0).toFixed(1)}%
                                             </p>
                                             <p className="text-xs text-gray-500">Conversion Rate</p>
                                         </div>
