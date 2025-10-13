@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import pandas as pd
@@ -26,24 +24,35 @@ def _to_native_type(obj):
 
 def main():
     try:
-        # --- DEBUGGING: Print incoming payload to stderr ---
-        input_data = sys.stdin.read()
-        print("--- Received Payload ---", file=sys.stderr)
-        print(input_data, file=sys.stderr)
-        print("------------------------", file=sys.stderr)
-        # --- END DEBUGGING ---
-        
-        payload = json.loads(input_data)
+        payload = json.load(sys.stdin)
         data = payload.get('data')
         attributes = payload.get('attributes')
         target_variable = payload.get('targetVariable')
         segment_variable = payload.get('segmentVariable')
         scenarios = payload.get('scenarios')
         
+        # 🔍 디버그 1: 페이로드 확인
+        print(json.dumps({
+            "debug": "Step 1 - Payload received",
+            "data_length": len(data) if data else 0,
+            "target_variable": target_variable,
+            "attributes": list(attributes.keys()) if attributes else None,
+            "sample_row": data[0] if data and len(data) > 0 else None
+        }), file=sys.stderr)
+        
         if not all([data, attributes, target_variable]):
             raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
 
         df = pd.DataFrame(data)
+        
+        # 🔍 디버그 2: 데이터프레임 확인
+        print(json.dumps({
+            "debug": "Step 2 - DataFrame created",
+            "shape": df.shape,
+            "columns": df.columns.tolist(),
+            "target_exists": target_variable in df.columns,
+            "chosen_counts": df[target_variable].value_counts().to_dict() if target_variable in df.columns else "N/A"
+        }), file=sys.stderr)
 
         # CBC 데이터는 항상 'chosen' 컬럼을 사용하므로 is_choice_based를 True로 설정
         is_choice_based = (target_variable == 'chosen')
@@ -59,19 +68,45 @@ def main():
                 if props.get('includeInAnalysis', True) and attr != target_variable
             ]
             
+            # 🔍 디버그 3: 독립변수 확인
+            print(json.dumps({
+                "debug": "Step 3 - Independent variables",
+                "independent_vars": independent_vars,
+                "sub_df_shape": sub_df.shape
+            }), file=sys.stderr)
+            
             if not independent_vars:
                 return None
             
             required_cols = independent_vars + [target_variable]
             sub_df_clean = sub_df[required_cols].copy()
             
+            # 🔍 디버그 4: 정제 전 데이터
+            print(json.dumps({
+                "debug": "Step 4 - Before cleaning",
+                "rows_before": len(sub_df_clean),
+                "sample": sub_df_clean.head(2).to_dict('records') if len(sub_df_clean) > 0 else []
+            }), file=sys.stderr)
+            
             for col in independent_vars:
                 sub_df_clean[col] = sub_df_clean[col].astype(str).str.strip()
+                sub_df_clean = sub_df_clean[sub_df_clean[col] != '']
             
             sub_df_clean[target_variable] = pd.to_numeric(sub_df_clean[target_variable], errors='coerce')
-            sub_df_clean = sub_df_clean.dropna(subset=required_cols)
+            sub_df_clean = sub_df_clean.dropna(subset=[target_variable])
 
-            if sub_df_clean.empty:
+            # 🔍 디버그 5: 정제 후 데이터
+            print(json.dumps({
+                "debug": "Step 5 - After cleaning",
+                "rows_after": len(sub_df_clean),
+                "min_required": 10
+            }), file=sys.stderr)
+
+            if sub_df_clean.empty or len(sub_df_clean) < 10:
+                print(json.dumps({
+                    "debug": "ERROR - Not enough data",
+                    "rows": len(sub_df_clean)
+                }), file=sys.stderr)
                 return None
 
             for attr_name in independent_vars:
@@ -107,10 +142,23 @@ def main():
                         )
                         X_list.append(X_df)
                         feature_names.append(f"{attr_name}_std")
-                    except Exception:
+                    except Exception as e:
+                        print(json.dumps({
+                            "debug": "ERROR - Numerical variable failed",
+                            "attr": attr_name,
+                            "error": str(e)
+                        }), file=sys.stderr)
                         continue
             
+            # 🔍 디버그 6: 디자인 행렬 확인
+            print(json.dumps({
+                "debug": "Step 6 - Design matrix",
+                "features": feature_names,
+                "X_list_length": len(X_list)
+            }), file=sys.stderr)
+            
             if not X_list:
+                print(json.dumps({"debug": "ERROR - No features created"}), file=sys.stderr)
                 return None
 
             X = pd.concat(X_list, axis=1)
@@ -119,6 +167,15 @@ def main():
             common_idx = X.index.intersection(y.index)
             X = X.loc[common_idx]
             y = y.loc[common_idx]
+            
+            # 🔍 디버그 7: 회귀 분석 전
+            print(json.dumps({
+                "debug": "Step 7 - Before regression",
+                "X_shape": X.shape,
+                "y_shape": y.shape,
+                "y_unique": y.unique().tolist(),
+                "is_choice_based": is_choice_based
+            }), file=sys.stderr)
             
             if len(X) < len(feature_names) + 1:
                 return None
@@ -139,6 +196,13 @@ def main():
                     adj_r_squared = r_squared
                     
                     coefficients = np.concatenate([model.intercept_, model.coef_.flatten()])
+                    
+                    # 🔍 디버그 8: 회귀 결과
+                    print(json.dumps({
+                        "debug": "Step 8 - Regression complete",
+                        "r_squared": float(r_squared),
+                        "n_coefficients": len(coefficients)
+                    }), file=sys.stderr)
                 else:
                     model = LinearRegression()
                     model.fit(X, y)
@@ -151,6 +215,10 @@ def main():
                     
                     coefficients = np.concatenate([[model.intercept_], model.coef_])
             except Exception as e:
+                print(json.dumps({
+                    "debug": "ERROR - Regression failed",
+                    "error": str(e)
+                }), file=sys.stderr)
                 return None
             
             full_coeffs = {'intercept': _to_native_type(coefficients[0])}
@@ -317,4 +385,16 @@ def main():
 if __name__ == '__main__':
     main()
 
-    
+    export async function POST(req: Request) {
+  const payload = await req.json();
+  
+  console.log('🔵 API: Payload received:', JSON.stringify(payload, null, 2));
+  
+  // Python 실행
+  const result = await runPythonScript(payload);
+  
+  console.log('🔵 API: Python result:', result);
+  
+  return Response.json(result);
+}
+

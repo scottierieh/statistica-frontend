@@ -441,5 +441,26 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     </div>
   );
 
-    
-
+  const handleAnalysis = async () => {
+    try {
+      console.log('🟢 Starting analysis...');
+      
+      const response = await fetch('/api/conjoint/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+      
+      console.log('🟢 Analysis result:', data);
+      
+      if (data.error) {
+        console.error('🔴 Error:', data.error);
+        alert('Error: ' + data.error);
+      }
+    } catch (error) {
+      console.error('🔴 Fetch failed:', error);
+    }
+  };
+  
