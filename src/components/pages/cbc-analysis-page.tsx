@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -36,6 +37,16 @@ interface CbcResults {
         totalUtility: number;
     };
     simulation?: any;
+    segmentation?: SegmentationAnalysis;
+}
+
+interface SegmentationAnalysis {
+    segmentVariable: string;
+    resultsBySegment: { [segmentValue: string]: SegmentResult };
+}
+interface SegmentResult {
+    importance: { attribute: string; importance: number }[];
+    partWorths: { attribute: string; level: string; value: number }[];
 }
 
 interface FullAnalysisResponse {
@@ -265,12 +276,13 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className={`grid w-full ${results.segmentation ? 'grid-cols-6' : 'grid-cols-5'}`}>
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
                     <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal</TabsTrigger>
                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                     <TabsTrigger value="sensitivity">Sensitivity</TabsTrigger>
+                    {results.segmentation && <TabsTrigger value="segmentation"><Users className="mr-2 h-4 w-4"/>Segmentation</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -405,12 +417,17 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
+                {results.segmentation && (
+                <TabsContent value="segmentation" className="mt-4">
+                     <p>Segmentation analysis coming soon!</p>
+                </TabsContent>
+                )}
             </Tabs>
         </div>
     );
 }
 
-// --- STEP INDICATOR (unchanged) --- //
+// --- STEP INDICATOR (reusable, if needed elsewhere) --- //
 const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     <div className="flex items-center justify-center p-4">
       {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
@@ -424,5 +441,6 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
+
 
     
