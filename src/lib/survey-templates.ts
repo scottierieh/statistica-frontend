@@ -138,7 +138,7 @@ export const turfTemplate = {
     description: "Help us understand which combination of potential new product flavors you find most appealing.",
     questions: [
         {
-            id: 'turf_desc',
+            id: 'turf_desc_1',
             type: 'description',
             title: 'Instructions',
             content: 'From the list below, please select all the soda flavors you would be interested in purchasing.'
@@ -157,6 +157,92 @@ export const turfTemplate = {
                 'Creamy Root Beer',
                 'Spicy Ginger Ale',
             ],
+        },
+        {
+            id: 'preference_strength',
+            type: 'matrix',
+            title: 'How likely would you be to purchase each of the flavors you selected?',
+            description: 'Please rate your purchase likelihood on a scale of 1 (Very Unlikely) to 5 (Very Likely).',
+            required: true,
+            rows: [
+                'Classic Cola',
+                'Zesty Lemon-Lime',
+                'Sweet Orange Soda',
+                'Bold Grape Soda',
+                'Creamy Root Beer',
+                'Spicy Ginger Ale',
+            ],
+            columns: ['1', '2', '3', '4', '5'],
+            scale: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely']
+        },
+        {
+            id: 'purchase_behavior_separator',
+            type: 'description',
+            title: 'About Your Purchase Habits',
+            content: 'A few questions about your current purchasing habits.'
+        },
+        {
+            id: 'purchase_frequency',
+            type: 'single',
+            title: 'How often do you typically purchase sodas?',
+            required: true,
+            options: ['Daily', 'A few times a week', 'Once a week', 'A few times a month', 'Rarely'],
+        },
+        {
+            id: 'competitor_usage',
+            type: 'multiple',
+            title: 'Which other soda brands have you purchased in the last month? (Select all that apply)',
+            required: false,
+            options: ['Coca-Cola', 'Pepsi', 'Dr Pepper', 'Sprite', 'Store-brand sodas', 'Other'],
+        },
+        {
+            id: 'price_sensitivity',
+            type: 'rating',
+            title: 'How important is price to you when choosing a soda?',
+            description: '1 - Not important at all, 5 - Extremely important',
+            required: true,
+            scale: ['1','2','3','4','5'],
+        },
+        {
+            id: 'demographics_separator',
+            type: 'description',
+            title: 'About You',
+            content: 'Finally, a few questions about you to help us understand our customers better.'
+        },
+        {
+            id: 'age_group',
+            type: 'single',
+            title: 'What is your age group?',
+            required: true,
+            options: ['Under 18', '18-24', '25-34', '35-44', '45-54', '55+'],
+        },
+        {
+            id: 'gender',
+            type: 'single',
+            title: 'What is your gender?',
+            required: false,
+            options: ['Male', 'Female', 'Non-binary', 'Prefer not to say'],
+        },
+        {
+            id: 'region',
+            type: 'dropdown',
+            title: 'What region do you live in?',
+            required: false,
+            options: ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Australia/Oceania'],
+        },
+        {
+            id: 'income_level',
+            type: 'single',
+            title: 'What is your approximate annual household income?',
+            required: false,
+            options: ['Under $25,000', '$25,000 - $49,999', '$50,000 - $99,999', '$100,000 - $149,999', '$150,000 or more', 'Prefer not to say'],
+        },
+        {
+            id: 'education_level',
+            type: 'dropdown',
+            title: 'What is your highest level of education?',
+            required: false,
+            options: ['High school or equivalent', 'Some college', 'Associate degree', 'Bachelor\'s degree', 'Master\'s degree', 'Doctorate or professional degree', 'Prefer not to say'],
         },
     ] as Question[],
 };

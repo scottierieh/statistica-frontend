@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Loader2, TrendingUp, Target, Award, Info } from 'lucide-react';
 
 
 const renderBarChart = (title: string, data: any[], consistency: any) => {
@@ -25,7 +24,7 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
     };
 
     const topItem = data.length > 0 ? data[0] : null;
-    const showConsistency = consistency && data.length > 2; // Only show CR for 3+ items
+    const showConsistency = consistency && data.length > 2;
 
     return (
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
@@ -106,6 +105,9 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
 
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
+    const [showSensitivity, setShowSensitivity] = useState(false);
+    const [sensitivityData, setSensitivityData] = useState<any[]>([]);
+    
     const mainCriteriaData = useMemo(() => {
         const weights = results?.weights;
         if (!weights) return [];
@@ -122,22 +124,18 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
     }, [results]);
     
     const finalScoresData = useMemo(() => {
-        // If final_scores doesn't exist but alternatives_analysis does, calculate it
         if (!results?.final_scores && results?.alternatives_analysis && results?.weights) {
             const alternatives = new Set<string>();
             const scores: { [key: string]: number } = {};
             
-            // Get all alternative names
             Object.values(results.alternatives_analysis).forEach((criterion: any) => {
                 if (criterion.weights) {
                     Object.keys(criterion.weights).forEach(alt => alternatives.add(alt));
                 }
             });
             
-            // Initialize scores
             alternatives.forEach(alt => scores[alt] = 0);
             
-            // Calculate weighted scores
             Object.entries(results.alternatives_analysis).forEach(([criterionName, criterion]: [string, any]) => {
                 const criterionWeight = results.weights[criterionName] || 0;
                 
@@ -164,6 +162,120 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
         })).sort((a: any, b: any) => b.scoreValue - a.scoreValue) || []);
     }, [results]);
 
+    // 새로운 기능 1: 가중치 분포 분석
+    const weightDistributionAnalysis = useMemo(() => {
+        if (!mainCriteriaData.length) return null;
+        
+        const weights = mainCriteriaData.map(d => parseFloat(d.weight));
+        const max = Math.max(...weights);
+        const min = Math.min(...weights);
+        const range = max - min;
+        const avg = weights.reduce((a, b) => a + b, 0) / weights.length;
+        const stdDev = Math.sqrt(weights.reduce((sum, w) => sum + Math.pow(w - avg, 2), 0) / weights.length);
+        
+        return {
+            max,
+            min,
+            range,
+            average: avg,
+            stdDev,
+            concentration: range > 30 ? 'High' : range > 15 ? 'Medium' : 'Low'
+        };
+    }, [mainCriteriaData]);
+
+    // 새로운 기능 2: 대안별 강점/약점 분석
+    const alternativeStrengthsWeaknesses = useMemo(() => {
+        if (!results?.alternatives_analysis || !finalScoresData.length) return [];
+        
+        return finalScoresData.map((alt: any) => {
+            const strengths: string[] = [];
+            const weaknesses: string[] = [];
+            
+            Object.entries(results.alternatives_analysis).forEach(([criterion, analysis]: [string, any]) => {
+                if (analysis.weights && analysis.weights[alt.name]) {
+                    const altWeight = analysis.weights[alt.name];
+                    const allWeights = Object.values(analysis.weights) as number[];
+                    const maxWeight = Math.max(...allWeights);
+                    const avgWeight = allWeights.reduce((a: number, b: number) => a + b, 0) / allWeights.length;
+                    
+                    if (altWeight === maxWeight) {
+                        strengths.push(criterion);
+                    } else if (altWeight < avgWeight * 0.8) {
+                        weaknesses.push(criterion);
+                    }
+                }
+            });
+            
+            return {
+                name: alt.name,
+                strengths,
+                weaknesses,
+                strengthCount: strengths.length,
+                weaknessCount: weaknesses.length
+            };
+        });
+    }, [results, finalScoresData]);
+
+    // 새로운 기능 4: 일관성 점수 요약
+    const consistencySummary = useMemo(() => {
+        const consistencies: any[] = [];
+        
+        if (results?.consistency) {
+            consistencies.push({ name: 'Main Criteria', ...results.consistency });
+        }
+        
+        if (results?.sub_criteria_analysis) {
+            Object.entries(results.sub_criteria_analysis).forEach(([name, analysis]: [string, any]) => {
+                if (analysis.consistency) {
+                    consistencies.push({ name: `Sub: ${name}`, ...analysis.consistency });
+                }
+            });
+        }
+        
+        if (results?.alternatives_analysis) {
+            Object.entries(results.alternatives_analysis).forEach(([name, analysis]: [string, any]) => {
+                if (analysis.consistency) {
+                    consistencies.push({ name: `Alt: ${name}`, ...analysis.consistency });
+                }
+            });
+        }
+        
+        const avgCR = consistencies.length > 0 
+            ? consistencies.reduce((sum, c) => sum + c.CR, 0) / consistencies.length 
+            : 0;
+        
+        const allConsistent = consistencies.every(c => c.is_consistent);
+        
+        return {
+            consistencies,
+            averageCR: avgCR,
+            allConsistent,
+            count: consistencies.length
+        };
+    }, [results]);
+
+    // 새로운 기능 6: 점수 갭 분석
+    const scoreGapAnalysis = useMemo(() => {
+        if (finalScoresData.length < 2) return null;
+        
+        const gaps: any[] = [];
+        for (let i = 0; i < finalScoresData.length - 1; i++) {
+            const current = parseFloat(finalScoresData[i].score);
+            const next = parseFloat(finalScoresData[i + 1].score);
+            const gap = current - next;
+            const gapPercent = (gap / current * 100).toFixed(1);
+            
+            gaps.push({
+                between: `${finalScoresData[i].name} - ${finalScoresData[i + 1].name}`,
+                gap: gap.toFixed(1),
+                gapPercent,
+                significance: gap > 10 ? 'Significant' : gap > 5 ? 'Moderate' : 'Small'
+            });
+        }
+        
+        return gaps;
+    }, [finalScoresData]);
+
     return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
             <div className="mb-8 text-center">
@@ -171,6 +283,50 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                     AHP Analysis Results
                 </h1>
                 <p className="text-gray-600">Analytic Hierarchy Process - Decision Making Analysis</p>
+            </div>
+
+            {/* 새로운 기능: 전체 요약 대시보드 */}
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <Card className="shadow-lg border-2 border-blue-200">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Award className="h-8 w-8 text-blue-600" />
+                            <h3 className="text-lg font-bold text-gray-900">Best Alternative</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-blue-600">{finalScoresData[0]?.name || 'N/A'}</p>
+                        <p className="text-sm text-gray-600 mt-1">Score: {finalScoresData[0]?.score}%</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-lg border-2 border-green-200">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <CheckCircle className="h-8 w-8 text-green-600" />
+                            <h3 className="text-lg font-bold text-gray-900">Consistency</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-green-600">
+                            {consistencySummary.allConsistent ? 'Pass' : 'Fail'}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Avg CR: {(consistencySummary.averageCR * 100).toFixed(1)}%
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-lg border-2 border-purple-200">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Target className="h-8 w-8 text-purple-600" />
+                            <h3 className="text-lg font-bold text-gray-900">Weight Focus</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-purple-600">
+                            {weightDistributionAnalysis?.concentration || 'N/A'}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Range: {weightDistributionAnalysis?.range.toFixed(1)}%
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
             
             <Card className="mb-6 shadow-lg">
@@ -180,8 +336,89 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                 </CardHeader>
                 <CardContent className="p-6">
                     {renderBarChart("Main Criteria Weights", mainCriteriaData, results.consistency)}
+                    
+                    {/* 새로운 기능: 가중치 분포 통계 */}
+                    {weightDistributionAnalysis && (
+                        <Card className="mt-6 bg-gray-50">
+                            <CardContent className="p-4">
+                                <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <TrendingUp className="h-5 w-5" />
+                                    Weight Distribution Statistics
+                                </h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div>
+                                        <p className="text-sm text-gray-600">Maximum</p>
+                                        <p className="text-xl font-bold text-blue-600">{weightDistributionAnalysis.max.toFixed(1)}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">Minimum</p>
+                                        <p className="text-xl font-bold text-blue-600">{weightDistributionAnalysis.min.toFixed(1)}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">Average</p>
+                                        <p className="text-xl font-bold text-blue-600">{weightDistributionAnalysis.average.toFixed(1)}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">Std. Dev</p>
+                                        <p className="text-xl font-bold text-blue-600">{weightDistributionAnalysis.stdDev.toFixed(1)}%</p>
+                                    </div>
+                                </div>
+                                <Alert className="mt-4 bg-blue-50 border-blue-200">
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription className="text-sm">
+                                        {weightDistributionAnalysis.concentration === 'High' && 
+                                            'High concentration indicates one or few criteria dominate the decision.'}
+                                        {weightDistributionAnalysis.concentration === 'Medium' && 
+                                            'Medium concentration suggests balanced importance across criteria.'}
+                                        {weightDistributionAnalysis.concentration === 'Low' && 
+                                            'Low concentration means criteria have similar importance levels.'}
+                                    </AlertDescription>
+                                </Alert>
+                            </CardContent>
+                        </Card>
+                    )}
                 </CardContent>
             </Card>
+
+            {/* 새로운 기능: 일관성 요약 카드 */}
+            {consistencySummary.count > 0 && (
+                <Card className="mb-6 shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-teal-500 to-teal-600 text-white">
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                            <CheckCircle className="h-6 w-6" />
+                            Consistency Analysis Summary
+                        </CardTitle>
+                        <CardDescription className="text-teal-100">
+                            Overview of all consistency ratios
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="space-y-3">
+                            {consistencySummary.consistencies.map((c: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <span className="font-medium text-gray-900">{c.name}</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-lg font-bold ${c.is_consistent ? 'text-green-600' : 'text-red-600'}`}>
+                                            {(c.CR * 100).toFixed(1)}%
+                                        </span>
+                                        <span className={`px-2 py-1 rounded text-xs font-semibold ${c.is_consistent ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {c.is_consistent ? '✓' : '✗'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <Alert className={`mt-4 ${consistencySummary.allConsistent ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                            <CheckCircle className={`h-4 w-4 ${consistencySummary.allConsistent ? 'text-green-600' : 'text-yellow-600'}`} />
+                            <AlertDescription>
+                                {consistencySummary.allConsistent 
+                                    ? `All ${consistencySummary.count} comparisons are consistent (CR < 10%). Results are reliable.`
+                                    : `Some comparisons have high CR values. Consider reviewing those judgments.`}
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            )}
 
             {subCriteriaAnalyses.length > 0 && subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
                 <Card key={parentCriterion} className="mb-6 shadow-lg">
@@ -223,6 +460,174 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                 )}
                             </div>
                         ))}
+                    </CardContent>
+                </Card>
+            )}
+
+
+
+            {/* 새로운 기능: 기준별 대안 점수 상세 */}
+            {results.alternatives_analysis && Object.keys(results.alternatives_analysis).length > 0 && finalScoresData.length > 0 && (
+                <Card className="shadow-lg mb-6">
+                    <CardHeader className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white">
+                        <CardTitle className="text-2xl">Detailed Scores by Criterion</CardTitle>
+                        <CardDescription className="text-cyan-100">
+                            How each alternative performs across different criteria
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="p-3 text-left font-bold text-gray-900 border">Alternative</th>
+                                        {Object.keys(results.alternatives_analysis).map((criterion: string) => (
+                                            <th key={criterion} className="p-3 text-center font-bold text-gray-900 border">
+                                                {criterion}
+                                                <div className="text-xs font-normal text-gray-600 mt-1">
+                                                    ({((results.weights?.[criterion] || 0) * 100).toFixed(1)}%)
+                                                </div>
+                                            </th>
+                                        ))}
+                                        <th className="p-3 text-center font-bold text-blue-900 border bg-blue-50">
+                                            Weighted Total
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {finalScoresData.map((alt: any, altIdx: number) => {
+                                        // Calculate weighted total for this alternative
+                                        let weightedTotal = 0;
+                                        Object.entries(results.alternatives_analysis).forEach(([criterion, analysis]: [string, any]) => {
+                                            const criterionWeight = results.weights?.[criterion] || 0;
+                                            const altScore = analysis.weights?.[alt.name] || 0;
+                                            weightedTotal += criterionWeight * altScore;
+                                        });
+
+                                        return (
+                                            <tr key={altIdx} className={`hover:bg-gray-50 ${altIdx === 0 ? 'bg-yellow-50' : ''}`}>
+                                                <td className="p-3 font-semibold text-gray-900 border">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                                                            altIdx === 0 ? 'bg-yellow-500' : 
+                                                            altIdx === 1 ? 'bg-gray-400' : 
+                                                            altIdx === 2 ? 'bg-orange-400' : 'bg-blue-500'
+                                                        }`}>
+                                                            {altIdx + 1}
+                                                        </span>
+                                                        {alt.name}
+                                                    </div>
+                                                </td>
+                                                {Object.entries(results.alternatives_analysis).map(([criterion, analysis]: [string, any]) => {
+                                                    const score = analysis.weights?.[alt.name] || 0;
+                                                    const scorePercent = (score * 100).toFixed(1);
+                                                    
+                                                    // Find if this is the best score for this criterion
+                                                    const allScores = Object.values(analysis.weights || {}) as number[];
+                                                    const maxScore = Math.max(...allScores);
+                                                    const isBest = score === maxScore;
+                                                    
+                                                    // Calculate weighted contribution
+                                                    const criterionWeight = results.weights?.[criterion] || 0;
+                                                    const contribution = (criterionWeight * score * 100).toFixed(1);
+                                                    
+                                                    return (
+                                                        <td key={criterion} className={`p-3 text-center border ${isBest ? 'bg-green-50' : ''}`}>
+                                                            <div className={`font-bold ${isBest ? 'text-green-600' : 'text-gray-900'}`}>
+                                                                {scorePercent}%
+                                                            </div>
+                                                            <div className="text-xs text-gray-600 mt-1">
+                                                                +{contribution}
+                                                            </div>
+                                                            {isBest && (
+                                                                <div className="text-xs text-green-600 font-semibold mt-1">
+                                                                    ★ Best
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="p-3 text-center font-bold text-blue-900 border bg-blue-50">
+                                                    {(weightedTotal * 100).toFixed(1)}%
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <Alert className="mt-6 bg-blue-50 border-blue-200">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription className="text-sm">
+                                <strong>How to read:</strong> Each cell shows the alternative's performance score for that criterion. 
+                                The small number below shows the weighted contribution to the final score. 
+                                Green highlighting indicates the best performer for each criterion.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* 새로운 기능: 강점/약점 분석 */}
+            {alternativeStrengthsWeaknesses.length > 0 && (
+                <Card className="shadow-lg mb-6">
+                    <CardHeader className="bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+                        <CardTitle className="text-2xl">Strengths & Weaknesses Analysis</CardTitle>
+                        <CardDescription className="text-amber-100">
+                            Identify where each alternative excels or needs improvement
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            {alternativeStrengthsWeaknesses.map((alt: any, idx: number) => (
+                                <Card key={idx} className="bg-gray-50">
+                                    <CardContent className="p-4">
+                                        <h4 className="text-lg font-bold text-gray-900 mb-3">{alt.name}</h4>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <CheckCircle className="h-5 w-5 text-green-600" />
+                                                    <span className="font-semibold text-green-700">
+                                                        Strengths ({alt.strengthCount})
+                                                    </span>
+                                                </div>
+                                                {alt.strengths.length > 0 ? (
+                                                    <ul className="space-y-1">
+                                                        {alt.strengths.map((s: string, i: number) => (
+                                                            <li key={i} className="text-sm text-gray-700 pl-4">
+                                                                • {s}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="text-sm text-gray-500 pl-4">No dominant strengths</p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                                                    <span className="font-semibold text-amber-700">
+                                                        Weaknesses ({alt.weaknessCount})
+                                                    </span>
+                                                </div>
+                                                {alt.weaknesses.length > 0 ? (
+                                                    <ul className="space-y-1">
+                                                        {alt.weaknesses.map((w: string, i: number) => (
+                                                            <li key={i} className="text-sm text-gray-700 pl-4">
+                                                                • {w}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="text-sm text-gray-500 pl-4">No significant weaknesses</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -280,6 +685,32 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                             ))}
                         </div>
                         
+                        {/* 새로운 기능: 점수 갭 분석 */}
+                        {scoreGapAnalysis && scoreGapAnalysis.length > 0 && (
+                            <Card className="mt-6 bg-gray-50">
+                                <CardContent className="p-4">
+                                    <h4 className="font-bold text-gray-900 mb-3">Score Gap Analysis</h4>
+                                    <div className="space-y-2">
+                                        {scoreGapAnalysis.map((gap: any, idx: number) => (
+                                            <div key={idx} className="flex items-center justify-between p-2 bg-white rounded">
+                                                <span className="text-sm text-gray-700">{gap.between}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-bold text-blue-600">{gap.gap}%</span>
+                                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                                        gap.significance === 'Significant' ? 'bg-red-100 text-red-800' :
+                                                        gap.significance === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-green-100 text-green-800'
+                                                    }`}>
+                                                        {gap.significance}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                        
                         {finalScoresData.length > 0 && (
                             <Alert className="mt-6 bg-green-50 border-green-200">
                                 <CheckCircle className="h-5 w-5 text-green-600" />
@@ -288,6 +719,269 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                     Based on the comprehensive analysis, <strong>{finalScoresData[0].name}</strong> is the optimal choice with a final score of <strong>{finalScoresData[0].score}%</strong>.
                                 </AlertDescription>
                             </Alert>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* 새로운 기능: 민감도 분석 - 인터랙티브 가중치 조정 패널 */}
+            {mainCriteriaData.length > 0 && finalScoresData.length > 0 && (
+                <Card className="shadow-lg mt-6">
+                    <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
+                        <CardTitle className="text-2xl">Interactive Sensitivity Analysis</CardTitle>
+                        <CardDescription className="text-pink-100">
+                            Adjust criteria weights and see real-time ranking changes
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        {!showSensitivity ? (
+                            <div className="text-center py-8">
+                                <button
+                                    onClick={() => {
+                                        setShowSensitivity(true);
+                                        // Initialize with current weights
+                                        const initialData = mainCriteriaData.map(c => ({
+                                            name: c.name,
+                                            weight: parseFloat(c.weight)
+                                        }));
+                                        setSensitivityData(initialData);
+                                    }}
+                                    className="px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition font-semibold shadow-lg"
+                                >
+                                    Open Interactive Panel
+                                </button>
+                                <p className="text-sm text-gray-600 mt-3">
+                                    Adjust criteria weights with sliders and observe real-time changes
+                                </p>
+                            </div>
+                        ) : (
+                            <div>
+                                <Alert className="mb-6 bg-blue-50 border-blue-200">
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription className="text-sm">
+                                        Use the sliders below to adjust criteria weights. The total must equal 100%. 
+                                        Rankings will update automatically as you make changes.
+                                    </AlertDescription>
+                                </Alert>
+
+                                {/* Weight Adjustment Panel */}
+                                <div className="bg-white rounded-lg border-2 border-gray-200 p-6 mb-6">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">🎚️ Adjust Criteria Weights</h3>
+                                    
+                                    <div className="space-y-6">
+                                        {sensitivityData.map((criterion: any, idx: number) => (
+                                            <div key={idx} className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="font-semibold text-gray-900">
+                                                        {criterion.name}
+                                                    </label>
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            step="1"
+                                                            value={criterion.weight.toFixed(1)}
+                                                            onChange={(e) => {
+                                                                const newWeight = parseFloat(e.target.value) || 0;
+                                                                const newData = [...sensitivityData];
+                                                                newData[idx].weight = Math.min(100, Math.max(0, newWeight));
+                                                                setSensitivityData(newData);
+                                                            }}
+                                                            className="w-20 px-3 py-1 border-2 border-gray-300 rounded-lg text-center font-bold text-blue-600"
+                                                        />
+                                                        <span className="text-gray-600 font-semibold">%</span>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.5"
+                                                    value={criterion.weight}
+                                                    onChange={(e) => {
+                                                        const newWeight = parseFloat(e.target.value);
+                                                        const newData = [...sensitivityData];
+                                                        newData[idx].weight = newWeight;
+                                                        setSensitivityData(newData);
+                                                    }}
+                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                                    style={{
+                                                        background: `linear-gradient(to right, #ec4899 0%, #ec4899 ${criterion.weight}%, #e5e7eb ${criterion.weight}%, #e5e7eb 100%)`
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Total Weight Display */}
+                                    <div className="mt-6 pt-4 border-t-2 border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-lg font-bold text-gray-900">Total Weight:</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className={`text-2xl font-bold ${
+                                                    Math.abs(sensitivityData.reduce((sum: number, c: any) => sum + c.weight, 0) - 100) < 0.5 
+                                                        ? 'text-green-600' 
+                                                        : 'text-red-600'
+                                                }`}>
+                                                    {sensitivityData.reduce((sum: number, c: any) => sum + c.weight, 0).toFixed(1)}%
+                                                </span>
+                                                {Math.abs(sensitivityData.reduce((sum: number, c: any) => sum + c.weight, 0) - 100) < 0.5 ? (
+                                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                                                ) : (
+                                                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="mt-6 flex gap-3">
+                                        <button
+                                            onClick={() => {
+                                                // Normalize weights to 100%
+                                                const total = sensitivityData.reduce((sum: number, c: any) => sum + c.weight, 0);
+                                                if (total > 0) {
+                                                    const normalized = sensitivityData.map((c: any) => ({
+                                                        ...c,
+                                                        weight: (c.weight / total) * 100
+                                                    }));
+                                                    setSensitivityData(normalized);
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                                        >
+                                            Normalize to 100%
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                // Reset to original weights
+                                                const initialData = mainCriteriaData.map(c => ({
+                                                    name: c.name,
+                                                    weight: parseFloat(c.weight)
+                                                }));
+                                                setSensitivityData(initialData);
+                                            }}
+                                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
+                                        >
+                                            Reset to Original
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                // Equal distribution
+                                                const equalWeight = 100 / sensitivityData.length;
+                                                const equalData = sensitivityData.map((c: any) => ({
+                                                    ...c,
+                                                    weight: equalWeight
+                                                }));
+                                                setSensitivityData(equalData);
+                                            }}
+                                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+                                        >
+                                            Equal Weights
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Recalculated Rankings */}
+                                <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg border-2 border-pink-200 p-6">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                        📊 Updated Rankings
+                                        {Math.abs(sensitivityData.reduce((sum: number, c: any) => sum + c.weight, 0) - 100) >= 0.5 && (
+                                            <span className="ml-3 text-sm text-red-600">
+                                                (Total ≠ 100% - Results may be inaccurate)
+                                            </span>
+                                        )}
+                                    </h3>
+                                    
+                                    {(() => {
+                                        // Recalculate final scores with adjusted weights
+                                        const adjustedWeights: any = {};
+                                        sensitivityData.forEach((c: any) => {
+                                            adjustedWeights[c.name] = c.weight / 100;
+                                        });
+
+                                        const recalculatedScores = finalScoresData.map((alt: any) => {
+                                            let newScore = 0;
+                                            Object.entries(results.alternatives_analysis || {}).forEach(([criterion, analysis]: [string, any]) => {
+                                                const criterionWeight = adjustedWeights[criterion] || 0;
+                                                const altWeight = analysis.weights?.[alt.name] || 0;
+                                                newScore += criterionWeight * altWeight;
+                                            });
+                                            return {
+                                                name: alt.name,
+                                                originalScore: parseFloat(alt.score),
+                                                newScore: newScore * 100,
+                                                change: (newScore * 100) - parseFloat(alt.score)
+                                            };
+                                        }).sort((a, b) => b.newScore - a.newScore);
+
+                                        return (
+                                            <div className="space-y-3">
+                                                {recalculatedScores.map((alt: any, idx: number) => {
+                                                    // Find original rank
+                                                    const originalRank = finalScoresData.findIndex((o: any) => o.name === alt.name) + 1;
+                                                    const newRank = idx + 1;
+                                                    const rankChange = originalRank - newRank;
+
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className={`p-4 rounded-lg border-2 transition-all ${
+                                                                idx === 0 ? 'bg-gradient-to-r from-yellow-100 to-orange-100 border-yellow-400' :
+                                                                'bg-white border-gray-200'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
+                                                                        idx === 0 ? 'bg-yellow-500 text-white' :
+                                                                        idx === 1 ? 'bg-gray-400 text-white' :
+                                                                        idx === 2 ? 'bg-orange-400 text-white' :
+                                                                        'bg-blue-500 text-white'
+                                                                    }`}>
+                                                                        {newRank}
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="font-bold text-gray-900">{alt.name}</h4>
+                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                            {rankChange !== 0 && (
+                                                                                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                                                                    rankChange > 0 ? 'bg-green-100 text-green-700' :
+                                                                                    'bg-red-100 text-red-700'
+                                                                                }`}>
+                                                                                    {rankChange > 0 ? `↑ +${rankChange}` : `↓ ${rankChange}`}
+                                                                                </span>
+                                                                            )}
+                                                                            {rankChange === 0 && (
+                                                                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                                                                                    → Same
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-2xl font-bold text-blue-600">
+                                                                        {alt.newScore.toFixed(1)}%
+                                                                    </p>
+                                                                    <p className={`text-sm font-semibold ${
+                                                                        alt.change > 0 ? 'text-green-600' :
+                                                                        alt.change < 0 ? 'text-red-600' :
+                                                                        'text-gray-600'
+                                                                    }`}>
+                                                                        {alt.change > 0 ? '+' : ''}{alt.change.toFixed(1)}%
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
