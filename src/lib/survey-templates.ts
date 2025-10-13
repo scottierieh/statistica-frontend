@@ -53,9 +53,9 @@ export const ratingBasedConjointTemplate = {
                 { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
             ],
             profiles: [
-                { id: 'profile_1', Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' },
-                { id: 'profile_2', Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' },
-                { id: 'profile_3', Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' },
+                { id: 'profile_1', attributes: { Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' }},
+                { id: 'profile_2', attributes: { Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' }},
+                { id: 'profile_3', attributes: { Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' }},
             ]
         }
     ],
@@ -306,7 +306,7 @@ export const brandFunnelTemplate = {
         },
         {
             id: 'consideration',
-            type: 'single',
+            type: 'multiple',
             title: 'Of the brands you have heard of, which would you consider purchasing?',
             required: true,
             options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
@@ -320,7 +320,7 @@ export const brandFunnelTemplate = {
         },
         {
             id: 'usage',
-            type: 'single',
+            type: 'multiple',
             title: 'Which of these brands have you actually used or purchased?',
             required: true,
             options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
