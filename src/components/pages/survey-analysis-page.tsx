@@ -451,7 +451,11 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                         </div>
                         
                         {interpretation && (
-                            <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                            <Alert className={cn("border-l-4", 
+                                interpretation.variant === 'destructive' ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" : 
+                                interpretation.variant === 'warning' ? "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : 
+                                "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                            )}>
                                 <div className="flex gap-2">
                                     {interpretation.icon}
                                     <div className="flex-1">
@@ -518,19 +522,19 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-                <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                        <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
-                    </div>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={onDownload}
-                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                    >
-                        <Download className="w-4 h-4" />
-                    </Button>
+              <div className="flex justify-between items-start">
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
+                   </div>
+                   <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                   >
+                       <Download className="w-4 h-4" />
+                   </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-6">
@@ -599,8 +603,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                         </div>
                         
                         {interpretation && (
-                            <Alert className={cn(
-                                "border-l-4",
+                            <Alert className={cn("border-l-4", 
                                 interpretation.variant === 'destructive' 
                                     ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
                                     : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
@@ -696,7 +699,7 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                    </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
+           <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
                         <p className="text-7xl font-bold bg-gradient-to-br from-amber-500 to-orange-600 bg-clip-text text-transparent">
@@ -755,7 +758,13 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                         </div>
                         
                         {interpretation && (
-                            <Alert className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+                            <Alert className={cn("border-l-4", 
+                                interpretation.variant === 'destructive' 
+                                    ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
+                                    : interpretation.variant === 'warning'
+                                    ? "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                                    : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                            )}>
                                 <div className="flex gap-2">
                                     {interpretation.icon}
                                     <div className="flex-1">
@@ -1572,7 +1581,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         
         if (format === 'csv') {
             const csv = Papa.unparse(flattenedData);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -1734,4 +1743,3 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     );
 }
 
-```
