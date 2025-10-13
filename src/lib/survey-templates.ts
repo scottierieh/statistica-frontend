@@ -1,5 +1,4 @@
 
-
 import type { Question, Criterion } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
@@ -134,87 +133,47 @@ export const vanWestendorpTemplate = {
 };
 
 export const turfTemplate = {
-    title: "Product Line Optimization (TURF)",
-    description: "Help us understand which combination of potential new product flavors you find most appealing.",
+    title: "Product Portfolio Analysis (TURF)",
+    description: "Help us understand which combination of products you find most appealing.",
     questions: [
         {
-            id: 'turf_desc_1',
-            type: 'description',
-            title: 'Instructions',
-            content: 'From the list below, please select all the soda flavors you would be interested in purchasing.'
-        },
-        {
-            id: 'turf_q_1',
+            id: 'turf_main_selection',
             type: 'multiple',
-            title: 'Which of the following soda flavors would you consider buying?',
-            description: 'Select all that apply.',
+            title: '1. Product/Service Preference (Reach)',
+            description: 'Please select all the products you would consider purchasing.',
             required: true,
-            options: [
-                'Classic Cola',
-                'Zesty Lemon-Lime',
-                'Sweet Orange Soda',
-                'Bold Grape Soda',
-                'Creamy Root Beer',
-                'Spicy Ginger Ale',
-            ],
+            options: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
         },
         {
             id: 'preference_strength',
             type: 'matrix',
-            title: 'How likely would you be to purchase each of the flavors you selected?',
-            description: 'Please rate your purchase likelihood on a scale of 1 (Very Unlikely) to 5 (Very Likely).',
-            required: true,
-            rows: [
-                'Classic Cola',
-                'Zesty Lemon-Lime',
-                'Sweet Orange Soda',
-                'Bold Grape Soda',
-                'Creamy Root Beer',
-                'Spicy Ginger Ale',
-            ],
-            columns: ['1', '2', '3', '4', '5'],
-            scale: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely']
-        },
-        {
-            id: 'purchase_behavior_separator',
-            type: 'description',
-            title: 'About Your Purchase Habits',
-            content: 'A few questions about your current purchasing habits.'
-        },
-        {
-            id: 'purchase_frequency',
-            type: 'single',
-            title: 'How often do you typically purchase sodas?',
-            required: true,
-            options: ['Daily', 'A few times a week', 'Once a week', 'A few times a month', 'Rarely'],
-        },
-        {
-            id: 'competitor_usage',
-            type: 'multiple',
-            title: 'Which other soda brands have you purchased in the last month? (Select all that apply)',
+            title: '2. Purchase Intent Strength (Optional for Weighted TURF)',
+            description: 'For each product you selected, please rate your purchase likelihood on a scale of 1 (Very Unlikely) to 5 (Very Likely).',
             required: false,
-            options: ['Coca-Cola', 'Pepsi', 'Dr Pepper', 'Sprite', 'Store-brand sodas', 'Other'],
+            rows: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+            columns: ['1', '2', '3', '4', '5'],
+            scale: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely'],
         },
         {
-            id: 'price_sensitivity',
-            type: 'rating',
-            title: 'How important is price to you when choosing a soda?',
-            description: '1 - Not important at all, 5 - Extremely important',
-            required: true,
-            scale: ['1','2','3','4','5'],
+            id: 'first_choice',
+            type: 'single',
+            title: '3. First Choice (Optional)',
+            description: 'Of the products you selected, which one would you be most likely to purchase first?',
+            required: false,
+            options: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
         },
         {
             id: 'demographics_separator',
             type: 'description',
-            title: 'About You',
-            content: 'Finally, a few questions about you to help us understand our customers better.'
+            title: '4. About You (for Segment Analysis)',
+            content: 'These questions help us understand our customers better.'
         },
         {
             id: 'age_group',
             type: 'single',
             title: 'What is your age group?',
             required: true,
-            options: ['Under 18', '18-24', '25-34', '35-44', '45-54', '55+'],
+            options: ['18-24', '25-34', '35-44', '45-54', '55+'],
         },
         {
             id: 'gender',
@@ -228,21 +187,42 @@ export const turfTemplate = {
             type: 'dropdown',
             title: 'What region do you live in?',
             required: false,
-            options: ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Australia/Oceania'],
+            options: ['Region A', 'Region B', 'Region C', 'Region D'],
         },
         {
             id: 'income_level',
             type: 'single',
             title: 'What is your approximate annual household income?',
             required: false,
-            options: ['Under $25,000', '$25,000 - $49,999', '$50,000 - $99,999', '$100,000 - $149,999', '$150,000 or more', 'Prefer not to say'],
+            options: ['Under $30,000', '$30,000 - $49,999', '$50,000 - $99,999', '$100,000 or more', 'Prefer not to say'],
         },
         {
-            id: 'education_level',
-            type: 'dropdown',
-            title: 'What is your highest level of education?',
+            id: 'behavioral_separator',
+            type: 'description',
+            title: '5. Purchase Behavior (Optional for Frequency Analysis)',
+            content: 'A few questions about your purchasing habits.'
+        },
+        {
+            id: 'purchase_frequency',
+            type: 'single',
+            title: 'How often do you typically purchase products like these?',
             required: false,
-            options: ['High school or equivalent', 'Some college', 'Associate degree', 'Bachelor\'s degree', 'Master\'s degree', 'Doctorate or professional degree', 'Prefer not to say'],
+            options: ['Daily', 'Weekly', 'Monthly', 'A few times a year', 'Rarely'],
+        },
+        {
+            id: 'competitor_usage',
+            type: 'multiple',
+            title: 'Which of the following competitor products do you currently use?',
+            required: false,
+            options: ['Competitor Brand X', 'Competitor Brand Y', 'None of these'],
+        },
+        {
+            id: 'price_sensitivity',
+            type: 'rating',
+            title: 'How important is price to you when choosing these types of products?',
+            description: '1 - Not important at all, 5 - Extremely important',
+            required: false,
+            scale: ['1','2','3','4','5'],
         },
     ] as Question[],
 };
