@@ -4,9 +4,9 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, log_loss
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -26,7 +26,14 @@ def _to_native_type(obj):
 
 def main():
     try:
-        payload = json.load(sys.stdin)
+        # --- DEBUGGING: Print incoming payload to stderr ---
+        input_data = sys.stdin.read()
+        print("--- Received Payload ---", file=sys.stderr)
+        print(input_data, file=sys.stderr)
+        print("------------------------", file=sys.stderr)
+        # --- END DEBUGGING ---
+        
+        payload = json.loads(input_data)
         data = payload.get('data')
         attributes = payload.get('attributes')
         target_variable = payload.get('targetVariable')
@@ -38,6 +45,8 @@ def main():
 
         df = pd.DataFrame(data)
 
+        is_choice_based = df[target_variable].nunique() == 2 and df[target_variable].min() == 0 and df[target_variable].max() == 1
+
         def run_conjoint_analysis(sub_df, sub_attributes):
             X_list, feature_names, original_levels_map = [], [], {}
             
@@ -47,7 +56,10 @@ def main():
             sub_df_clean = sub_df[all_cols_to_check].copy()
             
             for col in all_cols_to_check:
-                sub_df_clean[col] = pd.to_numeric(sub_df_clean[col], errors='coerce') if col == target_variable else sub_df_clean[col].astype(str)
+                if col == target_variable:
+                    sub_df_clean[col] = pd.to_numeric(sub_df_clean[col], errors='coerce')
+                else:
+                    sub_df_clean[col] = sub_df_clean[col].astype(str)
 
             sub_df_clean.dropna(inplace=True)
 
@@ -58,7 +70,7 @@ def main():
                 if props['type'] == 'categorical':
                     sub_df_clean[attr_name] = sub_df_clean[attr_name].astype('category')
                     original_levels_map[attr_name] = sub_df_clean[attr_name].cat.categories.tolist()
-                    dummies = pd.get_dummies(sub_df_clean[attr_name], prefix=attr_name, drop_first=False).astype(int)
+                    dummies = pd.get_dummies(sub_df_clean[attr_name], prefix=attr_name, drop_first=True).astype(int)
                     X_list.append(dummies)
                     feature_names.extend(dummies.columns.tolist())
                 elif props['type'] == 'numerical':
@@ -72,23 +84,55 @@ def main():
             X = pd.concat(X_list, axis=1)
             y = sub_df_clean[target_variable]
             
-            # Additional check for sufficient data
             if len(X) < len(feature_names) + 1:
                 return None
 
-            model = LinearRegression()
-            model.fit(X, y)
-            y_pred = model.predict(X)
+            if is_choice_based:
+                model = LogisticRegression(random_state=42, solver='liblinear')
+                model.fit(X, y)
+                y_pred_prob = model.predict_proba(X)[:, 1]
+                y_pred = model.predict(X)
+                
+                # Use McFadden's Pseudo R-squared for Logistic Regression
+                log_likelihood_full = -log_loss(y, y_pred_prob, normalize=False)
+                log_likelihood_intercept = -log_loss(y, [y.mean()] * len(y), normalize=False)
+                r_squared = 1 - (log_likelihood_full / log_likelihood_intercept) if log_likelihood_intercept != 0 else 0
+                adj_r_squared = r_squared # Not straightforward for logistic
+                
+                coefficients = np.concatenate([model.intercept_, model.coef_.flatten()])
+
+            else: # Rating-based
+                model = LinearRegression()
+                model.fit(X, y)
+                y_pred = model.predict(X)
+                r_squared = r2_score(y, y_pred)
+                adj_r_squared = 1 - (1 - r_squared) * (len(y) - 1) / (len(y) - X.shape[1] - 1) if (len(y) - X.shape[1] - 1) > 0 else 0
+                coefficients = np.concatenate([[model.intercept_], model.coef_])
+            
+            # Reconstruct coefficients for all levels
+            full_coeffs = {'intercept': coefficients[0]}
+            coeff_index = 1
+            for attr_name in independent_vars:
+                 if sub_attributes[attr_name]['type'] == 'categorical':
+                    levels = original_levels_map.get(attr_name, [])
+                    # Base level (first one) has a utility of 0
+                    full_coeffs[f"{attr_name}_{levels[0]}"] = 0
+                    # Other levels get coefficients from the model
+                    for level in levels[1:]:
+                        full_coeffs[f"{attr_name}_{level}"] = coefficients[coeff_index]
+                        coeff_index += 1
+                 elif sub_attributes[attr_name]['type'] == 'numerical':
+                    full_coeffs[f"{attr_name}_std"] = coefficients[coeff_index]
+                    coeff_index += 1
+
 
             regression_results = {
-                'coefficients': dict(zip(feature_names, model.coef_)),
-                'intercept': model.intercept_, 'rSquared': r2_score(y, y_pred),
-                'adjustedRSquared': 1 - (1 - r2_score(y, y_pred)) * (len(y) - 1) / (len(y) - X.shape[1] - 1) if (len(y) - X.shape[1] - 1) > 0 else 0,
-                'rmse': np.sqrt(mean_squared_error(y, y_pred)), 'mae': mean_absolute_error(y, y_pred),
-                'predictions': y_pred.tolist(), 'residuals': (y - y_pred).tolist()
+                'coefficients': full_coeffs,
+                'intercept': coefficients[0], 
+                'rSquared': r_squared,
+                'adjustedRSquared': adj_r_squared
             }
             
-            # Zero-centered part-worths
             part_worths = []
             for attr_name in independent_vars:
                 props = sub_attributes[attr_name]
@@ -97,7 +141,7 @@ def main():
                     level_worths = []
                     for level in level_names:
                         coef_name = f"{attr_name}_{level}"
-                        level_worths.append(regression_results['coefficients'].get(coef_name, 0))
+                        level_worths.append(full_coeffs.get(coef_name, 0))
                     
                     mean_worth = np.mean(level_worths) if level_worths else 0
                     zero_centered_worths = [w - mean_worth for w in level_worths]
@@ -187,4 +231,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
