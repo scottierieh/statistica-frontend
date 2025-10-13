@@ -606,6 +606,8 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                             <Alert className={cn("border-l-4", 
                                 interpretation.variant === 'destructive' 
                                     ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
+                                    : interpretation.variant === 'warning'
+                                    ? "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                                     : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
                             )}>
                                 <div className="flex gap-2">
@@ -1115,7 +1117,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                                         tick={{ fontSize: 12 }}
                                     />
                                     <XAxis type="number" />
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
                                     <Bar dataKey="netScore" name="Net Score" radius={[0, 8, 8, 0]}>
                                         <LabelList 
@@ -1496,6 +1498,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
     const [loading, setLoading] = useState(true);
     const [analysisData, setAnalysisData] = useState<any[]>([]);
+    const { toast } = useToast();
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1669,7 +1672,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                             <TabsTrigger 
                                 key={tab.key} 
                                 value={tab.key}
-                                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow gap-2"
+                                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
                             >
                                 {tab.icon}
                                 {tab.label}
@@ -1742,4 +1745,3 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
-
