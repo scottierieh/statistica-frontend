@@ -18,7 +18,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Input } from '../ui/input';
 
 interface RatingConjointResults {
@@ -37,6 +37,16 @@ interface RatingConjointResults {
         totalUtility: number;
     };
     simulation?: any;
+    segmentation?: SegmentationAnalysis;
+}
+
+interface SegmentationAnalysis {
+    segmentVariable: string;
+    resultsBySegment: { [segmentValue: string]: SegmentResult };
+}
+interface SegmentResult {
+    importance: { attribute: string; importance: number }[];
+    partWorths: { attribute: string; level: string; value: number }[];
 }
 
 interface FullAnalysisResponse {
@@ -66,7 +76,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
     const [simulationResult, setSimulationResult] = useState<any>(null);
     const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
     
-    const conjointQuestion = useMemo(() => survey.questions.find((q: Question) => q.type === 'rating-conjoint'), [survey]);
+    const conjointQuestion = useMemo(() => survey.questions.find(q => q.type === 'rating-conjoint'), [survey]);
     const allAttributes = useMemo(() => {
         if (!conjointQuestion || !conjointQuestion.attributes) return {};
         const attributesObj: any = {};
@@ -92,14 +102,14 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
 
         const analysisData: any[] = [];
         responses.forEach((resp) => {
-            const answer = resp.answers[conjointQuestion.id];
-            if (!answer || typeof answer !== 'object') return;
+            const answerBlock = (resp.answers as any)[conjointQuestion.id];
+            if (!answerBlock || typeof answerBlock !== 'object') return;
             
-            Object.entries(answer).forEach(([profileId, rating]) => {
+            Object.entries(answerBlock).forEach(([profileId, rating]) => {
                 const profile = conjointQuestion.profiles?.find((p: any) => p.id === profileId);
-                if (profile) {
+                if (profile && profile.attributes) {
                     analysisData.push({
-                        ...profile,
+                        ...profile.attributes,
                         rating: Number(rating)
                     });
                 }
@@ -250,7 +260,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
         return (
             <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
-                    <p>No analysis results to display. Ensure there is valid response data for the rating-based conjoint question.</p>
+                    <p>No analysis results to display. This may be due to a lack of data or an error during analysis.</p>
                 </CardContent>
             </Card>
         );
@@ -261,12 +271,13 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
     return (
         <div className="space-y-4">
              <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className={`grid w-full ${results.segmentation ? 'grid-cols-6' : 'grid-cols-5'}`}>
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
                     <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal Product</TabsTrigger>
                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                     <TabsTrigger value="sensitivity">Sensitivity</TabsTrigger>
+                    {results.segmentation && <TabsTrigger value="segmentation"><Users className="mr-2 h-4 w-4"/>Segmentation</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -401,7 +412,29 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                         </CardContent>
                     </Card>
                 </TabsContent>
+                {results.segmentation && (
+                <TabsContent value="segmentation" className="mt-4">
+                     <p>Segmentation analysis coming soon!</p>
+                </TabsContent>
+                )}
             </Tabs>
         </div>
     );
 }
+
+// --- STEP INDICATOR (reusable, if needed elsewhere) --- //
+const StepIndicator = ({ currentStep }: { currentStep: number }) => (
+    <div className="flex items-center justify-center p-4">
+      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
+        <React.Fragment key={index}>
+          <div className="flex flex-col items-center">
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
+            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
+          </div>
+          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+    
