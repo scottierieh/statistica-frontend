@@ -138,6 +138,7 @@ export default function LandingPage() {
                                                 height={280}
                                                 className="hidden lg:block w-72 h-72 object-cover rounded-xl shadow-lg"
                                                 data-ai-hint={item.image.imageHint}
+                                                priority={index === 0}
                                             />
                                         )}
                                     </div>
