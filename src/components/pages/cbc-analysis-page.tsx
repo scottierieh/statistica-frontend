@@ -301,7 +301,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="partworths" className="mt-4">
+                 <TabsContent value="partworths" className="mt-4">
                     <Card>
                         <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
                         <CardContent>
@@ -441,6 +441,5 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
-
 
     

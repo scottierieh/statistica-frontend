@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -25,7 +26,14 @@ def _to_native_type(obj):
 
 def main():
     try:
-        payload = json.load(sys.stdin)
+        # --- DEBUGGING: Print incoming payload to stderr ---
+        input_data = sys.stdin.read()
+        print("--- Received Payload ---", file=sys.stderr)
+        print(input_data, file=sys.stderr)
+        print("------------------------", file=sys.stderr)
+        # --- END DEBUGGING ---
+        
+        payload = json.loads(input_data)
         data = payload.get('data')
         attributes = payload.get('attributes')
         target_variable = payload.get('targetVariable')
@@ -59,12 +67,11 @@ def main():
             
             for col in independent_vars:
                 sub_df_clean[col] = sub_df_clean[col].astype(str).str.strip()
-                sub_df_clean = sub_df_clean[sub_df_clean[col] != '']
             
             sub_df_clean[target_variable] = pd.to_numeric(sub_df_clean[target_variable], errors='coerce')
-            sub_df_clean = sub_df_clean.dropna(subset=[target_variable])
+            sub_df_clean = sub_df_clean.dropna(subset=required_cols)
 
-            if sub_df_clean.empty or len(sub_df_clean) < 10:
+            if sub_df_clean.empty:
                 return None
 
             for attr_name in independent_vars:
