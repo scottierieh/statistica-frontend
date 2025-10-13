@@ -133,39 +133,21 @@ export const vanWestendorpTemplate = {
 };
 
 export const turfTemplate = {
-    title: "Product Portfolio Analysis (TURF)",
-    description: "Help us understand which combination of products you find most appealing.",
+    title: "Product Portfolio Optimization (TURF)",
+    description: "Help us understand which combination of products you find most appealing. Your feedback is vital for our product strategy.",
     questions: [
         {
             id: 'turf_main_selection',
             type: 'multiple',
             title: '1. Product/Service Preference (Reach)',
-            description: 'Please select all the products you would consider purchasing.',
+            description: 'From the list below, please select ALL the products/services you would genuinely consider purchasing or using.',
             required: true,
-            options: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
-        },
-        {
-            id: 'preference_strength',
-            type: 'matrix',
-            title: '2. Purchase Intent Strength (Optional for Weighted TURF)',
-            description: 'For each product you selected, please rate your purchase likelihood on a scale of 1 (Very Unlikely) to 5 (Very Likely).',
-            required: false,
-            rows: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
-            columns: ['1', '2', '3', '4', '5'],
-            scale: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely'],
-        },
-        {
-            id: 'first_choice',
-            type: 'single',
-            title: '3. First Choice (Optional)',
-            description: 'Of the products you selected, which one would you be most likely to purchase first?',
-            required: false,
-            options: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+            options: ['Premium Coffee Blend', 'Artisanal Tea Selection', 'Organic Juice Line', 'Gourmet Pastries', 'Healthy Snack Box'],
         },
         {
             id: 'demographics_separator',
             type: 'description',
-            title: '4. About You (for Segment Analysis)',
+            title: '2. About You (for Segment Analysis)',
             content: 'These questions help us understand our customers better.'
         },
         {
@@ -187,7 +169,7 @@ export const turfTemplate = {
             type: 'dropdown',
             title: 'What region do you live in?',
             required: false,
-            options: ['Region A', 'Region B', 'Region C', 'Region D'],
+            options: ['North', 'South', 'East', 'West'],
         },
         {
             id: 'income_level',
@@ -197,9 +179,16 @@ export const turfTemplate = {
             options: ['Under $30,000', '$30,000 - $49,999', '$50,000 - $99,999', '$100,000 or more', 'Prefer not to say'],
         },
         {
+            id: 'education_level',
+            type: 'single',
+            title: 'What is your highest level of education?',
+            required: false,
+            options: ['High School', 'Some College', 'Bachelor\'s Degree', 'Graduate Degree (Master\'s, PhD, etc.)'],
+        },
+        {
             id: 'behavioral_separator',
             type: 'description',
-            title: '5. Purchase Behavior (Optional for Frequency Analysis)',
+            title: '3. Purchase Behavior (for Frequency Analysis)',
             content: 'A few questions about your purchasing habits.'
         },
         {
@@ -223,6 +212,27 @@ export const turfTemplate = {
             description: '1 - Not important at all, 5 - Extremely important',
             required: false,
             scale: ['1','2','3','4','5'],
+        },
+         {
+            id: 'preference_strength_separator',
+            type: 'description',
+            title: '4. Preference Strength (for Weighted TURF)',
+            content: 'Help us understand how much you like the options.'
+        },
+        {
+            id: 'likert_preference',
+            type: 'likert',
+            title: 'How much do you like each of the following products?',
+            rows: ['Premium Coffee Blend', 'Artisanal Tea Selection', 'Organic Juice Line', 'Gourmet Pastries', 'Healthy Snack Box'],
+            scale: ['Dislike', 'Neutral', 'Like'],
+            required: false
+        },
+        {
+            id: 'first_choice',
+            type: 'single',
+            title: 'Of all the products listed, which ONE would be your top choice?',
+            required: false,
+            options: ['Premium Coffee Blend', 'Artisanal Tea Selection', 'Organic Juice Line', 'Gourmet Pastries', 'Healthy Snack Box'],
         },
     ] as Question[],
 };
