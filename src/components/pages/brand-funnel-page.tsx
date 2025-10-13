@@ -8,7 +8,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info, Brain } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info, Brain, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LineChart, Line } from 'recharts';
@@ -153,7 +153,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 const ans = resp.answers as any;
                 const aware = (ans[q_aware.id] as string[]) || [];
                 const consider = (ans[q_consider.id] as string[]) || [];
-                const prefer = ans[q_prefer.id] as string;
+                const prefer = (ans[q_prefer.id] as string);
                 const usage = (ans[q_usage.id] as string[]) || [];
 
                 brandList.forEach(brand => {
@@ -190,7 +190,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
         handleAnalysis();
     }, [handleAnalysis]);
 
-    if (loading) {
+    if (isLoading) {
         return (
             <Card>
                 <CardContent className="p-6 text-center">
@@ -213,11 +213,12 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
 
     if (!results) {
         return (
-            <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>No Data</AlertTitle>
-                <AlertDescription>No analysis results available.</AlertDescription>
-            </Alert>
+            <Card className="shadow-lg">
+                <CardContent className="p-12 text-center text-muted-foreground">
+                    <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">No analysis results to display.</p>
+                </CardContent>
+            </Card>
         );
     }
 
@@ -402,7 +403,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                 {/* Visual Funnel */}
                                 <div className="space-y-3 mb-6">
                                     {Object.entries(displayData).map(([stage, value], idx) => {
-                                        const widthPercentage = (value / displayData.awareness) * 100;
+                                        const widthPercentage = (value / (displayData.awareness || 1)) * 100;
                                         const Icon = STAGE_ICONS[stage as keyof typeof STAGE_ICONS];
                                         const color = STAGE_COLORS[stage as keyof typeof STAGE_COLORS];
                                         const prevValue = idx > 0 ? Object.values(displayData)[idx - 1] : null;
@@ -544,17 +545,17 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                                         {brand}
                                                     </td>
                                                     <td className="text-right p-3">
-                                                        {((conversionData?.awareness_to_consideration) ?? 0).toFixed(1)}%
+                                                        {(conversionData?.awareness_to_consideration ?? 0).toFixed(1)}%
                                                     </td>
                                                     <td className="text-right p-3">
-                                                        {((conversionData?.consideration_to_preference) ?? 0).toFixed(1)}%
+                                                        {(conversionData?.consideration_to_preference ?? 0).toFixed(1)}%
                                                     </td>
                                                     <td className="text-right p-3">
-                                                        {((conversionData?.preference_to_usage) ?? 0).toFixed(1)}%
+                                                        {(conversionData?.preference_to_usage ?? 0).toFixed(1)}%
                                                     </td>
                                                     <td className="text-right p-3">
                                                         <Badge variant="default">
-                                                            {((conversionData?.awareness_to_usage) ?? 0).toFixed(1)}%
+                                                            {(conversionData?.awareness_to_usage ?? 0).toFixed(1)}%
                                                         </Badge>
                                                     </td>
                                                 </tr>
@@ -838,3 +839,5 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
         </div>
     );
 }
+
+    
