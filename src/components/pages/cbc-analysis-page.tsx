@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -90,58 +89,26 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             return;
         }
 
-        let analysisData: any[] = [];
-        
-        responses.forEach((resp, respIndex) => {
-            const answer = resp.answers[conjointQuestion.id];
-            if (!answer || typeof answer !== 'string') return;
-
-            const chosenProfileId = answer;
+        const analysisData: any[] = [];
+        responses.forEach(resp => {
+            const answerBlock = resp.answers[conjointQuestion.id];
+            if (!answerBlock || typeof answerBlock !== 'object') return;
             
-            // This assumes profiles were generated and stored for each user, which is a complex task.
-            // A more direct approach for analysis is to format the choice data itself.
-            // For now, let's find the profiles that were shown for this question.
-            // The logic to retrieve *which* profiles were shown to which user is missing.
-            // We will simulate it based on a simple interpretation of the survey structure.
-            // This part is likely where the error lies. The data format for conjoint is tricky.
-            
-            const profilesInSet = (conjointQuestion.profiles || []).filter((p: any) => p.respId === resp.id || !p.respId); // Simplified
-            
-            profilesInSet.forEach((profile: any) => {
-                 analysisData.push({
-                    ...profile,
-                    'resp.id': resp.id,
-                    choice: profile.id === chosenProfileId ? 1 : 0
-                });
+            Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
+                const presentedProfiles = (conjointQuestion.profiles || []).filter((p: any) => p.taskId === taskKey);
+                if (presentedProfiles.length > 0) {
+                    presentedProfiles.forEach((profile: any, altIndex: number) => {
+                         analysisData.push({
+                            'respondent_id': resp.id,
+                            'choice_set_id': taskKey,
+                            'alternative_id': altIndex + 1,
+                            ...profile.attributes,
+                            chosen: profile.id === chosenProfileId ? 1 : 0
+                        });
+                    });
+                }
             });
         });
-        
-        // Let's create a more robust analysisData structure that doesn't rely on pre-generated profiles.
-        // It will be a long-format dataframe of choices.
-        analysisData = [];
-        responses.forEach((resp, respIndex) => {
-            const answer = resp.answers[conjointQuestion.id];
-            if (!answer || typeof answer !== 'string') return;
-            const chosenProfileId = answer;
-
-            const taskKey = chosenProfileId.split('_')[0]; // e.g. "task1" from "task1_profile2"
-            
-            // Reconstruct the profiles shown in this task
-            // This is a major assumption. A real CBC would store the presented design.
-            const presentedProfiles = conjointQuestion.profiles?.filter((p: any) => p.id.startsWith(taskKey)) || [];
-
-             if (presentedProfiles.length > 0) {
-                presentedProfiles.forEach((profile: any) => {
-                     analysisData.push({
-                        'resp.id': resp.id,
-                        'task': taskKey,
-                        ...profile.attributes,
-                        choice: profile.id === chosenProfileId ? 1 : 0
-                    });
-                });
-            }
-        });
-
 
         if (analysisData.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
@@ -168,7 +135,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 body: JSON.stringify({
                     data: analysisData,
                     attributes: attributesForBackend,
-                    targetVariable: 'choice',
+                    targetVariable: 'chosen',
                     scenarios: simulationScenarios
                 })
             });
@@ -442,3 +409,20 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         </div>
     );
 }
+
+// --- STEP INDICATOR (unchanged) --- //
+const StepIndicator = ({ currentStep }: { currentStep: number }) => (
+    <div className="flex items-center justify-center p-4">
+      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
+        <React.Fragment key={index}>
+          <div className="flex flex-col items-center">
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
+            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
+          </div>
+          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+    
