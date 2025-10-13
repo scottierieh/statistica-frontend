@@ -66,6 +66,7 @@ import {
   AlertTriangle,
   CheckSquare,
   Clock,
+  Filter,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -569,3 +570,5 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+    
