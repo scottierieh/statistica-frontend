@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import { SpecialAnalysisPalette } from '@/components/survey/SpecialAnalysisPalette';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate, rankingConjointTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 import SurveyView from '@/components/survey-view';
 import { cn } from '@/lib/utils';
@@ -79,6 +79,9 @@ export default function CreateSurveyPage() {
                 break;
             case 'rating-conjoint':
                 selectedTemplate = ratingBasedConjointTemplate;
+                break;
+            case 'ranking-conjoint':
+                selectedTemplate = rankingConjointTemplate;
                 break;
             case 'ipa':
                 selectedTemplate = ipaTemplate;
@@ -201,7 +204,9 @@ export default function CreateSurveyPage() {
       scale: ['semantic-differential', 'likert'].includes(type) ? ['Very Unlikely', 'Unlikely', 'Slightly Unlikely', 'Neutral', 'Slightly Likely', 'Likely', 'Very Likely'] : type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       numScalePoints: ['semantic-differential', 'likert'].includes(type) ? 7 : undefined,
       content: type === 'description' ? 'This is a description block.' : '',
-      attributes: type === 'conjoint' || type === 'rating-conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
+      attributes: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
+      sets: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 1 : undefined,
+      cardsPerSet: type === 'conjoint' ? 1 : undefined,
       criteria: type === 'ahp' ? [{id:'c1', name:'Quality'}, {id:'c2', name:'Price'}, {id:'c3', name:'Service'}] : [],
       alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
@@ -234,7 +239,7 @@ export default function CreateSurveyPage() {
               }));
             } else { // startPage
               setSurvey(produce(draft => {
-                if (!draft.startPage) draft.startPage = {};
+                if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
                 if (target.field === 'logo') {
                   if (!draft.startPage.logo) draft.startPage.logo = {};
                   draft.startPage.logo.src = imageUrl;
