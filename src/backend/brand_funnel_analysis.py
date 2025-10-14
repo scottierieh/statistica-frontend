@@ -85,18 +85,20 @@ class BrandFunnelAnalysis:
         self.conversion_rates = rates.replace([np.inf, -np.inf], np.nan)
         return self.conversion_rates
     
-    def calculate_market_share(self) -> pd.DataFrame:
-        """Calculate market share at each funnel stage"""
-        market_share = pd.DataFrame(index=self.funnel_data.index)
+    def calculate_market_share(self) -> list:
+        """Calculate market share at each funnel stage and return as a list of dicts."""
+        market_share_df = pd.DataFrame(index=self.funnel_data.index)
         
         for stage in ['awareness', 'consideration', 'preference', 'usage']:
             total = self.funnel_data[stage].sum()
             if total > 0:
-                market_share[f'{stage}_share'] = (self.funnel_data[stage] / total) * 100
+                market_share_df[f'{stage}_share'] = (self.funnel_data[stage] / total) * 100
             else:
-                market_share[f'{stage}_share'] = 0
+                market_share_df[f'{stage}_share'] = 0
         
-        return market_share
+        # Convert DataFrame to list of dictionaries
+        return market_share_df.reset_index().rename(columns={'index': 'brand'}).to_dict('records')
+
 
     def calculate_funnel_efficiency(self) -> pd.DataFrame:
         """Calculate overall funnel efficiency"""
@@ -194,7 +196,11 @@ class BrandFunnelAnalysis:
         """Generate key insights from the analysis"""
         efficiency_df = self.calculate_funnel_efficiency().where(pd.notnull(self.calculate_funnel_efficiency()), 0)
         bottlenecks_df = self.identify_bottlenecks()
-        market_share_df = self.calculate_market_share().where(pd.notnull(self.calculate_market_share()), 0)
+        
+        # We need to call calculate_market_share and convert it back to a DataFrame for this method
+        market_share_list = self.calculate_market_share()
+        market_share_df = pd.DataFrame(market_share_list).set_index('brand')
+
         conversion_rates_df = self.conversion_rates.copy().fillna(0)
 
         insights = {
@@ -227,14 +233,10 @@ class BrandFunnelAnalysis:
         """Export analysis results to JSON-serializable dictionary"""
         self.calculate_conversion_rates()
         
-        # market_share 계산 및 변환
-        market_share_df = self.calculate_market_share().fillna(0)
-        market_share_list = market_share_df.reset_index().rename(columns={'index': 'brand'}).to_dict('records')
-        
         results = {
             'funnel_data': self.funnel_data.to_dict('index'),
             'conversion_rates': self.conversion_rates.where(pd.notnull(self.conversion_rates), None).to_dict('index'),
-            'market_share': market_share_list,
+            'market_share': self.calculate_market_share(),
             'efficiency': self.calculate_funnel_efficiency().where(pd.notnull(self.calculate_funnel_efficiency()), None).to_dict('index'),
             'bottlenecks': self.identify_bottlenecks().to_dict('records'),
             'drop_off': self.calculate_drop_off(),
