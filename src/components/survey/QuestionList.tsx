@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2, Star, Sigma } from "lucide-react";
+import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Network, Shuffle, RefreshCw, Save, Replace, PlusCircle, Copy, Sparkles, FileText, CheckCircle2, Star, Sigma, ArrowDownUp } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Survey, Question, ConjointAttribute, Criterion } from '@/entities/Survey';
@@ -878,11 +878,10 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
             return;
         }
 
-        const totalSets = question.sets || 1;
-        
         let generatedProfiles: any[] = [];
         
         if (question.type === 'conjoint') { // CBC Logic
+            const totalSets = question.sets || 1;
             const cardsPerSet = question.cardsPerSet || 1;
             for (let i = 0; i < totalSets; i++) {
                 for (let j = 0; j < cardsPerSet; j++) {
@@ -890,12 +889,13 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                     attributes.forEach((attr: any) => {
                         profileAttributes[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
                     });
-                    const profile = { id: `profile_${i}_${j}`, taskId: `task_${i}`, attributes: profileAttributes };
+                     const profile = { id: `profile_${i}_${j}`, taskId: `task_${i}`, attributes: profileAttributes };
                     generatedProfiles.push(profile);
                 }
             }
              setGenerationMessage(`Generated ${totalSets} tasks with ${cardsPerSet} profiles each. Total profiles: ${generatedProfiles.length}`);
         } else { // Rating and Ranking Logic
+            const totalSets = question.sets || 1;
             // Full factorial design
             const allCombinations = attributes.reduce((acc: any, attr: any) => {
                 const newAcc: any[] = [];
@@ -967,7 +967,8 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                     <h4 className="font-semibold text-sm">2. Experimental Design</h4>
                     <div className="p-4 border rounded-lg bg-slate-50 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                             {question.type === 'conjoint' && (
+                             {question.type === 'conjoint' ? (
+                                <>
                                 <div>
                                    <Label>Design Method</Label>
                                    <Select value={question.designMethod || 'full-factorial'} onValueChange={(v) => handleUpdate('designMethod', v)}>
@@ -980,15 +981,19 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                                        </SelectContent>
                                    </Select>
                                 </div>
-                             )}
-                             <div>
-                               <Label>Number of Sets</Label>
-                               <Input type="number" value={question.sets ?? 1} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
-                            </div>
-                             {question.type === 'conjoint' && (
+                                <div>
+                                <Label>Number of Sets</Label>
+                                <Input type="number" value={question.sets ?? 1} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
+                                </div>
                                 <div>
                                 <Label>Cards per Set</Label>
                                 <Input type="number" value={question.cardsPerSet ?? 1} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                                </div>
+                                </>
+                             ) : ( // Rating and Ranking
+                                <div>
+                                <Label>Number of Sets</Label>
+                                <Input type="number" value={question.sets ?? 1} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
                                 </div>
                              )}
                         </div>
@@ -1004,7 +1009,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                 {question.profiles && question.profiles.length > 0 && (
                    <div className="mt-6">
                        <h4 className="font-semibold mb-2 text-center text-sm">Example Card Set</h4>
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                       <div className={`grid grid-cols-1 md:grid-cols-${Math.min(question.cardsPerSet || 1, 4)} gap-3 p-4 bg-muted/50 rounded-lg`}>
                            {(question.profiles.slice(0, question.cardsPerSet || 1) || []).map((profile: any, index: number) => (
                                <Card key={profile.id} className="text-left bg-white">
                                    <CardHeader className="p-3"><CardTitle className="text-sm">Option {index + 1}</CardTitle></CardHeader>
@@ -1257,6 +1262,3 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
-
-
-    
