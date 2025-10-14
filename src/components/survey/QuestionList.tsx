@@ -882,7 +882,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
         
         if (question.type === 'conjoint') { // CBC Logic
             const totalSets = question.sets ?? 1;
-            const cardsPerSet = question.cardsPerSet ?? 3;
+            const cardsPerSet = question.cardsPerSet ?? 1;
             for (let i = 0; i < totalSets; i++) {
                 for (let j = 0; j < cardsPerSet; j++) {
                     const profileAttributes: {[key: string]: string} = {};
@@ -895,15 +895,21 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
             }
              setGenerationMessage(`Generated ${totalSets} tasks with ${cardsPerSet} profiles each. Total profiles: ${generatedProfiles.length}`);
         } else { // Rating and Ranking Logic - Full Factorial
-            const allCombinations = attributes.reduce((acc: any, attr: any) => {
+             const allCombinations = attributes.reduce((acc: any, attr: any) => {
                 const newAcc: any[] = [];
-                acc.forEach((existingCombo: any) => {
+                if (acc.length === 0) {
                     attr.levels.forEach((level: any) => {
-                        newAcc.push({ ...existingCombo, [attr.name]: level });
+                        newAcc.push({ [attr.name]: level });
                     });
-                });
+                } else {
+                    acc.forEach((existingCombo: any) => {
+                        attr.levels.forEach((level: any) => {
+                            newAcc.push({ ...existingCombo, [attr.name]: level });
+                        });
+                    });
+                }
                 return newAcc;
-            }, [{}]);
+            }, []);
 
             // Distribute among sets
             const totalSets = question.sets ?? 1;
@@ -986,7 +992,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                                 </div>
                                 <div>
                                 <Label>Cards per Set</Label>
-                                <Input type="number" value={question.cardsPerSet ?? 3} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                                <Input type="number" value={question.cardsPerSet ?? 1} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
                                 </div>
                                 </>
                              ) : ( // Rating and Ranking
