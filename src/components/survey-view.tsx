@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -22,7 +21,9 @@ import type { Question, ConjointAttribute, Survey, SurveyResponse, Criterion } f
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { arrayMove } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
@@ -107,7 +108,7 @@ const TextQuestion = ({ question, answer, onAnswerChange, styles}: { question: Q
 );
 
 const NumberQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: string, onAnswerChange: (value: any) => void, styles: any }) => (
-        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+    <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
         {question.description && <p className="text-xs text-muted-foreground mb-3 whitespace-pre-wrap">{question.description}</p>}
@@ -528,6 +529,90 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNe
     );
 };
 
+const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNextTask, isLastQuestion, submitSurvey }: { question: Question; answer: string[], onAnswerChange: (value: any) => void; styles: any; onNextTask: () => void; isLastQuestion: boolean; submitSurvey: () => void }) => {
+    const { attributes = [], profiles = [] } = question;
+    const [rankedItems, setRankedItems] = useState(profiles || []);
+
+    const [currentTask, setCurrentTask] = useState(0);
+
+    const tasks = useMemo(() => {
+        const groupedProfiles: { [taskId: string]: any[] } = {};
+        (profiles || []).forEach(p => {
+            if (!groupedProfiles[p.taskId]) {
+                groupedProfiles[p.taskId] = [];
+            }
+            groupedProfiles[p.taskId].push(p);
+        });
+        return Object.values(groupedProfiles);
+    }, [profiles]);
+
+    const handleReorder = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setRankedItems((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+                onAnswerChange(newOrder.map(item => item.id));
+                return newOrder;
+            });
+        }
+    };
+    
+    const handleNextTask = () => {
+        if (currentTask < tasks.length - 1) {
+            setCurrentTask(currentTask + 1);
+        } else if (isLastQuestion) {
+            submitSurvey();
+        } else {
+            onNextTask();
+        }
+    };
+    
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+    return (
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+             <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
+             <p className="text-xs text-muted-foreground mb-3">Drag and drop the cards to rank them from your most preferred (top) to least preferred (bottom).</p>
+             <div className="space-y-2">
+                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
+                    <SortableContext items={rankedItems.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                        {rankedItems.map((profile, index) => (
+                            <SortableCard key={profile.id} id={profile.id} profile={profile} index={index} attributes={question.attributes} />
+                        ))}
+                    </SortableContext>
+                 </DndContext>
+             </div>
+             <div className="text-right mt-4">
+                <Button onClick={handleNextTask}>Next</Button>
+            </div>
+        </div>
+    )
+};
+
+const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
+    const { attributes: dndAttributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+    return (
+        <div ref={setNodeRef} style={style} {...dndAttributes} {...listeners} className="p-3 bg-white border shadow-sm rounded-lg flex items-center gap-3">
+             <span className="font-bold text-lg text-primary">#{index + 1}</span>
+            <div className="flex-1 text-xs">
+                {(attributes || []).map(attr => (
+                    <div key={attr.id} className="flex justify-between">
+                        <span className="text-muted-foreground">{attr.name}:</span>
+                        <span>{profile.attributes[attr.name]}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+};
+
+
 const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any; }) => {
     
     const scale = [-9, -7, -5, -3, 1, 3, 5, 7, 9];
@@ -644,63 +729,6 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
         </div>
     );
 };
-
-const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: string[], onAnswerChange: (value: any) => void; styles: any; }) => {
-    const [rankedItems, setRankedItems] = useState(question.profiles || []);
-
-    const handleReorder = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            setRankedItems((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                const newOrder = arrayMove(items, oldIndex, newIndex);
-                onAnswerChange(newOrder.map(item => item.id));
-                return newOrder;
-            });
-        }
-    };
-    
-    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-
-    return (
-        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-             <p className="text-xs text-muted-foreground mb-3">Drag and drop the cards to rank them from your most preferred (top) to least preferred (bottom).</p>
-             <div className="space-y-2">
-                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
-                    <SortableContext items={rankedItems.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                        {rankedItems.map((profile, index) => (
-                            <SortableCard key={profile.id} id={profile.id} profile={profile} index={index} attributes={question.attributes} />
-                        ))}
-                    </SortableContext>
-                 </DndContext>
-             </div>
-        </div>
-    )
-};
-
-const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
-    const { attributes: dndAttributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
-    return (
-        <div ref={setNodeRef} style={style} {...dndAttributes} {...listeners} className="p-3 bg-white border shadow-sm rounded-lg flex items-center gap-3">
-             <span className="font-bold text-lg text-primary">#{index + 1}</span>
-            <div className="flex-1 text-xs">
-                {(attributes || []).map(attr => (
-                    <div key={attr.id} className="flex justify-between">
-                        <span className="text-muted-foreground">{attr.name}:</span>
-                        <span>{profile.attributes[attr.name]}</span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-};
-
 
 const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'tablet' | 'desktop'; children: React.ReactNode }) => {
   const frameStyles = {
