@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line, Bar } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -346,7 +346,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                 </TabsContent>
                  <TabsContent value="simulation" className="mt-4">
                     <Card>
-                        <CardHeader><CardTitle>Market Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle>Preference Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference shares.</CardDescription></CardHeader>
                         <CardContent>
                             <div className="grid md:grid-cols-3 gap-4 mb-4">
                                 {scenarios.map((scenario, index) => (
@@ -369,14 +369,14 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                             <Button onClick={runSimulation} disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin mr-2"/> : null} Run Simulation</Button>
                             {simulationResult && (
                                 <div className="mt-4">
-                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
+                                    <ChartContainer config={{preferenceShare: {label: 'Preference Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
                                       <ResponsiveContainer>
                                           <BarChart data={simulationResult}>
                                               <CartesianGrid strokeDasharray="3 3" />
                                               <XAxis dataKey="name" />
                                               <YAxis unit="%"/>
                                               <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
-                                              <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                              <Bar dataKey="preferenceShare" name="Preference Share (%)" fill="var(--color-preferenceShare)" radius={4} />
                                           </BarChart>
                                       </ResponsiveContainer>
                                     </ChartContainer>

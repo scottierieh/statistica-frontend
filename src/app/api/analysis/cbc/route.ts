@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -7,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
-    const scriptPath = path.resolve(process.cwd(), 'backend', 'conjoint_analysis.py');
+    const scriptPath = path.resolve(process.cwd(), 'backend', 'cbc_analysis.py');
 
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
     
@@ -57,3 +58,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+

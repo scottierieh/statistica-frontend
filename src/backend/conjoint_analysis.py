@@ -1,10 +1,12 @@
 
+
 import sys
 import json
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -27,93 +29,182 @@ def main():
         payload = json.load(sys.stdin)
         data = payload.get('data')
         attributes = payload.get('attributes')
+        target_variable = payload.get('targetVariable')
+        segment_variable = payload.get('segmentVariable')
         scenarios = payload.get('scenarios')
-        
-        if not data or not attributes:
-            raise ValueError("Missing 'data' or 'attributes'")
-        
+
+        if not all([data, attributes, target_variable]):
+            raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
+
         df = pd.DataFrame(data)
 
-        # --- Data Preparation for Logistic Regression ---
-        y = df['chosen']
-        
-        X_list = []
-        feature_names = []
-        original_levels_map = {}
-        
-        for attr_name, props in attributes.items():
-            if props.get('includeInAnalysis', True):
+        def run_conjoint_analysis(sub_df, sub_attributes):
+            X_list, feature_names, original_levels_map = [], [], {}
+            
+            independent_vars = [attr for attr, props in sub_attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
+            
+            all_cols_to_check = independent_vars + [target_variable]
+            sub_df_clean = sub_df[all_cols_to_check].copy()
+            
+            for col in all_cols_to_check:
+                if col == target_variable:
+                    sub_df_clean[col] = pd.to_numeric(sub_df_clean[col], errors='coerce')
+                else:
+                    sub_df_clean[col] = sub_df_clean[col].astype(str)
+
+            sub_df_clean.dropna(inplace=True)
+
+            if sub_df_clean.empty: return None
+
+            for attr_name in independent_vars:
+                props = sub_attributes[attr_name]
                 if props['type'] == 'categorical':
-                    df[attr_name] = df[attr_name].astype('category')
-                    levels = df[attr_name].cat.categories
-                    original_levels_map[attr_name] = levels.tolist()
-                    
-                    # Create dummy variables, dropping one level as baseline
-                    dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True).astype(int)
+                    sub_df_clean[attr_name] = sub_df_clean[attr_name].astype('category')
+                    original_levels_map[attr_name] = sub_df_clean[attr_name].cat.categories.tolist()
+                    dummies = pd.get_dummies(sub_df_clean[attr_name], prefix=attr_name, drop_first=True).astype(int)
                     X_list.append(dummies)
                     feature_names.extend(dummies.columns.tolist())
-        
-        if not X_list:
-            raise ValueError("No valid features for analysis.")
-
-        X = pd.concat(X_list, axis=1)
-
-        # --- Aggregate Logit Model ---
-        model = LogisticRegression(fit_intercept=True, solver='liblinear', random_state=42)
-        model.fit(X, y)
-        
-        # --- Part-Worths Calculation ---
-        part_worths = []
-        # Add intercept as the base utility
-        part_worths.append({'attribute': 'Base', 'level': 'Intercept', 'value': model.intercept_[0]})
-
-        coeff_map = dict(zip(X.columns, model.coef_[0]))
-        
-        total_utility_range = {}
-
-        for attr_name, levels in original_levels_map.items():
-            # The baseline level (first one) has a part-worth of 0 relative to other levels
-            base_level_worth = 0
-            part_worths.append({'attribute': attr_name, 'level': levels[0], 'value': base_level_worth})
+                elif props['type'] == 'numerical':
+                    scaler = StandardScaler()
+                    scaled_feature = scaler.fit_transform(sub_df_clean[[attr_name]])
+                    X_list.append(pd.DataFrame(scaled_feature, columns=[f"{attr_name}_std"], index=sub_df_clean.index))
+                    feature_names.append(f"{attr_name}_std")
             
-            level_utilities = [base_level_worth]
-            
-            # Other levels' part-worths are their coefficients
-            for level in levels[1:]:
-                feature_name = f"{attr_name}_{level}"
-                utility = coeff_map.get(feature_name, 0)
-                part_worths.append({'attribute': attr_name, 'level': level, 'value': utility})
-                level_utilities.append(utility)
+            if not X_list: return None
 
-            # Calculate range for importance
-            total_utility_range[attr_name] = max(level_utilities) - min(level_utilities)
+            X = pd.concat(X_list, axis=1)
+            y = sub_df_clean[target_variable]
+            
+            if len(X) < len(feature_names) + 1:
+                return None
+
+            model = LinearRegression()
+            model.fit(X, y)
+            y_pred = model.predict(X)
+            
+            r_squared = r2_score(y, y_pred)
+            adj_r_squared = 1 - (1 - r_squared) * (len(y) - 1) / (len(y) - X.shape[1] - 1) if (len(y) - X.shape[1] - 1) > 0 else r_squared
+            
+            coefficients = np.concatenate([[model.intercept_], model.coef_])
+            
+            # Reconstruct coefficients for all levels
+            full_coeffs = {'intercept': coefficients[0]}
+            coeff_index = 1
+            for attr_name in independent_vars:
+                 if sub_attributes[attr_name]['type'] == 'categorical':
+                    levels = original_levels_map.get(attr_name, [])
+                    # Base level (first one) has a utility of 0
+                    full_coeffs[f"{attr_name}_{levels[0]}"] = 0
+                    # Other levels get coefficients from the model
+                    for level in levels[1:]:
+                        full_coeffs[f"{attr_name}_{level}"] = coefficients[coeff_index]
+                        coeff_index += 1
+                 elif sub_attributes[attr_name]['type'] == 'numerical':
+                    full_coeffs[f"{attr_name}_std"] = coefficients[coeff_index]
+                    coeff_index += 1
+
+            regression_results = {
+                'rSquared': r_squared,
+                'adjustedRSquared': adj_r_squared,
+                'predictions': y_pred.tolist(),
+                'intercept': model.intercept_,
+                'coefficients': dict(zip(feature_names, model.coef_))
+            }
+            
+            part_worths = []
+            for attr_name in independent_vars:
+                props = sub_attributes[attr_name]
+                if props['type'] == 'categorical':
+                    level_names = original_levels_map.get(attr_name, [])
+                    level_worths = []
+                    for level in level_names:
+                        coef_name = f"{attr_name}_{level}"
+                        level_worths.append(full_coeffs.get(coef_name, 0))
+                    
+                    mean_worth = np.mean(level_worths) if level_worths else 0
+                    zero_centered_worths = [w - mean_worth for w in level_worths]
+
+                    for i, level in enumerate(level_names):
+                        part_worths.append({'attribute': attr_name, 'level': level, 'value': zero_centered_worths[i]})
+
+            attribute_ranges = {}
+            for attr_name in independent_vars:
+                 level_worths = [pw['value'] for pw in part_worths if pw['attribute'] == attr_name]
+                 attribute_ranges[attr_name] = max(level_worths) - min(level_worths) if level_worths else 0
+
+            total_range = sum(attribute_ranges.values())
+            importance = [{'attribute': attr, 'importance': (val / total_range) * 100 if total_range > 0 else 0} for attr, val in attribute_ranges.items()]
+            importance.sort(key=lambda x: x['importance'], reverse=True)
+            
+            optimal_profile = {}
+            total_utility = regression_results['intercept']
+            for attr_name in independent_vars:
+                if sub_attributes[attr_name]['type'] == 'categorical':
+                    attr_worths = [p for p in part_worths if p['attribute'] == attr_name]
+                    if not attr_worths: continue
+                    best_level = max(attr_worths, key=lambda x: x['value'])
+                    optimal_profile[attr_name] = best_level['level']
+                    total_utility += best_level['value']
+
+            return {
+                'regression': regression_results,
+                'partWorths': part_worths,
+                'importance': importance,
+                'targetVariable': target_variable,
+                'optimalProduct': { 'config': optimal_profile, 'totalUtility': total_utility }
+            }
+
+        def run_simulation(scenarios_to_sim, analysis_res):
+            def predict_utility(profile):
+                utility = analysis_res['regression']['intercept']
+                for attr, level in profile.items():
+                    if attr == 'name': continue
+                    pw = next((p for p in analysis_res['partWorths'] if p['attribute'] == attr and str(p['level']) == str(level)), None)
+                    if pw:
+                        utility += pw['value']
+                return utility
+            
+            scenario_utilities = [predict_utility(sc) for sc in scenarios_to_sim]
+            
+            # Simple preference share (not market share)
+            total_utility = sum(scenario_utilities)
+            shares = [u / total_utility * 100 if total_utility > 0 else 0 for u in scenario_utilities]
+
+            return [{'name': sc['name'], 'preferenceShare': share} for sc, share in zip(scenarios_to_sim, shares)]
+
+        if segment_variable and segment_variable != '-' and segment_variable in df.columns:
+            segments = df[segment_variable].unique()
+            results_by_segment = {}
+            for segment in segments:
+                if pd.isna(segment): continue
+                sub_df = df[df[segment_variable] == segment]
+                segment_result = run_conjoint_analysis(sub_df, attributes)
+                if segment_result:
+                    results_by_segment[str(segment)] = segment_result
+            
+            overall_results = run_conjoint_analysis(df, attributes)
+            if overall_results:
+                overall_results['segmentation'] = {
+                    'segmentVariable': segment_variable,
+                    'resultsBySegment': results_by_segment
+                }
+                final_results = overall_results
+            else:
+                 raise ValueError("Could not compute overall conjoint analysis.")
+        else:
+            final_results = run_conjoint_analysis(df, attributes)
+            if not final_results:
+                 raise ValueError("Conjoint analysis failed. Check data and attribute configuration.")
         
-        # --- Importance Calculation ---
-        total_range_sum = sum(total_utility_range.values())
-        importance = []
-        if total_range_sum > 0:
-            for attr_name, range_val in total_utility_range.items():
-                importance.append({
-                    'attribute': attr_name,
-                    'importance': (range_val / total_range_sum) * 100
-                })
-        importance.sort(key=lambda x: x['importance'], reverse=True)
-        
-        final_results = {
-            'partWorths': part_worths,
-            'importance': importance,
-            'regression': {
-                'modelType': 'Aggregate Logit',
-                'coefficients': {**{'intercept': model.intercept_[0]}, **coeff_map}
-            },
-        }
+        if scenarios and final_results:
+            final_results['simulation'] = run_simulation(scenarios, final_results)
 
         print(json.dumps({'results': final_results}, default=_to_native_type))
 
     except Exception as e:
-        import traceback
-        print(json.dumps({"error": str(e), "trace": traceback.format_exc()}), file=sys.stderr)
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
     main()
+
