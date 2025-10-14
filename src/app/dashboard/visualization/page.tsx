@@ -1,4 +1,6 @@
 
+'use client';
+
 export default function VisualizationPage() {
     const css = `
         .container { max-width: 1400px; margin: 0 auto; }
@@ -41,12 +43,7 @@ export default function VisualizationPage() {
     `;
 
     return (
-        <div style={{
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '40px 20px',
-            minHeight: '100vh',
-        }}>
+        <div className="bg-slate-50 p-5 md:p-10 min-h-screen">
             <style>{css}</style>
             <div className="container">
                 <div className="header-card">
@@ -227,7 +224,7 @@ export default function VisualizationPage() {
                         </div>
                     </div>
                 </div>
-
+                
                 <div className="category-section">
                     <div className="category-header">
                         <div className="category-title">
@@ -253,6 +250,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Probability</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -273,6 +271,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Comparison</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -290,6 +289,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Percentiles</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -310,6 +310,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Density</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -332,7 +333,7 @@ export default function VisualizationPage() {
                         </div>
                     </div>
                 </div>
-
+                
                 <div className="category-section">
                     <div className="category-header">
                         <div className="category-title">
@@ -363,6 +364,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Social Network</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -382,6 +384,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Path Analysis</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -403,6 +406,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Matrix Flow</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -426,7 +430,7 @@ export default function VisualizationPage() {
                         </div>
                     </div>
                 </div>
-
+                
                 <div className="category-section">
                     <div className="category-header">
                         <div className="category-title">
@@ -459,6 +463,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Clean Design</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -480,6 +485,7 @@ export default function VisualizationPage() {
                                 <span className="tag">ABC Analysis</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -500,6 +506,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Multi-level</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -522,7 +529,7 @@ export default function VisualizationPage() {
                         </div>
                     </div>
                 </div>
-
+                
                 <div className="category-section">
                     <div className="category-header">
                         <div className="category-title">
@@ -554,6 +561,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Correlation</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -574,6 +582,7 @@ export default function VisualizationPage() {
                                 <span className="tag">Proportions</span>
                             </div>
                         </div>
+                        
                         <div className="chart-card">
                             <div className="chart-header">
                                 <div className="chart-info">
@@ -596,7 +605,7 @@ export default function VisualizationPage() {
                         </div>
                     </div>
                 </div>
-
+                
                 <div className="info-alert">
                     <svg className="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
