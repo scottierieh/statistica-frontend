@@ -8,6 +8,7 @@ import type { Survey, SurveyResponse } from '@/types/survey';
 import { Skeleton } from '@/components/ui/skeleton';
 import CbcAnalysisPage from '@/components/pages/cbc-analysis-page';
 import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analysis-page';
+import RankingConjointAnalysisPage from '@/components/pages/ranking-conjoint-analysis-page';
 import IpaPage from '@/components/pages/ipa-page';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
@@ -56,6 +57,9 @@ export default function SurveyAnalysis() {
         }
         if (survey.questions.some(q => q.type === 'rating-conjoint')) {
              analyses.push({ key: 'rating-conjoint', label: 'Conjoint (Rating)', component: <RatingConjointAnalysisPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => q.type === 'ranking-conjoint')) {
+             analyses.push({ key: 'ranking-conjoint', label: 'Conjoint (Ranking)', component: <RankingConjointAnalysisPage survey={survey} responses={responses} /> });
         }
         
         const ipaQuestion = survey.questions.find(q =>
