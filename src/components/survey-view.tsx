@@ -22,6 +22,7 @@ import type { Question, ConjointAttribute, Survey, SurveyResponse, Criterion } f
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { arrayMove } from '@dnd-kit/sortable';
 
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
@@ -434,7 +435,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview,
                              {(attributes || []).map(attr => (
                                 <div key={attr.id} className="flex justify-between items-center text-xs py-1 border-b last:border-b-0">
                                     <span className="font-medium text-muted-foreground">{attr.name}:</span>
-                                    <span className="font-bold text-foreground">{profile[attr.name]}</span>
+                                    <span className="font-bold text-foreground">{profile.attributes[attr.name]}</span>
                                 </div>
                             ))}
                         </CardContent>
@@ -502,7 +503,7 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNe
                              {(attributes || []).map(attr => (
                                 <div key={attr.id} className="flex justify-between items-center text-xs py-1 border-b last:border-b-0">
                                     <span className="font-medium text-muted-foreground w-16 text-left">{attr.name}:</span>
-                                    <span className="font-semibold flex-1 text-right">{profile[attr.name]}</span>
+                                    <span className="font-semibold flex-1 text-right">{profile.attributes[attr.name]}</span>
                                 </div>
                             ))}
                         </CardContent>
@@ -642,6 +643,62 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
             </div>
         </div>
     );
+};
+
+const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: string[], onAnswerChange: (value: any) => void; styles: any; }) => {
+    const [rankedItems, setRankedItems] = useState(question.profiles || []);
+
+    const handleReorder = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setRankedItems((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+                onAnswerChange(newOrder.map(item => item.id));
+                return newOrder;
+            });
+        }
+    };
+    
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+    return (
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+             <p className="text-xs text-muted-foreground mb-3">Drag and drop the cards to rank them from your most preferred (top) to least preferred (bottom).</p>
+             <div className="space-y-2">
+                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
+                    <SortableContext items={rankedItems.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                        {rankedItems.map((profile, index) => (
+                            <SortableCard key={profile.id} id={profile.id} profile={profile} index={index} attributes={question.attributes} />
+                        ))}
+                    </SortableContext>
+                 </DndContext>
+             </div>
+        </div>
+    )
+};
+
+const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
+    const { attributes: dndAttributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+    return (
+        <div ref={setNodeRef} style={style} {...dndAttributes} {...listeners} className="p-3 bg-white border shadow-sm rounded-lg flex items-center gap-3">
+             <span className="font-bold text-lg text-primary">#{index + 1}</span>
+            <div className="flex-1 text-xs">
+                {(attributes || []).map(attr => (
+                    <div key={attr.id} className="flex justify-between">
+                        <span className="text-muted-foreground">{attr.name}:</span>
+                        <span>{profile.attributes[attr.name]}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
 };
 
 
@@ -992,4 +1049,3 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
-```
