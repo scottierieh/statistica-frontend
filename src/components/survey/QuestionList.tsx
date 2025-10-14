@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -879,17 +880,16 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
 
         const totalSets = question.sets || 1;
         const cardsPerSet = question.cardsPerSet || 1;
-        const numToGenerate = totalSets * cardsPerSet;
-        const totalCombinations = attributes.reduce((acc: number, attr: any) => acc * attr.levels.length, 1);
         
         const generatedProfiles: any[] = [];
         
         for (let i = 0; i < totalSets; i++) {
             for (let j = 0; j < cardsPerSet; j++) {
-                const profile: any = { id: `profile_${i}_${j}`, taskId: `task_${i}` };
+                const profileAttributes: {[key: string]: string} = {};
                 attributes.forEach((attr: any) => {
-                    profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
+                    profileAttributes[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
                 });
+                const profile = { id: `profile_${i}_${j}`, taskId: `task_${i}`, attributes: profileAttributes };
                 generatedProfiles.push(profile);
             }
         }
@@ -978,7 +978,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                                        {(question.attributes || []).map((attr: any) => (
                                            <div key={attr.id} className="text-xs flex justify-between py-1 border-b last:border-b-0">
                                                <span className="font-medium text-muted-foreground">{attr.name}:</span>
-                                               <span className="font-semibold">{profile[attr.name]}</span>
+                                               <span className="font-semibold">{profile.attributes[attr.name]}</span>
                                            </div>
                                        ))}
                                    </CardContent>
@@ -1223,3 +1223,6 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
+
+
+    
