@@ -882,14 +882,19 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
         
         if (question.type === 'conjoint') { // CBC Logic
             const totalSets = question.sets ?? 1;
-            const cardsPerSet = question.cardsPerSet ?? 1;
+            const cardsPerSet = question.cardsPerSet ?? 2;  // 1을 2로 변경
             for (let i = 0; i < totalSets; i++) {
                 for (let j = 0; j < cardsPerSet; j++) {
                     const profileAttributes: {[key: string]: string} = {};
                     attributes.forEach((attr: any) => {
                         profileAttributes[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
                     });
-                     const profile = { id: `profile_${i}_${j}`, taskId: `task_${i}`, attributes: profileAttributes };
+                    
+                    const profile = { 
+                        id: `profile_${i}_${j}`, 
+                        taskId: `task_${i}`, 
+                        attributes: profileAttributes
+                    };
                     generatedProfiles.push(profile);
                 }
             }

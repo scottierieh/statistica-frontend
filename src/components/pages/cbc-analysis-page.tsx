@@ -88,22 +88,41 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             const answerBlock = (resp.answers as any)[conjointQuestion.id];
             if (!answerBlock || typeof answerBlock !== 'object') return;
     
+            // 각 choice task에 대해 처리
             Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
-                const presentedProfiles = (conjointQuestion.profiles || []).filter((p: any) => p.taskId === taskKey);
+                // 해당 task에 제시된 모든 프로필 찾기
+                const presentedProfiles = (conjointQuestion.profiles || []).filter(
+                    (p: any) => p.taskId === taskKey
+                );
                 
-                if (presentedProfiles.length > 0) {
-                    presentedProfiles.forEach((profile: any) => {
-                        analysisData.push({
-                            'respondent_id': resp.id,
-                            'choice_set_id': taskKey,
-                            ...profile.attributes,
-                            chosen: profile.id === chosenProfileId ? 1 : 0
-                        });
-                    });
+                if (presentedProfiles.length === 0) {
+                    console.warn(`No profiles found for task ${taskKey}`);
+                    return;
                 }
+    
+                // 각 프로필에 대해 행 생성 (Exploded Logit)
+                presentedProfiles.forEach((profile: any) => {
+                    // profile.attributes가 존재하는지 확인
+                    if (!profile.attributes) {
+                        console.warn(`Profile ${profile.id} missing attributes:`, profile);
+                        return;
+                    }
+    
+                    const row: any = {
+                        respondent_id: resp.id,
+                        choice_set_id: taskKey,
+                        profile_id: profile.id,
+                        // 각 속성 값 펼치기
+                        ...profile.attributes,
+                        // 선택 여부: 선택된 프로필은 1, 나머지는 0
+                        chosen: profile.id === chosenProfileId ? 1 : 0
+                    };
+                    
+                    analysisData.push(row);
+                });
             });
         });
-
+        
         if (analysisData.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
             setIsLoading(false);
