@@ -16,5 +16,6 @@ factor-analyzer
 skl2onnx
 onnx
 onnxruntime
-rpy2==3.5.16
+semopy
+Cython==3.0.10
 cffi==1.16.0
