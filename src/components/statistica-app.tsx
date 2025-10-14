@@ -132,7 +132,6 @@ import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
 import HistoryPage from './pages/history-page';
 import BrandFunnelPage from './pages/brand-funnel-page';
-import SemPage from './pages/sem-page';
 
 
 const analysisCategories = [
@@ -204,7 +203,6 @@ const analysisCategories = [
             items: [
               { id: 'mediation', label: 'Mediation Analysis', icon: GitBranch, component: MediationPage },
               { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationPage },
-              { id: 'sem', label: 'Structural Equation (SEM)', icon: Network, component: SemPage },
             ]
           },
       ]
@@ -571,5 +569,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
-    
