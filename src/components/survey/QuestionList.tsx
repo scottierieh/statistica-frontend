@@ -951,11 +951,11 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                             </div>
                              <div>
                                <Label>Number of Sets</Label>
-                               <Input type="number" value={question.sets || 5} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
+                               <Input type="number" value={question.sets ?? 1} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
                             </div>
                              <div>
                                <Label>Cards per Set</Label>
-                               <Input type="number" value={question.cardsPerSet || 3} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                               <Input type="number" value={question.cardsPerSet ?? 1} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
                             </div>
                         </div>
                         <div className="flex flex-col items-center">
@@ -971,7 +971,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                    <div className="mt-6">
                        <h4 className="font-semibold mb-2 text-center text-sm">Example Card Set</h4>
                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
-                           {(question.profiles.slice(0, question.cardsPerSet || 3) || []).map((profile: any, index: number) => (
+                           {(question.profiles.slice(0, question.cardsPerSet || 1) || []).map((profile: any, index: number) => (
                                <Card key={profile.id} className="text-left bg-white">
                                    <CardHeader className="p-3"><CardTitle className="text-sm">Option {index + 1}</CardTitle></CardHeader>
                                    <CardContent className="p-3">
@@ -1200,7 +1200,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
                                                 question={q} 
                                                 onUpdate={handleUpdateQuestion} 
                                                 onDelete={() => handleDeleteQuestion(q.id)}
-                                                onImageUpload={() => onImageUpload({ type: 'question', id: q.id })}
+                                                onImageUpload={(id: string) => onImageUpload({ type: 'question', id })}
                                                 onDuplicate={() => onDuplicate(q.id)}
                                                 styles={styles}
                                                 questionNumber={index + 1}
