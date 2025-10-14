@@ -41,7 +41,10 @@ import {
     CandlestickChart,
     Pyramid,
     Orbit,
-    Hexagon
+    Hexagon,
+    ThumbsUp,
+    Grid3x3,
+    LayoutGrid,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,7 +111,7 @@ const chartCategories = {
         { name: "PCA Plot", description: "Principal component analysis visualization", icon: Component, tags: ["Factor Analysis", "Dimensionality"] },
         { name: "Cluster Plot", description: "Display data segmentation results", icon: Users, tags: ["Segmentation", "Clustering"] },
         { name: "Dendrogram", description: "Hierarchical clustering tree", icon: Network, tags: ["Hierarchy", "Clustering"] },
-        { name: "Heatmap", description: "Show correlation matrix with colors", icon: Heater, tags: ["Correlation", "Cross Analysis"] },
+        { name: "Heatmap", description: "Show correlation matrix with colors", icon: LayoutGrid, tags: ["Correlation", "Cross Analysis"] },
         { name: "QQ Plot", description: "Test for normal distribution", icon: Scaling, tags: ["Normality Test", "Assumptions"] },
         { name: "Scree Plot", description: "Show variance explained by factors", icon: BarChart, tags: ["PCA", "Factor Selection"] },
     ],
