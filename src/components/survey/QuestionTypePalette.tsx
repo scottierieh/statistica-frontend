@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -20,7 +21,8 @@ import {
   Network, 
   ClipboardList, 
   Replace,
-  Plus
+  Plus,
+  ArrowDownUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +44,7 @@ export const QuestionTypePalette = ({ onSelectType }: QuestionTypePaletteProps) 
       { type: 'single', label: 'Single Choice', icon: CircleDot, color: 'bg-blue-500', description: 'Select one option' },
       { type: 'multiple', label: 'Multiple Choice', icon: CheckSquare, color: 'bg-green-500', description: 'Select multiple' },
       { type: 'dropdown', label: 'Dropdown', icon: ChevronDown, color: 'bg-cyan-500', description: 'Dropdown list' },
-      { type: 'best-worst', label: 'Best/Worst', icon: ThumbsUp, color: 'bg-amber-500', description: 'Pick extremes' },
+      { type: 'best-worst', label: 'Best/Worst Choice', icon: ThumbsUp, color: 'bg-amber-500', description: 'Pick extremes' },
     ],
     'Text Input': [
       { type: 'text', label: 'Text', icon: CaseSensitive, color: 'bg-slate-500', description: 'Short text' },
@@ -60,6 +62,7 @@ export const QuestionTypePalette = ({ onSelectType }: QuestionTypePaletteProps) 
       { type: 'matrix', label: 'Matrix Grid', icon: Grid3x3, color: 'bg-purple-500', description: 'Multi-row questions' },
       { type: 'conjoint', label: 'Conjoint (Choice)', icon: Network, color: 'bg-violet-500', description: 'Choice analysis' },
       { type: 'rating-conjoint', label: 'Conjoint (Rating)', icon: ClipboardList, color: 'bg-orange-500', description: 'Rating analysis' },
+      { type: 'ranking-conjoint', label: 'Conjoint (Ranking)', icon: ArrowDownUp, color: 'bg-pink-500', description: 'Ranking analysis' },
     ],
     'Other': [
       { type: 'description', label: 'Description', icon: FileText, color: 'bg-gray-400', description: 'Text block' },

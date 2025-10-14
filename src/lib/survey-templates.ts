@@ -1,4 +1,5 @@
 
+
 import type { Question, Criterion } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
@@ -55,6 +56,35 @@ export const ratingBasedConjointTemplate = {
                 { id: 'profile_1', attributes: { Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' }},
                 { id: 'profile_2', attributes: { Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' }},
                 { id: 'profile_3', attributes: { Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' }},
+            ]
+        }
+    ],
+};
+
+export const rankingConjointTemplate = {
+    title: "Vacation Package Ranking (Conjoint)",
+    description: "Please rank the following vacation packages from most to least preferred.",
+    questions: [
+        {
+            id: 'ranking_desc',
+            type: 'description',
+            title: 'Instructions',
+            content: 'In the following task, please rank the vacation packages shown from your most preferred (Rank 1) to least preferred. You can drag and drop the cards to change their order.'
+        },
+        {
+            id: 'ranking_conjoint_q_1',
+            type: 'ranking-conjoint',
+            title: 'Please rank these vacation packages.',
+            required: true,
+            attributes: [
+                { id: `attr-r-1`, name: 'Destination', levels: ['Hawaii', 'Paris', 'Tokyo'] },
+                { id: `attr-r-2`, name: 'Duration', levels: ['7 Days', '10 Days'] },
+                { id: `attr-r-3`, name: 'Price', levels: ['$2000', '$3000'] },
+            ],
+            profiles: [
+                { id: 'profile_r_1', attributes: { Destination: 'Hawaii', Duration: '7 Days', Price: '$2000' }},
+                { id: 'profile_r_2', attributes: { Destination: 'Paris', Duration: '10 Days', Price: '$3000' }},
+                { id: 'profile_r_3', attributes: { Destination: 'Tokyo', Duration: '7 Days', Price: '$2000' }},
             ]
         }
     ],

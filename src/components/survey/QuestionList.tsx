@@ -844,7 +844,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
     );
 };
 
-const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUpload, styles, questionNumber }: any) => {
+const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     const [generationMessage, setGenerationMessage] = useState("");
 
     const handleUpdate = (type: 'attributes' | 'sets' | 'cardsPerSet' | 'designMethod', value: any) => {
@@ -989,6 +989,10 @@ const ConjointQuestion = ({ question, onUpdate, onDuplicate, onDelete, onImageUp
 };
 
 const RatingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+    return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} onImageUpload={onImageUpload} onDuplicate={onDuplicate} styles={styles} questionNumber={questionNumber} />;
+};
+
+const RankingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} onImageUpload={onImageUpload} onDuplicate={onDuplicate} styles={styles} questionNumber={questionNumber} />;
 };
 
@@ -1158,6 +1162,7 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         likert: LikertQuestion,
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
+        'ranking-conjoint': RankingConjointQuestion,
         ahp: AHPQuestion,
         servqual: ServqualQuestion,
     };
@@ -1214,4 +1219,3 @@ export default function QuestionList({ survey, setSurvey, onUpdate: setQuestions
         </div>
     );
 }
-

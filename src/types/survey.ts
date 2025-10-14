@@ -40,4 +40,8 @@ export interface Question {
   rows?: string[];
   // For Conjoint Analysis
   attributes?: ConjointAttribute[];
+  designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid';
+  sets?: number;
+  cardsPerSet?: number;
+  profiles?: any[]; // For generated profiles
 }
