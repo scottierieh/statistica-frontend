@@ -377,7 +377,7 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
 };
 
 
-const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview }: { question: Question; answer: { [taskId: string]: string }; onAnswerChange: (value: any) => void; styles: any; isPreview?: boolean; }) => {
+const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview, onNextTask }: { question: Question; answer: { [taskId: string]: string }; onAnswerChange: (value: any) => void; styles: any; isPreview?: boolean; onNextTask: () => void }) => {
     const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3 } = question;
     const [currentTask, setCurrentTask] = useState(0);
 
@@ -394,11 +394,12 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview 
     
     const handleChoice = (taskId: string, profileId: string) => {
         onAnswerChange({ ...answer, [taskId]: profileId });
-        // Auto-advance to next task if not in preview
         if (!isPreview) {
             setTimeout(() => {
                 if (currentTask < tasks.length - 1) {
                     setCurrentTask(currentTask + 1);
+                } else {
+                    onNextTask();
                 }
             }, 300);
         }
@@ -451,24 +452,48 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview 
     );
 };
 
-const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: { [profileId: string]: number }, onAnswerChange: (value: any) => void; styles: any }) => {
+const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNextTask, isLastQuestion, submitSurvey }: { question: Question; answer: { [profileId: string]: number }, onAnswerChange: (value: any) => void; styles: any; onNextTask: () => void; isLastQuestion: boolean; submitSurvey: () => void; }) => {
     const { attributes = [], profiles = [] } = question;
+    const [currentTask, setCurrentTask] = useState(0);
 
+    const tasks = useMemo(() => {
+        const groupedProfiles: { [taskId: string]: any[] } = {};
+        (profiles || []).forEach(p => {
+            if (!groupedProfiles[p.taskId]) {
+                groupedProfiles[p.taskId] = [];
+            }
+            groupedProfiles[p.taskId].push(p);
+        });
+        return Object.values(groupedProfiles);
+    }, [profiles]);
+    
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
         if (rating >= 1 && rating <= 10) {
              onAnswerChange(produce(answer || {}, (draft: any) => { draft[profileId] = rating; }));
         }
     };
+    
+    const handleNextTask = () => {
+        if (currentTask < tasks.length - 1) {
+            setCurrentTask(currentTask + 1);
+        } else if (isLastQuestion) {
+            submitSurvey();
+        } else {
+            onNextTask();
+        }
+    };
 
-    if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
+    if (tasks.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
+    
+    const currentTaskProfiles = tasks[currentTask];
 
     return (
         <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
              <div className="grid grid-cols-2 gap-2">
-                {profiles.map((profile: any, index: number) => (
+                {currentTaskProfiles.map((profile: any, index: number) => (
                     <Card key={profile.id} className="text-center">
                         <CardHeader className="p-2 pb-1">
                             <CardTitle className="text-xs font-semibold">Option {index + 1}</CardTitle>
@@ -495,6 +520,9 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles }: { 
                     </Card>
                 ))}
              </div>
+             <div className="text-right mt-4">
+                <Button onClick={handleNextTask}>Next</Button>
+            </div>
         </div>
     );
 };
@@ -836,6 +864,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
         matrix: MatrixQuestion,
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
+        'ranking-conjoint': RankingConjointQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
         likert: SemanticDifferentialQuestion,
         ahp: AHPQuestion,
@@ -918,6 +947,9 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                                                 onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
                                                 styles={survey.styles || {}}
                                                 isPreview={isPreview}
+                                                onNextTask={handleNext}
+                                                isLastQuestion={currentQuestionIndex === survey.questions.length - 1}
+                                                submitSurvey={handleSubmit}
                                             />
                                         </div>
                                     )}
@@ -932,11 +964,11 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                             </Button>
                         ) : <div />}
 
-                        {currentQuestionIndex < survey.questions.length - 1 && currentQuestionIndex !== -1 ? (
+                        {currentQuestionIndex < survey.questions.length - 1 && currentQuestionIndex !== -1 && !['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(currentQuestion?.type || '') ? (
                             <Button onClick={handleNext} size="sm" className="transition-transform active:scale-95">
                                 Next <ArrowRight className="ml-1 h-4 w-4" />
                             </Button>
-                        ) : currentQuestionIndex !== -1 && (
+                        ) : currentQuestionIndex !== -1 && !['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(currentQuestion?.type || '') && (
                             <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} size="sm" className="transition-transform active:scale-95">
                                  {isSubmitting ? "Submitting..." : "Submit"}
                             </Button>
@@ -960,3 +992,4 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+```
