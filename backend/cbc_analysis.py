@@ -4,10 +4,11 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import log_loss
+import statsmodels.api as sm
 import warnings
-import re
 
 warnings.filterwarnings('ignore')
 
@@ -29,129 +30,107 @@ def main():
         payload = json.load(sys.stdin)
         data = payload.get('data')
         attributes = payload.get('attributes')
-        target_variable = payload.get('targetVariable')
+        scenarios = payload.get('scenarios')
 
-        if not all([data, attributes, target_variable]):
-            raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
-
+        if not data or not attributes:
+            raise ValueError("Missing 'data' or 'attributes'")
+        
         df = pd.DataFrame(data)
 
-        # --- 1. 데이터 전처리 및 설계 행렬 생성 ---
+        # Drop rows where 'chosen' is not 0 or 1, or is missing
+        df = df[df['chosen'].isin([0, 1])]
+        
+        if df.empty:
+            raise ValueError("No valid choice data found.")
+
+        y = pd.to_numeric(df['chosen'], errors='coerce')
+
         X_list = []
         feature_names = []
+        original_levels_map = {}
         
-        independent_vars = [attr for attr, props in attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
-
-        # Drop rows with NaN in any of the relevant columns before processing
-        all_cols_to_check = independent_vars + [target_variable]
-        df.dropna(subset=all_cols_to_check, inplace=True)
-
-        if df.empty:
-            raise ValueError("Data is empty after removing rows with missing values.")
-
-        all_original_levels = {}
-
-        for attr_name in independent_vars:
-            df[attr_name] = df[attr_name].astype(str)
-            all_original_levels[attr_name] = sorted(df[attr_name].unique())
-            dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True).astype(int)
-            
-            X_list.append(dummies)
-            feature_names.extend(dummies.columns.tolist())
+        independent_vars = list(attributes.keys())
+        
+        for attr_name, props in attributes.items():
+            if props['type'] == 'categorical':
+                df[attr_name] = df[attr_name].astype('category')
+                levels = df[attr_name].cat.categories
+                original_levels_map[attr_name] = levels.tolist()
+                
+                dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True).astype(int)
+                X_list.append(dummies)
+                feature_names.extend(dummies.columns.tolist())
         
         if not X_list:
-             raise ValueError("No valid features to process for regression.")
+            raise ValueError("No valid features for analysis.")
 
         X = pd.concat(X_list, axis=1)
-        y = df[target_variable]
+
+        # Align data after potential row drops from 'chosen'
+        X, y = X.align(y, join='inner', axis=0)
+
+        # --- Aggregate Logit Model using Statsmodels ---
+        X_const = sm.add_constant(X)
+        logit_model = sm.Logit(y, X_const)
+        result = logit_model.fit(disp=0)
         
-        # Align data after all processing
-        y, X = y.align(X, join='inner', axis=0)
-        
-        if X.empty or y.empty:
-            raise ValueError("Data is empty after processing and alignment.")
-
-
-        # --- 2. 회귀 분석 수행 ---
-        model = LinearRegression()
-        model.fit(X, y)
-
-        y_pred = model.predict(X)
-        residuals = y - y_pred
-
-        # --- 3. 모델 성능 지표 계산 ---
-        r2 = r2_score(y, y_pred)
-        n = len(y)
-        k = X.shape[1]
-        adj_r2 = 1 - (1 - r2) * (n - 1) / (n - k - 1) if (n - k - 1) > 0 else r2
-        
-        regression_results = {
-            'coefficients': dict(zip(feature_names, model.coef_)),
-            'intercept': model.intercept_,
-            'rSquared': r2,
-            'adjustedRSquared': adj_r2,
-            'rmse': np.sqrt(mean_squared_error(y, y_pred)),
-            'mae': mean_absolute_error(y, y_pred),
-            'predictions': y_pred.tolist(),
-            'residuals': residuals.tolist()
-        }
-
-        # --- 4. 부분가치(Part-Worths) 계산 ---
+        # --- Part-Worths Calculation (Zero-Centered) ---
         part_worths = []
-        for attr_name in independent_vars:
-            original_levels = all_original_levels[attr_name]
-            
-            # Baseline level (the first one) has a part-worth of 0
-            part_worths.append({
-                'attribute': attr_name,
-                'level': str(original_levels[0]),
-                'value': 0
-            })
-            
-            # Other levels' part-worths are the regression coefficients
-            for level in original_levels[1:]:
-                feature_name = f"{attr_name}_{level}"
-                part_worths.append({
-                    'attribute': attr_name,
-                    'level': str(level),
-                    'value': regression_results['coefficients'].get(feature_name, 0)
-                })
-
-        # --- 5. 상대적 중요도 계산 ---
-        attribute_ranges = {}
-        for attr_name in independent_vars:
-            level_worths = [pw['value'] for pw in part_worths if pw['attribute'] == attr_name]
-            if level_worths:
-                attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
-
-        total_range = sum(attribute_ranges.values())
+        coeff_map = result.params.to_dict()
         
+        total_utility_range = {}
+
+        for attr_name, levels in original_levels_map.items():
+            level_utilities = {}
+            # Baseline level has utility of 0 in the model
+            level_utilities[levels[0]] = 0
+            
+            # Get utilities for other levels from coefficients
+            for level in levels[1:]:
+                feature_name = f"{attr_name}_{level}"
+                level_utilities[level] = coeff_map.get(feature_name, 0)
+            
+            # Zero-center the utilities for this attribute
+            mean_utility = np.mean(list(level_utilities.values()))
+            for level, utility in level_utilities.items():
+                centered_utility = utility - mean_utility
+                part_worths.append({'attribute': attr_name, 'level': level, 'value': centered_utility})
+            
+            # Calculate utility range for importance
+            centered_utilities = [pw['value'] for pw in part_worths if pw['attribute'] == attr_name]
+            total_utility_range[attr_name] = max(centered_utilities) - min(centered_utilities)
+        
+        # --- Importance Calculation ---
+        total_range_sum = sum(total_utility_range.values())
         importance = []
-        if total_range > 0:
-            for attr_name, range_val in attribute_ranges.items():
+        if total_range_sum > 0:
+            for attr_name, range_val in total_utility_range.items():
                 importance.append({
                     'attribute': attr_name,
-                    'importance': (range_val / total_range) * 100
+                    'importance': (range_val / total_range_sum) * 100
                 })
-        
         importance.sort(key=lambda x: x['importance'], reverse=True)
-
-        # --- 최종 결과 조합 ---
+        
         final_results = {
-            'regression': regression_results,
             'partWorths': part_worths,
             'importance': importance,
-            'featureNames': feature_names,
-            'targetVariable': target_variable
+            'regression': {
+                'modelType': 'Aggregate Logit',
+                'log_likelihood': result.llf,
+                'pseudo_r_squared': result.prsquared,
+                'coefficients': result.params.to_dict(),
+                'p_values': result.pvalues.to_dict(),
+            },
         }
 
         print(json.dumps({'results': final_results}, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        import traceback
+        print(json.dumps({"error": str(e), "trace": traceback.format_exc()}), file=sys.stderr)
         sys.exit(1)
-
 
 if __name__ == '__main__':
     main()
+
 
