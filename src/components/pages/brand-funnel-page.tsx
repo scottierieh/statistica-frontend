@@ -4,10 +4,12 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { AlertTriangle, Loader2, Brain, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Loader2, TrendingUp, TrendingDown, Eye, Heart, Award, ShoppingCart, Target, Users, Zap, Lightbulb, Info, AlertTriangle, Brain } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -581,17 +583,17 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                         <th className="text-right p-2 font-bold">Usage</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <TableBody>
                                     {marketShareData.map(row => (
-                                        <tr key={row.brand} className="border-b hover:bg-muted/30">
-                                            <td className="p-2 font-semibold">{row.brand}</td>
+                                        <tr key={row.brand as string} className="border-b hover:bg-muted/30">
+                                            <td className="p-2 font-semibold">{row.brand as string}</td>
                                             <td className="text-right p-2">{(row.awareness_share ?? 0).toFixed(1)}%</td>
                                             <td className="text-right p-2">{(row.consideration_share ?? 0).toFixed(1)}%</td>
                                             <td className="text-right p-2">{(row.preference_share ?? 0).toFixed(1)}%</td>
                                             <td className="text-right p-2">{(row.usage_share ?? 0).toFixed(1)}%</td>
                                         </tr>
                                     ))}
-                                </tbody>
+                                </TableBody>
                             </table>
                         </div>
                     </CardContent>
@@ -787,7 +789,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
             </Card>
 
             {/* Action Items */}
-            <Alert className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+            <Alert className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg">
                 <Lightbulb className="h-4 w-4 text-green-600" />
                 <AlertTitle className="text-green-900 text-lg">Recommended Actions</AlertTitle>
                 <AlertDescription className="text-green-700 mt-2 space-y-2">
