@@ -30,7 +30,7 @@ import { CSS } from '@dnd-kit/utilities';
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     return (
         <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-sm font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={280} height={180} className="rounded-md mb-3 max-h-32 w-auto" />}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
@@ -64,7 +64,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
    }
    return (
        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-sm font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={280} height={180} className="rounded-md mb-3 max-h-32 w-auto" />}
            <div className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
@@ -380,7 +380,7 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
 };
 
 
-const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview, onNextTask }: { question: Question; answer: { [taskId: string]: string }; onAnswerChange: (value: any) => void; styles: any; isPreview?: boolean; onNextTask: () => void }) => {
+const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview, onNextTask, isLastQuestion, submitSurvey }: { question: Question; answer: { [taskId: string]: string }; onAnswerChange: (value: any) => void; styles: any; isPreview?: boolean; onNextTask: () => void; isLastQuestion: boolean; submitSurvey: () => void; }) => {
     const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3 } = question;
     const [currentTask, setCurrentTask] = useState(0);
 
@@ -395,14 +395,20 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview,
         return Object.values(groupedProfiles);
     }, [profiles]);
     
+    const isLastTask = currentTask === tasks.length - 1;
+
     const handleChoice = (taskId: string, profileId: string) => {
         onAnswerChange({ ...answer, [taskId]: profileId });
         if (!isPreview) {
             setTimeout(() => {
-                if (currentTask < tasks.length - 1) {
-                    setCurrentTask(currentTask + 1);
+                 if (isLastTask) {
+                    if (isLastQuestion) {
+                        submitSurvey();
+                    } else {
+                        onNextTask();
+                    }
                 } else {
-                    onNextTask();
+                    setCurrentTask(currentTask + 1);
                 }
             }, 300);
         }
@@ -481,13 +487,18 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNe
         if (currentTask < tasks.length - 1) {
             setCurrentTask(currentTask + 1);
         } else {
-            onNextTask();
+             if (isLastQuestion) {
+                submitSurvey();
+            } else {
+                onNextTask();
+            }
         }
     };
 
     if (tasks.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
     
     const currentTaskProfiles = tasks[currentTask];
+    const isLastTask = currentTask === tasks.length - 1;
 
     return (
         <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
@@ -522,13 +533,15 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNe
                 ))}
              </div>
              <div className="text-right mt-4">
-                <Button onClick={handleNextTask}>Next</Button>
+                <Button onClick={handleNextTask}>
+                    {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Set'}
+                </Button>
             </div>
         </div>
     );
 };
 
-const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNextTask, isLastQuestion, submitSurvey }: { question: Question; answer: string[], onAnswerChange: (value: any) => void; styles: any; onNextTask: () => void; isLastQuestion: boolean; submitSurvey: () => void }) => {
+const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNextTask, isLastQuestion, submitSurvey }: { question: Question; answer: { [taskId: string]: string[] }, onAnswerChange: (value: any) => void; styles: any; onNextTask: () => void; isLastQuestion: boolean; submitSurvey: () => void }) => {
     const { attributes = [], profiles = [] } = question;
     const [currentTask, setCurrentTask] = useState(0);
 
@@ -544,10 +557,12 @@ const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onN
     }, [profiles]);
 
     const currentTaskProfiles = tasks[currentTask] || [];
+    const currentTaskId = currentTaskProfiles[0]?.taskId;
+
     const [rankedItems, setRankedItems] = useState(currentTaskProfiles);
     
     useEffect(() => {
-      setRankedItems(tasks[currentTask] || []);
+        setRankedItems(tasks[currentTask] || []);
     }, [currentTask, tasks]);
 
     const handleReorder = (event: DragEndEvent) => {
@@ -557,20 +572,27 @@ const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onN
                 const oldIndex = items.findIndex(item => item.id === active.id);
                 const newIndex = items.findIndex(item => item.id === over.id);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
+                // Update answer state after reordering is complete
                 onAnswerChange(produce(answer || {}, (draft: any) => {
-                    if(!draft[tasks[currentTask][0].taskId]) draft[tasks[currentTask][0].taskId] = {};
-                    draft[tasks[currentTask][0].taskId] = newOrder.map(item => item.id);
+                    if(!draft[currentTaskId]) draft[currentTaskId] = [];
+                    draft[currentTaskId] = newOrder.map(item => item.id);
                 }));
                 return newOrder;
             });
         }
     };
     
+    const isLastTask = currentTask === tasks.length - 1;
+
     const handleNextTask = () => {
-        if (currentTask < tasks.length - 1) {
+        if (!isLastTask) {
             setCurrentTask(currentTask + 1);
         } else {
-            onNextTask();
+             if (isLastQuestion) {
+                submitSurvey();
+            } else {
+                onNextTask();
+            }
         }
     };
     
@@ -590,7 +612,9 @@ const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onN
                  </DndContext>
              </div>
              <div className="text-right mt-4">
-                <Button onClick={handleNextTask}>Next</Button>
+                 <Button onClick={handleNextTask}>
+                    {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Set'}
+                </Button>
             </div>
         </div>
     )
