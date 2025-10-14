@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -531,8 +532,6 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNe
 
 const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNextTask, isLastQuestion, submitSurvey }: { question: Question; answer: string[], onAnswerChange: (value: any) => void; styles: any; onNextTask: () => void; isLastQuestion: boolean; submitSurvey: () => void }) => {
     const { attributes = [], profiles = [] } = question;
-    const [rankedItems, setRankedItems] = useState(profiles || []);
-
     const [currentTask, setCurrentTask] = useState(0);
 
     const tasks = useMemo(() => {
@@ -546,6 +545,13 @@ const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onN
         return Object.values(groupedProfiles);
     }, [profiles]);
 
+    const currentTaskProfiles = tasks[currentTask] || [];
+    const [rankedItems, setRankedItems] = useState(currentTaskProfiles);
+    
+    useEffect(() => {
+      setRankedItems(tasks[currentTask] || []);
+    }, [currentTask, tasks]);
+
     const handleReorder = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
@@ -553,7 +559,10 @@ const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onN
                 const oldIndex = items.findIndex(item => item.id === active.id);
                 const newIndex = items.findIndex(item => item.id === over.id);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
-                onAnswerChange(newOrder.map(item => item.id));
+                onAnswerChange(produce(answer || {}, (draft: any) => {
+                    if(!draft[tasks[currentTask][0].taskId]) draft[tasks[currentTask][0].taskId] = {};
+                    draft[tasks[currentTask][0].taskId] = newOrder.map(item => item.id);
+                }));
                 return newOrder;
             });
         }

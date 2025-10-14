@@ -873,7 +873,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
     
     const generateProfiles = () => {
         const attributes = question.attributes || [];
-        if (attributes.length === 0 || attributes.some((a:any) => a.levels.length === 0)) {
+        if (attributes.length === 0 || attributes.some((a: any) => a.levels.length === 0)) {
             alert("Please define attributes and levels before generating profiles.");
             return;
         }
@@ -881,8 +881,8 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
         let generatedProfiles: any[] = [];
         
         if (question.type === 'conjoint') { // CBC Logic
-            const totalSets = question.sets || 1;
-            const cardsPerSet = question.cardsPerSet || 1;
+            const totalSets = question.sets ?? 1;
+            const cardsPerSet = question.cardsPerSet ?? 3;
             for (let i = 0; i < totalSets; i++) {
                 for (let j = 0; j < cardsPerSet; j++) {
                     const profileAttributes: {[key: string]: string} = {};
@@ -894,9 +894,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                 }
             }
              setGenerationMessage(`Generated ${totalSets} tasks with ${cardsPerSet} profiles each. Total profiles: ${generatedProfiles.length}`);
-        } else { // Rating and Ranking Logic
-            const totalSets = question.sets || 1;
-            // Full factorial design
+        } else { // Rating and Ranking Logic - Full Factorial
             const allCombinations = attributes.reduce((acc: any, attr: any) => {
                 const newAcc: any[] = [];
                 acc.forEach((existingCombo: any) => {
@@ -908,6 +906,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
             }, [{}]);
 
             // Distribute among sets
+            const totalSets = question.sets ?? 1;
             const profilesPerSet = Math.ceil(allCombinations.length / totalSets);
             for (let i = 0; i < totalSets; i++) {
                 const startIndex = i * profilesPerSet;
@@ -987,7 +986,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                                 </div>
                                 <div>
                                 <Label>Cards per Set</Label>
-                                <Input type="number" value={question.cardsPerSet ?? 1} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                                <Input type="number" value={question.cardsPerSet ?? 3} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
                                 </div>
                                 </>
                              ) : ( // Rating and Ranking
@@ -1009,8 +1008,8 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                 {question.profiles && question.profiles.length > 0 && (
                    <div className="mt-6">
                        <h4 className="font-semibold mb-2 text-center text-sm">Example Card Set</h4>
-                       <div className={`grid grid-cols-1 md:grid-cols-${Math.min(question.cardsPerSet || 1, 4)} gap-3 p-4 bg-muted/50 rounded-lg`}>
-                           {(question.profiles.slice(0, question.cardsPerSet || 1) || []).map((profile: any, index: number) => (
+                       <div className={`grid grid-cols-1 md:grid-cols-${Math.min(question.cardsPerSet || (question.type !== 'conjoint' ? question.profiles.length : 1), 4)} gap-3 p-4 bg-muted/50 rounded-lg`}>
+                           {(question.profiles.slice(0, question.cardsPerSet || (question.type !== 'conjoint' ? question.profiles.length : 1)) || []).map((profile: any, index: number) => (
                                <Card key={profile.id} className="text-left bg-white">
                                    <CardHeader className="p-3"><CardTitle className="text-sm">Option {index + 1}</CardTitle></CardHeader>
                                    <CardContent className="p-3">
