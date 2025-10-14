@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef } from "react";
@@ -441,5 +442,3 @@ export default function Survey2Dashboard() {
     </div>
   );
 }
-
-    

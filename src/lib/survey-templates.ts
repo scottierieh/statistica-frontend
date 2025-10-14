@@ -53,9 +53,9 @@ export const ratingBasedConjointTemplate = {
                 { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
             ],
             profiles: [
-                { id: 'profile_1', attributes: { Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' }},
-                { id: 'profile_2', attributes: { Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' }},
-                { id: 'profile_3', attributes: { Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' }},
+                { id: 'profile_1', taskId: 'task_0', attributes: { Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' }},
+                { id: 'profile_2', taskId: 'task_0', attributes: { Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' }},
+                { id: 'profile_3', taskId: 'task_0', attributes: { Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' }},
             ]
         }
     ],
@@ -82,13 +82,14 @@ export const rankingConjointTemplate = {
                 { id: `attr-r-3`, name: 'Price', levels: ['$2000', '$3000'] },
             ],
             profiles: [
-                { id: 'profile_r_1', attributes: { Destination: 'Hawaii', Duration: '7 Days', Price: '$2000' }},
-                { id: 'profile_r_2', attributes: { Destination: 'Paris', Duration: '10 Days', Price: '$3000' }},
-                { id: 'profile_r_3', attributes: { Destination: 'Tokyo', Duration: '7 Days', Price: '$2000' }},
+                { id: 'profile_r_1', taskId: 'task_0', attributes: { Destination: 'Hawaii', Duration: '7 Days', Price: '$2000' }},
+                { id: 'profile_r_2', taskId: 'task_0', attributes: { Destination: 'Paris', Duration: '10 Days', Price: '$3000' }},
+                { id: 'profile_r_3', taskId: 'task_0', attributes: { Destination: 'Tokyo', Duration: '7 Days', Price: '$2000' }},
             ]
         }
     ],
 };
+
 
 export const ipaTemplate = {
     title: "Restaurant Satisfaction Survey (for IPA)",
