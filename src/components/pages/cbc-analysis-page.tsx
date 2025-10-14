@@ -11,10 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
-import { ScrollArea } from '../ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
@@ -167,11 +167,9 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     };
 
     const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
-        setScenarios(prev => {
-            const newScenarios = [...prev];
-            newScenarios[scenarioIndex] = { ...newScenarios[scenarioIndex], [attrName]: value };
-            return newScenarios;
-        });
+        const newScenarios = [...scenarios];
+        newScenarios[scenarioIndex] = { ...newScenarios[scenarioIndex], [attrName]: value };
+        setScenarios(newScenarios);
     };
     
     const importanceData = useMemo(() => {
@@ -222,11 +220,11 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
-                    <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
-                    <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
-                    <TabsTrigger value="modelfit"><TrendingUp className="mr-2"/>Model Fit</TabsTrigger>
+                <TabsList className={`grid w-full grid-cols-4`}>
+                    <TabsTrigger value="importance"><PieIcon className="mr-2 h-4 w-4"/>Importance</TabsTrigger>
+                    <TabsTrigger value="partworths"><BarIcon className="mr-2 h-4 w-4"/>Part-Worths</TabsTrigger>
+                    <TabsTrigger value="simulation"><Activity className="mr-2 h-4 w-4"/>Simulation</TabsTrigger>
+                    <TabsTrigger value="modelfit"><TrendingUp className="mr-2 h-4 w-4"/>Model Fit</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -247,7 +245,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 </TabsContent>
                  <TabsContent value="partworths" className="mt-4">
                     <Card>
-                        <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities (Zero-Centered)</CardTitle></CardHeader>
+                        <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
                         <CardContent>
                            <div className="grid md:grid-cols-2 gap-4">
                             {attributeCols.map(attr => (
@@ -343,3 +341,5 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
+
+    
