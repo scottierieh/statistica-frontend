@@ -5,7 +5,6 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import log_loss
 import statsmodels.api as sm
 import warnings
@@ -117,7 +116,7 @@ def main():
             'regression': {
                 'modelType': 'Aggregate Logit',
                 'log_likelihood': result.llf,
-                'pseudo_r_squared': result.prsquared,
+                'rSquared': result.prsquared,
                 'coefficients': result.params.to_dict(),
                 'p_values': result.pvalues.to_dict(),
             },
@@ -132,5 +131,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
