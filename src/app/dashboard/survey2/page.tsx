@@ -714,19 +714,19 @@ export default function Survey2Dashboard() {
                           href="/dashboard/createsurvey?template=csat"
                           gradient="from-sky-50 to-blue-50"
                         />
-                        <TemplateCard
-                          icon={Activity}
-                          title="Customer Effort Score (CES)"
-                          description="Measure how easy it was for customers to get their issues resolved."
-                          href="/dashboard/createsurvey?template=ces"
-                          gradient="from-teal-50 to-cyan-50"
-                        />
                         <TemplateCard 
                           icon={ShieldCheck} 
                           title="NPS Survey" 
                           description="Measure customer loyalty with the industry-standard Net Promoter Score."
                           href="/dashboard/createsurvey?template=nps"
                           gradient="from-cyan-50 to-teal-50"
+                        />
+                        <TemplateCard
+                          icon={Activity}
+                          title="Customer Effort Score (CES)"
+                          description="Measure how easy it was for customers to get their issues resolved."
+                          href="/dashboard/createsurvey?template=ces"
+                          gradient="from-teal-50 to-cyan-50"
                         />
                         <TemplateCard 
                           icon={Gauge} 
@@ -916,5 +916,4 @@ export default function Survey2Dashboard() {
       )}
     </div>
   );
-
-    
+}
