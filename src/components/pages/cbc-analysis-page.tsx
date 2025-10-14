@@ -104,7 +104,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         responses.forEach(resp => {
             const answerBlock = (resp.answers as any)[conjointQuestion.id];
             if (!answerBlock || typeof answerBlock !== 'object') return;
-            
+
             Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
                 const presentedProfiles = (conjointQuestion.profiles || []).filter((p: any) => p.taskId === taskKey);
                 if (presentedProfiles.length > 0) {
@@ -120,6 +120,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 }
             });
         });
+
 
         if (analysisData.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
