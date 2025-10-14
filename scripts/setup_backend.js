@@ -11,22 +11,6 @@ const reqCopyFile = path.join(venvDir, 'requirements.txt.bak'); // Copy of last 
 const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 const pipCmd = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'pip.exe') : path.join(venvDir, 'bin', 'pip');
 
-function runPythonScript(scriptPath) {
-    try {
-        const fullScriptPath = path.join(backendDir, scriptPath);
-        if (fs.existsSync(fullScriptPath)) {
-            const pythonExecutable = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'python.exe') : path.join(venvDir, 'bin', 'python');
-            console.log(`Executing ${scriptPath}...`);
-            execSync(`${pythonExecutable} ${fullScriptPath}`, { cwd: backendDir, stdio: 'inherit' });
-        } else {
-            console.warn(`Warning: Script not found at ${fullScriptPath}, skipping execution.`);
-        }
-    } catch (error) {
-        console.error(`Error executing ${scriptPath}:`, error.message);
-        // Do not exit process, just log the error
-    }
-}
-
 function shouldReinstall() {
     if (!fs.existsSync(reqFile)) {
         console.log('requirements.txt not found. Skipping backend setup.');
@@ -75,18 +59,14 @@ if (shouldReinstall()) {
         console.log(`Creating virtual environment at ${venvDir}...`);
         execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
-        // 2. Install Cython first as a build dependency for other packages
-        console.log('Installing build dependency: Cython...');
-        execSync(`${pipCmd} install Cython`, { cwd: backendDir, stdio: 'inherit' });
-
-        // 3. Install the rest of the requirements
+        // 2. Install requirements
         console.log(`Installing dependencies from ${reqFile}...`);
         execSync(`${pipCmd} install --prefer-binary --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
-        // 4. Create a copy of requirements.txt for future comparison
+        // 3. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
         
-        // 5. Touch the marker file to indicate a successful setup
+        // 4. Touch the marker file to indicate a successful setup
         fs.writeFileSync(venvMarker, `Setup completed on: ${new Date().toISOString()}`);
 
         console.log('Python backend setup complete.');
