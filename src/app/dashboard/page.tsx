@@ -1,7 +1,6 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
@@ -40,6 +39,14 @@ const tools = [
     icon: ClipboardList,
     title: "Survey Tool",
     description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.",
+    disabled: false,
+  },
+  {
+    id: "visualization",
+    href: "/dashboard/visualization",
+    icon: Palette,
+    title: "Visualization",
+    description: "A comprehensive guide to chart types for effective data representation.",
     disabled: false,
   },
   {
