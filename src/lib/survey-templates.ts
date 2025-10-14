@@ -370,6 +370,28 @@ export const csatTemplate = {
     ] as Question[],
 };
 
+export const cesTemplate = {
+    title: "Customer Effort Score (CES) Survey",
+    description: "Please let us know how easy it was to interact with us. Your feedback helps us simplify our processes.",
+    questions: [
+        {
+            id: 'ces_q_1',
+            type: 'rating',
+            title: 'How much effort did you personally have to put forth to handle your request?',
+            required: true,
+            scale: ['1', '2', '3', '4', '5', '6', '7'],
+            description: '1 - Very Low Effort, 7 - Very High Effort'
+        },
+        {
+            id: 'ces_q_2',
+            type: 'text',
+            title: 'What made this interaction difficult or easy?',
+            required: false,
+            description: 'Please tell us a bit more about why you chose that score.'
+        }
+    ] as Question[],
+};
+
 export const semanticDifferentialTemplate = {
     title: "Brand Perception (Semantic Differential)",
     description: "Please rate your perception of our brand on the following scales.",

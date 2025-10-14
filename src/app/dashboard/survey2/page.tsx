@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from "react";
@@ -19,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate, rankingConjointTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate, rankingConjointTemplate, cesTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -564,6 +565,13 @@ export default function Survey2Dashboard() {
                           gradient="from-sky-50 to-blue-50"
                           badge="Recommended"
                         />
+                        <TemplateCard
+                          icon={Activity}
+                          title="Customer Effort Score (CES)"
+                          description="Measure how easy it was for customers to get their issues resolved."
+                          href="/dashboard/createsurvey?template=ces"
+                          gradient="from-teal-50 to-cyan-50"
+                        />
                         <TemplateCard 
                           icon={ShieldCheck} 
                           title="NPS Survey" 
@@ -705,6 +713,13 @@ export default function Survey2Dashboard() {
                           description="Measure overall satisfaction and identify key drivers of customer happiness."
                           href="/dashboard/createsurvey?template=csat"
                           gradient="from-sky-50 to-blue-50"
+                        />
+                        <TemplateCard
+                          icon={Activity}
+                          title="Customer Effort Score (CES)"
+                          description="Measure how easy it was for customers to get their issues resolved."
+                          href="/dashboard/createsurvey?template=ces"
+                          gradient="from-teal-50 to-cyan-50"
                         />
                         <TemplateCard 
                           icon={ShieldCheck} 
@@ -902,4 +917,3 @@ export default function Survey2Dashboard() {
     </div>
   );
 }
-
