@@ -45,16 +45,26 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
     if (!survey || !survey.questions) return [];
     return survey.questions
       .filter(q => {
-        // Include rating questions
-        return q.type === 'rating';
+        // Include single choice, multiple choice, dropdown, rating and matrix questions
+        return ['single', 'multiple', 'dropdown', 'rating', 'matrix'].includes(q.type);
       })
-      .map(q => {
-        return {
+      .flatMap(q => {
+        // For matrix questions, create an option for each row
+        if (q.type === 'matrix' && q.rows) {
+          return q.rows.map(row => ({
+            label: `${q.title} - ${row}`,
+            value: `${q.id}__${row}`,
+            questionId: q.id,
+            rowName: row
+          }));
+        }
+        // For other question types, just use the question itself
+        return [{
           label: q.title,
           value: q.id,
           questionId: q.id,
           rowName: null
-        };
+        }];
       });
   }, [survey.questions]);
 
@@ -110,10 +120,24 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
         let colValue: any;
 
         // Get row value
-        rowValue = r.answers[rowOption.questionId];
-        
+        if (rowOption.rowName) {
+          // Matrix question
+          const matrixAnswer = r.answers[rowOption.questionId];
+          rowValue = matrixAnswer?.[rowOption.rowName];
+        } else {
+          // Regular question
+          rowValue = r.answers[rowOption.questionId];
+        }
+
         // Get column value
-        colValue = r.answers[colOption.questionId];
+        if (colOption.rowName) {
+          // Matrix question
+          const matrixAnswer = r.answers[colOption.questionId];
+          colValue = matrixAnswer?.[colOption.rowName];
+        } else {
+          // Regular question
+          colValue = r.answers[colOption.questionId];
+        }
 
         // Handle array values (for multiple choice)
         if (Array.isArray(rowValue)) {
