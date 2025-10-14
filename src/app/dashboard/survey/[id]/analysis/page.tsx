@@ -8,7 +8,7 @@ import type { Survey, SurveyResponse } from '@/types/survey';
 import { Skeleton } from '@/components/ui/skeleton';
 import CbcAnalysisPage from '@/components/pages/cbc-analysis-page';
 import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analysis-page';
-import RankingConjointAnalysisPage from '@/components/pages/ranking-conjoint-analysis-page';
+import RankingConjointAnalysisPage from '@/components/pages/ranking-conjoint-page';
 import IpaPage from '@/components/pages/ipa-page';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
