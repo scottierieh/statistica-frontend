@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -414,7 +412,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                 <Button 
+                <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -879,19 +877,25 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
             return;
         }
 
+        const totalSets = question.sets || 1;
+        const cardsPerSet = question.cardsPerSet || 1;
+        const numToGenerate = totalSets * cardsPerSet;
         const totalCombinations = attributes.reduce((acc: number, attr: any) => acc * attr.levels.length, 1);
         
-        const numToGenerate = (question.sets || 1) * (question.cardsPerSet || 1);
-        const generatedProfiles = Array.from({ length: numToGenerate }, (_, i) => {
-            const profile: any = { id: `profile_${i}` };
-            attributes.forEach((attr: any) => {
-                profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
-            });
-            return profile;
-        });
+        const generatedProfiles: any[] = [];
+        
+        for (let i = 0; i < totalSets; i++) {
+            for (let j = 0; j < cardsPerSet; j++) {
+                const profile: any = { id: `profile_${i}_${j}`, taskId: `task_${i}` };
+                attributes.forEach((attr: any) => {
+                    profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
+                });
+                generatedProfiles.push(profile);
+            }
+        }
 
         onUpdate?.({ ...question, profiles: generatedProfiles });
-        setGenerationMessage(`Generated ${generatedProfiles.length} profiles from a possible ${totalCombinations} total combinations.`);
+        setGenerationMessage(`Generated ${totalSets} tasks with ${cardsPerSet} profiles each. Total profiles: ${generatedProfiles.length}`);
     };
 
     return (

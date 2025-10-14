@@ -377,51 +377,54 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
 };
 
 
-const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview }: { question: Question; answer: string; onAnswerChange: (value: string) => void; styles: any; isPreview?: boolean; }) => {
-    const { attributes = [], designMethod = 'full-factorial', sets = 5, cardsPerSet = 3 } = question;
-    let { profiles = [] } = question;
+const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview }: { question: Question; answer: { [taskId: string]: string }; onAnswerChange: (value: any) => void; styles: any; isPreview?: boolean; }) => {
+    const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3 } = question;
+    const [currentTask, setCurrentTask] = useState(0);
+
+    const tasks = useMemo(() => {
+        const groupedProfiles: { [taskId: string]: any[] } = {};
+        (profiles || []).forEach(p => {
+            if (!groupedProfiles[p.taskId]) {
+                groupedProfiles[p.taskId] = [];
+            }
+            groupedProfiles[p.taskId].push(p);
+        });
+        return Object.values(groupedProfiles);
+    }, [profiles]);
     
-    // Generate profiles for preview if not present
-    if (profiles.length === 0 && attributes.length > 0) {
-        const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
-        let generatedProfiles = [];
-        if (designMethod === 'full-factorial' || totalCombinations < (sets || 3) * (cardsPerSet || 3)) {
-            const levelArrays = attributes.map(attr => attr.levels);
-            const allCombinations = levelArrays.reduce((acc, levels) => acc.flatMap(x => levels.map(y => [...x, y])), [[]] as string[][]);
-            generatedProfiles = allCombinations.map((combo, index) => {
-                const profile: any = { id: `preview_${index}` };
-                attributes.forEach((attr, i) => {
-                    profile[attr.name] = combo[i];
-                });
-                return profile;
-            });
-        } else {
-             generatedProfiles = Array.from({ length: sets * cardsPerSet }, (_, i) => {
-                const profile: any = { id: `preview_${i}`};
-                attributes.forEach(attr => {
-                    profile[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
-                });
-                return profile;
-            });
+    const handleChoice = (taskId: string, profileId: string) => {
+        onAnswerChange({ ...answer, [taskId]: profileId });
+        // Auto-advance to next task if not in preview
+        if (!isPreview) {
+            setTimeout(() => {
+                if (currentTask < tasks.length - 1) {
+                    setCurrentTask(currentTask + 1);
+                }
+            }, 300);
         }
-        profiles = generatedProfiles.slice(0, cardsPerSet);
-    }
+    };
+
+    if (tasks.length === 0) return <p>Conjoint profiles are not generated.</p>;
     
+    const currentTaskProfiles = tasks[currentTask];
+    const taskId = currentTaskProfiles?.[0]?.taskId;
+
     return (
         <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
-             <div className="grid grid-cols-2 gap-3">
-                {profiles.map((profile: any, index: number) => (
+            
+            <div className={`grid grid-cols-1 md:grid-cols-${Math.min(cardsPerSet, 4)} gap-3`}>
+                {(currentTaskProfiles || []).map((profile: any, index: number) => (
                     <Card 
                         key={profile.id} 
                         className={cn(
                             "text-left transition-all overflow-hidden cursor-pointer", 
-                            answer === profile.id 
+                            answer?.[taskId] === profile.id
                                 ? "ring-2 ring-primary bg-primary/5" 
                                 : "hover:shadow-md hover:-translate-y-1"
                         )}
-                        onClick={() => onAnswerChange(profile.id)}
+                        onClick={() => handleChoice(taskId, profile.id)}
                     >
                         <CardHeader className="p-3 bg-muted/50">
                             <CardTitle className="text-sm font-semibold">Option {index + 1}</CardTitle>
@@ -436,7 +439,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange, styles, isPreview 
                         </CardContent>
                         <CardFooter className="p-2 bg-muted/50">
                             <div className="w-full flex items-center justify-center">
-                                <RadioGroup value={answer}>
+                                <RadioGroup value={answer?.[taskId]}>
                                     <RadioGroupItem value={profile.id} id={`q${question.id}-${profile.id}`} />
                                 </RadioGroup>
                             </div>
