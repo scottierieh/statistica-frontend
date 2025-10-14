@@ -115,7 +115,7 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
                                 </Button>
                                 {survey.startPage?.logo?.src && (
                                     <div className="relative mt-2">
-                                        <Image src={survey.startPage.logo.src} alt="Survey logo preview" width={80} height={80} className="rounded-md border p-1" />
+                                        <Image src={survey.startPage.logo.src} alt={survey.startPage.logo.alt || 'Survey logo preview'} width={80} height={80} className="rounded-md border p-1" />
                                         <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => { if (draft.startPage?.logo) draft.startPage.logo.src = undefined; })}><X className="w-3 h-3"/></Button>
                                     </div>
                                 )}
@@ -413,7 +413,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                        </div>
                    ))}
                </div>
-                <Button 
+                 <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
@@ -879,23 +879,53 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
         }
 
         const totalSets = question.sets || 1;
-        const cardsPerSet = question.cardsPerSet || 1;
         
-        const generatedProfiles: any[] = [];
+        let generatedProfiles: any[] = [];
         
-        for (let i = 0; i < totalSets; i++) {
-            for (let j = 0; j < cardsPerSet; j++) {
-                const profileAttributes: {[key: string]: string} = {};
-                attributes.forEach((attr: any) => {
-                    profileAttributes[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
-                });
-                const profile = { id: `profile_${i}_${j}`, taskId: `task_${i}`, attributes: profileAttributes };
-                generatedProfiles.push(profile);
+        if (question.type === 'conjoint') { // CBC Logic
+            const cardsPerSet = question.cardsPerSet || 1;
+            for (let i = 0; i < totalSets; i++) {
+                for (let j = 0; j < cardsPerSet; j++) {
+                    const profileAttributes: {[key: string]: string} = {};
+                    attributes.forEach((attr: any) => {
+                        profileAttributes[attr.name] = attr.levels[Math.floor(Math.random() * attr.levels.length)];
+                    });
+                    const profile = { id: `profile_${i}_${j}`, taskId: `task_${i}`, attributes: profileAttributes };
+                    generatedProfiles.push(profile);
+                }
             }
+             setGenerationMessage(`Generated ${totalSets} tasks with ${cardsPerSet} profiles each. Total profiles: ${generatedProfiles.length}`);
+        } else { // Rating and Ranking Logic
+            // Full factorial design
+            const allCombinations = attributes.reduce((acc: any, attr: any) => {
+                const newAcc: any[] = [];
+                acc.forEach((existingCombo: any) => {
+                    attr.levels.forEach((level: any) => {
+                        newAcc.push({ ...existingCombo, [attr.name]: level });
+                    });
+                });
+                return newAcc;
+            }, [{}]);
+
+            // Distribute among sets
+            const profilesPerSet = Math.ceil(allCombinations.length / totalSets);
+            for (let i = 0; i < totalSets; i++) {
+                const startIndex = i * profilesPerSet;
+                const endIndex = startIndex + profilesPerSet;
+                const setProfiles = allCombinations.slice(startIndex, endIndex);
+                
+                setProfiles.forEach((attrs: any, j: number) => {
+                    generatedProfiles.push({
+                        id: `profile_${i}_${j}`,
+                        taskId: `task_${i}`,
+                        attributes: attrs
+                    });
+                });
+            }
+             setGenerationMessage(`Generated ${allCombinations.length} total profiles, distributed into ${totalSets} tasks.`);
         }
 
         onUpdate?.({ ...question, profiles: generatedProfiles });
-        setGenerationMessage(`Generated ${totalSets} tasks with ${cardsPerSet} profiles each. Total profiles: ${generatedProfiles.length}`);
     };
 
     return (
@@ -937,26 +967,30 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDupli
                     <h4 className="font-semibold text-sm">2. Experimental Design</h4>
                     <div className="p-4 border rounded-lg bg-slate-50 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                               <Label>Design Method</Label>
-                               <Select value={question.designMethod || 'full-factorial'} onValueChange={(v) => handleUpdate('designMethod', v)}>
-                                   <SelectTrigger><SelectValue/></SelectTrigger>
-                                   <SelectContent>
-                                       <SelectItem value="full-factorial">Full-profile</SelectItem>
-                                       <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
-                                       <SelectItem value="randomized">Randomized design</SelectItem>
-                                       <SelectItem value="hybrid">Hybrid design</SelectItem>
-                                   </SelectContent>
-                               </Select>
-                            </div>
+                             {question.type === 'conjoint' && (
+                                <div>
+                                   <Label>Design Method</Label>
+                                   <Select value={question.designMethod || 'full-factorial'} onValueChange={(v) => handleUpdate('designMethod', v)}>
+                                       <SelectTrigger><SelectValue/></SelectTrigger>
+                                       <SelectContent>
+                                           <SelectItem value="full-factorial">Full-profile</SelectItem>
+                                           <SelectItem value="balanced-overlap">Balanced overlap</SelectItem>
+                                           <SelectItem value="randomized">Randomized design</SelectItem>
+                                           <SelectItem value="hybrid">Hybrid design</SelectItem>
+                                       </SelectContent>
+                                   </Select>
+                                </div>
+                             )}
                              <div>
                                <Label>Number of Sets</Label>
                                <Input type="number" value={question.sets ?? 1} onChange={(e) => handleUpdate('sets', Number(e.target.value))} />
                             </div>
-                             <div>
-                               <Label>Cards per Set</Label>
-                               <Input type="number" value={question.cardsPerSet ?? 1} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
-                            </div>
+                             {question.type === 'conjoint' && (
+                                <div>
+                                <Label>Cards per Set</Label>
+                                <Input type="number" value={question.cardsPerSet ?? 1} onChange={(e) => handleUpdate('cardsPerSet', Number(e.target.value))} />
+                                </div>
+                             )}
                         </div>
                         <div className="flex flex-col items-center">
                            <Button onClick={generateProfiles}><Shuffle className="mr-2 h-4 w-4"/>Generate Design</Button>
