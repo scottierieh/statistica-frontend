@@ -565,40 +565,6 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                     </CardContent>
                 </Card>
 
-                {/* Market Share Table */}
-                <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Market Share (%)</CardTitle>
-                        <CardDescription>Percentage share at each funnel stage</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="bg-muted/50 border-b">
-                                        <th className="text-left p-2 font-bold">Brand</th>
-                                        <th className="text-right p-2 font-bold">Aware</th>
-                                        <th className="text-right p-2 font-bold">Consider</th>
-                                        <th className="text-right p-2 font-bold">Prefer</th>
-                                        <th className="text-right p-2 font-bold">Usage</th>
-                                    </tr>
-                                </thead>
-                                <TableBody>
-                                    {marketShareData.map(row => (
-                                        <tr key={row.brand as string} className="border-b hover:bg-muted/30">
-                                            <td className="p-2 font-semibold">{row.brand as string}</td>
-                                            <td className="text-right p-2">{(row.awareness_share ?? 0).toFixed(1)}%</td>
-                                            <td className="text-right p-2">{(row.consideration_share ?? 0).toFixed(1)}%</td>
-                                            <td className="text-right p-2">{(row.preference_share ?? 0).toFixed(1)}%</td>
-                                            <td className="text-right p-2">{(row.usage_share ?? 0).toFixed(1)}%</td>
-                                        </tr>
-                                    ))}
-                                </TableBody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
-
                 {/* Drop-off Table */}
                 <Card className="shadow-lg">
                     <CardHeader>
@@ -654,51 +620,6 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Health Score Table */}
-                <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Brand Health Score</CardTitle>
-                        <CardDescription>Overall brand performance metrics</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="bg-muted/50 border-b">
-                                        <th className="text-left p-2 font-bold">Brand</th>
-                                        <th className="text-right p-2 font-bold">Total</th>
-                                        <th className="text-right p-2 font-bold">Conv.</th>
-                                        <th className="text-right p-2 font-bold">Consist.</th>
-                                        <th className="text-right p-2 font-bold">Vol.</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {brands.map((brand, idx) => {
-                                        const health = results.health_scores[brand];
-                                        if (!health) return null;
-                                        return (
-                                            <tr key={brand} className="border-b hover:bg-muted/30">
-                                                <td className="p-2 font-semibold">{brand}</td>
-                                                <td className="text-right p-2">
-                                                    <Badge
-                                                        variant={health.total_score > 75 ? 'default' : health.total_score > 50 ? 'secondary' : 'outline'}
-                                                        className="text-xs"
-                                                    >
-                                                        {(health.total_score ?? 0).toFixed(1)}
-                                                    </Badge>
-                                                </td>
-                                                <td className="text-right p-2">{(health.conversion_component ?? 0).toFixed(1)}</td>
-                                                <td className="text-right p-2">{(health.consistency_component ?? 0).toFixed(1)}</td>
-                                                <td className="text-right p-2">{(health.volume_component ?? 0).toFixed(1)}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
 
             {/* AI Insights */}
@@ -711,7 +632,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 </CardHeader>
                 <CardContent>
                     <Alert className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-                        <Brain className="h-4 w-4 text-indigo-600" />
+                        <Lightbulb className="h-4 w-4 text-indigo-600" />
                         <AlertTitle className="text-indigo-900 text-lg">Strategic Analysis</AlertTitle>
                         <AlertDescription className="text-indigo-700 mt-2">
                             <div
