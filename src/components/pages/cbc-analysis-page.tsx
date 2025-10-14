@@ -131,6 +131,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         setIsLoading(true);
         if (!simulationScenarios) {
             setAnalysisResult(null);
+            setSimulationResult(null);
         }
 
         const attributesForBackend = attributeCols.reduce((acc, attrName) => {
@@ -465,3 +466,5 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     }
   };
   
+
+    
