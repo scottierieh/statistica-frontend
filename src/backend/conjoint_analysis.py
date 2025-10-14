@@ -1,11 +1,10 @@
+
 import sys
 import json
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score, log_loss
 import warnings
+from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings('ignore')
 
@@ -22,379 +21,181 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
+def _create_design_matrix(df, attributes):
+    X_list, feature_names, original_levels_map = [], [], {}
+    
+    for attr_name, props in attributes.items():
+        if props['type'] == 'categorical':
+            df[attr_name] = df[attr_name].astype('category')
+            levels = df[attr_name].cat.categories
+            original_levels_map[attr_name] = levels.tolist()
+            
+            # Effects coding
+            for level in levels[:-1]:
+                X_list.append((df[attr_name] == level).astype(int))
+                feature_names.append(f"{attr_name}_{level}")
+            
+            X_list.append((df[attr_name] == levels[-1]).astype(int) * -1)
+            feature_names.append(f"{attr_name}_{levels[-1]}")
+            
+    X = pd.concat(X_list, axis=1)
+    X.columns = feature_names
+    return X, original_levels_map
+
+def run_hb_estimation(data, attributes, n_iterations=2500, n_burnin=500):
+    df = pd.DataFrame(data)
+    respondents = df['respondent_id'].unique()
+    
+    all_attrs = list(attributes.keys())
+    
+    # Create design matrix for all profiles
+    design_matrix, levels_map = _create_design_matrix(df, attributes)
+
+    # Prepare data structure for estimation
+    choices = {}
+    for resp_id in respondents:
+        resp_data = df[df['respondent_id'] == resp_id]
+        choices[resp_id] = []
+        for task_id in resp_data['choice_set_id'].unique():
+            task_df = resp_data[resp_data['choice_set_id'] == task_id]
+            chosen_profile = task_df[task_df['chosen'] == 1].index[0]
+            profile_indices = task_df.index.tolist()
+            choices[resp_id].append({'chosen': chosen_profile, 'profiles': profile_indices})
+
+    n_respondents = len(respondents)
+    n_params = design_matrix.shape[1]
+
+    # Priors for group-level parameters
+    betas_mean = np.zeros(n_params)
+    betas_cov = np.eye(n_params) * 10
+    
+    # Initialize individual-level betas
+    betas = np.random.multivariate_normal(betas_mean, betas_cov, n_respondents)
+    
+    # MCMC iterations
+    betas_posterior_draws = []
+
+    for i in range(n_iterations):
+        # 1. Update group-level parameters from individual betas
+        betas_mean = np.mean(betas, axis=0)
+        betas_cov = np.cov(betas, rowvar=False)
+        if np.linalg.det(betas_cov) == 0:
+            betas_cov += np.eye(n_params) * 1e-6
+            
+        # 2. Update individual-level betas (Metropolis-Hastings step)
+        for r_idx, resp_id in enumerate(respondents):
+            current_beta = betas[r_idx]
+            
+            # Propose new beta
+            proposal_cov = betas_cov / 10 # Smaller covariance for proposal
+            if np.linalg.det(proposal_cov) == 0:
+                proposal_cov += np.eye(n_params) * 1e-6
+            proposed_beta = np.random.multivariate_normal(current_beta, proposal_cov)
+            
+            # Calculate likelihood for current and proposed beta
+            def log_likelihood(beta_vec):
+                ll = 0
+                for choice in choices[resp_id]:
+                    utilities = design_matrix.loc[choice['profiles']].values @ beta_vec
+                    exp_utilities = np.exp(utilities)
+                    sum_exp_utilities = np.sum(exp_utilities)
+                    
+                    chosen_idx = choice['profiles'].index(choice['chosen'])
+                    ll += utilities[chosen_idx] - np.log(sum_exp_utilities)
+                return ll
+
+            current_ll = log_likelihood(current_beta)
+            proposed_ll = log_likelihood(proposed_beta)
+
+            # Calculate priors
+            current_l_prior = -0.5 * (current_beta - betas_mean).T @ np.linalg.inv(betas_cov) @ (current_beta - betas_mean)
+            proposed_l_prior = -0.5 * (proposed_beta - betas_mean).T @ np.linalg.inv(betas_cov) @ (proposed_beta - betas_mean)
+
+            # Acceptance probability
+            log_acceptance_ratio = (proposed_ll + proposed_l_prior) - (current_ll + current_l_prior)
+            
+            if np.log(np.random.rand()) < log_acceptance_ratio:
+                betas[r_idx] = proposed_beta
+
+        if i >= n_burnin:
+            betas_posterior_draws.append(betas.copy())
+
+    # Final betas are the mean of posterior draws
+    final_betas = np.mean(betas_posterior_draws, axis=0)
+    
+    return final_betas, design_matrix, levels_map, respondents
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
         attributes = payload.get('attributes')
-        target_variable = payload.get('targetVariable')
-        segment_variable = payload.get('segmentVariable')
         scenarios = payload.get('scenarios')
         
-        # 🔍 디버그 1: 페이로드 확인
-        print(json.dumps({
-            "debug": "Step 1 - Payload received",
-            "data_length": len(data) if data else 0,
-            "target_variable": target_variable,
-            "attributes": list(attributes.keys()) if attributes else None,
-            "sample_row": data[0] if data and len(data) > 0 else None
-        }), file=sys.stderr)
+        if not data or not attributes:
+            raise ValueError("Missing 'data' or 'attributes'")
         
-        if not all([data, attributes, target_variable]):
-            raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
-
-        df = pd.DataFrame(data)
+        betas, design_matrix, levels_map, respondents = run_hb_estimation(data, attributes)
         
-        # 🔍 디버그 2: 데이터프레임 확인
-        print(json.dumps({
-            "debug": "Step 2 - DataFrame created",
-            "shape": df.shape,
-            "columns": df.columns.tolist(),
-            "target_exists": target_variable in df.columns,
-            "chosen_counts": df[target_variable].value_counts().to_dict() if target_variable in df.columns else "N/A"
-        }), file=sys.stderr)
+        # --- Process results ---
+        part_worths_by_respondent = {}
+        importance_by_respondent = {}
 
-        # CBC 데이터는 항상 'chosen' 컬럼을 사용하므로 is_choice_based를 True로 설정
-        is_choice_based = (target_variable == 'chosen')
-
-        if df.empty:
-            raise ValueError("No valid data after processing")
-
-        def run_conjoint_analysis(sub_df, sub_attributes):
-            X_list, feature_names, original_levels_map = [], [], {}
-            
-            independent_vars = [
-                attr for attr, props in sub_attributes.items() 
-                if props.get('includeInAnalysis', True) and attr != target_variable
-            ]
-            
-            # 🔍 디버그 3: 독립변수 확인
-            print(json.dumps({
-                "debug": "Step 3 - Independent variables",
-                "independent_vars": independent_vars,
-                "sub_df_shape": sub_df.shape
-            }), file=sys.stderr)
-            
-            if not independent_vars:
-                return None
-            
-            required_cols = independent_vars + [target_variable]
-            sub_df_clean = sub_df[required_cols].copy()
-            
-            # 🔍 디버그 4: 정제 전 데이터
-            print(json.dumps({
-                "debug": "Step 4 - Before cleaning",
-                "rows_before": len(sub_df_clean),
-                "sample": sub_df_clean.head(2).to_dict('records') if len(sub_df_clean) > 0 else []
-            }), file=sys.stderr)
-            
-            for col in independent_vars:
-                sub_df_clean[col] = sub_df_clean[col].astype(str).str.strip()
-                sub_df_clean = sub_df_clean[sub_df_clean[col] != '']
-            
-            sub_df_clean[target_variable] = pd.to_numeric(sub_df_clean[target_variable], errors='coerce')
-            sub_df_clean = sub_df_clean.dropna(subset=[target_variable])
-
-            # 🔍 디버그 5: 정제 후 데이터
-            print(json.dumps({
-                "debug": "Step 5 - After cleaning",
-                "rows_after": len(sub_df_clean),
-                "min_required": 10
-            }), file=sys.stderr)
-
-            if sub_df_clean.empty or len(sub_df_clean) < 10:
-                print(json.dumps({
-                    "debug": "ERROR - Not enough data",
-                    "rows": len(sub_df_clean)
-                }), file=sys.stderr)
-                return None
-
-            for attr_name in independent_vars:
-                props = sub_attributes[attr_name]
-                
-                if props['type'] == 'categorical':
-                    sub_df_clean[attr_name] = sub_df_clean[attr_name].astype('category')
-                    original_levels_map[attr_name] = sub_df_clean[attr_name].cat.categories.tolist()
-                    
-                    if len(original_levels_map[attr_name]) < 2:
-                        continue
-                    
-                    dummies = pd.get_dummies(
-                        sub_df_clean[attr_name], 
-                        prefix=attr_name, 
-                        drop_first=True
-                    ).astype(int)
-                    X_list.append(dummies)
-                    feature_names.extend(dummies.columns.tolist())
-                    
-                elif props['type'] == 'numerical':
-                    try:
-                        numeric_col = pd.to_numeric(sub_df_clean[attr_name], errors='coerce')
-                        if numeric_col.notna().sum() < 2:
-                            continue
-                        
-                        scaler = StandardScaler()
-                        scaled_feature = scaler.fit_transform(numeric_col.values.reshape(-1, 1))
-                        X_df = pd.DataFrame(
-                            scaled_feature, 
-                            columns=[f"{attr_name}_std"], 
-                            index=sub_df_clean.index
-                        )
-                        X_list.append(X_df)
-                        feature_names.append(f"{attr_name}_std")
-                    except Exception as e:
-                        print(json.dumps({
-                            "debug": "ERROR - Numerical variable failed",
-                            "attr": attr_name,
-                            "error": str(e)
-                        }), file=sys.stderr)
-                        continue
-            
-            # 🔍 디버그 6: 디자인 행렬 확인
-            print(json.dumps({
-                "debug": "Step 6 - Design matrix",
-                "features": feature_names,
-                "X_list_length": len(X_list)
-            }), file=sys.stderr)
-            
-            if not X_list:
-                print(json.dumps({"debug": "ERROR - No features created"}), file=sys.stderr)
-                return None
-
-            X = pd.concat(X_list, axis=1)
-            y = sub_df_clean[target_variable]
-            
-            common_idx = X.index.intersection(y.index)
-            X = X.loc[common_idx]
-            y = y.loc[common_idx]
-            
-            # 🔍 디버그 7: 회귀 분석 전
-            print(json.dumps({
-                "debug": "Step 7 - Before regression",
-                "X_shape": X.shape,
-                "y_shape": y.shape,
-                "y_unique": y.unique().tolist(),
-                "is_choice_based": is_choice_based
-            }), file=sys.stderr)
-            
-            if len(X) < len(feature_names) + 1:
-                return None
-
-            try:
-                if is_choice_based:
-                    model = LogisticRegression(
-                        random_state=42, 
-                        solver='lbfgs', 
-                        max_iter=1000
-                    )
-                    model.fit(X, y)
-                    y_pred_prob = model.predict_proba(X)[:, 1]
-                    
-                    log_likelihood_full = -log_loss(y, y_pred_prob, normalize=False)
-                    log_likelihood_null = -log_loss(y, [y.mean()] * len(y), normalize=False)
-                    r_squared = 1 - (log_likelihood_full / log_likelihood_null) if log_likelihood_null != 0 else 0
-                    adj_r_squared = r_squared
-                    
-                    coefficients = np.concatenate([model.intercept_, model.coef_.flatten()])
-                    
-                    # 🔍 디버그 8: 회귀 결과
-                    print(json.dumps({
-                        "debug": "Step 8 - Regression complete",
-                        "r_squared": float(r_squared),
-                        "n_coefficients": len(coefficients)
-                    }), file=sys.stderr)
-                else:
-                    model = LinearRegression()
-                    model.fit(X, y)
-                    y_pred = model.predict(X)
-                    r_squared = r2_score(y, y_pred)
-                    
-                    n = len(y)
-                    p = X.shape[1]
-                    adj_r_squared = 1 - (1 - r_squared) * (n - 1) / (n - p - 1) if (n - p - 1) > 0 else 0
-                    
-                    coefficients = np.concatenate([[model.intercept_], model.coef_])
-            except Exception as e:
-                print(json.dumps({
-                    "debug": "ERROR - Regression failed",
-                    "error": str(e)
-                }), file=sys.stderr)
-                return None
-            
-            full_coeffs = {'intercept': _to_native_type(coefficients[0])}
-            coeff_index = 1
-            
-            for attr_name in independent_vars:
-                if sub_attributes[attr_name]['type'] == 'categorical':
-                    levels = original_levels_map.get(attr_name, [])
-                    if not levels:
-                        continue
-                    
-                    full_coeffs[f"{attr_name}_{levels[0]}"] = 0
-                    
-                    for level in levels[1:]:
-                        if coeff_index < len(coefficients):
-                            full_coeffs[f"{attr_name}_{level}"] = _to_native_type(coefficients[coeff_index])
-                            coeff_index += 1
-                            
-                elif sub_attributes[attr_name]['type'] == 'numerical':
-                    if coeff_index < len(coefficients):
-                        full_coeffs[f"{attr_name}_std"] = _to_native_type(coefficients[coeff_index])
-                        coeff_index += 1
-
-            regression_results = {
-                'coefficients': full_coeffs,
-                'intercept': _to_native_type(coefficients[0]),
-                'rSquared': _to_native_type(r_squared),
-                'adjustedRSquared': _to_native_type(adj_r_squared),
-                'modelType': 'logistic' if is_choice_based else 'linear',
-                'sampleSize': len(y)
-            }
-            
+        for i, resp_id in enumerate(respondents):
+            resp_betas = betas[i]
             part_worths = []
-            for attr_name in independent_vars:
-                props = sub_attributes[attr_name]
-                if props['type'] == 'categorical':
-                    level_names = original_levels_map.get(attr_name, [])
-                    level_worths = []
-                    
-                    for level in level_names:
-                        coef_name = f"{attr_name}_{level}"
-                        level_worths.append(full_coeffs.get(coef_name, 0))
-                    
-                    if not level_worths:
-                        continue
-                    
-                    mean_worth = np.mean(level_worths)
-                    zero_centered_worths = [w - mean_worth for w in level_worths]
-
-                    for i, level in enumerate(level_names):
-                        part_worths.append({
-                            'attribute': attr_name,
-                            'level': str(level),
-                            'value': _to_native_type(zero_centered_worths[i])
-                        })
-
+            
+            coeff_idx = 0
+            for attr, levels in levels_map.items():
+                level_worths = []
+                # First k-1 levels
+                for level in levels[:-1]:
+                    level_worths.append(resp_betas[coeff_idx])
+                    part_worths.append({'attribute': attr, 'level': level, 'value': resp_betas[coeff_idx]})
+                    coeff_idx += 1
+                # Last level is sum of others * -1
+                last_level_worth = -np.sum(level_worths)
+                part_worths.append({'attribute': attr, 'level': levels[-1], 'value': last_level_worth})
+            
+            part_worths_by_respondent[resp_id] = part_worths
+            
+            # Importance
             attribute_ranges = {}
-            for attr_name in independent_vars:
-                level_worths = [pw['value'] for pw in part_worths if pw['attribute'] == attr_name]
-                if level_worths:
-                    attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
-                else:
-                    attribute_ranges[attr_name] = 0
-
+            for attr in attributes:
+                worths = [pw['value'] for pw in part_worths if pw['attribute'] == attr]
+                if worths:
+                    attribute_ranges[attr] = max(worths) - min(worths)
+            
             total_range = sum(attribute_ranges.values())
-            importance = []
-            for attr, val in attribute_ranges.items():
-                imp_value = (val / total_range) * 100 if total_range > 0 else 0
-                importance.append({
-                    'attribute': attr,
-                    'importance': _to_native_type(imp_value)
-                })
+            importance = [{'attribute': attr, 'importance': (val / total_range) * 100} for attr, val in attribute_ranges.items()]
             importance.sort(key=lambda x: x['importance'], reverse=True)
-            
-            optimal_profile = {}
-            total_utility = regression_results['intercept']
-            
-            for attr_name in independent_vars:
-                if sub_attributes[attr_name]['type'] == 'categorical':
-                    attr_worths = [p for p in part_worths if p['attribute'] == attr_name]
-                    if attr_worths:
-                        best_level = max(attr_worths, key=lambda x: x['value'])
-                        optimal_profile[attr_name] = best_level['level']
-                        total_utility += best_level['value']
+            importance_by_respondent[resp_id] = importance
 
-            return {
-                'regression': regression_results,
-                'partWorths': part_worths,
-                'importance': importance,
-                'targetVariable': target_variable,
-                'optimalProduct': {
-                    'config': optimal_profile,
-                    'totalUtility': _to_native_type(total_utility)
-                }
-            }
 
-        def run_simulation(scenarios_to_sim, analysis_res):
-            if not scenarios_to_sim or not analysis_res:
-                return None
-            
-            def predict_utility(profile):
-                utility = analysis_res['regression']['intercept']
-                for attr, level in profile.items():
-                    if attr == 'name':
-                        continue
-                    pw = next(
-                        (p for p in analysis_res['partWorths'] 
-                         if p['attribute'] == attr and str(p['level']) == str(level)), 
-                        None
-                    )
-                    if pw:
-                        utility += pw['value']
-                return utility
-            
-            scenario_utilities = [predict_utility(sc) for sc in scenarios_to_sim]
-            exp_utilities = np.exp(scenario_utilities)
-            sum_exp_utilities = np.sum(exp_utilities)
-
-            if sum_exp_utilities == 0:
-                return None
-
-            market_shares = (exp_utilities / sum_exp_utilities) * 100
-            
-            return [{
-                'name': sc.get('name', f'Scenario {i+1}'),
-                'marketShare': _to_native_type(share)
-            } for i, (sc, share) in enumerate(zip(scenarios_to_sim, market_shares))]
-
-        if segment_variable and segment_variable in df.columns:
-            segments = df[segment_variable].unique()
-            results_by_segment = {}
-            
-            for segment in segments:
-                if pd.isna(segment):
-                    continue
-                sub_df = df[df[segment_variable] == segment]
-                segment_result = run_conjoint_analysis(sub_df, attributes)
-                if segment_result:
-                    results_by_segment[str(segment)] = segment_result
-            
-            overall_results = run_conjoint_analysis(df, attributes)
-            if overall_results:
-                overall_results['segmentation'] = {
-                    'segmentVariable': segment_variable,
-                    'resultsBySegment': results_by_segment
-                }
-                final_results = overall_results
-            else:
-                raise ValueError("Could not compute overall conjoint analysis.")
-        else:
-            final_results = run_conjoint_analysis(df, attributes)
-            if not final_results:
-                raise ValueError("Conjoint analysis failed. Check data and attribute configuration.")
+        # Aggregate results (mean across respondents)
+        avg_part_worths = pd.DataFrame([item for sublist in part_worths_by_respondent.values() for item in sublist]).groupby(['attribute', 'level'])['value'].mean().reset_index().to_dict('records')
         
-        if scenarios and final_results:
-            final_results['simulation'] = run_simulation(scenarios, final_results)
+        avg_importance_df = pd.DataFrame([item for sublist in importance_by_respondent.values() for item in sublist])
+        avg_importance = avg_importance_df.groupby('attribute')['importance'].mean().reset_index().sort_values('importance', ascending=False).to_dict('records')
+        
+        final_results = {
+            'partWorths': avg_part_worths,
+            'importance': avg_importance,
+            'respondentLevel': {
+                'partWorths': part_worths_by_respondent,
+                'importance': importance_by_respondent
+            },
+            'regression': { 'rSquared': None, 'modelType': 'Hierarchical Bayes Logit'},
+            'simulation': None
+        }
 
         print(json.dumps({'results': final_results}, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        import traceback
+        print(json.dumps({"error": str(e), "trace": traceback.format_exc()}), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
     main()
-
-    export async function POST(req: Request) {
-  const payload = await req.json();
-  
-  console.log('🔵 API: Payload received:', JSON.stringify(payload, null, 2));
-  
-  // Python 실행
-  const result = await runPythonScript(payload);
-  
-  console.log('🔵 API: Python result:', result);
-  
-  return Response.json(result);
-}
-

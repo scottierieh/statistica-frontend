@@ -25,28 +25,14 @@ interface CbcResults {
     partWorths: { attribute: string, level: string, value: number }[];
     importance: { attribute: string, importance: number }[];
     regression: {
-        rSquared: number;
-        adjustedRSquared: number;
-        predictions: number[];
-        intercept: number;
-        coefficients: {[key: string]: number};
+        rSquared: number | null;
+        modelType: string;
     };
-    targetVariable: string;
-    optimalProduct?: {
-        config: {[key: string]: string};
-        totalUtility: number;
+    respondentLevel?: {
+        partWorths: {[key: string]: { attribute: string, level: string, value: number }[]};
+        importance: {[key: string]: { attribute: string, importance: number }[]};
     };
     simulation?: any;
-    segmentation?: SegmentationAnalysis;
-}
-
-interface SegmentationAnalysis {
-    segmentVariable: string;
-    resultsBySegment: { [segmentValue: string]: SegmentResult };
-}
-interface SegmentResult {
-    importance: { attribute: string; importance: number }[];
-    partWorths: { attribute: string; level: string; value: number }[];
 }
 
 interface FullAnalysisResponse {
@@ -135,7 +121,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
         const attributesForBackend = attributeCols.reduce((acc, attrName) => {
             if (allAttributes[attrName]) {
-                acc[attrName] = { ...allAttributes[attrName], includeInAnalysis: true };
+                acc[attrName] = { ...allAttributes[attrName], type: 'categorical' };
             }
             return acc;
         }, {} as any);
@@ -147,7 +133,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 body: JSON.stringify({
                     data: analysisData,
                     attributes: attributesForBackend,
-                    targetVariable: 'chosen',
                     scenarios: simulationScenarios
                 })
             });
@@ -180,63 +165,31 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         handleAnalysis();
     }, [handleAnalysis]);
     
-    useEffect(() => {
-        if (analysisResult && attributeCols.length > 0) {
-            setSensitivityAttribute(attributeCols[0]);
+    const { importanceData, partWorthsData, optimalProduct, respondentUtilities } = useMemo(() => {
+        if (!analysisResult?.results) return { importanceData: [], partWorthsData: [], optimalProduct: {config: {}, totalUtility: 0}, respondentUtilities: [] };
 
-            const initialScenarios = [
-                { name: 'Scenario 1' }, { name: 'Scenario 2' }, { name: 'Scenario 3' }
-            ].map(sc => {
-                const newSc: Scenario = { ...sc };
-                attributeCols.forEach(attrName => {
-                     newSc[attrName] = allAttributes[attrName].levels[0];
-                });
-                return newSc;
+        const results = analysisResult.results;
+        const importanceData = results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
+        const partWorthsData = results.partWorths;
+
+        let totalUtility = 0;
+        const config: {[key: string]: string} = {};
+        if (results.partWorths) {
+            attributeCols.forEach((attr: any) => {
+                const relatedPartWorths = results.partWorths.filter(p => p.attribute === attr);
+                if (relatedPartWorths.length > 0) {
+                    const bestLevel = relatedPartWorths.reduce((max, p) => p.value > max.value ? p : max, relatedPartWorths[0]);
+                    config[attr] = bestLevel.level;
+                    totalUtility += bestLevel.value;
+                }
             });
-            setScenarios(initialScenarios);
         }
-    }, [analysisResult, attributeCols, allAttributes]);
-
-    const runSimulation = () => {
-        handleAnalysis(scenarios);
-    };
-
-    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
-        setScenarios(prev => {
-            const newScenarios = [...prev];
-            newScenarios[scenarioIndex] = { ...newScenarios[scenarioIndex], [attrName]: value };
-            return newScenarios;
-        });
-    };
-    
-    const sensitivityData = useMemo(() => {
-        if (!analysisResult?.results || !sensitivityAttribute) return [];
-        const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
+        const optimalProduct = { config, totalUtility };
         
-        return analysisResult.results.partWorths
-            .filter(p => p.attribute === sensitivityAttribute)
-            .map(p => {
-                let otherUtility = 0;
-                otherAttributes.forEach(otherAttr => {
-                    const baseLevelWorth = analysisResult.results.partWorths.find(pw => pw.attribute === otherAttr && pw.level === allAttributes[otherAttr].levels[0]);
-                    otherUtility += baseLevelWorth?.value || 0;
-                });
-                return {
-                    level: p.level,
-                    utility: (analysisResult.results.regression.intercept || 0) + p.value + otherUtility,
-                };
-            });
-    }, [analysisResult, sensitivityAttribute, attributeCols, allAttributes]);
+        const respondentUtilities = results.respondentLevel ? Object.values(results.respondentLevel.partWorths).flat() : [];
 
-    const importanceData = useMemo(() => {
-        if (!analysisResult?.results.importance) return [];
-        return analysisResult.results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
-    }, [analysisResult]);
-
-    const partWorthsData = useMemo(() => {
-        if (!analysisResult?.results.partWorths) return [];
-        return analysisResult.results.partWorths;
-    }, [analysisResult]);
+        return { importanceData, partWorthsData, optimalProduct, respondentUtilities };
+    }, [analysisResult, attributeCols]);
     
     const COLORS = useMemo(() => ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'], []);
     
@@ -255,7 +208,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             <Card>
                 <CardContent className="p-6 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    <p className="mt-4 text-muted-foreground">Running Choice-Based Conjoint analysis...</p>
+                    <p className="mt-4 text-muted-foreground">Running Hierarchical Bayes estimation for CBC... This may take a moment.</p>
                 </CardContent>
             </Card>
         );
@@ -276,13 +229,12 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className={`grid w-full ${results.segmentation ? 'grid-cols-6' : 'grid-cols-5'}`}>
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
-                    <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal</TabsTrigger>
+                    <TabsTrigger value="utility_dist"><TrendingUp className="mr-2 h-4 w-4"/>Utility Distribution</TabsTrigger>
                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
-                    <TabsTrigger value="sensitivity">Sensitivity</TabsTrigger>
-                    {results.segmentation && <TabsTrigger value="segmentation"><Users className="mr-2 h-4 w-4"/>Segmentation</TabsTrigger>}
+                    <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal Product</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -303,7 +255,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 </TabsContent>
                  <TabsContent value="partworths" className="mt-4">
                     <Card>
-                        <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
+                        <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities (Average)</CardTitle></CardHeader>
                         <CardContent>
                            <div className="grid md:grid-cols-2 gap-4">
                             {attributeCols.map(attr => (
@@ -326,26 +278,31 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="optimal" className="mt-4">
-                     <Card>
+                 <TabsContent value="utility_dist" className="mt-4">
+                    <Card>
                         <CardHeader>
-                            <CardTitle>Optimal Product Profile</CardTitle>
-                            <CardDescription>The combination of attributes that yields the highest preference.</CardDescription>
+                            <CardTitle>Individual Utility Distributions</CardTitle>
+                            <CardDescription>Distribution of part-worths across all respondents.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {results.optimalProduct ? (
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {Object.entries(results.optimalProduct.config).map(([attr, level]) => (
-                                            <TableRow key={attr}><TableCell>{attr}</TableCell><TableCell>{level}</TableCell></TableRow>
-                                        ))}
-                                    </TableBody>
-                                    <CardFooter className="text-center justify-center p-4">
-                                        <p className="text-lg">Total Utility Score: <strong className="text-primary text-xl">{results.optimalProduct.totalUtility.toFixed(2)}</strong></p>
-                                    </CardFooter>
-                                </Table>
-                            ) : <p>Could not determine optimal profile.</p>}
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {attributeCols.map(attr => (
+                                    <div key={attr}>
+                                        <h3 className="font-semibold mb-2">{attr}</h3>
+                                        <ChartContainer config={{}} className="w-full h-80">
+                                             <ResponsiveContainer>
+                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="level"/>
+                                                    <YAxis />
+                                                    <Tooltip content={<ChartTooltipContent />} />
+                                                    <Bar dataKey="value" name="Average Utility" fill="hsl(var(--primary))" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </div>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -390,83 +347,30 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                 <TabsContent value="sensitivity" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute.</CardDescription></CardHeader>
+                <TabsContent value="optimal" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Optimal Product Profile</CardTitle>
+                            <CardDescription>The combination of attributes that yields the highest preference.</CardDescription>
+                        </CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-2 gap-4 items-center">
-                                <div>
-                                    <Label>Attribute to Analyze</Label>
-                                    <Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{attributeCols.map(attr => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                 <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
-                                  <ResponsiveContainer>
-                                      <LineChart data={sensitivityData}>
-                                          <CartesianGrid strokeDasharray="3 3" />
-                                          <XAxis dataKey="level" />
-                                          <YAxis />
-                                          <Tooltip content={<ChartTooltipContent />} />
-                                          <Line type="monotone" dataKey="utility" stroke="hsl(var(--primary))" strokeWidth={2} />
-                                      </LineChart>
-                                  </ResponsiveContainer>
-                                </ChartContainer>
-                            </div>
+                            {optimalProduct ? (
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(optimalProduct.config).map(([attr, level]) => (
+                                            <TableRow key={attr}><TableCell>{attr}</TableCell><TableCell>{level}</TableCell></TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <CardFooter className="text-center justify-center p-4">
+                                        <p className="text-lg">Total Utility Score: <strong className="text-primary text-xl">{optimalProduct.totalUtility.toFixed(2)}</strong></p>
+                                    </CardFooter>
+                                </Table>
+                            ) : <p>Could not determine optimal profile.</p>}
                         </CardContent>
                     </Card>
                 </TabsContent>
-                {results.segmentation && (
-                <TabsContent value="segmentation" className="mt-4">
-                     <p>Segmentation analysis coming soon!</p>
-                </TabsContent>
-                )}
             </Tabs>
         </div>
     );
 }
-
-// --- STEP INDICATOR (reusable, if needed elsewhere) --- //
-const StepIndicator = ({ currentStep }: { currentStep: number }) => (
-    <div className="flex items-center justify-center p-4">
-      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
-        <React.Fragment key={index}>
-          <div className="flex flex-col items-center">
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
-            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
-          </div>
-          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
-        </React.Fragment>
-      ))}
-    </div>
-  );
-
-  const handleAnalysis = async () => {
-    try {
-      console.log('🟢 Starting analysis...');
-      
-      const response = await fetch('/api/conjoint/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await response.json();
-      
-      console.log('🟢 Analysis result:', data);
-      
-      if (data.error) {
-        console.error('🔴 Error:', data.error);
-        alert('Error: ' + data.error);
-      }
-    } catch (error) {
-      console.error('🔴 Fetch failed:', error);
-    }
-  };
-  
-
-    
-    
-
-    
