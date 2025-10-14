@@ -108,11 +108,10 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
                 const presentedProfiles = (conjointQuestion.profiles || []).filter((p: any) => p.taskId === taskKey);
                 if (presentedProfiles.length > 0) {
-                    presentedProfiles.forEach((profile: any, altIndex: number) => {
+                    presentedProfiles.forEach((profile: any) => {
                          analysisData.push({
                             'respondent_id': resp.id,
                             'choice_set_id': taskKey,
-                            'alternative_id': altIndex + 1,
                             ...profile.attributes,
                             chosen: profile.id === chosenProfileId ? 1 : 0
                         });
@@ -468,4 +467,6 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   
 
     
+    
+
     
