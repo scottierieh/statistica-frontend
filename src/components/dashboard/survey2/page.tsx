@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle, CheckSquare, Gauge, ArrowDownUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -19,8 +19,101 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate } from "@/lib/survey-templates";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate, rankingConjointTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import Autoplay from "embla-carousel-autoplay";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
+
+const TemplateCarousel = () => {
+    const autoplayPlugin = React.useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
+
+    const carouselItems = [
+        {
+            title: "IPA Survey Templates",
+            description: "Professional survey templates for Importance-Performance Analysis",
+            href: "/dashboard/createsurvey?template=ipa",
+            image: PlaceHolderImages.find(img => img.id === "ipa-banner"),
+            gradient: "from-slate-50 to-slate-100",
+            textColor: "text-slate-800",
+            buttonColor: "bg-slate-700 hover:bg-slate-800 text-white"
+        },
+        {
+            title: "Customer Satisfaction Survey",
+            description: "Measure customer satisfaction with pre-built CSAT templates",
+            href: "/dashboard/createsurvey?template=csat",
+            image: PlaceHolderImages.find(img => img.id === "csat-banner"),
+            gradient: "from-amber-50 to-yellow-100",
+            textColor: "text-amber-800",
+            buttonColor: "bg-amber-500 hover:bg-amber-600 text-white"
+        },
+        {
+            title: "Employee Engagement Survey",
+            description: "Boost team morale with comprehensive engagement surveys",
+            href: "#",
+            image: PlaceHolderImages.find(img => img.id === "engagement-banner"),
+            gradient: "from-blue-50 to-blue-100",
+            textColor: "text-blue-800",
+            buttonColor: "bg-blue-500 hover:bg-blue-600 text-white"
+        },
+        {
+            title: "Market Research Template",
+            description: "Gather valuable market insights with ready-to-use templates",
+            href: "#",
+            image: PlaceHolderImages.find(img => img.id === "market-research-banner"),
+            gradient: "from-emerald-50 to-green-100",
+            textColor: "text-emerald-800",
+            buttonColor: "bg-emerald-500 hover:bg-emerald-600 text-white"
+        },
+        {
+            title: "Product Feedback Survey",
+            description: "Collect actionable product feedback from your users",
+            href: "#",
+            image: PlaceHolderImages.find(img => img.id === "product-feedback-banner"),
+            gradient: "from-pink-50 to-rose-100",
+            textColor: "text-rose-800",
+            buttonColor: "bg-rose-500 hover:bg-rose-600 text-white"
+        },
+    ];
+
+    return (
+        <Carousel
+            plugins={React.useMemo(() => [autoplayPlugin.current], [])}
+            className="w-full"
+            opts={{ loop: true }}
+        >
+            <CarouselContent>
+                {carouselItems.map((item, index) => (
+                    <CarouselItem key={index}>
+                        <div className={cn("p-8 md:p-12 rounded-xl flex items-center justify-between bg-gradient-to-r", item.gradient)}>
+                            <div className="flex-1 space-y-4">
+                                <h2 className={cn("text-3xl md:text-4xl font-bold", item.textColor)}>{item.title}</h2>
+                                <p className={cn("text-base md:text-lg opacity-90", item.textColor)}>{item.description}</p>
+                                <Link href={item.href}>
+                                    <Button className={cn("mt-4 transition-transform hover:scale-105", item.buttonColor)}>Learn More</Button>
+                                </Link>
+                            </div>
+                            {item.image && (
+                                <Image
+                                    src={item.image.imageUrl}
+                                    alt={item.image.description}
+                                    width={280}
+                                    height={280}
+                                    className="hidden md:block w-72 h-72 object-cover rounded-xl shadow-lg"
+                                    data-ai-hint={item.image.imageHint}
+                                />
+                            )}
+                        </div>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+    )
+}
 
 const TemplateCard = ({ icon: Icon, title, description, href, learnMoreLink }: { icon: React.ElementType, title: string, description: string, href: string, learnMoreLink?: string }) => (
     <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
@@ -51,6 +144,9 @@ export default function Survey2Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [selectedSurveys, setSelectedSurveys] = useState<string[]>([]);
+  const [selectionModeActive, setSelectionModeActive] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadData();
@@ -58,7 +154,6 @@ export default function Survey2Dashboard() {
 
   const loadData = async () => {
     setIsLoading(true);
-    // Simulating an API call latency
     await new Promise(resolve => setTimeout(resolve, 500));
     try {
       const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
@@ -73,7 +168,6 @@ export default function Survey2Dashboard() {
       setResponses(allResponses);
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
-      // Handle potential JSON parsing errors, etc.
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +178,44 @@ export default function Survey2Dashboard() {
       prevSurveys.map(s => s.id === updatedSurvey.id ? updatedSurvey : s)
     );
   };
+
+  const handleToggleSelection = (surveyId: string) => {
+    setSelectedSurveys(prev =>
+        prev.includes(surveyId)
+            ? prev.filter(id => id !== surveyId)
+            : [...prev, surveyId]
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    const updatedSurveys = surveys.filter(s => !selectedSurveys.includes(s.id));
+    
+    const updatedResponses: SurveyResponse[] = [];
+    updatedSurveys.forEach(survey => {
+      const surveyResponses = JSON.parse(localStorage.getItem(`${survey.id}_responses`) || '[]');
+      updatedResponses.push(...surveyResponses);
+    });
+
+    setSurveys(updatedSurveys);
+    setResponses(updatedResponses); 
+    localStorage.setItem('surveys', JSON.stringify(updatedSurveys));
+    selectedSurveys.forEach(id => localStorage.removeItem(`${id}_responses`));
+    
+    toast({
+        title: "Surveys Deleted",
+        description: `${selectedSurveys.length} survey(s) and their responses have been deleted.`
+    });
+    setSelectedSurveys([]);
+    setSelectionModeActive(false);
+  };
+
+  const handleToggleSelectionMode = () => {
+    if (selectionModeActive) {
+      setSelectedSurveys([]);
+    }
+    setSelectionModeActive(!selectionModeActive);
+  };
+
 
   const filteredSurveys = filter === "all" 
     ? surveys 
@@ -160,6 +292,7 @@ export default function Survey2Dashboard() {
                             <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa" learnMoreLink="/dashboard/statistica?analysis=ipa"/>
                             <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
                             <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
+                            <TemplateCard icon={ArrowDownUp} title="Ranking Conjoint" description="Analyze preferences by having users rank different product profiles." href="/dashboard/createsurvey?template=ranking-conjoint"/>
                             <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
                             <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
                             <TemplateCard icon={DollarSign} title="Gabor-Granger (Seq)" description="Price elasticity by asking sequential purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger-1"/>
@@ -170,12 +303,18 @@ export default function Survey2Dashboard() {
                             <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
                             <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
                             <TemplateCard icon={Activity} title="Brand Funnel" description="Measure awareness, consideration, preference, and usage for your brand." href="/dashboard/createsurvey?template=brand-funnel"/>
+                            <TemplateCard icon={Gauge} title="SERVQUAL" description="Measure service quality by comparing customer expectations vs. perceptions." href="/dashboard/createsurvey?template=servqual"/>
+                            <TemplateCard icon={TrendingUp} title="SERVPERF" description="Measure service quality based on customer perceptions of performance." href="/dashboard/createsurvey?template=servperf"/>
                         </div>
                     </div>
                 </ScrollArea>
             </DialogContent>
            </Dialog>
         </motion.div>
+      </div>
+      
+      <div className="mb-8">
+        <TemplateCarousel />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -208,27 +347,65 @@ export default function Survey2Dashboard() {
         />
       </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {[
-          { key: "all", label: "All" },
-          { key: "active", label: "Active" },
-          { key: "draft", label: "Draft" },
-          { key: "closed", label: "Closed" }
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
-              filter === tab.key
-                ? tab.key === 'all'
-                  ? 'bg-slate-700 text-white shadow-lg'
-                  : 'bg-primary text-primary-foreground shadow-lg'
-                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+            {[
+            { key: "all", label: "All" },
+            { key: "active", label: "Active" },
+            { key: "draft", label: "Draft" },
+            { key: "closed", label: "Closed" }
+            ].map((tab) => (
+            <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
+                filter === tab.key
+                    ? tab.key === 'all'
+                    ? 'bg-slate-700 text-white shadow-lg'
+                    : 'bg-primary text-primary-foreground shadow-lg'
+                    : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                }`}
+            >
+                {tab.label}
+            </button>
+            ))}
+        </div>
+        <div className="flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={handleToggleSelectionMode}
+                className={cn(selectionModeActive && "bg-primary text-primary-foreground")}
+            >
+                <CheckSquare className="w-5 h-5" />
+            </Button>
+            <AnimatePresence>
+                {selectionModeActive && selectedSurveys.length > 0 && (
+                    <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }}>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="gap-2">
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete ({selectedSurveys.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete {selectedSurveys.length} survey(s) and all associated responses. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteSelected}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
       </div>
 
       {isLoading ? (
@@ -253,6 +430,9 @@ export default function Survey2Dashboard() {
                 survey={survey}
                 responses={responses.filter(r => r.survey_id === survey.id)}
                 onUpdate={handleSurveyUpdate}
+                isSelected={selectedSurveys.includes(survey.id)}
+                onToggleSelect={() => handleToggleSelection(survey.id)}
+                selectionModeActive={selectionModeActive}
               />
             ))}
           </AnimatePresence>
