@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,7 +11,8 @@ import {
   Users, 
   ClipboardList, 
   Handshake, 
-  Plus
+  Plus,
+  ArrowDownUp
 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
@@ -44,6 +46,13 @@ const specialAnalyses: AnalysisTemplate[] = [
     title: "Rating Conjoint",
     description: "Rating-based preference analysis",
     color: "bg-purple-500"
+  },
+  {
+    href: "/dashboard/createsurvey?template=ranking-conjoint",
+    icon: ArrowDownUp,
+    title: "Ranking Conjoint",
+    description: "Rank-based preference analysis",
+    color: "bg-indigo-500"
   },
   {
     href: "/dashboard/createsurvey?template=van-westendorp",
