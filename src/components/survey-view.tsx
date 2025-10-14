@@ -480,8 +480,6 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange, styles, onNe
     const handleNextTask = () => {
         if (currentTask < tasks.length - 1) {
             setCurrentTask(currentTask + 1);
-        } else if (isLastQuestion) {
-            submitSurvey();
         } else {
             onNextTask();
         }
@@ -571,8 +569,6 @@ const RankingConjointQuestion = ({ question, answer, onAnswerChange, styles, onN
     const handleNextTask = () => {
         if (currentTask < tasks.length - 1) {
             setCurrentTask(currentTask + 1);
-        } else if (isLastQuestion) {
-            submitSurvey();
         } else {
             onNextTask();
         }
