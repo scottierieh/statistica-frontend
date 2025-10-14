@@ -90,12 +90,14 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         responses.forEach(resp => {
             const answerBlock = (resp.answers as any)[conjointQuestion.id];
             if (!answerBlock || typeof answerBlock !== 'object') return;
-
+    
             Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
+                // Find all profiles presented in this task
                 const presentedProfiles = (conjointQuestion.profiles || []).filter((p: any) => p.taskId === taskKey);
+                
                 if (presentedProfiles.length > 0) {
                     presentedProfiles.forEach((profile: any) => {
-                         analysisData.push({
+                        analysisData.push({
                             'respondent_id': resp.id,
                             'choice_set_id': taskKey,
                             ...profile.attributes,
@@ -105,7 +107,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 }
             });
         });
-
 
         if (analysisData.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
@@ -165,14 +166,14 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         handleAnalysis();
     }, [handleAnalysis]);
     
-    const { importanceData, partWorthsData, optimalProduct, respondentUtilities } = useMemo(() => {
-        if (!analysisResult?.results) return { importanceData: [], partWorthsData: [], optimalProduct: {config: {}, totalUtility: 0}, respondentUtilities: [] };
+    const { importanceData, partWorthsData, optimalProduct } = useMemo(() => {
+        if (!analysisResult?.results) return { importanceData: [], partWorthsData: [], optimalProduct: { config: {}, totalUtility: 0 } };
 
         const results = analysisResult.results;
         const importanceData = results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
-        const partWorthsData = results.partWorths;
+        const partWorthsData = results.partWorths.filter(p => p.attribute !== 'Base');
 
-        let totalUtility = 0;
+        let totalUtility = results.regression?.intercept || 0;
         const config: {[key: string]: string} = {};
         if (results.partWorths) {
             attributeCols.forEach((attr: any) => {
@@ -185,10 +186,8 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             });
         }
         const optimalProduct = { config, totalUtility };
-        
-        const respondentUtilities = results.respondentLevel ? Object.values(results.respondentLevel.partWorths).flat() : [];
 
-        return { importanceData, partWorthsData, optimalProduct, respondentUtilities };
+        return { importanceData, partWorthsData, optimalProduct };
     }, [analysisResult, attributeCols]);
     
     const COLORS = useMemo(() => ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'], []);
@@ -208,7 +207,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             <Card>
                 <CardContent className="p-6 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    <p className="mt-4 text-muted-foreground">Running Hierarchical Bayes estimation for CBC... This may take a moment.</p>
+                    <p className="mt-4 text-muted-foreground">Running Aggregate Logit estimation for CBC... This may take a moment.</p>
                 </CardContent>
             </Card>
         );
@@ -229,12 +228,11 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
-                    <TabsTrigger value="utility_dist"><TrendingUp className="mr-2 h-4 w-4"/>Utility Distribution</TabsTrigger>
-                    <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                     <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal Product</TabsTrigger>
+                    <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -278,31 +276,26 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                 <TabsContent value="utility_dist" className="mt-4">
-                    <Card>
+                <TabsContent value="optimal" className="mt-4">
+                     <Card>
                         <CardHeader>
-                            <CardTitle>Individual Utility Distributions</CardTitle>
-                            <CardDescription>Distribution of part-worths across all respondents.</CardDescription>
+                            <CardTitle>Optimal Product Profile</CardTitle>
+                            <CardDescription>The combination of attributes that yields the highest preference.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {attributeCols.map(attr => (
-                                    <div key={attr}>
-                                        <h3 className="font-semibold mb-2">{attr}</h3>
-                                        <ChartContainer config={{}} className="w-full h-80">
-                                             <ResponsiveContainer>
-                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="level"/>
-                                                    <YAxis />
-                                                    <Tooltip content={<ChartTooltipContent />} />
-                                                    <Bar dataKey="value" name="Average Utility" fill="hsl(var(--primary))" />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </ChartContainer>
-                                    </div>
-                                ))}
-                            </div>
+                            {optimalProduct ? (
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(optimalProduct.config).map(([attr, level]) => (
+                                            <TableRow key={attr}><TableCell>{attr}</TableCell><TableCell>{level}</TableCell></TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <CardFooter className="text-center justify-center p-4">
+                                        <p className="text-lg">Total Utility Score: <strong className="text-primary text-xl">{optimalProduct.totalUtility.toFixed(2)}</strong></p>
+                                    </CardFooter>
+                                </Table>
+                            ) : <p>Could not determine optimal profile.</p>}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -347,30 +340,23 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="optimal" className="mt-4">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Optimal Product Profile</CardTitle>
-                            <CardDescription>The combination of attributes that yields the highest preference.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {optimalProduct ? (
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {Object.entries(optimalProduct.config).map(([attr, level]) => (
-                                            <TableRow key={attr}><TableCell>{attr}</TableCell><TableCell>{level}</TableCell></TableRow>
-                                        ))}
-                                    </TableBody>
-                                    <CardFooter className="text-center justify-center p-4">
-                                        <p className="text-lg">Total Utility Score: <strong className="text-primary text-xl">{optimalProduct.totalUtility.toFixed(2)}</strong></p>
-                                    </CardFooter>
-                                </Table>
-                            ) : <p>Could not determine optimal profile.</p>}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
             </Tabs>
         </div>
     );
 }
+
+// --- STEP INDICATOR (reusable, if needed elsewhere) --- //
+const StepIndicator = ({ currentStep }: { currentStep: number }) => (
+    <div className="flex items-center justify-center p-4">
+      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
+        <React.Fragment key={index}>
+          <div className="flex flex-col items-center">
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
+            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
+          </div>
+          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+

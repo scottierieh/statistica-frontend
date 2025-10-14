@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-// DEPRECATED: This endpoint is now consolidated into the /api/analysis/conjoint endpoint.
-// It is kept for backward compatibility but should not be used for new features.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
