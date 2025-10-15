@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Bar, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Bar, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, PieChart, Pie, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, BarChart3, GitBranch } from 'lucide-react';
@@ -340,7 +341,11 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                                 cursor={{fill: 'hsl(var(--muted))', opacity: 0.1}} 
                                             />
                                             <Bar dataKey="count" name="Frequency" radius={[0, 8, 8, 0]}>
-                                                
+                                                <LabelList 
+                                                    dataKey="count" 
+                                                    position="insideRight" 
+                                                    style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} 
+                                                />
                                                 {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                             </Bar>
                                         </BarChart>
@@ -952,6 +957,17 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
     if (!data || !data.scores) return null;
+
+    const cleanCombination = (combo: string) => {
+        return combo
+            .replace(/\['/g, '')
+            .replace(/'\]/g, '')
+            .replace(/'/g, '')
+            .replace(/\[/g, '')
+            .replace(/\]/g, '')
+            .replace(/\s*\+\s*/g, ' + ')
+            .trim();
+    };
 
     const chartData = data.scores.map(item => ({
         name: cleanCombination(item.item),
@@ -1795,3 +1811,226 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+
+```
+- src/components/survey/page.tsx:
+```tsx
+
+'use client';
+
+import SurveyApp from '@/components/survey-app';
+
+export default function SurveyPage() {
+  return <SurveyApp />;
+}
+
+```
+- src/hooks/use-localstorage.ts:
+```ts
+
+'use client';
+    
+    import { useState, useEffect } from 'react';
+    
+    export function useLocalStorage<T>(key: string, initialValue: T) {
+      const [storedValue, setStoredValue] = useState<T>(() => {
+        if (typeof window === 'undefined') {
+          return initialValue;
+        }
+        try {
+          const item = window.localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          console.log(error);
+          return initialValue;
+        }
+      });
+    
+      const setValue = (value: T | ((val: T) => T)) => {
+        try {
+          const valueToStore =
+            value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      };
+    
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const item = window.localStorage.getItem(key);
+            if (item) {
+                try {
+                    setStoredValue(JSON.parse(item));
+                } catch (e) {
+                    // If parsing fails, it might be a raw string
+                    // Or could be corrupted, best to fall back to initial
+                    console.warn(`Could not parse stored json for key "${key}"`);
+                }
+            }
+        }
+      }, [key]);
+    
+      return [storedValue, setValue] as const;
+    }
+
+
+```
+- src/types/dnd-types.ts:
+```ts
+export const DndTypes = {
+    QUESTION: 'question',
+};
+
+```
+- src/types/survey-responses.ts:
+```ts
+export interface SurveyResponse {
+    id: string;
+    survey_id: string;
+    submittedAt: string;
+    answers: {
+        [questionId: string]: any;
+    };
+}
+```
+- tailwind.config.ts:
+```ts
+import type {Config} from 'tailwindcss';
+
+export default {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      backgroundImage: {
+        'grid-pattern': "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='%23e2e8f0'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e\")",
+        'grid-pattern-dark': "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='%23334155'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e\")",
+      },
+      fontFamily: {
+        body: ['var(--font-body)'],
+        headline: ['var(--font-headline)'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+} satisfies Config;
+
+```
+- tsconfig.json:
+```json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+```
