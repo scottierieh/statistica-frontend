@@ -1,14 +1,13 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock, TestTube, Repeat, Link2, Columns, Shield, Feather, MessagesSquare, Atom, ScanSearch, Handshake, Replace, Activity, Palette } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -496,7 +495,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
           } else if (Math.abs(skewness) > 0.5) {
               skewText = `The data shows <strong>moderate ${skewness > 0 ? 'right-skew' : 'left-skew'}</strong>.`;
           } else {
-              skewText = `The data appears <strong>well-balanced and symmetrical</strong>.`;
+              skewText = `The data appears to be roughly <strong>symmetrical</strong>.`;
               icon = <CheckCircle className="h-4 w-4" />;
           }
         }
@@ -1788,7 +1787,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scale using Cronbach's Alpha.</p>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button variant="outline">Perform Analysis</Button>
+                                    <Button variant="outline">Coming Soon</Button>
                                 </CardFooter>
                             </Card>
                              <Card className="hover:shadow-lg transition-shadow">
