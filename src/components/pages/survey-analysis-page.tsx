@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, BarChart3 } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -1751,20 +1751,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                             <Card className="hover:shadow-lg transition-shadow">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Columns className="text-purple-500" />
-                                        Crosstabulation
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">Examine the relationship between two categorical variables (Chi-Squared Test).</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button variant="outline">Perform Analysis</Button>
-                                </CardFooter>
-                            </Card>
-                            <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
                                         <Link2 className="text-orange-500" />
                                         Correlation Analysis
                                     </CardTitle>
@@ -1787,7 +1773,9 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scale using Cronbach's Alpha.</p>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button variant="outline">Coming Soon</Button>
+                                     <Link href="/dashboard/statistica?analysis=reliability" passHref>
+                                        <Button variant="outline">Perform Analysis</Button>
+                                    </Link>
                                 </CardFooter>
                             </Card>
                              <Card className="hover:shadow-lg transition-shadow">
