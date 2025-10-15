@@ -4,10 +4,10 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, LabelList, PieChart as RechartsPieChart, Bar } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, LabelList, Bar } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart3, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, BarChart as BarChartIcon } from 'lucide-react';
+import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart as BarChart3 } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -317,7 +317,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                         <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full">
                             <TabsList className="grid w-full grid-cols-4 mb-4">
                                 <TabsTrigger value="bar" className="flex items-center gap-2">
-                                    <BarChartIcon className="w-4 h-4"/>
+                                    <BarChart3 className="w-4 h-4"/>
                                     <span className="hidden sm:inline">Bar</span>
                                 </TabsTrigger>
                                 <TabsTrigger value="pie" className="flex items-center gap-2">
@@ -1741,48 +1741,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                            <Card className="hover:shadow-lg transition-shadow">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Repeat className="text-purple-500" />
-                                        Paired Samples T-Test
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">Compare the means of two related groups (e.g., pre-test vs. post-test).</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button variant="outline">Coming Soon</Button>
-                                </CardFooter>
-                            </Card>
-                             <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Users className="text-blue-500" />
-                                        Independent Samples T-Test
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">Compare the means of two independent groups.</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button variant="outline">Coming Soon</Button>
-                                </CardFooter>
-                            </Card>
-                            <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Link2 className="text-orange-500" />
-                                        Correlation Analysis
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">Measure the strength and direction of the relationship between two numeric variables.</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button variant="outline">Coming Soon</Button>
-                                </CardFooter>
-                            </Card>
-                             <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
                                         <ShieldCheck className="text-green-500" />
                                         Reliability Analysis
                                     </CardTitle>
@@ -1792,22 +1750,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                 </CardContent>
                                 <CardFooter>
                                     <Button variant="outline">Coming Soon</Button>
-                                </CardFooter>
-                            </Card>
-                             <Card className="hover:shadow-lg transition-shadow bg-slate-50 border-2 border-dashed">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Sigma className="text-indigo-500" />
-                                        Advanced Statistics
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">Access over 40 advanced statistical tools for deeper data exploration in our Statistica app.</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button variant="default" asChild>
-                                        <Link href="/dashboard/statistica">Go to Statistica</Link>
-                                    </Button>
                                 </CardFooter>
                             </Card>
                         </div>
