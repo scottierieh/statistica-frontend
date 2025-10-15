@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, PieChart, Pie, LabelList } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, PieChart, Pie, LabelList, Bar } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart as BarChart3 } from 'lucide-react';
@@ -1139,6 +1140,17 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
       return (await Promise.all(promises)).filter(Boolean);
     }, []);
     
+    const hasFurtherAnalysis = useMemo(() => {
+        if (!specialAnalyses) return false;
+        return specialAnalyses.some(a => a.key === 'further_analysis');
+    }, [specialAnalyses]);
+    
+    const tabs = useMemo(() => [
+        { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
+        ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
+        ...(hasFurtherAnalysis ? [{ key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> }] : [])
+    ], [specialAnalyses, hasFurtherAnalysis]);
+    
     useEffect(() => {
         const loadData = async () => {
             if (survey && survey.questions) {
@@ -1206,18 +1218,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
 
     }, [responses, survey, toast]);
     
-    // Moved hooks to the top
-    const hasFurtherAnalysis = useMemo(() => {
-        if (!specialAnalyses) return false;
-        return specialAnalyses.some(a => a.key === 'further_analysis');
-    }, [specialAnalyses]);
-    
-    const tabs = useMemo(() => [
-        { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
-        ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
-        ...(hasFurtherAnalysis ? [{ key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> }] : [])
-    ], [specialAnalyses, hasFurtherAnalysis]);
-
 
     if (loading) {
         return (
@@ -1357,3 +1357,4 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+
