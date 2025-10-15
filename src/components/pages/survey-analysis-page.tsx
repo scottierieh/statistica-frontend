@@ -1,3 +1,6 @@
+
+'use client';
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -681,7 +684,7 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                    </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
+           <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
                         <p className="text-7xl font-bold bg-gradient-to-br from-amber-500 to-orange-600 bg-clip-text text-transparent">
@@ -1330,15 +1333,16 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const [analysisData, setAnalysisData] = useState<any[]>([]);
     const [activeFurtherAnalysis, setActiveFurtherAnalysis] = useState<string | null>(null);
 
+    const numericHeaders = useMemo(() => {
+        if (!survey || !survey.questions) return [];
+        return survey.questions
+          .filter(q => ['number', 'rating'].includes(q.type))
+          .map(q => q.title);
+    }, [survey]);
+    
     const hasFurtherAnalysis = useMemo(() => {
-        // Define your list of analyses that can be shown as "Further Analysis"
-        const furtherAnalysisOptions = new Set(['reliability']); // Add more keys as they are implemented
-        
-        // You can have a more complex logic here if needed
-        const hasAvailableAnalyses = numericHeaders.length > 1; // Example condition
-
-        return hasAvailableAnalyses;
-    }, [specialAnalyses, survey]);
+        return numericHeaders.length > 1;
+    }, [numericHeaders]);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1396,14 +1400,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
             });
         }
     }, []);
-
-    const numericHeaders = useMemo(() => {
-        if (!survey || !survey.questions) return [];
-        return survey.questions
-          .filter(q => ['number', 'rating'].includes(q.type))
-          .map(q => q.title);
-    }, [survey]);
-
+    
     if (loading) {
         return (
             <div className="space-y-6 p-4 md:p-6">
@@ -1425,7 +1422,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     }
     
     const tabs = [
-        { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
+        { key: 'results', label: 'Results', icon: <BarChartIcon className="w-4 h-4" /> },
         ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
     ];
     if (hasFurtherAnalysis) {
@@ -1472,7 +1469,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                             <TabsTrigger 
                                 key={tab.key} 
                                 value={tab.key}
-                                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow gap-2"
+                                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
                             >
                                 {tab.icon}
                                 {tab.label}
@@ -1500,7 +1497,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                             case 'text':
                                                  return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'best-worst':
-                                                return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                                // return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                                return null;
                                             case 'matrix':
                                                 return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             default:
@@ -1547,30 +1545,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                             </div>
                                         </CardContent>
                                     </Card>
-                                     <Card className="group hover:shadow-lg hover:border-green-200 dark:hover:border-green-800 transition-all cursor-pointer" onClick={() => handleFurtherAnalysisClick('pre-post')}>
-                                        <CardHeader className="pb-3">
-                                            <div className="flex items-start justify-between">
-                                                <div className="space-y-1 flex-1">
-                                                    <CardTitle className="text-base font-semibold group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                                                        Before & After Analysis
-                                                    </CardTitle>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Analyze changes over time or after an intervention
-                                                    </p>
-                                                </div>
-                                                <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-2 group-hover:bg-green-200 dark:group-hover:bg-green-800/50 transition-colors">
-                                                    <Repeat className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                                </div>
-                                            </div>
-                                        </CardHeader>
-                                         <CardContent className="pt-0">
-                                            <div className="rounded-md bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 px-3 py-2">
-                                                <p className="text-xs text-green-700 dark:text-green-300">
-                                                    e.g., Did satisfaction scores improve after the update?
-                                                </p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                    {/* Additional analysis cards can be added here */}
                                 </div>
                             ) : activeFurtherAnalysis === 'reliability' ? (
                                  <Card>
@@ -1587,20 +1562,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                         />
                                     </CardContent>
                                 </Card>
-                            ) : activeFurtherAnalysis === 'pre-post' ? (
-                               <Card>
-                                    <CardHeader>
-                                        <Button variant="ghost" size="sm" onClick={() => setActiveFurtherAnalysis(null)} className="mb-4">
-                                            <ArrowLeft className="mr-2 h-4 w-4"/> Back to Analyses
-                                        </Button>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {/* Placeholder for Before & After component */}
-                                        <div className="text-center text-muted-foreground p-8">
-                                            Coming soon...
-                                        </div>
-                                    </CardContent>
-                                </Card>
                             ) : null}
                         </TabsContent>
                     )}
@@ -1609,3 +1570,5 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+
+```
