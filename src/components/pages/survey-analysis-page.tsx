@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock, TestTube, Repeat, Link2, Columns, Shield } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock, TestTube, Repeat, Link2, Columns, Shield, Feather, MessagesSquare, Atom, ScanSearch, Handshake, Replace, Activity, Palette } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -542,7 +543,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
            <CardContent className="p-6">
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                     <div className="xl:col-span-3">
-                        <ChartContainer config={{count: {label: 'Frequency'}}} className="w-full h-80">
+                        <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-80">
                             <ResponsiveContainer>
                                 <BarChart data={data.histogram}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -1381,6 +1382,111 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
     );
 };
 
+const WordCloud = ({ textData, title, onDownload }: { textData: string[], title: string, onDownload: () => void }) => {
+    const [wordcloudResult, setWordcloudResult] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const generateWordCloud = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await fetch('/api/analysis/wordcloud', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: textData.join(' ') })
+            });
+            if (!response.ok) throw new Error('Word cloud generation failed.');
+            const result = await response.json();
+            setWordcloudResult(result);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [textData]);
+
+    useEffect(() => {
+        generateWordCloud();
+    }, [generateWordCloud]);
+
+    const plotData = useMemo(() => {
+        if (!wordcloudResult?.plots.wordcloud) return null;
+        try {
+            return JSON.parse(wordcloudResult.plots.wordcloud);
+        } catch (e) {
+            console.error("Failed to parse wordcloud plot data", e);
+            return null;
+        }
+    }, [wordcloudResult]);
+
+    if (loading) return <Skeleton className="w-full h-96" />;
+    
+    if (!wordcloudResult) {
+        return (
+            <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader>
+                    <CardTitle>{title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>No text data to analyze.</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                 <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Word Cloud Analysis</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={onDownload}
+                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="h-96">
+                        {plotData ? (
+                            <Plot data={plotData.data} layout={plotData.layout} useResizeHandler={true} className="w-full h-full" />
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">Could not render Word Cloud.</div>
+                        )}
+                    </div>
+                    <div>
+                         <h3 className="font-semibold mb-2">Most Frequent Words</h3>
+                        <ScrollArea className="h-96">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Word</TableHead>
+                                        <TableHead className="text-right">Frequency</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(wordcloudResult.frequencies).map(([word, freq]) => (
+                                        <TableRow key={word}>
+                                            <TableCell>{word}</TableCell>
+                                            <TableCell className="text-right font-mono">{freq as number}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 interface SurveyAnalysisPageProps {
   survey: Survey;
   responses: SurveyResponse[];
@@ -1595,6 +1701,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                                 return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'matrix':
                                                 return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                            case 'text':
+                                                return <WordCloud textData={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             default:
                                                 return null;
                                         }
