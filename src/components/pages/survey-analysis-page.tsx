@@ -1,14 +1,13 @@
 
 'use client';
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Bar, PieChart as RechartsPieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3 } from 'lucide-react';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Network, Repeat } from 'lucide-react';
+import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -28,6 +27,8 @@ import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
 
 
 const Plot = dynamic(() => import('react-plotly.js'), {
@@ -318,7 +319,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             <TabsContent value="bar" className="mt-0">
                                 <ChartContainer config={{}} className="w-full h-80">
                                     <ResponsiveContainer>
-                                        <BarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                                        <RechartsBarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
                                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
                                             <XAxis type="number" dataKey="count" />
                                             <YAxis 
@@ -336,14 +337,12 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                             <Bar dataKey="count" name="Frequency" radius={[0, 8, 8, 0]}>
                                                 <LabelList 
                                                     dataKey="count" 
-                                                    position="right" 
-                                                    style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }} 
+                                                    position="insideRight" 
+                                                    style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} 
                                                 />
-                                                {data.map((_entry: any, index: number) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
+                                                {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                             </Bar>
-                                        </BarChart>
+                                        </RechartsBarChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             </TabsContent>
@@ -489,19 +488,19 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-                <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                        <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
-                    </div>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={onDownload}
-                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                    >
-                        <Download className="w-4 h-4" />
-                    </Button>
+              <div className="flex justify-between items-start">
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
+                   </div>
+                   <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                   >
+                       <Download className="w-4 h-4" />
+                   </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-6">
@@ -509,7 +508,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                     <div className="xl:col-span-3">
                         <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-80">
                             <ResponsiveContainer>
-                                <BarChart data={data.histogram}>
+                                <RechartsBarChart data={data.histogram}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                     <XAxis 
                                         dataKey="name" 
@@ -532,7 +531,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                             <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8}/>
                                         </linearGradient>
                                     </defs>
-                                </BarChart>
+                                </RechartsBarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </div>
@@ -798,19 +797,19 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
             <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                    <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">Net Promoter Score analysis</p>
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Net Promoter Score analysis</p>
+                   </div>
+                   <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                   >
+                       <Download className="w-4 h-4" />
+                   </Button>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={onDownload}
-                    className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                >
-                    <Download className="w-4 h-4" />
-                </Button>
-            </div>
           </CardHeader>
            <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1170,7 +1169,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
 };
 
 
-// --- Matrix Chart (keeping similar with enhancements) ---
+// --- Enhanced Matrix Chart ---
 const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const [tableFormat, setTableFormat] = useState('counts');
@@ -1431,7 +1430,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                          {interpretation && (
                             <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
                                 <div className="flex gap-2">
-                                    <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                     <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                                     <div className="flex-1">
                                         <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
                                         <AlertDescription 
@@ -1546,7 +1545,9 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         { key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> }
     ];
 
-    const hasFurtherAnalysis = specialAnalyses.some(a => !['conjoint', 'rating-conjoint', 'ranking-conjoint', 'ipa', 'van-westendorp', 'turf', 'ahp', 'gabor-granger', 'semantic-differential', 'brand-funnel', 'servqual', 'servperf', 'crosstab'].includes(a.key));
+    const handleFurtherAnalysisClick = (analysisType: string) => {
+        setActiveFurtherAnalysis(analysisType);
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -1632,36 +1633,75 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     ))}
                     
                     <TabsContent value="further_analysis" className="mt-8">
-                         {activeFurtherAnalysis === null ? (
+                        {activeFurtherAnalysis === null ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveFurtherAnalysis('reliability')}>
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-sm font-medium">Reliability Analysis</CardTitle>
-                                        <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                                  <Card className="group hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer" onClick={() => handleFurtherAnalysisClick('reliability')}>
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between">
+                                            <div className="space-y-1 flex-1">
+                                                <CardTitle className="text-base font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                    Scale Reliability Check
+                                                </CardTitle>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Check if rating scale questions measure consistently
+                                                </p>
+                                            </div>
+                                            <div className="rounded-full bg-blue-100 dark:bg-blue-900/30 p-2 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
+                                                <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                        </div>
                                     </CardHeader>
-                                    <CardContent>
-                                        <div className="text-2xl font-bold">Cronbach's α</div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Assess the internal consistency of your survey scales.
-                                        </p>
+                                    <CardContent className="pt-0">
+                                        <div className="rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-3 py-2">
+                                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                                                e.g., Do my 5 satisfaction questions work well together?
+                                            </p>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
                         ) : activeFurtherAnalysis === 'reliability' ? (
-                            <div>
-                                <Button variant="ghost" onClick={() => setActiveFurtherAnalysis(null)} className="mb-4">
-                                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Analyses
-                                </Button>
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Reliability Analysis</CardTitle>
-                                        <CardDescription>Coming Soon</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="text-center text-muted-foreground py-12">
-                                        <p>This feature is under development.</p>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                             <Card>
+                                <CardHeader>
+                                    <Button variant="ghost" size="sm" onClick={() => setActiveFurtherAnalysis(null)} className="mb-4">
+                                        <ArrowLeft className="mr-2 h-4 w-4"/> Back to Analyses
+                                    </Button>
+                                    <CardTitle>Reliability Analysis</CardTitle>
+                                    <CardDescription>Coming soon...</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-center text-muted-foreground p-8">
+                                        This analysis feature is currently under development.
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : activeFurtherAnalysis === 'group-comparison' ? (
+                             <Card>
+                                <CardHeader>
+                                    <Button variant="ghost" size="sm" onClick={() => setActiveFurtherAnalysis(null)} className="mb-4">
+                                        <ArrowLeft className="mr-2 h-4 w-4"/> Back to Analyses
+                                    </Button>
+                                    <CardTitle>Group Comparison Analysis</CardTitle>
+                                    <CardDescription>Coming soon...</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-center text-muted-foreground p-8">
+                                        This analysis feature is currently under development.
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : activeFurtherAnalysis === 'pre-post' ? (
+                           <Card>
+                                <CardHeader>
+                                    <Button variant="ghost" size="sm" onClick={() => setActiveFurtherAnalysis(null)} className="mb-4">
+                                        <ArrowLeft className="mr-2 h-4 w-4"/> Back to Analyses
+                                    </Button>
+                                    <CardTitle>Before & After Analysis</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {/* This is where the new functionality will go */}
+                                </CardContent>
+                            </Card>
                         ) : null}
                     </TabsContent>
                 </Tabs>
