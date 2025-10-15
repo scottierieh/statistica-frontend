@@ -821,7 +821,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
 
       return (
         <div className="relative flex flex-col items-center justify-center">
-          <RechartsPieChart width={320} height={200}>
+          <PieChart width={320} height={200}>
             <Pie
               data={gaugeData}
               cx={160}
@@ -836,7 +836,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
               <Cell fill={color} />
               <Cell fill="#e5e7eb" />
             </Pie>
-          </RechartsPieChart>
+          </PieChart>
           
           <div className="absolute top-28 flex flex-col items-center">
             <div className={cn("text-6xl font-bold bg-gradient-to-r bg-clip-text text-transparent", gradient)}>
