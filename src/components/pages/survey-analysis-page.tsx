@@ -8,7 +8,7 @@ import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pi
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock, TestTube, Repeat, Link2, Columns, Shield } from 'lucide-react';
-import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
+import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -537,7 +537,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                    </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
+           <CardContent className="p-6">
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                     <div className="xl:col-span-3">
                         <ChartContainer config={{count: {label: 'Frequency'}}} className="w-full h-80">
@@ -1067,7 +1067,7 @@ const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], tit
 };
 
 
-// --- Best Worst Chart (keeping similar with enhancements) ---
+// --- Enhanced Best Worst Chart ---
 const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], interpretation: string }, title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
@@ -1726,29 +1726,74 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     <TabsContent value="further_analysis" className="mt-8">
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader><CardTitle className="flex items-center gap-2"><Users className="text-blue-500" />Group Mean Comparison</CardTitle></CardHeader>
-                                <CardContent><p className="text-sm text-muted-foreground">Compare average scores between two or more groups (T-Test, ANOVA).</p></CardContent>
-                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Users className="text-blue-500" />
+                                        Group Mean Comparison
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Compare average scores between two or more groups (T-Test, ANOVA).</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button variant="outline">Perform Analysis</Button>
+                                </CardFooter>
+                            </Card>
+                            <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Repeat className="text-green-500" />
+                                        Before & After Comparison
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Analyze changes in scores for the same subjects over time (Paired T-Test).</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button variant="outline">Perform Analysis</Button>
+                                </CardFooter>
+                            </Card>
+                            <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Columns className="text-purple-500" />
+                                        Crosstabulation
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Examine the relationship between two categorical variables (Chi-Squared Test).</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button variant="outline">Perform Analysis</Button>
+                                </CardFooter>
+                            </Card>
+                            <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Link2 className="text-orange-500" />
+                                        Correlation Analysis
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Measure the strength and direction of the relationship between two numeric variables.</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button variant="outline">Perform Analysis</Button>
+                                </CardFooter>
                             </Card>
                              <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader><CardTitle className="flex items-center gap-2"><Repeat className="text-green-500" />Before & After Comparison</CardTitle></CardHeader>
-                                <CardContent><p className="text-sm text-muted-foreground">Analyze changes in scores for the same subjects over time (Paired T-Test).</p></CardContent>
-                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
-                            </Card>
-                             <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader><CardTitle className="flex items-center gap-2"><Columns className="text-purple-500" />Crosstabulation</CardTitle></CardHeader>
-                                <CardContent><p className="text-sm text-muted-foreground">Examine the relationship between two categorical variables (Chi-Squared Test).</p></CardContent>
-                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
-                            </Card>
-                             <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="text-orange-500" />Correlation Analysis</CardTitle></CardHeader>
-                                <CardContent><p className="text-sm text-muted-foreground">Measure the strength and direction of the relationship between two numeric variables.</p></CardContent>
-                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
-                            </Card>
-                             <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="text-red-500" />Reliability Analysis</CardTitle></CardHeader>
-                                <CardContent><p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scale using Cronbach's Alpha.</p></CardContent>
-                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <ShieldCheck className="text-red-500" />
+                                        Reliability Analysis
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scale using Cronbach's Alpha.</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button variant="outline">Perform Analysis</Button>
+                                </CardFooter>
                             </Card>
                         </div>
                     </TabsContent>
@@ -1757,4 +1802,3 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
-```
