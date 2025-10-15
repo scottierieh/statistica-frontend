@@ -317,6 +317,45 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     );
 };
 
+const LikertQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: any, onAnswerChange: (value: any) => void, styles: any }) => {
+    return (
+        <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <h3 className="text-base font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            
+            <RadioGroup 
+                value={answer ? String(answer) : undefined} 
+                onValueChange={(value) => onAnswerChange(parseInt(value))}
+            >
+                <div className="space-y-2">
+                    {(question.scale || []).map((label: string, index: number) => (
+                        <Label
+                            key={index}
+                            htmlFor={`q${question.id}-s${index}`}
+                            className={cn(
+                                "flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer",
+                                answer === index + 1
+                                    ? "bg-primary/10 border-primary shadow-md"
+                                    : "bg-background hover:bg-accent/50 hover:border-primary/50"
+                            )}
+                        >
+                            <RadioGroupItem 
+                                value={String(index + 1)} 
+                                id={`q${question.id}-s${index}`}
+                                className="shrink-0"
+                            />
+                            <span className="flex-1 font-medium text-sm">{label}</span>
+                            {answer === index + 1 && (
+                                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                            )}
+                        </Label>
+                    ))}
+                </div>
+            </RadioGroup>
+        </div>
+    );
+};
+
 const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any }) => {
     const handleRatingChange = (rowText: string, type: 'Expectation' | 'Perception', value: number) => {
         onAnswerChange(produce(answer || {}, (draft: any) => {
@@ -980,7 +1019,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
         'rating-conjoint': RatingConjointQuestion,
         'ranking-conjoint': RankingConjointQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
-        likert: SemanticDifferentialQuestion,
+        likert: LikertQuestion,
         ahp: AHPQuestion,
         servqual: ServqualQuestion,
     };

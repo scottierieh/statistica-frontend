@@ -766,26 +766,29 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, onImageUpl
     )
 };
 const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
+    const [answer, setAnswer] = React.useState<string | undefined>();
+    const choiceStyle = { fontSize: `${styles.answerTextSize}px` };
     
-    const handleUpdate = (type: 'rows' | 'scale', index: number, value: string) => {
-        const newArr = [...(question[type] || [])];
-        newArr[index] = value;
-        onUpdate?.({ ...question, [type]: newArr });
+    const handleOptionChange = (index: number, value: string) => {
+        const newOptions = [...(question.scale || [])];
+        newOptions[index] = value;
+        onUpdate?.({ ...question, scale: newOptions });
     };
 
-    const handleAdd = (type: 'rows' | 'scale') => {
-        const newArr = [...(question[type] || []), `New ${type === 'rows' ? 'Statement' : 'Scale Point'}`];
-        onUpdate?.({ ...question, [type]: newArr });
+    const addOption = () => {
+        const newOptions = [...(question.scale || []), `Scale ${(question.scale || []).length + 1}`];
+        onUpdate?.({ ...question, scale: newOptions });
     };
 
-    const handleRemove = (type: 'rows' | 'scale', index: number) => {
-        const newArr = (question[type] || []).filter((_: any, i: number) => i !== index);
-        onUpdate?.({ ...question, [type]: newArr });
+    const deleteOption = (index: number) => {
+        if ((question.scale || []).length <= 2) return;
+        const newOptions = (question.scale || []).filter((_:any, i:number) => i !== index);
+        onUpdate?.({ ...question, scale: newOptions });
     };
-    
+
     return (
         <Card className={cn("relative border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-visible", styles.questionBackground === 'transparent' ? 'bg-transparent shadow-none border-0' : 'bg-white')}>
-            <CardContent className="p-6">
+            <CardContent className="p-6 space-y-4">
                 <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
@@ -795,53 +798,75 @@ const LikertQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplica
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                <div className="overflow-x-auto mt-4">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-1/3 min-w-[150px]"></TableHead>
-                                {(question.scale || []).map((header: string, colIndex: number) => (
-                                    <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
-                                        <div className="flex items-center gap-1 justify-center">
-                                            <Input value={header} onChange={e => handleUpdate('scale', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
-                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('scale', colIndex)}><X className="h-3 w-3"/></Button>
-                                        </div>
-                                    </TableHead>
-                                ))}
-                                <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd('scale')}><PlusCircle className="w-4"/></Button></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {(question.rows || []).map((row: string, rowIndex: number) => (
-                                <TableRow key={`row-${rowIndex}`}>
-                                    <TableHead>
-                                        <div className="flex items-center gap-1">
-                                            <Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" />
-                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
-                                        </div>
-                                    </TableHead>
-                                    <RadioGroup asChild>
-                                        <>
-                                            {(question.scale || []).map((col: string, colIndex: number) => (
-                                                <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
-                                                     <div className="flex justify-center">
-                                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled />
-                                                    </div>
-                                                </TableCell>
-                                            ))}
-                                        </>
-                                    </RadioGroup>
-                                    <TableCell></TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                
+                {/* 안내 메시지 */}
+                <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                        <p className="font-semibold mb-1">Likert Scale Question</p>
+                        <p>Configure the scale labels below. Users will select one option, and responses will be saved as numeric scores (1, 2, 3...).</p>
+                    </div>
                 </div>
-                 <Button variant="link" size="sm" className="mt-2" onClick={() => handleAdd('rows')}><PlusCircle className="w-4 h-4 mr-2" /> Add Statement</Button>
+
+                {/* 척도 옵션 설정 */}
+                <div className="space-y-3">
+                    <Label className="font-semibold text-sm">Scale Options</Label>
+                    <RadioGroup value={answer} onValueChange={setAnswer} className="space-y-2">
+                        {(question.scale || []).map((option: string, index: number) => (
+                            <div key={index} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <RadioGroupItem 
+                                    value={option} 
+                                    id={`q${question.id}-o${index}`} 
+                                    disabled 
+                                />
+                                
+                                <Badge variant="outline" className="w-8 justify-center font-mono shrink-0">
+                                    {index + 1}
+                                </Badge>
+                                
+                                <Input 
+                                    placeholder={`Scale option ${index + 1}`} 
+                                    className="border-none focus-visible:ring-0 bg-transparent flex-1" 
+                                    style={choiceStyle}
+                                    value={option}
+                                    onChange={(e) => handleOptionChange(index, e.target.value)}
+                                />
+                                
+                                {(question.scale || []).length > 2 && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity" 
+                                        onClick={(e) => { 
+                                            e.preventDefault(); 
+                                            deleteOption(index); 
+                                        }}
+                                    >
+                                        <X className="w-4 h-4"/>
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                    </RadioGroup>
+                    
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" 
+                        onClick={addOption}
+                    >
+                        <Plus className="w-4 h-4 mr-2" /> 
+                        Add scale option
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );
 };
+
+
+
+
 
 const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, onDuplicate, styles, questionNumber }: any) => {
     const [generationMessage, setGenerationMessage] = useState("");

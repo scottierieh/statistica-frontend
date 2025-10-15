@@ -11,6 +11,7 @@ import {
     YAxis, 
     Tooltip, 
     PieChart, 
+    Bar,
     Pie, 
     Cell, 
     Legend, 
@@ -21,11 +22,12 @@ import {
     PolarRadiusAxis, 
     LabelList, 
     CartesianGrid, 
+    
     Treemap 
   } from 'recharts';
   import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart as BarChartIcon, Network, Repeat } from 'lucide-react';
+import { AlertTriangle, Brain, Users, LineChart  as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, BarChart3, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart as BarChartIcon, Network, Repeat } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -105,7 +107,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         const iqr = jStat.percentile(values, 0.75) - jStat.percentile(values, 0.25);
         let binWidth;
         if (iqr > 0) {
-            binWidth = 2 * iqr * Math.pow(n, -1/3);
+            binWidth = 2 * iqr * Math.pow(n, -1/3); // Freedman-Diaconis rule
         } else {
             const range = Math.max(...values) - Math.min(...values);
             binWidth = range > 0 ? range / 10 : 1;
@@ -521,7 +523,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                    </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
+           <CardContent className="p-6">
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                     <div className="xl:col-span-3">
                         <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-80">
@@ -573,6 +575,10 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                     <TableRow className="hover:bg-muted/30">
                                         <TableCell className="font-medium">Median</TableCell>
                                         <TableCell className="text-right font-mono">{data.median.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Mode</TableCell>
+                                        <TableCell className="text-right font-mono">{data.mode}</TableCell>
                                     </TableRow>
                                     <TableRow className="hover:bg-muted/30">
                                         <TableCell className="font-medium">Std. Deviation</TableCell>
@@ -923,7 +929,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
 };
 
 
-// --- Text Responses Display (keeping similar structure with enhancements) ---
+// --- Enhanced Text Responses Display ---
 const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], title: string, onDownload: () => void }) => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1336,7 +1342,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const numericHeaders = useMemo(() => {
         if (!survey || !survey.questions) return [];
         return survey.questions
-          .filter(q => ['number', 'rating'].includes(q.type))
+          .filter(q => ['number', 'rating', 'likert'].includes(q.type))
           .map(q => q.title);
     }, [survey]);
     
@@ -1361,6 +1367,9 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
               case 'rating':
                    const ratingData = processNumericResponses(responses, questionId);
                    return { type: 'rating', title: q.title, data: ratingData };
+               case 'likert':
+                   const likertData = processNumericResponses(responses, questionId);
+                   return { type: 'likert', title: q.title, question: q, data: likertData };
               case 'nps':
                   const npsData = await processNPS(responses, questionId);
                   return { type: 'nps', title: q.title, data: npsData };
@@ -1492,6 +1501,13 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                                 return <NumericChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'rating':
                                                 return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                            case 'likert':
+                                                const likertChartData = (result.question.scale || []).map((label: string, i: number) => ({
+                                                    name: label,
+                                                    count: result.data.values.filter((v: number) => v === i + 1).length,
+                                                    percentage: (result.data.values.filter((v: number) => v === i + 1).length / result.data.count) * 100
+                                                }));
+                                                return <CategoricalChart data={likertChartData} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'nps':
                                                 return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'text':
@@ -1557,7 +1573,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <CardContent>
                                        <ReliabilityPage 
                                             data={responses}
-                                            numericHeaders={survey.questions.filter(q => q.type === 'rating' || q.type === 'number').map(q => q.title)}
+                                            numericHeaders={survey.questions.filter(q => ['rating', 'likert', 'number'].includes(q.type)).map(q => q.title)}
                                             onLoadExample={() => {}}
                                         />
                                     </CardContent>
@@ -1570,5 +1586,3 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
-
-```
