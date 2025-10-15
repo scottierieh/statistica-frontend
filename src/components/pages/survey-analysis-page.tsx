@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, PieChart, Pie, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart3 } from 'lucide-react';
+import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart as BarChart3 } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -1023,12 +1023,73 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
 
 // --- Enhanced Matrix Chart ---
 const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
-    // ... same as before
+    const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
+    
+    return (
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Matrix/Likert scale responses</p>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)}>
+                            <TabsList>
+                                <TabsTrigger value="stacked">Stacked</TabsTrigger>
+                                <TabsTrigger value="grouped">Grouped</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <Button variant="ghost" size="icon" onClick={onDownload} className="hover:bg-white/50 dark:hover:bg-slate-700/50"><Download className="w-4 h-4" /></Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6">
+                <ChartContainer config={{}} className="w-full h-80">
+                    <ResponsiveContainer>
+                        <BarChart data={data.chartData} layout="vertical" barCategoryGap={chartType === 'grouped' ? '10%' : '20%'} margin={{ left: 100 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" stackId={chartType === 'stacked' ? 'a' : undefined} domain={[0, 100]} unit="%"/>
+                            <YAxis type="category" dataKey="name" width={90} />
+                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`}/>} />
+                            <Legend />
+                            {columns.map((col, index) => (
+                                <Bar 
+                                    key={col} 
+                                    dataKey={`${col}_pct`} 
+                                    stackId={chartType === 'stacked' ? 'a' : col} 
+                                    name={col} 
+                                    fill={COLORS[index % COLORS.length]} 
+                                    radius={chartType === 'grouped' ? [0, 4, 4, 0] : [0]}
+                                />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+    )
 };
 
 
 const WordCloud = ({ textData, title, onDownload }: { textData: string[], title: string, onDownload: () => void }) => {
-    // ... same as before
+  // ... WordCloud rendering logic will go here
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+            <CardTitle>{title}</CardTitle>
+            <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p>Word Cloud visualization is not yet implemented in this component.</p>
+        <pre className="mt-4 p-4 bg-muted text-xs rounded-md overflow-x-auto">
+          {textData.slice(0, 10).join('\n')}
+        </pre>
+      </CardContent>
+    </Card>
+  )
 };
 
 interface SurveyAnalysisPageProps {
@@ -1048,7 +1109,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
       if (!questions || !responses) {
         return [];
       }
-      return Promise.all(questions.map(async (q: Question) => {
+      const promises = questions.map(async (q: Question) => {
           const questionId = String(q.id);
           switch(q.type) {
               case 'single':
@@ -1074,7 +1135,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
               default:
                   return null;
           }
-      }).filter(Boolean));
+      });
+      return (await Promise.all(promises)).filter(Boolean);
     }, []);
     
     useEffect(() => {
@@ -1143,6 +1205,19 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         }
 
     }, [responses, survey, toast]);
+    
+    // Moved hooks to the top
+    const hasFurtherAnalysis = useMemo(() => {
+        if (!specialAnalyses) return false;
+        return specialAnalyses.some(a => a.key === 'further_analysis');
+    }, [specialAnalyses]);
+    
+    const tabs = useMemo(() => [
+        { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
+        ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
+        ...(hasFurtherAnalysis ? [{ key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> }] : [])
+    ], [specialAnalyses, hasFurtherAnalysis]);
+
 
     if (loading) {
         return (
@@ -1162,22 +1237,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                 <AlertDescription>Survey not found.</AlertDescription>
             </Alert>
         );
-    }
-    
-    const tabs = [
-        { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
-        ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
-    ];
-    
-    // Check if there are any additional analysis options besides the default tabs
-    const hasFurtherAnalysis = useMemo(() => {
-        const defaultAnalyses = new Set(['conjoint', 'rating-conjoint', 'ranking-conjoint', 'ipa', 'van-westendorp', 'turf', 'ahp', 'gabor-granger', 'semantic-differential', 'brand-funnel', 'servqual', 'servperf', 'crosstab']);
-        const currentSpecialAnalyses = specialAnalyses.map(a => a.key);
-        return currentSpecialAnalyses.some(key => !defaultAnalyses.has(key));
-    }, [specialAnalyses]);
-
-    if(hasFurtherAnalysis) {
-        tabs.push({ key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> });
     }
 
     return (
