@@ -53,6 +53,8 @@ const getAlphaInterpretationLevel = (alpha: number): { level: 'Excellent' | 'Goo
 
 
 const InterpretationDisplay = ({ interpretation, alpha }: { interpretation?: string, alpha?: number }) => {
+    if (!interpretation) return null;
+    
     const isAcceptable = alpha !== undefined && alpha >= 0.7;
 
     const formattedInterpretation = useMemo(() => {
@@ -64,8 +66,6 @@ const InterpretationDisplay = ({ interpretation, alpha }: { interpretation?: str
             .replace(/α\s*=\s*(\.\d+)/g, '<i>α</i> = $1');
 
     }, [interpretation]);
-
-    if (!interpretation) return null;
 
     return (
         <Card>
@@ -218,7 +218,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             const result = await response.json();
             setReliabilityResult(result);
             
-        } catch(e: any) {
+        } catch (e: any) {
             console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'Reliability Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
             setReliabilityResult(null);
@@ -383,3 +383,4 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         </div>
     );
 }
+
