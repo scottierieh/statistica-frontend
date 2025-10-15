@@ -1291,7 +1291,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                     </div>
                     
                     <div className="space-y-4">
-                        <Tabs value={tableFormat} onValueChange={setTableFormat} className="w-full">
+                         <Tabs value={tableFormat} onValueChange={setTableFormat} className="w-full">
                             <TabsList className="grid w-full grid-cols-4">
                                 <TabsTrigger value="counts" className="text-xs">Counts</TabsTrigger>
                                 <TabsTrigger value="row_percent" className="text-xs">Row %</TabsTrigger>
@@ -1299,7 +1299,6 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                                 <TabsTrigger value="total_percent" className="text-xs">Total %</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        
                         <div className="overflow-x-auto rounded-lg border bg-card">
                             {renderContingencyTable()}
                         </div>
@@ -1326,6 +1325,92 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 };
 
 
+const LikertChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
+    
+    const transformedData = useMemo(() => {
+        if (!data || data.length === 0) return { chartData: [], fullRange: 0 };
+        
+        const total = data.reduce((sum, item) => sum + item.count, 0);
+        
+        let neutralIndex = -1;
+        if(data.length % 2 !== 0) {
+            neutralIndex = Math.floor(data.length / 2);
+        }
+        
+        const negativeCats = neutralIndex !== -1 ? data.slice(0, neutralIndex) : data.slice(0, Math.floor(data.length / 2));
+        const positiveCats = neutralIndex !== -1 ? data.slice(neutralIndex + 1) : data.slice(Math.ceil(data.length / 2));
+        const neutralCat = neutralIndex !== -1 ? data[neutralIndex] : null;
+
+        const chartRow: any = { name: title };
+        let negativeSum = 0;
+        
+        negativeCats.reverse().forEach((cat, i) => {
+            const pct = (cat.count / total) * 100;
+            chartRow[`neg_${i}`] = -pct;
+            negativeSum += pct;
+        });
+
+        if (neutralCat) {
+            const neutralPct = (neutralCat.count / total) * 100;
+            chartRow.neutral_neg = -neutralPct / 2;
+            chartRow.neutral_pos = neutralPct / 2;
+            negativeSum += neutralPct / 2;
+        }
+
+        positiveCats.forEach((cat, i) => {
+            const pct = (cat.count / total) * 100;
+            chartRow[`pos_${i}`] = pct;
+        });
+
+        return { chartData: [chartRow], fullRange: Math.ceil(negativeSum / 10) * 10 * 2, negativeCats, positiveCats, neutralCat, total };
+
+    }, [data, title]);
+
+    const { chartData, fullRange, negativeCats, positiveCats, neutralCat, total } = transformedData;
+    
+    const NEGATIVE_COLORS = ['#dc2626', '#f87171', '#fca5a5'].reverse();
+    const POSITIVE_COLORS = ['#a3e635', '#4d7c0f', '#22c55e'].reverse();
+    const NEUTRAL_COLOR = '#a8a29e';
+
+    return (
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <CardDescription>Diverging Stacked Bar Chart</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6">
+                 <ChartContainer config={{}} className="w-full h-48">
+                    <ResponsiveContainer>
+                        <BarChart data={chartData} layout="vertical" stackOffset="diverging" barCategoryGap={0}>
+                            <XAxis type="number" domain={[-100, 100]} hide />
+                            <YAxis type="category" dataKey="name" hide />
+                            <Tooltip />
+                            
+                            {negativeCats.map((cat, i) => (
+                                <Bar key={cat.name} dataKey={`neg_${i}`} name={cat.name} stackId="stack" fill={NEGATIVE_COLORS[i % NEGATIVE_COLORS.length]} />
+                            ))}
+                            {neutralCat && (
+                                <>
+                                    <Bar dataKey="neutral_neg" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
+                                    <Bar dataKey="neutral_pos" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
+                                </>
+                            )}
+                            {positiveCats.map((cat, i) => (
+                                <Bar key={cat.name} dataKey={`pos_${i}`} name={cat.name} stackId="stack" fill={POSITIVE_COLORS[i % POSITIVE_COLORS.length]} />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
+                 </ChartContainer>
+            </CardContent>
+        </Card>
+    );
+}
+
+// ... rest of the file
 interface SurveyAnalysisPageProps {
   survey: Survey;
   responses: SurveyResponse[];
@@ -1341,9 +1426,14 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
 
     const numericHeaders = useMemo(() => {
         if (!survey || !survey.questions) return [];
-        return survey.questions
-          .filter(q => ['number', 'rating', 'likert'].includes(q.type))
-          .map(q => q.title);
+        
+        const headers: string[] = [];
+        survey.questions.forEach(q => {
+            if (['number', 'rating', 'likert', 'nps'].includes(q.type)) {
+                headers.push(q.title);
+            }
+        });
+        return headers;
     }, [survey]);
     
     const hasFurtherAnalysis = useMemo(() => {
@@ -1368,7 +1458,11 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                    const ratingData = processNumericResponses(responses, questionId);
                    return { type: 'rating', title: q.title, data: ratingData };
                case 'likert':
-                   const likertData = processNumericResponses(responses, questionId);
+                   const likertData = (q.scale || []).map((label: string, index: number) => {
+                       const value = index + 1;
+                       const count = responses.filter(r => (r.answers as any)[questionId] === value).length;
+                       return { name: label, count, percentage: (count / responses.length) * 100 };
+                   });
                    return { type: 'likert', title: q.title, question: q, data: likertData };
               case 'nps':
                   const npsData = await processNPS(responses, questionId);
@@ -1502,12 +1596,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                             case 'rating':
                                                 return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'likert':
-                                                const likertChartData = (result.question.scale || []).map((label: string, i: number) => ({
-                                                    name: label,
-                                                    count: result.data.values.filter((v: number) => v === i + 1).length,
-                                                    percentage: (result.data.values.filter((v: number) => v === i + 1).length / result.data.count) * 100
-                                                }));
-                                                return <CategoricalChart data={likertChartData} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
+                                                return <LikertChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'nps':
                                                 return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'text':
@@ -1586,3 +1675,4 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+```
