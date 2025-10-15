@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import Link from 'next/link';
 
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), {
@@ -478,6 +479,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 
 // --- Enhanced Numeric Chart ---
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     const interpretation = useMemo(() => {
         if (!data || isNaN(data.mean)) return null;
         let skewText = '';
@@ -950,123 +952,6 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
 };
 
 
-// --- Text Responses Display (keeping similar structure with minor enhancements) ---
-const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], title: string, onDownload: () => void }) => {
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-  const [excludedWords, setExcludedWords] = useState<string[]>([]);
-  const [plotData, setPlotData] = useState<any>(null);
-
-  const performAnalysis = useCallback(async (currentExcludedWords: string[]) => {
-    setIsLoading(true);
-    try {
-      const textToAnalyze = data.join('\n');
-      const response = await fetch('/api/analysis/wordcloud', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToAnalyze, customStopwords: currentExcludedWords.join(',') }),
-      });
-      if (!response.ok) throw new Error('Failed to analyze text data');
-      const result = await response.json();
-      setAnalysisResult(result);
-      setPlotData(JSON.parse(result.plots.wordcloud));
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [data, toast]);
-
-  useEffect(() => {
-    performAnalysis([]);
-  }, [data, performAnalysis]);
-  
-  const handleWordDelete = (word: string) => {
-    const newExcludedWords = [...excludedWords, word];
-    setExcludedWords(newExcludedWords);
-    performAnalysis(newExcludedWords);
-  };
-
-  if (isLoading) return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-      <CardContent><Skeleton className="h-64" /></CardContent>
-    </Card>
-  );
-  
-  if (!analysisResult) return null;
-
-  return (
-    <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-            <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                    <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">Text analysis and word frequency</p>
-                </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={onDownload}
-                    className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                >
-                    <Download className="w-4 h-4" />
-                </Button>
-            </div>
-        </CardHeader>
-        <CardContent className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="rounded-lg border bg-card p-4">
-                    {plotData ? (
-                        <Plot
-                            data={plotData.data}
-                            layout={plotData.layout}
-                            useResizeHandler
-                            className="w-full h-[300px]"
-                        />
-                    ) : <Skeleton className="h-[300px] w-full" />}
-                </div>
-                
-                <div>
-                    <h3 className="font-semibold text-center mb-3 text-sm">Word Frequency Analysis</h3>
-                    <ScrollArea className="h-[300px] border rounded-lg">
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-background">
-                                <TableRow className="bg-muted/50">
-                                    <TableHead className="font-semibold">Word</TableHead>
-                                    <TableHead className="text-right font-semibold">Frequency</TableHead>
-                                    <TableHead className="w-12"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {Object.entries(analysisResult.frequencies).map(([word, count]) => (
-                                    <TableRow key={word} className="hover:bg-muted/30">
-                                        <TableCell className="font-medium">{word}</TableCell>
-                                        <TableCell className="text-right font-mono">{count as number}</TableCell>
-                                        <TableCell>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-7 w-7 hover:bg-destructive/10" 
-                                                onClick={() => handleWordDelete(word)}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5 text-destructive"/>
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </div>
-            </div>
-        </CardContent>
-    </Card>
-  );
-};
-
-
 // --- Enhanced Best Worst Chart ---
 const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], interpretation: string }, title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
@@ -1470,7 +1355,13 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                         </div>
                         
                          {interpretation && (
-                            <Alert className="border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                            <Alert className={cn("border-l-4", 
+                                interpretation.variant === 'destructive' 
+                                    ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
+                                    : interpretation.variant === 'warning'
+                                    ? "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                                    : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                            )}>
                                 <div className="flex gap-2">
                                      <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                                     <div className="flex-1">
@@ -1489,7 +1380,6 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         </Card>
     );
 };
-
 
 interface SurveyAnalysisPageProps {
   survey: Survey;
@@ -1701,8 +1591,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                                 return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'nps':
                                                 return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
-                                            case 'text':
-                                                 return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'best-worst':
                                                 return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'matrix':
@@ -1725,7 +1613,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     
                     <TabsContent value="further_analysis" className="mt-8">
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <Card className="hover:shadow-lg transition-shadow">
+                           <Card className="hover:shadow-lg transition-shadow">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <Users className="text-blue-500" />
@@ -1781,7 +1669,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <Button variant="outline">Perform Analysis</Button>
                                 </CardFooter>
                             </Card>
-                             <Card className="hover:shadow-lg transition-shadow">
+                            <Card className="hover:shadow-lg transition-shadow">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <ShieldCheck className="text-red-500" />
@@ -1818,451 +1706,3 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
-
-```
-- src/components/survey-editor.tsx:
-```tsx
-'use client';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { DndContext, closestCenter } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2 } from "lucide-react";
-import React, { useState, useEffect, useRef } from 'react';
-import { Question } from "@/entities/Survey"
-
-// This is a simplified version of the SortableItem for brevity
-const SortableItem = ({ id, children }: { id: any, children: React.ReactNode }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-    const style = { transform: CSS.Transform.toString(transform), transition };
-    
-    return (
-        <div ref={setNodeRef} style={style} className="flex items-center gap-2 mb-4">
-             <div {...attributes} {...listeners} className="cursor-grab p-2">
-                <GripVertical />
-            </div>
-            <div className="flex-1">
-                {children}
-            </div>
-        </div>
-    );
-};
-
-
-const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: string) => void }) => {
-    const questionTypes = [
-        { type: 'single', label: 'Single Choice' },
-        { type: 'multiple', label: 'Multiple Choice' },
-        { type: 'text', label: 'Text Input' }
-    ];
-
-    return (
-        <Card>
-            <CardHeader><CardTitle>Question Types</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-                {questionTypes.map(qType => (
-                    <Button key={qType.type} variant="outline" className="w-full justify-start" onClick={() => onSelectType(qType.type)}>
-                        {qType.label}
-                    </Button>
-                ))}
-            </CardContent>
-        </Card>
-    );
-}
-
-export default function SurveyEditor() {
-    const [title, setTitle] = useState("My New Survey");
-    const [description, setDescription] = useState("");
-    const [questions, setQuestions] = useState<Question[]>([]);
-
-    const handleAddQuestion = (type: string) => {
-        const newQuestion: Question = {
-            id: Date.now().toString(),
-            type,
-            title: "",
-            options: type === 'single' || type === 'multiple' ? ['Option 1', 'Option 2'] : [],
-        };
-        setQuestions(prev => [...prev, newQuestion]);
-    };
-    
-    const handleQuestionChange = (id: string, newTitle: string) => {
-        setQuestions(prev => prev.map(q => q.id === id ? { ...q, title: newTitle } : q));
-    };
-
-    const handleOptionChange = (questionId: string, optionIndex: number, newOption: string) => {
-        setQuestions(prev => prev.map(q => {
-            if (q.id === questionId && q.options) {
-                const newOptions = [...q.options];
-                newOptions[optionIndex] = newOption;
-                return { ...q, options: newOptions };
-            }
-            return q;
-        }));
-    };
-
-    const handleAddOption = (questionId: string) => {
-        setQuestions(prev => prev.map(q => {
-             if (q.id === questionId && q.options) {
-                return { ...q, options: [...q.options, `Option ${q.options.length + 1}`] };
-            }
-            return q;
-        }));
-    }
-    
-    const handleRemoveOption = (questionId: string, optionIndex: number) => {
-        setQuestions(prev => prev.map(q => {
-             if (q.id === questionId && q.options) {
-                const newOptions = q.options.filter((_, i) => i !== optionIndex);
-                return { ...q, options: newOptions };
-            }
-            return q;
-        }));
-    }
-
-    const handleDeleteQuestion = (id: string) => {
-        setQuestions(prev => prev.filter(q => q.id !== id));
-    };
-    
-     const onDragEnd = (event: any) => {
-        const {active, over} = event;
-        if (over && active.id !== over.id) {
-            setQuestions((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                return arrayMove(items, oldIndex, newIndex);
-            });
-        }
-    };
-
-
-    return (
-        <div className="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-8">
-                <QuestionTypePalette onSelectType={handleAddQuestion} />
-            </div>
-            <div className="lg:col-span-2 space-y-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Survey Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <label>Title</label>
-                            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-                        </div>
-                        <div>
-                            <label>Description</label>
-                            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <DndContext 
-                    collisionDetection={closestCenter}
-                    onDragEnd={onDragEnd}
-                >
-                    <SortableContext 
-                        items={questions.map(q => q.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        {questions.map((q, index) => (
-                           <SortableItem key={q.id} id={q.id}>
-                                <Card className="w-full">
-                                    <CardContent className="p-4 space-y-3">
-                                        <div className="flex justify-between items-start">
-                                            <Input 
-                                                value={q.title} 
-                                                onChange={(e) => handleQuestionChange(q.id, e.target.value)}
-                                                placeholder={`Question ${index + 1}`}
-                                                className="text-lg font-semibold border-none focus:ring-0 p-0"
-                                            />
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)}><Trash2 className="w-4 h-4"/></Button>
-                                        </div>
-                                         {(q.type === 'single' || q.type === 'multiple') && (
-                                            <div className="space-y-2">
-                                                {q.options?.map((opt, i) => (
-                                                     <div key={i} className="flex items-center gap-2">
-                                                        <Input value={opt} onChange={(e) => handleOptionChange(q.id, i, e.target.value)} />
-                                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveOption(q.id, i)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
-                                                    </div>
-                                                ))}
-                                                <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id)}><Plus className="mr-2"/>Add Option</Button>
-                                            </div>
-                                        )}
-                                        {q.type === 'text' && <Textarea placeholder="User answer will be here..." disabled />}
-                                    </CardContent>
-                                </Card>
-                            </SortableItem>
-                        ))}
-                    </SortableContext>
-                </DndContext>
-            </div>
-        </div>
-    );
-}
-
-```
-- src/hooks/use-local-storage-state.ts:
-```ts
-'use client';
-import { useState, useEffect } from 'react';
-
-export function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [state, setState] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return defaultValue;
-    }
-    const storedValue = window.localStorage.getItem(key);
-    return storedValue !== null ? JSON.parse(storedValue) : defaultValue;
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(key, JSON.stringify(state));
-    }
-  }, [key, state]);
-
-  return [state, setState];
-}
-
-```
-- src/lib/fonts.ts:
-```ts
-import { Inter, Space_Grotesk as FontHeadline, JetBrains_Mono as FontMono } from 'next/font/google';
-
-export const fontBody = Inter({
-  subsets: ['latin'],
-  variable: '--font-body',
-});
-
-export const fontHeadline = FontHeadline({
-  subsets: ['latin'],
-  variable: '--font-headline',
-});
-
-export const fontMono = FontMono({
-  subsets: ['latin'],
-  variable: '--font-code',
-});
-
-```
-- src/lib/statistics.ts:
-```ts
-
-import { jStat } from 'jstat';
-import { DataSet } from './stats';
-
-// One-Sample T-Test
-export const oneSampleTTest = (sample: number[], populationMean: number) => {
-  if(sample.length < 2) return null;
-  return jStat.ttest(populationMean, sample, { alpha: 0.05, tail: 'two' });
-};
-
-// Independent Samples T-Test
-export const independentTTest = (sample1: number[], sample2: number[]) => {
-   if(sample1.length < 2 || sample2.length < 2) return null;
-  return jStat.ttest(sample2, sample1, { alpha: 0.05, tail: 'two' });
-};
-
-// Paired Samples T-Test
-export const pairedTTest = (sample1: number[], sample2: number[]) => {
-  if (sample1.length !== sample2.length || sample1.length < 2) return null;
-  const differences = sample1.map((val, i) => val - sample2[i]);
-  return jStat.ttest(0, differences, { alpha: 0.05, tail: 'two' });
-};
-
-// ANOVA (One-Way)
-export const anova = (samples: number[][]) => {
-  if (samples.length < 2 || samples.some(s => s.length < 2)) return null;
-  return jStat.anova(samples);
-};
-
-// Correlation
-export const correlation = (data: DataSet, var1: string, var2: string) => {
-    const x = data.map(d => d[var1] as number).filter(v => !isNaN(v));
-    const y = data.map(d => d[var2] as number).filter(v => !isNaN(v));
-    if (x.length !== y.length) return null; // Needs equal length, non-null pairs
-    return jStat.corr(x,y);
-}
-
-// Crosstab & Chi-Squared Test
-export const chiSquaredTest = (data: DataSet, var1: string, var2: string) => {
-    const contingencyTable = jStat.contingency(data.map(d => [d[var1], d[var2]]), { all: true });
-    
-    // Check if table is valid
-    if (contingencyTable.observed.length < 2 || contingencyTable.observed[0].length < 2) {
-        return null;
-    }
-
-    const chi2 = jStat.chisquare(contingencyTable.observed, contingencyTable.expected);
-    const pValue = 1 - jStat.chisquare.cdf(chi2, (contingencyTable.observed.length - 1) * (contingencyTable.observed[0].length - 1));
-    
-    return {
-        table: contingencyTable.observed,
-        chi2,
-        pValue
-    };
-};
-
-```
-- next-env.d.ts:
-```ts
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-
-```
-- postcss.config.mjs:
-```mjs
-/** @type {import('postcss-load-config').Config} */
-const config = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-
-export default config;
-
-```
-- public/placeholder-user.jpg:
-```
-
-```
-- public/robots.txt:
-```
-# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-#
-# A robot should obey at least the first record in this file.
-
-User-agent: *
-Disallow:
-
-```
-- public/vercel.svg:
-```
-
-```
-- .eslintrc.json:
-```json
-{
-  "extends": "next/core-web-vitals"
-}
-
-```
-- .gitignore:
-```
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# local env files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-```
-- .firebaserc:
-```
-{
-  "projects": {
-    "default": "nextn-a5573"
-  },
-  "targets": {
-    "nextn-a5573": {
-      "hosting": {
-        "main": [
-          "next-n"
-        ]
-      }
-    }
-  },
-  "etags": {}
-}
-```
-- README.md:
-```md
-# Firebase Studio
-
-This is a NextJS starter in Firebase Studio.
-
-To get started, take a look at src/app/page.tsx.
-
-```
-- next.config.mjs:
-```js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-    images: {
-        remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: 'picsum.photos',
-            },
-             {
-                protocol: 'https',
-                hostname: 'images.unsplash.com',
-            },
-        ],
-    },
-};
-
-export default nextConfig;
-
-```
-- backend/requirements.txt:
-```
-numpy
-pandas
-scipy
-scikit-learn
-matplotlib
-seaborn
-statsmodels
-lifelines
-wordcloud
-nltk
-networkx
-plotly
-pingouin
-qrcode
-factor-analyzer
-skl2onnx
-onnx
-onnxruntime
-
-```
