@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock } from 'lucide-react';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, BarChart3, Clock, TestTube, Repeat, Link2, Columns, Shield } from 'lucide-react';
+import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -591,6 +591,10 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                         <TableCell className="text-right font-mono">{data.median.toFixed(3)}</TableCell>
                                     </TableRow>
                                     <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Mode</TableCell>
+                                        <TableCell className="text-right font-mono">{data.mode?.toFixed(3) || 'N/A'}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
                                         <TableCell className="font-medium">Std. Deviation</TableCell>
                                         <TableCell className="text-right font-mono">{data.std.toFixed(3)}</TableCell>
                                     </TableRow>
@@ -836,8 +840,8 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
 
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-            <div className="flex justify-between items-start">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+              <div className="flex justify-between items-start">
                    <div className="space-y-1">
                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
                        <p className="text-sm text-muted-foreground">Net Promoter Score analysis</p>
@@ -1720,28 +1724,37 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     ))}
                     
                     <TabsContent value="further_analysis" className="mt-8">
-                         <Card className="border-0 shadow-lg">
-                            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-                                <div className="flex items-center gap-2">
-                                    <BeakerIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                                    <CardTitle>Further Analysis</CardTitle>
-                                </div>
-                                <CardDescription>Advanced analysis tools coming soon</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-8">
-                                <div className="text-center space-y-4">
-                                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950 dark:to-purple-950">
-                                        <Sparkles className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-                                    </div>
-                                    <p className="text-muted-foreground max-w-md mx-auto">
-                                        We're working on bringing you more powerful analysis capabilities. Stay tuned for updates!
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader><CardTitle className="flex items-center gap-2"><Users className="text-blue-500" />Group Mean Comparison</CardTitle></CardHeader>
+                                <CardContent><p className="text-sm text-muted-foreground">Compare average scores between two or more groups (T-Test, ANOVA).</p></CardContent>
+                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                            </Card>
+                             <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader><CardTitle className="flex items-center gap-2"><Repeat className="text-green-500" />Before & After Comparison</CardTitle></CardHeader>
+                                <CardContent><p className="text-sm text-muted-foreground">Analyze changes in scores for the same subjects over time (Paired T-Test).</p></CardContent>
+                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                            </Card>
+                             <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader><CardTitle className="flex items-center gap-2"><Columns className="text-purple-500" />Crosstabulation</CardTitle></CardHeader>
+                                <CardContent><p className="text-sm text-muted-foreground">Examine the relationship between two categorical variables (Chi-Squared Test).</p></CardContent>
+                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                            </Card>
+                             <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="text-orange-500" />Correlation Analysis</CardTitle></CardHeader>
+                                <CardContent><p className="text-sm text-muted-foreground">Measure the strength and direction of the relationship between two numeric variables.</p></CardContent>
+                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                            </Card>
+                             <Card className="hover:shadow-lg transition-shadow">
+                                <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="text-red-500" />Reliability Analysis</CardTitle></CardHeader>
+                                <CardContent><p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scale using Cronbach's Alpha.</p></CardContent>
+                                <CardFooter><Button variant="outline">Perform Analysis</Button></CardFooter>
+                            </Card>
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>
         </div>
     );
 }
+```
