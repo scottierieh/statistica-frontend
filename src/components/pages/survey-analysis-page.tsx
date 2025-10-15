@@ -1,13 +1,12 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Bar, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, BarChart3 } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, BarChart3, GitBranch } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -341,11 +340,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                                 cursor={{fill: 'hsl(var(--muted))', opacity: 0.1}} 
                                             />
                                             <Bar dataKey="count" name="Frequency" radius={[0, 8, 8, 0]}>
-                                                <LabelList 
-                                                    dataKey="count" 
-                                                    position="right" 
-                                                    style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 'bold' }} 
-                                                />
+                                                
                                                 {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                             </Bar>
                                         </BarChart>
@@ -959,7 +954,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
     if (!data || !data.scores) return null;
 
     const chartData = data.scores.map(item => ({
-        name: item.item,
+        name: cleanCombination(item.item),
         netScore: item.net_score,
         bestPct: item.best_pct,
         worstPct: item.worst_pct,
@@ -1381,6 +1376,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
     );
 };
 
+
 const WordCloud = ({ textData, title, onDownload }: { textData: string[], title: string, onDownload: () => void }) => {
     const [wordcloudResult, setWordcloudResult] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -1720,7 +1716,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     
                     <TabsContent value="further_analysis" className="mt-8">
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                           <Card className="hover:shadow-lg transition-shadow">
+                            <Card className="hover:shadow-lg transition-shadow">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <Users className="text-blue-500" />
@@ -1773,9 +1769,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scale using Cronbach's Alpha.</p>
                                 </CardContent>
                                 <CardFooter>
-                                     <Link href="/dashboard/statistica?analysis=reliability" passHref>
-                                        <Button variant="outline">Perform Analysis</Button>
-                                    </Link>
+                                     <Button variant="outline">Perform Analysis</Button>
                                 </CardFooter>
                             </Card>
                              <Card className="hover:shadow-lg transition-shadow">
