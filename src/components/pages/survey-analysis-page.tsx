@@ -1,14 +1,13 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, PieChart, LabelList } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, PieChart, Pie, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp } from 'lucide-react';
+import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart3 } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -723,9 +722,9 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
            <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
-                        <p className="text-7xl font-bold bg-gradient-to-br from-amber-500 to-orange-600 bg-clip-text text-transparent">
+                        <div className="text-7xl font-bold bg-gradient-to-br from-amber-500 to-orange-600 bg-clip-text text-transparent">
                             {averageRating.toFixed(1)}
-                        </p>
+                        </div>
                         <div className="flex items-center mt-4 gap-1">
                             {[...Array(5)].map((_, i) => (
                                <Star 
@@ -835,22 +834,24 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
                         <div className="relative w-full max-w-[250px] aspect-square">
-                            <PieChart width={250} height={125}>
-                                <Pie
-                                data={gaugeData}
-                                cx="50%"
-                                cy="100%"
-                                startAngle={180}
-                                endAngle={0}
-                                innerRadius={80}
-                                outerRadius={110}
-                                dataKey="value"
-                                paddingAngle={0}
-                                >
-                                <Cell fill={'#6366f1'} />
-                                <Cell fill="#e5e7eb" />
-                                </Pie>
-                            </PieChart>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart width={250} height={125}>
+                                    <Pie
+                                        data={gaugeData}
+                                        cx="50%"
+                                        cy="100%"
+                                        startAngle={180}
+                                        endAngle={0}
+                                        innerRadius={80}
+                                        outerRadius={110}
+                                        dataKey="value"
+                                        paddingAngle={0}
+                                        >
+                                        <Cell fill={'#6366f1'} />
+                                        <Cell fill="#e5e7eb" />
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
                             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center">
                                 <div className={cn("text-5xl font-bold bg-gradient-to-r bg-clip-text text-transparent", 'from-indigo-500 to-purple-600')}>
                                     {Math.round(data.npsScore)}
@@ -919,6 +920,18 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
                                 </TableBody>
                             </Table>
                         </div>
+                         <Alert className="border-l-4 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20">
+                            <div className="flex gap-2">
+                                <Brain className="h-4 w-4" />
+                                <div className="flex-1">
+                                    <AlertTitle className="text-sm font-semibold mb-1">Interpretation</AlertTitle>
+                                    <AlertDescription 
+                                        className="text-sm" 
+                                        dangerouslySetInnerHTML={{ __html: formattedInterpretation }} 
+                                    />
+                                </div>
+                            </div>
+                        </Alert>
                     </div>
                 </div>
             </CardContent>
@@ -956,9 +969,26 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
             </CardHeader>
             <CardContent className="p-6">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div>
+                        <ChartContainer config={{ value: { label: 'Net Score' } }} className="w-full h-80">
+                            <ResponsiveContainer>
+                                <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis type="category" dataKey="name" width={90} />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="value" name="Net Score" >
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={index} fill={entry.value >= 0 ? '#10b981' : '#ef4444'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
                     <div className="space-y-4">
                         <div className="rounded-lg border bg-card overflow-hidden">
-                            <Table>
+                           <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
                                         <TableHead>Item</TableHead>
@@ -979,23 +1009,6 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                                 </TableBody>
                             </Table>
                         </div>
-                    </div>
-                    <div>
-                        <ChartContainer config={{ value: { label: 'Net Score' } }} className="w-full h-80">
-                            <ResponsiveContainer>
-                                <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis type="category" dataKey="name" width={90} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="value" name="Net Score" >
-                                        {chartData.map((entry, index) => (
-                                            <Cell key={index} fill={entry.value >= 0 ? '#10b981' : '#ef4444'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
                     </div>
                 </div>
                  <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
@@ -1154,8 +1167,18 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const tabs = [
         { key: 'results', label: 'Results', icon: <BarChart3 className="w-4 h-4" /> },
         ...specialAnalyses.map(a => ({ ...a, icon: <Sparkles className="w-4 h-4" /> })),
-        { key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> }
     ];
+    
+    // Check if there are any additional analysis options besides the default tabs
+    const hasFurtherAnalysis = useMemo(() => {
+        const defaultAnalyses = new Set(['conjoint', 'rating-conjoint', 'ranking-conjoint', 'ipa', 'van-westendorp', 'turf', 'ahp', 'gabor-granger', 'semantic-differential', 'brand-funnel', 'servqual', 'servperf', 'crosstab']);
+        const currentSpecialAnalyses = specialAnalyses.map(a => a.key);
+        return currentSpecialAnalyses.some(key => !defaultAnalyses.has(key));
+    }, [specialAnalyses]);
+
+    if(hasFurtherAnalysis) {
+        tabs.push({ key: 'further_analysis', label: 'Further Analysis', icon: <BeakerIcon className="w-4 h-4" /> });
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -1250,24 +1273,26 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                         </TabsContent>
                     ))}
                     
-                    <TabsContent value="further_analysis" className="mt-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <Card className="hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <ShieldCheck className="text-green-500" />
-                                        Reliability Analysis
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scales with Cronbach's Alpha.</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button variant="outline" disabled>Coming Soon</Button>
-                                </CardFooter>
-                            </Card>
-                        </div>
-                    </TabsContent>
+                    {hasFurtherAnalysis && (
+                         <TabsContent value="further_analysis" className="mt-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <Card className="hover:shadow-lg transition-shadow">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <ShieldCheck className="text-green-500" />
+                                            Reliability Analysis
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">Assess the internal consistency of your survey scales with Cronbach's Alpha.</p>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button variant="outline" disabled>Coming Soon</Button>
+                                    </CardFooter>
+                                </Card>
+                            </div>
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
         </div>
