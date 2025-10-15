@@ -5,10 +5,10 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, PieChart, LabelList, Bar } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, PieChart, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart as BarChart3 } from 'lucide-react';
+import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -557,7 +557,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                     <div className="xl:col-span-3">
                         <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-80">
                             <ResponsiveContainer>
-                                <RechartsBarChart data={data.histogram}>
+                                <BarChart data={data.histogram}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                     <XAxis 
                                         dataKey="name" 
@@ -580,7 +580,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                             <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8}/>
                                         </linearGradient>
                                     </defs>
-                                </RechartsBarChart>
+                                </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </div>
@@ -834,25 +834,28 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
            <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-                        <PieChart width={320} height={200}>
-                            <Pie
-                              data={gaugeData}
-                              cx={160}
-                              cy={160}
-                              startAngle={180}
-                              endAngle={0}
-                              innerRadius={90}
-                              outerRadius={130}
-                              dataKey="value"
-                              paddingAngle={0}
-                            >
-                              <Cell fill={'#6366f1'} />
-                              <Cell fill="#e5e7eb" />
-                            </Pie>
-                        </PieChart>
-                         <div className="absolute top-28 flex flex-col items-center">
-                            <div className={cn("text-6xl font-bold bg-gradient-to-r bg-clip-text text-transparent", 'from-indigo-500 to-purple-600')}>
-                                {Math.round(data.npsScore)}
+                        <div className="relative w-full max-w-[250px] aspect-square">
+                            <PieChart width={250} height={125}>
+                                <Pie
+                                data={gaugeData}
+                                cx="50%"
+                                cy="100%"
+                                startAngle={180}
+                                endAngle={0}
+                                innerRadius={80}
+                                outerRadius={110}
+                                dataKey="value"
+                                paddingAngle={0}
+                                >
+                                <Cell fill={'#6366f1'} />
+                                <Cell fill="#e5e7eb" />
+                                </Pie>
+                            </PieChart>
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                                <div className={cn("text-5xl font-bold bg-gradient-to-r bg-clip-text text-transparent", 'from-indigo-500 to-purple-600')}>
+                                    {Math.round(data.npsScore)}
+                                </div>
+                                <div className="text-xs font-semibold text-muted-foreground">NPS</div>
                             </div>
                         </div>
                     </div>
@@ -926,7 +929,82 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
 
 // --- Enhanced Best Worst Chart ---
 const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], interpretation: string }, title: string, onDownload: () => void }) => {
-    // ... same as before
+    const chartData = data.scores.map(s => ({
+        name: s.item,
+        value: s.net_score,
+        best: s.best_pct,
+        worst: s.worst_pct,
+    }));
+
+    return (
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                 <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <p className="text-sm text-muted-foreground">Net score preference analysis</p>
+                    </div>
+                    <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                       <Download className="w-4 h-4" />
+                   </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead>Item</TableHead>
+                                        <TableHead className="text-right">Best %</TableHead>
+                                        <TableHead className="text-right">Worst %</TableHead>
+                                        <TableHead className="text-right">Net Score</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.scores.map(item => (
+                                        <TableRow key={item.item}>
+                                            <TableCell className="font-medium">{item.item}</TableCell>
+                                            <TableCell className="text-right font-mono">{item.best_pct.toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right font-mono">{item.worst_pct.toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right font-mono font-semibold">{item.net_score.toFixed(1)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                    <div>
+                        <ChartContainer config={{ value: { label: 'Net Score' } }} className="w-full h-80">
+                            <ResponsiveContainer>
+                                <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis type="category" dataKey="name" width={90} />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="value" name="Net Score" >
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={index} fill={entry.value >= 0 ? '#10b981' : '#ef4444'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+                </div>
+                 <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2">Interpretation</h4>
+                    <p className="text-sm text-blue-800" dangerouslySetInnerHTML={{ __html: data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                </div>
+            </CardContent>
+        </Card>
+    )
 };
 
 
@@ -1173,8 +1251,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     ))}
                     
                     <TabsContent value="further_analysis" className="mt-8">
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                           <Card className="hover:shadow-lg transition-shadow">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <Card className="hover:shadow-lg transition-shadow">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <ShieldCheck className="text-green-500" />
