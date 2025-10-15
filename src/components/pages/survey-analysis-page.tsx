@@ -1,13 +1,14 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, LabelList, PieChart } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, LabelList, PieChart, Bar } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart3, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace } from 'lucide-react';
+import { AlertTriangle, BarChart3, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, BarChart as BarChartIcon } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -325,7 +326,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             <TabsContent value="bar" className="mt-0">
                                 <ChartContainer config={{}} className="w-full h-80">
                                     <ResponsiveContainer>
-                                        <BarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                                        <RechartsBarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
                                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
                                           <XAxis type="number" dataKey="count" />
                                           <YAxis 
@@ -348,7 +349,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                             />
                                             {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                           </Bar>
-                                        </BarChart>
+                                        </RechartsBarChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             </TabsContent>
@@ -544,7 +545,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                     <div className="xl:col-span-3">
                         <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-80">
                             <ResponsiveContainer>
-                                <BarChart data={data.histogram}>
+                                <RechartsBarChart data={data.histogram}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                     <XAxis 
                                         dataKey="name" 
@@ -567,7 +568,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                             <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8}/>
                                         </linearGradient>
                                     </defs>
-                                </BarChart>
+                                </RechartsBarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </div>
@@ -1009,7 +1010,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                     <ChartContainer config={{}} className="w-full h-[350px]">
                         <ResponsiveContainer>
                             {chartType === 'net_score' ? (
-                                <BarChart data={[...chartData].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                                <RechartsBarChart data={[...chartData].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
                                     <YAxis 
                                         type="category" 
                                         dataKey="name" 
@@ -1030,9 +1031,9 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                                             <Cell key={`cell-${index}`} fill={entry.netScore > 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-5))"} />
                                         ))}
                                     </Bar>
-                                </BarChart>
+                                </RechartsBarChart>
                             ) : (
-                                <BarChart data={chartData} margin={{ left: 20, bottom: 60 }}>
+                                <RechartsBarChart data={chartData} margin={{ left: 20, bottom: 60 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <YAxis />
                                     <XAxis type="category" dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={11} />
@@ -1054,7 +1055,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                                             style={{ fontSize: 10 }} 
                                         />
                                     </Bar>
-                                </BarChart>
+                                </RechartsBarChart>
                             )}
                         </ResponsiveContainer>
                     </ChartContainer>
@@ -1774,7 +1775,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <Users className="text-blue-500" />
-                                        Group Mean Differences (T-Test/ANOVA)
+                                        Group Mean Differences
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -1805,3 +1806,182 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+
+```
+- src/components/survey-header.tsx:
+```tsx
+'use client';
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft } from 'lucide-react';
+import type { Survey } from "@/entities/Survey";
+
+interface SurveyHeaderProps {
+    survey: Survey;
+    currentQuestionIndex: number;
+    totalQuestions: number;
+    onBack: () => void;
+}
+
+export default function SurveyHeader({ survey, currentQuestionIndex, totalQuestions, onBack }: SurveyHeaderProps) {
+    const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
+
+    return (
+        <Card className="rounded-none border-x-0 border-t-0">
+            <CardHeader>
+                <div className="flex items-center gap-4">
+                    {currentQuestionIndex > 0 && (
+                        <Button variant="ghost" size="icon" onClick={onBack}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    )}
+                    <div className="flex-1">
+                        <CardTitle>{survey.title}</CardTitle>
+                        <CardDescription>{survey.description}</CardDescription>
+                    </div>
+                </div>
+                {totalQuestions > 0 && (
+                    <div className="mt-4 flex items-center gap-3">
+                        <Progress value={progress} className="w-full h-2" />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {currentQuestionIndex + 1} / {totalQuestions}
+                        </span>
+                    </div>
+                )}
+            </CardHeader>
+        </Card>
+    );
+}
+```
+- src/hooks/use-auth-guard.ts:
+```ts
+
+'use client';
+
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export default function useAuthGuard() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        // Allow access to public routes
+        if (!['/login', '/register', '/'].includes(pathname)) {
+          router.push('/login');
+        } else {
+            setIsVerifying(false);
+        }
+      } else {
+         setIsVerifying(false);
+      }
+    }
+  }, [user, authLoading, router, pathname]);
+
+  return { isVerifying, user };
+}
+
+export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
+    const { isVerifying } = useAuthGuard();
+
+    if (isVerifying) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="space-y-4 w-1/2">
+                    <Skeleton className="h-8 w-full" />
+                     <Skeleton className="h-8 w-3/4" />
+                     <Skeleton className="h-8 w-full" />
+                     <Skeleton className="h-8 w-1/2" />
+                </div>
+            </div>
+        );
+    }
+
+    return <>{children}</>;
+}
+
+
+```
+- src/lib/fonts.ts:
+```ts
+import { Inter, Space_Grotesk } from 'next/font/google'
+
+export const fontBody = Inter({
+  subsets: ['latin'],
+  variable: '--font-body',
+})
+
+export const fontHeadline = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-headline',
+})
+
+```
+- src/lib/utils.ts:
+```ts
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+```
+- types/survey.ts:
+```ts
+export interface Survey {
+  id: string;
+  title: string;
+  description: string;
+  questions: Question[];
+  status: 'draft' | 'active' | 'closed';
+  created_date: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface SurveyResponse {
+  id: string;
+  survey_id: string;
+  submittedAt: string; // Changed from submitted_at
+  answers: {
+    [questionId: string]: any;
+  };
+}
+
+export interface ConjointAttribute {
+  id: string;
+  name: string;
+  levels: string[];
+}
+
+export interface Question {
+  id: string;
+  type: string;
+  title: string;
+  text?: string;
+  description?: string;
+  options?: string[];
+  items?: string[];
+  columns?: string[];
+  scale?: string[];
+  required?: boolean;
+  content?: string;
+  imageUrl?: string;
+  rows?: string[];
+  // For Conjoint Analysis
+  attributes?: ConjointAttribute[];
+  designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid';
+  sets?: number;
+  cardsPerSet?: number;
+  profiles?: any[]; // For generated profiles
+}
+
+```
