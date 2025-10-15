@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, LabelList, Bar } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Treemap, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart, ReferenceLine, Pie, PieChart, LabelList, Bar } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, TrendingUp, Activity, Palette, Repeat, Link2, Columns, Handshake, Replace, ArrowDownUp, BarChart as BarChart3 } from 'lucide-react';
@@ -368,7 +368,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             <TabsContent value="pie" className="mt-0">
                                 <ChartContainer config={{}} className="w-full h-80">
                                     <ResponsiveContainer>
-                                        <RechartsPieChart>
+                                        <PieChart>
                                             <Pie 
                                                 data={data} 
                                                 dataKey="count" 
@@ -384,7 +384,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                                 ))}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent />} />
-                                        </RechartsPieChart>
+                                        </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             </TabsContent>
@@ -392,7 +392,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             <TabsContent value="donut" className="mt-0">
                                 <ChartContainer config={{}} className="w-full h-80">
                                     <ResponsiveContainer>
-                                        <RechartsPieChart>
+                                        <PieChart>
                                             <Pie 
                                                 data={data} 
                                                 dataKey="count" 
@@ -409,7 +409,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                                 ))}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent />} />
-                                        </RechartsPieChart>
+                                        </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             </TabsContent>
