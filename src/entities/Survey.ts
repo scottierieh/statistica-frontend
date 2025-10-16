@@ -21,6 +21,9 @@ export type Question = {
     imageUrl?: string;
     rows?: string[];
     numScalePoints?: number;
+    // NPS labels
+    leftLabel?: string;
+    rightLabel?: string;
     // For Conjoint Analysis
     attributes?: ConjointAttribute[];
     designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid';

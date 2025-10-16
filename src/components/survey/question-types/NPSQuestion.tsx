@@ -5,9 +5,11 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface NPSQuestionProps {
-    question: Question;
+    question: Question & { leftLabel?: string; rightLabel?: string; };
     answer?: number;
     onAnswerChange?: (value: number) => void;
     onUpdate?: (question: Partial<Question>) => void;
@@ -51,8 +53,8 @@ export default function NPSQuestion({
                     ))}
                   </div>
                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                      <span>Not likely</span>
-                      <span>Very likely</span>
+                      <span>{question.leftLabel || 'Not likely'}</span>
+                      <span>{question.rightLabel || 'Very likely'}</span>
                   </div>
             </div>
         );
@@ -70,6 +72,26 @@ export default function NPSQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor={`left-label-${question.id}`} className="text-xs font-semibold">Left Label</Label>
+                        <Input 
+                            id={`left-label-${question.id}`} 
+                            placeholder="e.g., Not likely" 
+                            value={question.leftLabel || ''}
+                            onChange={(e) => onUpdate?.({ ...question, leftLabel: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor={`right-label-${question.id}`} className="text-xs font-semibold">Right Label</Label>
+                        <Input 
+                            id={`right-label-${question.id}`} 
+                            placeholder="e.g., Very likely" 
+                            value={question.rightLabel || ''}
+                            onChange={(e) => onUpdate?.({ ...question, rightLabel: e.target.value })}
+                        />
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
