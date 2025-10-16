@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
@@ -118,7 +117,7 @@ export default function StatisticaFeaturePage() {
                                             {methods.map((method, index) => (
                                                 <TableRow key={method.method}>
                                                     {index === 0 && (
-                                                        <TableCell rowSpan={methods.length} className="align-top">
+                                                        <TableCell rowSpan={methods.length} className="align-middle">
                                                             <strong>{category}</strong>
                                                         </TableCell>
                                                     )}
