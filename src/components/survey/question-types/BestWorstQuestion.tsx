@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question } from "@/entities/Survey";
@@ -9,6 +10,7 @@ import { ThumbsUp, ThumbsDown, X, PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { produce } from "immer";
+import { Label } from "@/components/ui/label";
 
 interface BestWorstQuestionProps {
     question: Question;
