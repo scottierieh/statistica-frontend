@@ -1,5 +1,7 @@
 
+      
 'use client';
+
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -15,6 +17,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { Survey, SurveyResponse } from '@/entities/Survey';
 
 // Type definitions for the rich Reliability results
 interface ReliabilityResults {
@@ -151,40 +154,58 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 };
 
 interface ReliabilityPageProps {
-    data: DataSet;
-    numericHeaders: string[];
+    survey: Survey;
+    responses: SurveyResponse[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function ReliabilityPage({ data, numericHeaders, onLoadExample }: ReliabilityPageProps) {
+export default function ReliabilityPage({ survey, responses, onLoadExample }: ReliabilityPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders.slice(0, 10));
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [reverseCodeItems, setReverseCodeItems] = useState<string[]>([]);
     
     const [reliabilityResult, setReliabilityResult] = useState<ReliabilityResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const numericLikeQuestions = useMemo(() => {
+        if (!survey || !survey.questions) return [];
+        return survey.questions.filter(q => ['rating', 'nps', 'likert', 'matrix'].includes(q.type));
+    }, [survey]);
+    
+    const itemOptions = useMemo(() => {
+        return numericLikeQuestions.flatMap(q => {
+            if (q.type === 'matrix' && q.rows) {
+                return q.rows.map(row => ({
+                    label: `${q.title} - ${row}`,
+                    value: `${q.id}__${row}`,
+                }));
+            }
+            return {
+                label: q.title,
+                value: q.id,
+            };
+        });
+    }, [numericLikeQuestions]);
+
     useEffect(() => {
-      setSelectedItems(numericHeaders.slice(0, 10));
+      setSelectedItems(itemOptions.map(i => i.value));
       setReverseCodeItems([]);
       setReliabilityResult(null);
-      setView(canRun ? 'main' : 'intro');
-    }, [data, numericHeaders])
+      setView(itemOptions.length > 1 ? 'main' : 'intro');
+    }, [itemOptions]);
 
-    const canRun = useMemo(() => {
-      return data.length > 0 && numericHeaders.length >= 2;
-    }, [data, numericHeaders]);
+    const canRun = useMemo(() => itemOptions.length >= 2, [itemOptions]);
 
-    const handleItemSelectionChange = (header: string, checked: boolean) => {
+    const handleItemSelectionChange = (value: string, checked: boolean) => {
         setSelectedItems(prev => 
-          checked ? [...prev, header] : prev.filter(h => h !== header)
+          checked ? [...prev, value] : prev.filter(v => v !== value)
         );
     };
 
-    const handleReverseCodeSelectionChange = (header: string, checked: boolean) => {
+    const handleReverseCodeSelectionChange = (value: string, checked: boolean) => {
         setReverseCodeItems(prev => 
-          checked ? [...prev, header] : prev.filter(h => h !== header)
+          checked ? [...prev, value] : prev.filter(v => v !== value)
         );
     };
 
@@ -197,16 +218,47 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setIsLoading(true);
         setReliabilityResult(null);
 
-        const backendUrl = '/api/analysis/reliability';
+        // Prepare data for backend
+        const analysisData = responses.map(resp => {
+            const row: {[key: string]: number | null} = {};
+            selectedItems.forEach(itemValue => {
+                const parts = itemValue.split('__');
+                const questionId = parts[0];
+                const rowName = parts[1]; // for matrix questions
+
+                const answer = (resp.answers as any)[questionId];
+
+                if(rowName) { // It's a matrix question
+                    row[itemValue] = answer && answer[rowName] ? Number(answer[rowName]) : null;
+                } else { // It's another numeric-like question
+                    row[itemValue] = answer !== undefined ? Number(answer) : null;
+                }
+            });
+            return row;
+        });
         
+        // Map back to labels for python script
+        const dataForPython = analysisData.map(row => {
+            const newRow: {[key: string]: number | null} = {};
+            for(const key in row) {
+                const label = itemOptions.find(opt => opt.value === key)?.label || key;
+                newRow[label] = row[key];
+            }
+            return newRow;
+        });
+
+        const itemsForPython = selectedItems.map(val => itemOptions.find(opt => opt.value === val)?.label || val);
+        const reverseForPython = reverseCodeItems.map(val => itemOptions.find(opt => opt.value === val)?.label || val);
+
+
         try {
-            const response = await fetch(backendUrl, {
+            const response = await fetch('/api/analysis/reliability', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    data: data,
-                    items: selectedItems,
-                    reverseCodeItems: reverseCodeItems,
+                    data: dataForPython,
+                    items: itemsForPython,
+                    reverseCodeItems: reverseForPython,
                 })
             });
 
@@ -229,7 +281,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         } finally {
             setIsLoading(false);
         }
-    }, [data, selectedItems, reverseCodeItems, toast]);
+    }, [selectedItems, reverseCodeItems, responses, toast, itemOptions]);
 
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
@@ -250,22 +302,22 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>
-                        Select the numeric items that form a single scale to calculate internal consistency reliability (Cronbach's Alpha).
+                        Select the scale items to calculate Cronbach's Alpha for internal consistency.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <Label>Select Items for Analysis</Label>
                     <ScrollArea className="h-48 border rounded-lg p-4">
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {numericHeaders.map(header => (
-                          <div key={header} className="flex items-center space-x-2">
+                        {itemOptions.map(option => (
+                          <div key={option.value} className="flex items-center space-x-2">
                             <Checkbox
-                              id={`rel-${header}`}
-                              checked={selectedItems.includes(header)}
-                              onCheckedChange={(checked) => handleItemSelectionChange(header, checked as boolean)}
+                              id={`rel-${option.value}`}
+                              checked={selectedItems.includes(option.value)}
+                              onCheckedChange={(checked) => handleItemSelectionChange(option.value, !!checked)}
                             />
-                            <label htmlFor={`rel-${header}`} className="text-sm font-medium leading-none">
-                              {header}
+                            <label htmlFor={`rel-${option.value}`} className="text-sm font-medium leading-none">
+                              {option.label}
                             </label>
                           </div>
                         ))}
@@ -281,22 +333,25 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                                 <div className="grid gap-4">
                                     <div className="space-y-2">
                                         <h4 className="font-medium leading-none">Reverse-Coding</h4>
-                                        <p className="text-sm text-muted-foreground">Select items that are negatively worded. Their values will be inverted before analysis.</p>
+                                        <p className="text-sm text-muted-foreground">Select negatively worded items to reverse their scores.</p>
                                     </div>
                                     <ScrollArea className="h-48">
                                         <div className="grid gap-2 p-1">
-                                            {selectedItems.map(header => (
-                                            <div key={`rev-${header}`} className="flex items-center space-x-2">
-                                                <Checkbox
-                                                id={`rev-${header}`}
-                                                checked={reverseCodeItems.includes(header)}
-                                                onCheckedChange={(checked) => handleReverseCodeSelectionChange(header, checked as boolean)}
-                                                />
-                                                <label htmlFor={`rev-${header}`} className="text-sm font-medium leading-none">
-                                                {header}
-                                                </label>
-                                            </div>
-                                            ))}
+                                            {selectedItems.map(itemValue => {
+                                                const itemLabel = itemOptions.find(opt => opt.value === itemValue)?.label || itemValue;
+                                                return (
+                                                    <div key={`rev-${itemValue}`} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                        id={`rev-${itemValue}`}
+                                                        checked={reverseCodeItems.includes(itemValue)}
+                                                        onCheckedChange={(checked) => handleReverseCodeSelectionChange(itemValue, !!checked)}
+                                                        />
+                                                        <label htmlFor={`rev-${itemValue}`} className="text-sm font-medium leading-none">
+                                                        {itemLabel}
+                                                        </label>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
                                     </ScrollArea>
                                 </div>
@@ -326,9 +381,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Reliability Summary (Cronbach's Alpha)</CardTitle>
-                                <CardDescription>
-                                    A measure of internal consistency for a set of scale items.
-                                </CardDescription>
+                                <CardDescription>A measure of internal consistency for a set of scale items.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center justify-center p-6 bg-muted rounded-lg">
@@ -386,3 +439,5 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         </div>
     );
 }
+
+    
