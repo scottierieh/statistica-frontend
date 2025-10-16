@@ -5,7 +5,10 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, X, PlusCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { produce } from "immer";
 
 interface BestWorstQuestionProps {
     question: Question;
@@ -32,6 +35,20 @@ export default function BestWorstQuestion({
     questionNumber,
     isPreview 
 }: BestWorstQuestionProps) {
+
+    const handleItemChange = (index: number, value: string) => {
+        onUpdate?.({ items: produce(question.items, draft => { draft![index] = value; }) });
+    };
+    
+    const addItem = () => {
+        onUpdate?.({ items: [...(question.items || []), `Item ${(question.items?.length || 0) + 1}`] });
+    };
+    
+    const removeItem = (index: number) => {
+        onUpdate?.({ items: (question.items || []).filter((_, i) => i !== index) });
+    };
+
+
     if (isPreview) {
         return (
             <div>
@@ -86,6 +103,24 @@ export default function BestWorstQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
+                 <div className="mt-4 space-y-2">
+                    <Label className="text-sm font-semibold">Items</Label>
+                    {(question.items || []).map((item, index) => (
+                        <div key={index} className="flex items-center gap-2 group">
+                            <Input 
+                                value={item} 
+                                onChange={(e) => handleItemChange(index, e.target.value)}
+                                placeholder={`Item ${index + 1}`}
+                            />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => removeItem(index)}>
+                                <X className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="link" size="sm" className="mt-2" onClick={addItem}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );
