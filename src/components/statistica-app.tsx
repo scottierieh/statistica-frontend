@@ -67,6 +67,7 @@ import {
   CheckSquare,
   Clock,
   Filter,
+  Download,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -132,7 +133,7 @@ import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
 import HistoryPage from './pages/history-page';
 import BrandFunnelPage from './pages/brand-funnel-page';
-
+import html2canvas from 'html2canvas';
 
 const analysisCategories = [
     {
@@ -273,6 +274,8 @@ export default function StatisticaApp() {
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('descriptive-stats');
   const [openCategories, setOpenCategories] = useState<string[]>(analysisCategories.map(c => c.name));
+  const analysisPageRef = useRef<HTMLDivElement>(null);
+
 
   const { toast } = useToast();
 
@@ -382,6 +385,31 @@ export default function StatisticaApp() {
       toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
     }
   };
+
+  const handleDownloadAsPDF = async () => {
+    if (!analysisPageRef.current) return;
+    toast({ title: "Generating PDF...", description: "Please wait while the report is being captured." });
+
+    try {
+        const canvas = await html2canvas(analysisPageRef.current, {
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: window.getComputedStyle(document.body).backgroundColor,
+            onclone: (document) => {
+                // You can modify the cloned document before capture if needed
+            }
+        });
+        const image = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = `Statistica_Report_${activeAnalysis}_${new Date().toISOString().split('T')[0]}.png`;
+        link.href = image;
+        link.click();
+    } catch (error) {
+        console.error("Failed to generate PDF:", error);
+        toast({ title: "Error", description: "Could not generate PDF.", variant: "destructive" });
+    }
+  };
+
 
   const handleGenerateReport = async () => {
     if (data.length === 0) {
@@ -502,15 +530,21 @@ export default function StatisticaApp() {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
-            <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
-              {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
-              {isGeneratingReport ? 'Generating...' : 'Generate Report'}
-            </Button>
+             <div className="w-full flex gap-2">
+                <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="flex-1">
+                    {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
+                    {isGeneratingReport ? '' : 'Report'}
+                </Button>
+                 <Button onClick={handleDownloadAsPDF} disabled={!hasData} className="flex-1">
+                    <Download />
+                    <span>PDF</span>
+                </Button>
+            </div>
           </SidebarFooter>
         </Sidebar>
 
         <SidebarInset>
-          <div className="p-4 md:p-6 h-full flex flex-col gap-4">
+          <div ref={analysisPageRef} className="p-4 md:p-6 h-full flex flex-col gap-4">
             <header className="flex items-center justify-between md:justify-end">
                 <SidebarTrigger className="md:hidden"/>
                 <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
