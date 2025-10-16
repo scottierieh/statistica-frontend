@@ -6,7 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, PlusCircle, X } from "lucide-react";
+import { produce } from "immer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 
 interface LikertQuestionProps {
     question: Question;
@@ -33,6 +37,19 @@ export default function LikertQuestion({
     questionNumber,
     isPreview 
 }: LikertQuestionProps) {
+
+    const handleScaleChange = (index: number, value: string) => {
+        onUpdate?.({ scale: produce(question.scale, draft => { if(draft) draft[index] = value; }) });
+    };
+
+    const addScaleItem = () => {
+        onUpdate?.({ scale: [...(question.scale || []), `Scale Item ${(question.scale?.length || 0) + 1}`] });
+    };
+
+    const removeScaleItem = (index: number) => {
+        onUpdate?.({ scale: (question.scale || []).filter((_, i) => i !== index) });
+    };
+
     if (isPreview) {
         return (
             <div>
@@ -84,6 +101,24 @@ export default function LikertQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
+                 <div className="mt-4 space-y-2">
+                    <Label className="text-sm font-semibold">Scale Items</Label>
+                    {(question.scale || []).map((item, index) => (
+                        <div key={index} className="flex items-center gap-2 group">
+                             <Input 
+                                value={item} 
+                                onChange={(e) => handleScaleChange(index, e.target.value)}
+                                placeholder={`Scale Item ${index + 1}`}
+                            />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => removeScaleItem(index)}>
+                                <X className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="link" size="sm" className="mt-2" onClick={addScaleItem}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Scale Item
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );
