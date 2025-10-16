@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -22,7 +21,7 @@ import {
     PolarRadiusAxis, 
     LabelList, 
     CartesianGrid, 
-    
+    ReferenceLine,
     Treemap 
   } from 'recharts';
   import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -896,7 +895,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                 if (!result || !result.data) return null;
                                 const chartId = `chart-${index}`;
                                 return (
-                                    <div key={index} ref={el => chartRefs.current[chartId] = el}>
+                                    <div key={index} ref={el => { if(el) chartRefs.current[chartId] = el; }}>
                                     {(() => {
                                         switch (result.type) {
                                             case 'categorical':
