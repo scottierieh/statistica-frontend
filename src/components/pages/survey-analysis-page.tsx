@@ -427,28 +427,152 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 
 // --- Enhanced Numeric Chart ---
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
-    // This component remains unchanged from the previous version.
+    const interpretation = useMemo(() => {
+        if (!data || isNaN(data.mean)) return null;
+        let skewText = '';
+        let variant = 'default';
+        let icon = <BarChart3 className="h-4 w-4" />;
+        
+        const skewness = data.skewness;
+        if (!isNaN(skewness)) {
+          if (Math.abs(skewness) > 1) {
+              skewText = `The distribution shows <strong>significant ${skewness > 0 ? 'right-skew' : 'left-skew'}</strong> (skewness = ${skewness.toFixed(2)}), indicating outliers or asymmetry.`;
+              variant = 'destructive';
+              icon = <AlertTriangle className="h-4 w-4" />;
+          } else if (Math.abs(skewness) > 0.5) {
+              skewText = `The data shows <strong>moderate ${skewness > 0 ? 'right-skew' : 'left-skew'}</strong>.`;
+          } else {
+              skewText = `The data appears <strong>well-balanced and symmetrical</strong>.`;
+              icon = <CheckCircle className="h-4 w-4" />;
+          }
+        }
+        
+        return {
+            title: "Statistical Summary",
+            text: `Average: <strong>${data.mean.toFixed(2)}</strong> | Std Dev: <strong>${data.std.toFixed(2)}</strong>. ${skewText}`,
+            variant,
+            icon
+        };
+    }, [data]);
+    
+    if (!data || !data.histogram) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">No data available for this numeric question.</p>
+          </CardContent>
+        </Card>
+      );
+    }
+    
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-              <div className="flex justify-between items-start">
-                   <div className="space-y-1">
-                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                       <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
-                   </div>
-                   <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={onDownload}
-                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                   >
-                       <Download className="w-4 h-4" />
-                   </Button>
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Distribution and statistical analysis</p>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={onDownload}
+                        className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
                 </div>
             </CardHeader>
-           <CardContent className="p-6">
-                 {/* Content is the same as before */}
-           </CardContent>
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                    <div className="xl:col-span-3">
+                        <ChartContainer config={{count: {label: 'Frequency'}}} className="w-full h-80">
+                            <ResponsiveContainer>
+                                <BarChart data={data.histogram}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        angle={-45} 
+                                        textAnchor="end" 
+                                        height={80}
+                                        fontSize={11}
+                                    />
+                                    <YAxis />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar 
+                                        dataKey="count" 
+                                        name="Frequency" 
+                                        fill="url(#colorGradient)" 
+                                        radius={[8, 8, 0, 0]}
+                                    />
+                                    <defs>
+                                        <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#6366f1" stopOpacity={1}/>
+                                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                                        </linearGradient>
+                                    </defs>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+                    
+                    <div className="xl:col-span-2 space-y-4">
+                        <div className="rounded-lg border bg-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Metric</TableHead>
+                                        <TableHead className="text-right font-semibold">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Mean</TableCell>
+                                        <TableCell className="text-right font-mono text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+                                            {data.mean.toFixed(3)}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Median</TableCell>
+                                        <TableCell className="text-right font-mono">{data.median.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Std. Deviation</TableCell>
+                                        <TableCell className="text-right font-mono">{data.std.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-muted/30">
+                                        <TableCell className="font-medium">Total Responses</TableCell>
+                                        <TableCell className="text-right font-mono font-semibold">{data.count}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {interpretation && (
+                            <Alert className={cn(
+                                "border-l-4",
+                                interpretation.variant === 'destructive' 
+                                    ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
+                                    : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                            )}>
+                                <div className="flex gap-2">
+                                    {interpretation.icon}
+                                    <div className="flex-1">
+                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
+                                        <AlertDescription 
+                                            className="text-sm" 
+                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
+                                        />
+                                    </div>
+                                </div>
+                            </Alert>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
         </Card>
     );
 };
