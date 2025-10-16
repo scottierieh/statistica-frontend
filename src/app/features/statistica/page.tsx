@@ -49,74 +49,90 @@ const analysisMethods = [
 ];
 
 export default function StatisticaFeaturePage() {
-  return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
-      <FeaturePageHeader title="Statistica" />
-      <main className="flex-1 p-4 md:p-8 lg:p-12">
-        <div className="max-w-6xl mx-auto">
-          <Card className="mb-8">
-            <CardHeader className="text-center">
-              <CardTitle className="text-4xl font-headline">The All-in-One Statistical Analysis Tool</CardTitle>
-              <CardDescription className="text-lg text-muted-foreground mt-2">
-                From raw data to actionable insights in just a few clicks. Statistica empowers you to perform complex analyses with ease.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <FileUp className="mx-auto h-10 w-10 text-primary mb-2" />
-                  <h3 className="font-semibold">Direct Data Upload</h3>
-                  <p className="text-xs text-muted-foreground">Upload CSV or Excel files and start analyzing instantly.</p>
-                </div>
-                 <div className="p-4 rounded-lg bg-muted/50">
-                  <BookOpen className="mx-auto h-10 w-10 text-primary mb-2" />
-                  <h3 className="font-semibold">Example Datasets</h3>
-                  <p className="text-xs text-muted-foreground">Explore any analysis with one-click example data loading.</p>
-                </div>
-                 <div className="p-4 rounded-lg bg-muted/50">
-                  <Bot className="mx-auto h-10 w-10 text-primary mb-2" />
-                  <h3 className="font-semibold">AI Interpretations</h3>
-                  <p className="text-xs text-muted-foreground">Get automated, APA-style reports and clear explanations.</p>
-                </div>
-                 <div className="p-4 rounded-lg bg-muted/50">
-                  <AppWindow className="mx-auto h-10 w-10 text-primary mb-2" />
-                  <h3 className="font-semibold">Integrated Interface</h3>
-                  <p className="text-xs text-muted-foreground">Results, charts, and interpretations all in one view.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+    const groupedMethods = analysisMethods.reduce((acc, method) => {
+        if (!acc[method.category]) {
+            acc[method.category] = [];
+        }
+        acc[method.category].push(method);
+        return acc;
+    }, {} as Record<string, typeof analysisMethods>);
+
+    return (
+        <div className="flex flex-col min-h-screen bg-slate-50">
+            <FeaturePageHeader title="Statistica" />
+            <main className="flex-1 p-4 md:p-8 lg:p-12">
+                <div className="max-w-6xl mx-auto">
+                    <Card className="mb-8">
+                        <CardHeader className="text-center">
+                            <CardTitle className="text-4xl font-headline">The All-in-One Statistical Analysis Tool</CardTitle>
+                            <CardDescription className="text-lg text-muted-foreground mt-2">
+                                From raw data to actionable insights in just a few clicks. Statistica empowers you to perform complex analyses with ease.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                                <div className="p-4 rounded-lg bg-muted/50">
+                                    <FileUp className="mx-auto h-10 w-10 text-primary mb-2" />
+                                    <h3 className="font-semibold">Direct Data Upload</h3>
+                                    <p className="text-xs text-muted-foreground">Upload CSV or Excel files and start analyzing instantly.</p>
+                                </div>
+                                <div className="p-4 rounded-lg bg-muted/50">
+                                    <BookOpen className="mx-auto h-10 w-10 text-primary mb-2" />
+                                    <h3 className="font-semibold">Example Datasets</h3>
+                                    <p className="text-xs text-muted-foreground">Explore any analysis with one-click example data loading.</p>
+                                </div>
+                                <div className="p-4 rounded-lg bg-muted/50">
+                                    <Bot className="mx-auto h-10 w-10 text-primary mb-2" />
+                                    <h3 className="font-semibold">AI Interpretations</h3>
+                                    <p className="text-xs text-muted-foreground">Get automated, APA-style reports and clear explanations.</p>
+                                </div>
+                                <div className="p-4 rounded-lg bg-muted/50">
+                                    <AppWindow className="mx-auto h-10 w-10 text-primary mb-2" />
+                                    <h3 className="font-semibold">Integrated Interface</h3>
+                                    <p className="text-xs text-muted-foreground">Results, charts, and interpretations all in one view.</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Analysis Methods</CardTitle>
-              <CardDescription>A comprehensive suite of tools for any research question.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-1/6">Category</TableHead>
-                    <TableHead className="w-1/6">Analysis Method</TableHead>
-                    <TableHead className="w-1/3">Purpose / Description</TableHead>
-                    <TableHead className="w-1/3">Typical Use Case</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {analysisMethods.map((method, index) => (
-                    <TableRow key={index}>
-                      <TableCell><strong>{method.category}</strong></TableCell>
-                      <TableCell>{method.method}</TableCell>
-                      <TableCell>{method.purpose}</TableCell>
-                      <TableCell>{method.useCase}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Available Analysis Methods</CardTitle>
+                            <CardDescription>A comprehensive suite of tools for any research question.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-1/6">Category</TableHead>
+                                        <TableHead className="w-1/6">Analysis Method</TableHead>
+                                        <TableHead className="w-1/3">Purpose / Description</TableHead>
+                                        <TableHead className="w-1/3">Typical Use Case</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(groupedMethods).map(([category, methods]) => (
+                                        <React.Fragment key={category}>
+                                            {methods.map((method, index) => (
+                                                <TableRow key={method.method}>
+                                                    {index === 0 && (
+                                                        <TableCell rowSpan={methods.length} className="align-top">
+                                                            <strong>{category}</strong>
+                                                        </TableCell>
+                                                    )}
+                                                    <TableCell>{method.method}</TableCell>
+                                                    <TableCell>{method.purpose}</TableCell>
+                                                    <TableCell>{method.useCase}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </React.Fragment>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 }
