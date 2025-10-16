@@ -1,12 +1,60 @@
 'use client';
 
-import { Question } from "@/entities/Survey";
+import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { produce } from "immer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Trash2, Zap, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+
+// Helper function to generate full factorial design
+const generateFullFactorial = (attributes: ConjointAttribute[]) => {
+    if (!attributes || attributes.length === 0) return [];
+    
+    const levels = attributes.map(attr => attr.levels);
+    if (levels.some(l => l.length === 0)) return [];
+
+    let combinations: any[] = [{}];
+    
+    attributes.forEach(attr => {
+        const newCombinations: any[] = [];
+        combinations.forEach(existingCombo => {
+            attr.levels.forEach(level => {
+                newCombinations.push({ ...existingCombo, [attr.name]: level });
+            });
+        });
+        combinations = newCombinations;
+    });
+
+    return combinations;
+};
+
+// Helper to create profile tasks
+const createProfileTasks = (profiles: any[], sets: number, cardsPerSet: number) => {
+    // Shuffle profiles to randomize them
+    const shuffled = [...profiles].sort(() => 0.5 - Math.random());
+    
+    const tasks: any[] = [];
+    for (let i = 0; i < sets; i++) {
+        const taskProfiles = shuffled.slice(i * cardsPerSet, (i + 1) * cardsPerSet);
+        taskProfiles.forEach((profileAttrs, profileIndex) => {
+            tasks.push({
+                id: `profile_${i}_${profileIndex}`,
+                taskId: `task_${i}`,
+                attributes: profileAttrs
+            });
+        });
+    }
+    return tasks;
+};
 
 interface ConjointQuestionProps {
     question: Question;
@@ -79,11 +127,9 @@ export default function ConjointQuestion({
         const taskId = currentTaskProfiles?.[0]?.taskId;
 
         return (
-            <div>
-                <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px` }}>
-                    {question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}
-                </h3>
-                {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
+            <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
+                {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
                 
                 <div className={`grid grid-cols-1 md:grid-cols-${Math.min(cardsPerSet, 4)} gap-3`}>
                     {(currentTaskProfiles || []).map((profile: any, index: number) => (
@@ -121,7 +167,37 @@ export default function ConjointQuestion({
             </div>
         );
     }
+
+    const handleAttributeUpdate = (attrIndex: number, newName: string) => {
+        onUpdate?.({ attributes: produce(attributes, draft => { if(draft) draft[attrIndex].name = newName; }) });
+    };
+
+    const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
+        onUpdate?.({ attributes: produce(attributes, draft => { if(draft) draft[attrIndex].levels[levelIndex] = newLevel; }) });
+    };
     
+    const addAttribute = () => {
+        onUpdate?.({ attributes: [...attributes, { id: `attr-${Date.now()}`, name: `Attribute ${attributes.length + 1}`, levels: ['Level 1'] }] });
+    };
+
+    const addLevel = (attrIndex: number) => {
+        onUpdate?.({ attributes: produce(attributes, draft => { if(draft) draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`); }) });
+    };
+
+    const removeAttribute = (attrIndex: number) => {
+        onUpdate?.({ attributes: attributes.filter((_, i) => i !== attrIndex) });
+    };
+
+    const removeLevel = (attrIndex: number, levelIndex: number) => {
+        onUpdate?.({ attributes: produce(attributes, draft => { if(draft) draft[attrIndex].levels.splice(levelIndex, 1); }) });
+    };
+
+    const generateProfiles = () => {
+        const allProfiles = generateFullFactorial(attributes);
+        const newProfiles = createProfileTasks(allProfiles, sets || 1, cardsPerSet || 3);
+        onUpdate?.({ profiles: newProfiles });
+    };
+
     return (
         <Card className="bg-white">
             <CardContent className="p-6">
@@ -134,6 +210,65 @@ export default function ConjointQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
+                <div className="mt-4 space-y-4">
+                    <h4 className="font-semibold text-sm">Conjoint Attributes</h4>
+                    {attributes.map((attr, attrIndex) => (
+                        <Card key={attr.id} className="p-3 bg-slate-50">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Input value={attr.name} onChange={e => handleAttributeUpdate(attrIndex, e.target.value)} className="font-semibold"/>
+                                <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4"/></Button>
+                            </div>
+                            <div className="pl-4 space-y-1">
+                                {attr.levels.map((level, levelIndex) => (
+                                    <div key={levelIndex} className="flex items-center gap-2">
+                                        <Input value={level} onChange={e => handleLevelUpdate(attrIndex, levelIndex, e.target.value)} />
+                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)}><X className="w-4 h-4"/></Button>
+                                    </div>
+                                ))}
+                                <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="mr-2"/>Add Level</Button>
+                            </div>
+                        </Card>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={addAttribute}><PlusCircle className="mr-2"/>Add Attribute</Button>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                    <h4 className="font-semibold text-sm">Design & Profiles</h4>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="sets">Number of Sets (Tasks)</Label>
+                            <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
+                        </div>
+                        <div>
+                             <Label htmlFor="cardsPerSet">Cards per Set</Label>
+                             <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" />
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">Total Profiles: {profiles.length}</p>
+                        <Button variant="secondary" size="sm" onClick={generateProfiles}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
+                    </div>
+                     <ScrollArea className="h-48 border rounded-md p-2">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Profile ID</TableHead>
+                                    <TableHead>Task ID</TableHead>
+                                    {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {(profiles || []).slice(0,20).map(p => (
+                                    <TableRow key={p.id}>
+                                        <TableCell>{p.id}</TableCell>
+                                        <TableCell>{p.taskId}</TableCell>
+                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                     </ScrollArea>
+                </div>
             </CardContent>
         </Card>
     );

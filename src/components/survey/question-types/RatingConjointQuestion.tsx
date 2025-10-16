@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -12,6 +11,8 @@ import { produce } from "immer";
 import { PlusCircle, Trash2, Zap, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+
 
 // Helper function to generate full factorial design
 const generateFullFactorial = (attributes: ConjointAttribute[]) => {
@@ -32,12 +33,28 @@ const generateFullFactorial = (attributes: ConjointAttribute[]) => {
         combinations = newCombinations;
     });
 
-    return combinations.map((combo, index) => ({
-        id: `profile_${index + 1}`,
-        taskId: `task_${index}`, // Each profile as a separate task for rating
-        attributes: combo
-    }));
+    return combinations;
 };
+
+// Helper to create profile tasks
+const createProfileTasks = (profiles: any[], sets: number, cardsPerSet: number) => {
+    // Shuffle profiles to randomize them
+    const shuffled = [...profiles].sort(() => 0.5 - Math.random());
+    
+    const tasks: any[] = [];
+    for (let i = 0; i < sets; i++) {
+        const taskProfiles = shuffled.slice(i * cardsPerSet, (i + 1) * cardsPerSet);
+        taskProfiles.forEach((profileAttrs, profileIndex) => {
+            tasks.push({
+                id: `profile_${i}_${profileIndex}`,
+                taskId: `task_${i}`,
+                attributes: profileAttrs
+            });
+        });
+    }
+    return tasks;
+};
+
 
 interface RatingConjointQuestionProps {
     question: Question;
@@ -70,7 +87,7 @@ export default function RatingConjointQuestion({
     isLastQuestion,
     submitSurvey
 }: RatingConjointQuestionProps) {
-    const { attributes = [], profiles = [] } = question;
+    const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3 } = question;
     const [currentTask, setCurrentTask] = useState(0);
 
     const tasks = useMemo(() => {
@@ -138,7 +155,8 @@ export default function RatingConjointQuestion({
     };
 
     const generateProfiles = () => {
-        const newProfiles = generateFullFactorial(attributes);
+        const allProfiles = generateFullFactorial(attributes);
+        const newProfiles = createProfileTasks(allProfiles, sets || 1, cardsPerSet || 3);
         onUpdate?.({ profiles: newProfiles });
     };
 
@@ -148,6 +166,7 @@ export default function RatingConjointQuestion({
     
         const currentTaskProfiles = tasks[currentTask];
         const taskId = currentTaskProfiles?.[0]?.taskId;
+        const isLastTask = currentTask === tasks.length - 1;
 
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
@@ -183,7 +202,7 @@ export default function RatingConjointQuestion({
                  </div>
                  <div className="text-right mt-4">
                     <Button onClick={handleNextTask}>
-                        {currentTask < tasks.length - 1 ? 'Next Set' : (isLastQuestion ? 'Submit' : 'Next')}
+                        {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Set'}
                     </Button>
                 </div>
             </div>
@@ -225,8 +244,19 @@ export default function RatingConjointQuestion({
                 </div>
 
                 <div className="mt-6 space-y-4">
+                    <h4 className="font-semibold text-sm">Design & Profiles</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="sets">Number of Sets (Tasks)</Label>
+                            <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
+                        </div>
+                        <div>
+                             <Label htmlFor="cardsPerSet">Cards per Set</Label>
+                             <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="1" />
+                        </div>
+                    </div>
                     <div className="flex justify-between items-center">
-                        <h4 className="font-semibold text-sm">Product Profiles ({profiles.length})</h4>
+                        <p className="text-sm text-muted-foreground">Total Profiles: {profiles.length}</p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
                     </div>
                      <ScrollArea className="h-48 border rounded-md p-2">
@@ -234,6 +264,7 @@ export default function RatingConjointQuestion({
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Profile ID</TableHead>
+                                    <TableHead>Task ID</TableHead>
                                     {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
                                 </TableRow>
                             </TableHeader>
@@ -241,6 +272,7 @@ export default function RatingConjointQuestion({
                                 {(profiles || []).slice(0,20).map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.id}</TableCell>
+                                        <TableCell>{p.taskId}</TableCell>
                                         {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
                                     </TableRow>
                                 ))}
