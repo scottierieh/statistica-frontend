@@ -50,6 +50,19 @@ import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import ReliabilityPage from './reliability-page';
+import CbcAnalysisPage from '@/components/pages/cbc-analysis-page';
+import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analysis-page';
+import RankingConjointAnalysisPage from '@/components/pages/ranking-conjoint-page';
+import IpaPage from '@/components/pages/ipa-page';
+import VanWestendorpPage from '@/components/pages/van-westendorp-page';
+import TurfPage from '@/components/pages/turf-page';
+import AhpPage from '@/components/pages/ahp-page';
+import GaborGrangerAnalysisPage from '@/components/pages/gabor-granger-analysis-page';
+import SemanticDifferentialPage from '@/components/pages/semantic-differential-page';
+import BrandFunnelPage from '@/components/pages/brand-funnel-page';
+import ServqualPage from '@/components/pages/servqual-page';
+import ServperfPage from '@/components/pages/servperf-page';
+import CrosstabSurveyPage from '@/components/pages/crosstab-survey-page';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -749,7 +762,12 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                         </div>
                         
                         {interpretation && (
-                            <Alert className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+                            <Alert className={cn(
+                                "border-l-4",
+                                interpretation.variant === 'success' ? 'border-l-green-500 bg-green-50/50' :
+                                interpretation.variant === 'warning' ? 'border-l-amber-500 bg-amber-50/50' :
+                                'border-l-indigo-500 bg-indigo-50/50'
+                            )}>
                                 <div className="flex gap-2">
                                     {interpretation.icon}
                                     <div className="flex-1">
@@ -1325,6 +1343,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 };
 
 
+// --- Likert Chart ---
 const LikertChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
     
     const transformedData = useMemo(() => {
@@ -1372,43 +1391,116 @@ const LikertChart = ({ data, title, onDownload }: { data: {name: string, count: 
     const POSITIVE_COLORS = ['#a3e635', '#4d7c0f', '#22c55e'].reverse();
     const NEUTRAL_COLOR = '#a8a29e';
 
+    const interpretation = useMemo(() => {
+        if (!data || data.length === 0) return { title: 'No Data', text: '', variant: 'default', icon: <Info/> };
+        
+        const positiveSum = positiveCats.reduce((sum, cat) => sum + cat.count, 0);
+        const negativeSum = negativeCats.reduce((sum, cat) => sum + cat.count, 0);
+        const positivePct = (positiveSum / total) * 100;
+        const negativePct = (negativeSum / total) * 100;
+
+        let title = '';
+        let text = '';
+        let variant: 'success' | 'warning' | 'destructive' | 'default' = 'default';
+        let icon = <Info className="h-4 w-4" />;
+        
+        if (positivePct > negativePct + 20) {
+            title = 'Overwhelmingly Positive';
+            text = `A strong majority (<strong>${positivePct.toFixed(1)}%</strong>) view this positively, compared to only <strong>${negativePct.toFixed(1)}%</strong> with negative views.`;
+            variant = 'success';
+            icon = <TrendingUp className="h-4 w-4" />;
+        } else if (positivePct > negativePct) {
+            title = 'Generally Positive';
+            text = `More respondents view this positively (<strong>${positivePct.toFixed(1)}%</strong>) than negatively (<strong>${negativePct.toFixed(1)}%</strong>).`;
+            variant = 'default';
+        } else if (negativePct > positivePct + 20) {
+            title = 'Overwhelmingly Negative';
+            text = `A strong majority (<strong>${negativePct.toFixed(1)}%</strong>) view this negatively, compared to only <strong>${positivePct.toFixed(1)}%</strong> with positive views. This may require attention.`;
+            variant = 'destructive';
+            icon = <AlertTriangle className="h-4 w-4" />;
+        } else {
+            title = 'Mixed or Neutral Response';
+            text = `Responses are mixed, with <strong>${positivePct.toFixed(1)}%</strong> positive and <strong>${negativePct.toFixed(1)}%</strong> negative views.`;
+            variant = 'warning';
+            icon = <AlertTriangle className="h-4 w-4" />;
+        }
+        
+        return { title, text, variant, icon };
+    }, [data, positiveCats, negativeCats, total]);
+
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-                <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                        <CardDescription>Diverging Stacked Bar Chart</CardDescription>
-                    </div>
+              <div className="flex justify-between items-start">
+                   <div className="space-y-1">
+                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                       <CardDescription>Diverging Stacked Bar Chart</CardDescription>
+                   </div>
+                   <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={onDownload}
+                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
+                   >
+                       <Download className="w-4 h-4" />
+                   </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
-                 <ChartContainer config={{}} className="w-full h-48">
-                    <ResponsiveContainer>
-                        <BarChart data={chartData} layout="vertical" stackOffset="diverging" barCategoryGap={0}>
-                            <XAxis type="number" domain={[-100, 100]} hide />
-                            <YAxis type="category" dataKey="name" hide />
-                            <Tooltip />
-                            
-                            {negativeCats.map((cat, i) => (
-                                <Bar key={cat.name} dataKey={`neg_${i}`} name={cat.name} stackId="stack" fill={NEGATIVE_COLORS[i % NEGATIVE_COLORS.length]} />
-                            ))}
-                            {neutralCat && (
-                                <>
-                                    <Bar dataKey="neutral_neg" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
-                                    <Bar dataKey="neutral_pos" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
-                                </>
-                            )}
-                            {positiveCats.map((cat, i) => (
-                                <Bar key={cat.name} dataKey={`pos_${i}`} name={cat.name} stackId="stack" fill={POSITIVE_COLORS[i % POSITIVE_COLORS.length]} />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
-                 </ChartContainer>
+           <CardContent className="p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                    <div className="xl:col-span-3">
+                         <ChartContainer config={{}} className="w-full h-48">
+                            <ResponsiveContainer>
+                                <BarChart data={chartData} layout="vertical" stackOffset="diverging" barCategoryGap={0}>
+                                    <XAxis type="number" domain={[-100, 100]} hide />
+                                    <YAxis type="category" dataKey="name" hide />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value, name) => [`${Math.abs(value as number).toFixed(1)}%`, name]} />} />
+                                    
+                                    {negativeCats.map((cat, i) => (
+                                        <Bar key={cat.name} dataKey={`neg_${i}`} name={cat.name} stackId="stack" fill={NEGATIVE_COLORS[i % NEGATIVE_COLORS.length]} />
+                                    ))}
+                                    {neutralCat && (
+                                        <>
+                                            <Bar dataKey="neutral_neg" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
+                                            <Bar dataKey="neutral_pos" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
+                                        </>
+                                    )}
+                                    {positiveCats.map((cat, i) => (
+                                        <Bar key={cat.name} dataKey={`pos_${i}`} name={cat.name} stackId="stack" fill={POSITIVE_COLORS[i % POSITIVE_COLORS.length]} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                         </ChartContainer>
+                    </div>
+                    
+                    <div className="xl:col-span-2 space-y-4">
+                         {interpretation && (
+                            <Alert className={cn(
+                                "border-l-4",
+                                interpretation.variant === 'success' ? 'border-l-green-500 bg-green-50/50' :
+                                interpretation.variant === 'warning' ? 'border-l-amber-500 bg-amber-50/50' :
+                                interpretation.variant === 'destructive' ? 'border-l-rose-500 bg-rose-50/50' :
+                                'border-l-indigo-500 bg-indigo-50/50'
+                            )}>
+                                <div className="flex gap-2">
+                                    {interpretation.icon}
+                                    <div className="flex-1">
+                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
+                                        <AlertDescription 
+                                            className="text-sm" 
+                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
+                                        />
+                                    </div>
+                                </div>
+                            </Alert>
+                        )}
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
-}
+};
+
 
 // ... rest of the file
 interface SurveyAnalysisPageProps {
@@ -1431,6 +1523,10 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         survey.questions.forEach(q => {
             if (['number', 'rating', 'likert', 'nps'].includes(q.type)) {
                 headers.push(q.title);
+            } else if(q.type === 'matrix') {
+                q.rows?.forEach(row => {
+                    headers.push(`${q.title} - ${row}`);
+                });
             }
         });
         return headers;
@@ -1662,7 +1758,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <CardContent>
                                        <ReliabilityPage 
                                             data={responses}
-                                            numericHeaders={survey.questions.filter(q => ['rating', 'likert', 'number'].includes(q.type)).map(q => q.title)}
+                                            numericHeaders={survey.questions.flatMap(q => q.type === 'matrix' ? q.rows!.map(r => `${q.title} - ${r}`) : q.title).filter(title => numericHeaders.includes(title))}
                                             onLoadExample={() => {}}
                                         />
                                     </CardContent>
@@ -1675,4 +1771,3 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
-```
