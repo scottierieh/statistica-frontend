@@ -48,7 +48,6 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.9.1",
     "framer-motion": "^11.3.19",
-    "genkit": "^1.19.1",
     "html2canvas": "^1.4.1",
     "immer": "^10.1.1",
     "jstat": "^1.9.6",

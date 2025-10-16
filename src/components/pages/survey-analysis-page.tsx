@@ -63,6 +63,8 @@ import BrandFunnelPage from '@/components/pages/brand-funnel-page';
 import ServqualPage from '@/components/pages/servqual-page';
 import ServperfPage from '@/components/pages/servperf-page';
 import CrosstabSurveyPage from '@/components/pages/crosstab-survey-page';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import * as XLSX from 'xlsx';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -109,7 +111,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const sorted = [...values].sort((a,b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
-    const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
+    const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length - 1 : 1) );
     
     const n = values.length;
     const skewness = n > 2 && std > 0 ? (n / ((n - 1) * (n - 2))) * values.reduce((acc, val) => acc + Math.pow((val - mean) / std, 3), 0) : 0;
@@ -608,9 +610,8 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                         {interpretation && (
                             <Alert className={cn(
                                 "border-l-4",
-                                interpretation.variant === 'destructive' 
-                                    ? "border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20" 
-                                    : "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                                interpretation.variant === 'destructive' ? 'border-l-rose-500 bg-rose-50/50' : 
+                                interpretation.variant === 'success' ? 'border-l-green-500 bg-green-50/50' : 'border-l-indigo-500 bg-indigo-50/50'
                             )}>
                                 <div className="flex gap-2">
                                     {interpretation.icon}
@@ -1508,14 +1509,21 @@ const LikertChart = ({
             <CardContent className="p-6">
                 {/* Key Insights Alert */}
                 {transformedData.interpretation && (
-                    <Alert className="mb-6" variant={transformedData.interpretation.variant}>
+                    <Alert className={cn(
+                        "mb-6 border-l-4",
+                        transformedData.interpretation.variant === 'success' ? 'border-l-green-500 bg-green-50/50' :
+                        transformedData.interpretation.variant === 'warning' ? 'border-l-amber-500 bg-amber-50/50' :
+                        transformedData.interpretation.variant === 'destructive' ? 'border-l-rose-500 bg-rose-50/50' :
+                        'border-l-indigo-500 bg-indigo-50/50'
+                    )}>
                         <div className="flex items-start gap-2">
                             {transformedData.interpretation.icon}
                             <div>
-                                <AlertTitle>{transformedData.interpretation.title}</AlertTitle>
-                                <AlertDescription>
-                                    <span dangerouslySetInnerHTML={{ __html: transformedData.interpretation.text }} />
-                                </AlertDescription>
+                                <AlertTitle className="text-sm font-semibold mb-1">{transformedData.interpretation.title}</AlertTitle>
+                                <AlertDescription 
+                                    className="text-sm" 
+                                    dangerouslySetInnerHTML={{ __html: transformedData.interpretation.text }} 
+                                />
                             </div>
                         </div>
                     </Alert>
@@ -1839,6 +1847,18 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     <Users className="w-3 h-3 mr-1" />
                                     {responses.length} responses
                                 </Badge>
+                                 <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="gap-1.5">
+                                            <FileDown className="w-3 h-3"/> Download
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => {}}>Download Excel</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {}}>Download CSV</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {}}>Download PDF</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </p>
                         </div>
                     </div>
@@ -1940,8 +1960,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     </CardHeader>
                                     <CardContent>
                                        <ReliabilityPage 
-                                            data={responses}
-                                            numericHeaders={survey.questions.flatMap(q => q.type === 'matrix' ? q.rows!.map(r => `${q.title} - ${r}`) : q.title).filter(title => numericHeaders.includes(title))}
+                                            survey={survey} 
+                                            responses={responses} 
                                             onLoadExample={() => {}}
                                         />
                                     </CardContent>
@@ -1954,3 +1974,4 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         </div>
     );
 }
+
