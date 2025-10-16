@@ -452,17 +452,6 @@ export default function StatisticaApp() {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-               <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveAnalysis('history')}
-                    isActive={activeAnalysis === 'history'}
-                  >
-                    <Clock />
-                    <span>History</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
-            <SidebarMenu>
               {analysisCategories.map(category => (
                 <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                   <CollapsibleTrigger asChild>
