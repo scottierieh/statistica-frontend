@@ -24,6 +24,7 @@ interface AHPQuestionProps {
 
 const PairwiseComparison = ({ pair, matrixKey, value, onChange, styles }: { pair: [string, string], matrixKey: string, value: number, onChange: (val: number) => void, styles: any }) => {
     const scale = [-9, -7, -5, -3, 1, 3, 5, 7, 9];
+    
     return (
         <div className="p-4 rounded-lg border bg-white mb-2 shadow-sm">
             <div className="relative flex flex-col items-center justify-between gap-3">
