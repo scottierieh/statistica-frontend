@@ -1,3 +1,4 @@
+
 'use client';
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -8,7 +9,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X, PlusCircle } from "lucide-react";
+import { X, PlusCircle, CheckCircle2 } from "lucide-react";
 import { produce } from "immer";
 
 
@@ -70,7 +71,9 @@ export default function SingleSelectionQuestion({
                  <div className="mt-4 space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
                          <div key={index} className="flex items-center space-x-2 group">
-                             <RadioGroupItem value={option} disabled />
+                            <RadioGroup>
+                                <RadioGroupItem value={option} disabled />
+                            </RadioGroup>
                              <Input 
                                 placeholder={`Option ${index + 1}`} 
                                 className="border-none focus:ring-0 p-0 h-auto"
