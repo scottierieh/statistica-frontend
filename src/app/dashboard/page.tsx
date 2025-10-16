@@ -1,6 +1,6 @@
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
@@ -15,22 +15,6 @@ const tools = [
     icon: Calculator,
     title: "Statistica",
     description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",
-    disabled: false,
-  },
-   {
-    id: "simulation",
-    href: "/dashboard/simulation",
-    icon: FastForward,
-    title: "Simulation",
-    description: "Explore models like Gradient Descent and Central Limit Theorem through interactive simulations.",
-    disabled: false,
-  },
-  {
-    id: "machine-learning",
-    href: "/dashboard/machine-learning",
-    icon: BrainCircuit,
-    title: "Machine Learning",
-    description: "Build, train, and evaluate predictive models with a guided, user-friendly interface.",
     disabled: false,
   },
   {
@@ -50,6 +34,22 @@ const tools = [
     disabled: false,
   },
   {
+    id: "simulation",
+    href: "/dashboard/simulation",
+    icon: FastForward,
+    title: "Simulation",
+    description: "Coming soon...",
+    disabled: true,
+  },
+  {
+    id: "machine-learning",
+    href: "/dashboard/machine-learning",
+    icon: BrainCircuit,
+    title: "Machine Learning",
+    description: "Coming soon...",
+    disabled: true,
+  },
+  {
     id: "financial-modeling",
     href: "/dashboard/financial-modeling",
     icon: DollarSign,
@@ -62,9 +62,25 @@ const tools = [
     href: "/dashboard/optimization",
     icon: Target,
     title: "Decision Analytics",
-    description: "Solve optimization problems like linear programming and transportation problems to make data-driven decisions.",
-    disabled: false,
+    description: "Coming soon...",
+    disabled: true,
   },
+  {
+    id: "360-feedback",
+    href: "#",
+    icon: Repeat,
+    title: "360 Feedback",
+    description: "Coming soon...",
+    disabled: true,
+  },
+  {
+    id: "sem",
+    href: "#",
+    icon: Box,
+    title: "구조방정식 (SEM)",
+    description: "Coming soon...",
+    disabled: true,
+  }
 ];
 
 function ToolCard({ tool }: { tool: typeof tools[0] }) {
