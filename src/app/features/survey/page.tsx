@@ -4,7 +4,11 @@ import React from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Target, Handshake, DollarSign, Users, ClipboardList, Network } from 'lucide-react';
+import { Target, Handshake, DollarSign, Users, ClipboardList, Network, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+
 
 const analysisMethods = [
     { category: 'Customer Feedback', method: 'CSAT (Customer Satisfaction Score)', description: 'Measures overall customer satisfaction on a scale (e.g., 1–5 or 1–10)', useCase: 'Evaluating service or product satisfaction in surveys' },
@@ -42,7 +46,7 @@ export default function SurveyFeaturePage() {
                         <CardHeader className="text-center">
                             <CardTitle className="text-4xl font-headline">Integrated Survey & Analysis Platform</CardTitle>
                             <CardDescription className="text-lg text-muted-foreground mt-2">
-                                From survey design to advanced market analysis—all in one place.
+                                From survey design to advanced market research—all in one place.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -79,6 +83,7 @@ export default function SurveyFeaturePage() {
                                         <TableHead className="w-1/6">Analysis Type</TableHead>
                                         <TableHead className="w-1/3">Description</TableHead>
                                         <TableHead className="w-1/3">Use Case</TableHead>
+                                        <TableHead className="text-center">Preview</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -94,6 +99,29 @@ export default function SurveyFeaturePage() {
                                                     <TableCell>{method.method}</TableCell>
                                                     <TableCell>{method.description}</TableCell>
                                                     <TableCell>{method.useCase}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="ghost" size="icon">
+                                                                    <Eye className="w-4 h-4" />
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-3xl">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>{method.method} - Example Result</DialogTitle>
+                                                                </DialogHeader>
+                                                                <div className="flex justify-center p-4">
+                                                                    <Image 
+                                                                        src={`https://picsum.photos/seed/${method.method.replace(/\s+/g, '-')}/800/600`}
+                                                                        alt={`Example result for ${method.method}`}
+                                                                        width={800}
+                                                                        height={600}
+                                                                        className="rounded-lg border"
+                                                                    />
+                                                                </div>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </React.Fragment>
