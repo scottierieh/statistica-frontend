@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,13 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ChevronDown } from 'lucide-react';
 
 export default function LandingPage() {
   const features = {
@@ -80,7 +86,19 @@ export default function LandingPage() {
                 </Link>
             </div>
             <nav className="hidden md:flex items-center gap-4 sm:gap-6">
-                <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">Features</Link>
+                <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center text-sm font-medium hover:underline underline-offset-4">
+                        Features <ChevronDown className="w-4 h-4 ml-1" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem asChild>
+                            <Link href="/dashboard/statistica">Statistica</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href="/dashboard/survey2">Survey</Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">About</Link>
             </nav>
@@ -321,4 +339,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
