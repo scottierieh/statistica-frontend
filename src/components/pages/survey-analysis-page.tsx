@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -70,6 +71,9 @@ const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[300px]" />,
 });
+
+const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -295,28 +299,28 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                 <ChartContainer config={{}} className="w-full h-80">
                                     <ResponsiveContainer>
                                         <BarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                                            <XAxis type="number" dataKey="count" />
-                                            <YAxis 
+                                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                                          <XAxis type="number" dataKey="count" />
+                                          <YAxis 
                                                 dataKey="name" 
                                                 type="category" 
                                                 width={150}
                                                 tick={{ fontSize: 12 }}
                                             />
-                                            <Tooltip 
+                                          <Tooltip 
                                                 content={<ChartTooltipContent 
                                                     formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} 
                                                 />} 
                                                 cursor={{fill: 'hsl(var(--muted))', opacity: 0.1}} 
                                             />
-                                            <Bar dataKey="count" name="Frequency" radius={[0, 8, 8, 0]}>
+                                          <Bar dataKey="count" name="Frequency" radius={[0, 8, 8, 0]}>
                                                 <LabelList 
                                                     dataKey="count" 
                                                     position="insideRight" 
                                                     style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} 
                                                 />
                                                 {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                            </Bar>
+                                          </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -793,7 +797,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     }
 
     const handleFurtherAnalysisClick = (analysisType: string) => {
-        setActiveFurtherAnalysis(analysisType);
+        router.push(`/dashboard/statistica?analysis=${analysisType}`);
     };
 
     return (
@@ -925,21 +929,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     </Card>
                                     {/* Additional analysis cards can be added here */}
                                 </div>
-                            ) : activeFurtherAnalysis === 'reliability' ? (
-                                 <Card>
-                                    <CardHeader>
-                                        <Button variant="ghost" size="sm" onClick={() => setActiveFurtherAnalysis(null)} className="mb-4">
-                                            <ArrowLeft className="mr-2 h-4 w-4"/> Back to Analyses
-                                        </Button>
-                                    </CardHeader>
-                                    <CardContent>
-                                       <ReliabilityPage 
-                                            survey={survey} 
-                                            responses={responses} 
-                                            onLoadExample={() => {}}
-                                        />
-                                    </CardContent>
-                                </Card>
                             ) : null}
                         </TabsContent>
                     )}
@@ -984,3 +973,5 @@ const CustomizedTreemapContent = (props: any) => {
   };
 
     
+
+```
