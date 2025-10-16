@@ -92,10 +92,10 @@ export default function LandingPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem asChild>
-                            <Link href="/dashboard/statistica">Statistica</Link>
+                            <Link href="/features/statistica">Statistica</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <Link href="/dashboard/survey2">Survey</Link>
+                            <Link href="/features/survey">Survey</Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
