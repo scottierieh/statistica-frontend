@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -468,7 +469,7 @@ const RatingChart = ({
      return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-             <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start">
                    <div className="space-y-1">
                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
                        <p className="text-sm text-muted-foreground">Star rating distribution</p>
@@ -626,6 +627,7 @@ const LikertChart = ({ data, title, onDownload, question }: { data: {name: strin
     );
 };
 
+
 // ... rest of the file
 interface SurveyAnalysisPageProps {
   survey: Survey;
@@ -637,6 +639,7 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const router = useRouter();
     const { toast } = useToast();
     const pageRef = useRef<HTMLDivElement>(null);
+    const chartRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
     const [loading, setLoading] = useState(true);
     const [analysisData, setAnalysisData] = useState<any[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -816,8 +819,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
         router.push(`/dashboard/statistica?analysis=${analysisType}`);
     };
     
-    const chartRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-
     const downloadChartAsPng = (chartId: string, chartTitle: string) => {
         const chartElement = chartRefs.current[chartId];
         if (chartElement) {
