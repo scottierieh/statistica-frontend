@@ -216,7 +216,11 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             }
 
             const result = await response.json();
+            if (result.error) {
+                throw new Error(result.error);
+            }
             setReliabilityResult(result);
+            toast({ title: 'Analysis Complete', description: "Cronbach's Alpha has been calculated." });
             
         } catch (e: any) {
             console.error('Analysis error:', e);
@@ -311,7 +315,6 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="h-8 w-8 text-primary animate-spin" />
                             <p className="text-muted-foreground">Performing reliability analysis...</p>
-                            <Skeleton className="h-96 w-full" />
                         </div>
                     </CardContent>
                 </Card>
@@ -383,4 +386,3 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         </div>
     );
 }
-

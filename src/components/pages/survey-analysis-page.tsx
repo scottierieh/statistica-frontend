@@ -1344,13 +1344,50 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 
 
 // --- Likert Chart ---
-const LikertChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
+const LikertChart = ({ 
+    data, 
+    title, 
+    onDownload 
+}: { 
+    data: {name: string, count: number, percentage: number}[], 
+    title: string, 
+    onDownload: () => void 
+}) => {
+    // Import required icons
+    const { TrendingUp, TrendingDown, Minus } = require('lucide-react');
     
     const transformedData = useMemo(() => {
-        if (!data || data.length === 0) return { chartData: [], fullRange: 0 };
+        if (!data || data.length === 0) return null;
         
         const total = data.reduce((sum, item) => sum + item.count, 0);
         
+        // Calculate mean (scale from 1 to data.length)
+        let weightedSum = 0;
+        data.forEach((item, index) => {
+            weightedSum += item.count * (index + 1);
+        });
+        const mean = weightedSum / total;
+        
+        // Calculate median
+        let accumCount = 0;
+        let median = 1;
+        for (let i = 0; i < data.length; i++) {
+            accumCount += data[i].count;
+            if (accumCount >= total / 2) {
+                median = i + 1;
+                break;
+            }
+        }
+        
+        // Calculate standard deviation
+        let varianceSum = 0;
+        data.forEach((item, index) => {
+            const value = index + 1;
+            varianceSum += item.count * Math.pow(value - mean, 2);
+        });
+        const stdDev = Math.sqrt(varianceSum / total);
+        
+        // Calculate positive, neutral, negative percentages
         let neutralIndex = -1;
         if(data.length % 2 !== 0) {
             neutralIndex = Math.floor(data.length / 2);
@@ -1359,141 +1396,287 @@ const LikertChart = ({ data, title, onDownload }: { data: {name: string, count: 
         const negativeCats = neutralIndex !== -1 ? data.slice(0, neutralIndex) : data.slice(0, Math.floor(data.length / 2));
         const positiveCats = neutralIndex !== -1 ? data.slice(neutralIndex + 1) : data.slice(Math.ceil(data.length / 2));
         const neutralCat = neutralIndex !== -1 ? data[neutralIndex] : null;
-
-        const chartRow: any = { name: title };
-        let negativeSum = 0;
         
-        negativeCats.reverse().forEach((cat, i) => {
-            const pct = (cat.count / total) * 100;
-            chartRow[`neg_${i}`] = -pct;
-            negativeSum += pct;
-        });
-
-        if (neutralCat) {
-            const neutralPct = (neutralCat.count / total) * 100;
-            chartRow.neutral_neg = -neutralPct / 2;
-            chartRow.neutral_pos = neutralPct / 2;
-            negativeSum += neutralPct / 2;
-        }
-
-        positiveCats.forEach((cat, i) => {
-            const pct = (cat.count / total) * 100;
-            chartRow[`pos_${i}`] = pct;
-        });
-
-        return { chartData: [chartRow], fullRange: Math.ceil(negativeSum / 10) * 10 * 2, negativeCats, positiveCats, neutralCat, total };
-
-    }, [data, title]);
-
-    const { chartData, fullRange, negativeCats, positiveCats, neutralCat, total } = transformedData;
-    
-    const NEGATIVE_COLORS = ['#dc2626', '#f87171', '#fca5a5'].reverse();
-    const POSITIVE_COLORS = ['#a3e635', '#4d7c0f', '#22c55e'].reverse();
-    const NEUTRAL_COLOR = '#a8a29e';
-
-    const interpretation = useMemo(() => {
-        if (!data || data.length === 0) return { title: 'No Data', text: '', variant: 'default', icon: <Info/> };
+        const negativePercentage = negativeCats.reduce((sum, cat) => sum + cat.percentage, 0);
+        const positivePercentage = positiveCats.reduce((sum, cat) => sum + cat.percentage, 0);
+        const neutralPercentage = neutralCat ? neutralCat.percentage : 0;
         
-        const positiveSum = positiveCats.reduce((sum, cat) => sum + cat.count, 0);
-        const negativeSum = negativeCats.reduce((sum, cat) => sum + cat.count, 0);
-        const positivePct = (positiveSum / total) * 100;
-        const negativePct = (negativeSum / total) * 100;
-
-        let title = '';
-        let text = '';
-        let variant: 'success' | 'warning' | 'destructive' | 'default' = 'default';
-        let icon = <Info className="h-4 w-4" />;
+        // Find mode (most frequent response)
+        const mode = data.reduce((prev, current) => (prev.count > current.count) ? prev : current);
+        const modeIndex = data.findIndex(item => item.name === mode.name);
         
-        if (positivePct > negativePct + 20) {
-            title = 'Overwhelmingly Positive';
-            text = `A strong majority (<strong>${positivePct.toFixed(1)}%</strong>) view this positively, compared to only <strong>${negativePct.toFixed(1)}%</strong> with negative views.`;
-            variant = 'success';
-            icon = <TrendingUp className="h-4 w-4" />;
-        } else if (positivePct > negativePct) {
-            title = 'Generally Positive';
-            text = `More respondents view this positively (<strong>${positivePct.toFixed(1)}%</strong>) than negatively (<strong>${negativePct.toFixed(1)}%</strong>).`;
-            variant = 'default';
-        } else if (negativePct > positivePct + 20) {
-            title = 'Overwhelmingly Negative';
-            text = `A strong majority (<strong>${negativePct.toFixed(1)}%</strong>) view this negatively, compared to only <strong>${positivePct.toFixed(1)}%</strong> with positive views. This may require attention.`;
-            variant = 'destructive';
-            icon = <AlertTriangle className="h-4 w-4" />;
+        // Calculate scale position (0-100% range)
+        const scalePosition = ((mean - 1) / (data.length - 1)) * 100;
+        
+        // Generate key insights
+        let interpretation = {
+            title: "Key Insights",
+            text: "",
+            variant: "default" as const,
+            icon: null as any
+        };
+        
+        // Determine overall sentiment and generate insight
+        if (mean > (data.length + 1) / 2) {
+            // Positive sentiment
+            interpretation.text = `Overall <strong>positive sentiment</strong> with a mean score of <strong>${mean.toFixed(2)}</strong> out of ${data.length}. `;
+            interpretation.text += `<strong>${positivePercentage.toFixed(1)}%</strong> of respondents gave positive ratings`;
+            if (mode.name && modeIndex >= Math.ceil(data.length / 2)) {
+                interpretation.text += `, with <strong>'${mode.name}'</strong> being the most common response (<strong>${mode.percentage.toFixed(1)}%</strong>).`;
+            } else {
+                interpretation.text += `.`;
+            }
+            interpretation.variant = "success" as const;
+            interpretation.icon = <TrendingUp className="h-4 w-4" />;
+        } else if (mean < (data.length + 1) / 2) {
+            // Negative sentiment
+            interpretation.text = `Overall <strong>negative sentiment</strong> with a mean score of <strong>${mean.toFixed(2)}</strong> out of ${data.length}. `;
+            interpretation.text += `<strong>${negativePercentage.toFixed(1)}%</strong> of respondents gave negative ratings`;
+            if (mode.name && modeIndex < Math.floor(data.length / 2)) {
+                interpretation.text += `, with <strong>'${mode.name}'</strong> being the most common response (<strong>${mode.percentage.toFixed(1)}%</strong>).`;
+            } else {
+                interpretation.text += `.`;
+            }
+            interpretation.variant = "destructive" as const;
+            interpretation.icon = <TrendingDown className="h-4 w-4" />;
         } else {
-            title = 'Mixed or Neutral Response';
-            text = `Responses are mixed, with <strong>${positivePct.toFixed(1)}%</strong> positive and <strong>${negativePct.toFixed(1)}%</strong> negative views.`;
-            variant = 'warning';
-            icon = <AlertTriangle className="h-4 w-4" />;
+            // Neutral sentiment
+            interpretation.text = `Responses show a <strong>balanced distribution</strong> with a mean score of <strong>${mean.toFixed(2)}</strong> out of ${data.length}. `;
+            if (neutralPercentage > 0) {
+                interpretation.text += `<strong>${neutralPercentage.toFixed(1)}%</strong> selected the neutral option, `;
+            }
+            interpretation.text += `while positive and negative responses are nearly equal (<strong>${positivePercentage.toFixed(1)}%</strong> vs <strong>${negativePercentage.toFixed(1)}%</strong>).`;
+            interpretation.variant = "secondary" as const;
+            interpretation.icon = <Minus className="h-4 w-4" />;
         }
         
-        return { title, text, variant, icon };
-    }, [data, positiveCats, negativeCats, total]);
+        // Add standard deviation insight if significant
+        if (stdDev > data.length * 0.3) {
+            interpretation.text += ` Note: High variance (SD=${stdDev.toFixed(2)}) indicates <strong>diverse opinions</strong>.`;
+        } else if (stdDev < data.length * 0.15) {
+            interpretation.text += ` Low variance (SD=${stdDev.toFixed(2)}) shows <strong>strong consensus</strong>.`;
+        }
+        
+        return {
+            mean: mean.toFixed(2),
+            median,
+            stdDev: stdDev.toFixed(2),
+            total,
+            negativePercentage: negativePercentage.toFixed(1),
+            positivePercentage: positivePercentage.toFixed(1),
+            neutralPercentage: neutralPercentage.toFixed(1),
+            scalePosition,
+            dataLength: data.length,
+            mode,
+            interpretation
+        };
+    }, [data, title]);
+    
+    if (!transformedData) return null;
+    
+    // Generate color gradient (dynamic based on data length)
+    const getGradientStops = () => {
+        if (data.length === 5) {
+            return 'linear-gradient(90deg, #dc2626 0%, #f87171 25%, #a8a29e 50%, #84cc16 75%, #22c55e 100%)';
+        } else if (data.length === 7) {
+            return 'linear-gradient(90deg, #dc2626 0%, #ef4444 16.67%, #fb923c 33.33%, #a8a29e 50%, #84cc16 66.67%, #22c55e 83.33%, #16a34a 100%)';
+        } else {
+            // Default 3-point scale
+            return 'linear-gradient(90deg, #dc2626 0%, #a8a29e 50%, #22c55e 100%)';
+        }
+    };
 
     return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-              <div className="flex justify-between items-start">
-                   <div className="space-y-1">
-                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                       <CardDescription>Diverging Stacked Bar Chart</CardDescription>
-                   </div>
-                   <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={onDownload}
-                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                   >
-                       <Download className="w-4 h-4" />
-                   </Button>
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <CardDescription>Visual Scale with Statistics</CardDescription>
+                    </div>
+                    <Button
+                        onClick={onDownload}
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                    >
+                        <Download className="h-4 w-4" />
+                        Download
+                    </Button>
                 </div>
             </CardHeader>
-           <CardContent className="p-6">
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-                    <div className="xl:col-span-3">
-                         <ChartContainer config={{}} className="w-full h-48">
-                            <ResponsiveContainer>
-                                <BarChart data={chartData} layout="vertical" stackOffset="diverging" barCategoryGap={0}>
-                                    <XAxis type="number" domain={[-100, 100]} hide />
-                                    <YAxis type="category" dataKey="name" hide />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value, name) => [`${Math.abs(value as number).toFixed(1)}%`, name]} />} />
-                                    
-                                    {negativeCats.map((cat, i) => (
-                                        <Bar key={cat.name} dataKey={`neg_${i}`} name={cat.name} stackId="stack" fill={NEGATIVE_COLORS[i % NEGATIVE_COLORS.length]} />
-                                    ))}
-                                    {neutralCat && (
-                                        <>
-                                            <Bar dataKey="neutral_neg" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
-                                            <Bar dataKey="neutral_pos" name={neutralCat.name} stackId="stack" fill={NEUTRAL_COLOR} />
-                                        </>
-                                    )}
-                                    {positiveCats.map((cat, i) => (
-                                        <Bar key={cat.name} dataKey={`pos_${i}`} name={cat.name} stackId="stack" fill={POSITIVE_COLORS[i % POSITIVE_COLORS.length]} />
-                                    ))}
-                                </BarChart>
-                            </ResponsiveContainer>
-                         </ChartContainer>
-                    </div>
-                    
-                    <div className="xl:col-span-2 space-y-4">
-                         {interpretation && (
-                            <Alert className={cn(
-                                "border-l-4",
-                                interpretation.variant === 'success' ? 'border-l-green-500 bg-green-50/50' :
-                                interpretation.variant === 'warning' ? 'border-l-amber-500 bg-amber-50/50' :
-                                interpretation.variant === 'destructive' ? 'border-l-rose-500 bg-rose-50/50' :
-                                'border-l-indigo-500 bg-indigo-50/50'
-                            )}>
-                                <div className="flex gap-2">
-                                    {interpretation.icon}
-                                    <div className="flex-1">
-                                        <AlertTitle className="text-sm font-semibold mb-1">{interpretation.title}</AlertTitle>
-                                        <AlertDescription 
-                                            className="text-sm" 
-                                            dangerouslySetInnerHTML={{ __html: interpretation.text }} 
-                                        />
+            <CardContent className="p-6">
+                {/* Key Insights Alert */}
+                {transformedData.interpretation && (
+                    <Alert className="mb-6" variant={transformedData.interpretation.variant}>
+                        <div className="flex items-start gap-2">
+                            {transformedData.interpretation.icon}
+                            <div>
+                                <AlertTitle>{transformedData.interpretation.title}</AlertTitle>
+                                <AlertDescription>
+                                    <span dangerouslySetInnerHTML={{ __html: transformedData.interpretation.text }} />
+                                </AlertDescription>
+                            </div>
+                        </div>
+                    </Alert>
+                )}
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Side - Visual Scale and Stats */}
+                    <div className="space-y-6">
+                        {/* Visual Scale */}
+                        <div className="space-y-4">
+                            <div className="relative pt-10 pb-2">
+                                {/* Scale Bar */}
+                                <div 
+                                    className="h-12 rounded-full shadow-inner relative"
+                                    style={{
+                                        background: getGradientStops()
+                                    }}
+                                >
+                                    {/* Mean Marker */}
+                                    <div 
+                                        className="absolute top-1/2 -translate-y-1/2 transition-all duration-500 ease-out"
+                                        style={{ 
+                                            left: `${transformedData.scalePosition}%`,
+                                            transform: `translateX(-50%) translateY(-50%)`
+                                        }}
+                                    >
+                                        <div className="relative">
+                                            <div className="w-16 h-16 bg-white dark:bg-gray-800 border-4 border-gray-800 dark:border-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg animate-pulse">
+                                                {transformedData.mean}
+                                            </div>
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 dark:bg-white text-white dark:text-gray-800 px-2 py-1 rounded text-xs whitespace-nowrap">
+                                                Mean
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </Alert>
-                        )}
+                                
+                                {/* Scale Labels */}
+                                <div className="flex justify-between mt-3">
+                                    {data.map((item, index) => (
+                                        <div key={index} className="text-center flex-1">
+                                            <div className="font-semibold text-sm">{index + 1}</div>
+                                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                {item.name}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Statistics Cards */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Sigma className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">Mean</span>
+                                </div>
+                                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                                    {transformedData.mean}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">Median</span>
+                                </div>
+                                <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                                    {transformedData.median}.0
+                                </div>
+                            </div>
+                            
+                            <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">Std Dev</span>
+                                </div>
+                                <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                                    {transformedData.stdDev}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">Responses</span>
+                                </div>
+                                <div className="text-xl font-bold text-gray-600 dark:text-gray-400">
+                                    {transformedData.total}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Response Distribution Summary */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ThumbsDown className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm font-medium">Negative</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-red-500">{transformedData.negativePercentage}%</span>
+                                    <Progress value={parseFloat(transformedData.negativePercentage)} className="w-20 h-2" />
+                                </div>
+                            </div>
+                            
+                            {parseFloat(transformedData.neutralPercentage) > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <HelpCircle className="h-4 w-4 text-gray-500" />
+                                        <span className="text-sm font-medium">Neutral</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-gray-500">{transformedData.neutralPercentage}%</span>
+                                        <Progress value={parseFloat(transformedData.neutralPercentage)} className="w-20 h-2" />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                                    <span className="text-sm font-medium">Positive</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-green-500">{transformedData.positivePercentage}%</span>
+                                    <Progress value={parseFloat(transformedData.positivePercentage)} className="w-20 h-2" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Right Side - Response Distribution Table */}
+                    <div className="rounded-lg border overflow-hidden h-fit">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-gray-50 dark:bg-gray-800/50">
+                                    <TableHead className="font-semibold">Response</TableHead>
+                                    <TableHead className="text-center font-semibold">Count</TableHead>
+                                    <TableHead className="text-center font-semibold">Percentage</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {data.map((item, index) => (
+                                    <TableRow key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                        <TableCell className="font-medium">{item.name}</TableCell>
+                                        <TableCell className="text-center">{item.count}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant={
+                                                index < Math.floor(data.length / 2) ? "destructive" :
+                                                index > Math.floor(data.length / 2) ? "success" :
+                                                "secondary"
+                                            }>
+                                                {item.percentage.toFixed(1)}%
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
             </CardContent>
