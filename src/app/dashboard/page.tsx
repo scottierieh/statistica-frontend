@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box } from "lucide-react";
@@ -76,8 +77,8 @@ const tools = [
   {
     id: "sem",
     href: "#",
-    icon: Box,
-    title: "구조방정식 (SEM)",
+    icon: Network,
+    title: "Structural Equation Modeling (SEM)",
     description: "Coming soon...",
     disabled: true,
   }
