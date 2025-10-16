@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -6,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { produce } from "immer";
-import { PlusCircle, Trash2, Zap } from "lucide-react";
+import { PlusCircle, Trash2, Zap, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -182,7 +183,7 @@ export default function RatingConjointQuestion({
                  </div>
                  <div className="text-right mt-4">
                     <Button onClick={handleNextTask}>
-                        {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Set'}
+                        {currentTask < tasks.length - 1 ? 'Next Set' : (isLastQuestion ? 'Submit' : 'Next')}
                     </Button>
                 </div>
             </div>
