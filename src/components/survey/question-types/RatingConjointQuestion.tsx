@@ -274,7 +274,7 @@ export default function RatingConjointQuestion({
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {(profiles || []).slice(0,20).map(p => (
+                                {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.id}</TableCell>
                                         <TableCell>{p.taskId}</TableCell>

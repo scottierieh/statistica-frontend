@@ -295,7 +295,7 @@ export default function RankingConjointQuestion({
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {(profiles || []).slice(0,20).map(p => (
+                                {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.id}</TableCell>
                                         <TableCell>{p.taskId}</TableCell>
@@ -310,4 +310,3 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
-

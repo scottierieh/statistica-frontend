@@ -40,7 +40,6 @@ const generateFullFactorial = (attributes: ConjointAttribute[]) => {
 
 // Helper to create profile tasks
 const createProfileTasks = (profiles: any[], sets: number) => {
-    // Shuffle profiles to randomize them
     const shuffled = [...profiles].sort(() => 0.5 - Math.random());
     const cardsPerSet = Math.ceil(shuffled.length / sets);
     
@@ -265,7 +264,7 @@ export default function ConjointQuestion({
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {(profiles || []).slice(0,20).map(p => (
+                                {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.id}</TableCell>
                                         <TableCell>{p.taskId}</TableCell>
@@ -280,4 +279,3 @@ export default function ConjointQuestion({
         </Card>
     );
 }
-
