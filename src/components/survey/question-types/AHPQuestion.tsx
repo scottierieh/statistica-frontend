@@ -1,6 +1,6 @@
 'use client';
 
-import { Question } from "@/entities/Survey";
+import { Question, Criterion } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -110,6 +110,16 @@ export default function AHPQuestion({
                 <div className="space-y-6">
                     {criteriaPairs.length > 0 && (
                         <div>
+                            <div className="legend bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-4">
+                                <div className="legend-title font-semibold text-blue-800 mb-2">Importance Scale Guide</div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-700">
+                                    <div><strong>1:</strong> Equal</div>
+                                    <div><strong>3:</strong> Moderately Important</div>
+                                    <div><strong>5:</strong> Important</div>
+                                    <div><strong>7:</strong> Very Important</div>
+                                    <div><strong>9:</strong> Extremely Important</div>
+                                </div>
+                            </div>
                             <h4 className="font-semibold text-lg mb-2">Criteria Comparison</h4>
                             {criteriaPairs.map((pair, index) => (
                                  <PairwiseComparison 

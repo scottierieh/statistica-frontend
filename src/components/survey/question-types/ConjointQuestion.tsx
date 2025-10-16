@@ -117,7 +117,7 @@ export default function ConjointQuestion({
                             </CardFooter>
                         </Card>
                     ))}
-                </div>
+                 </div>
             </div>
         );
     }

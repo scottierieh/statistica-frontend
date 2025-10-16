@@ -5,6 +5,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Question } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { X, PlusCircle } from "lucide-react";
+import { produce } from "immer";
+
 
 interface SingleSelectionQuestionProps {
     question: Question;
@@ -39,7 +45,7 @@ export default function SingleSelectionQuestion({
                 </h3>
                 <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
                     {(question.options || []).map((option: string, index: number) => (
-                        <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer", answer === option ? "bg-primary/10 border-primary" : "bg-background hover:bg-accent/50")}>
+                         <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer", answer === option ? "bg-primary/10 border-primary" : "bg-background hover:bg-accent/50")}>
                             <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
                             <span className="flex-1" style={{ fontSize: `${styles.answerTextSize}px` }}>{option}</span>
                         </Label>
