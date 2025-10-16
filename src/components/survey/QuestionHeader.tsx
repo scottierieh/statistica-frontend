@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import type { Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Badge } from "@/components/ui/badge";
 
 interface QuestionHeaderProps {
     question: Question;
@@ -36,6 +38,13 @@ export default function QuestionHeader({
 
     return (
         <div className="space-y-3">
+            <Badge 
+                variant="secondary" 
+                className="absolute -top-3 -left-3 z-10 font-mono"
+            >
+                Q{questionNumber}
+            </Badge>
+            
             <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 space-y-2">
                     <Input 
@@ -71,6 +80,7 @@ export default function QuestionHeader({
                         <ImageIcon className="w-4 h-4 text-muted-foreground" />
                     </Button>
                     
+                    
                     <div className="flex items-center gap-2 px-2">
                         <Switch 
                             id={`required-${question.id}`} 
@@ -84,6 +94,7 @@ export default function QuestionHeader({
                             Required
                         </Label>
                     </div>
+                    
                     
                     <Button 
                         variant="ghost" 
