@@ -43,7 +43,7 @@ export default function TextQuestion({
                 {question.text === 'multiline' ? (
                     <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange?.(e.target.value)} />
                 ) : (
-                    <Input type="text" placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange?.(e.target.value)} />
+                    <Input type="text" placeholder={question.text || "Your answer..."} value={answer || ''} onChange={e => onAnswerChange?.(e.target.value)} />
                 )}
             </div>
         );
@@ -66,7 +66,7 @@ export default function TextQuestion({
                     <Input id={`desc-${question.id}`} placeholder="Optional description for the question" value={question.description || ''} onChange={(e) => onUpdate?.({...question, description: e.target.value})}/>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <Switch id={`multiline-${question.id}`} checked={question.text === 'multiline'} onCheckedChange={(checked) => onUpdate?.({...question, text: checked ? 'multiline' : 'singleline'})} />
+                    <Switch id={`multiline-${question.id}`} checked={question.type === 'multiline'} onCheckedChange={(checked) => onUpdate?.({...question, type: checked ? 'multiline' : 'singleline'})} />
                     <Label htmlFor={`multiline-${question.id}`}>Allow multiple lines</Label>
                 </div>
             </CardContent>
