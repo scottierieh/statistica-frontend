@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -61,9 +62,9 @@ const generateFullFactorial = (attributes: ConjointAttribute[]) => {
 };
 
 // Helper to create profile tasks
-const createProfileTasks = (profiles: any[], sets: number, cardsPerSet: number) => {
-    // Shuffle profiles to randomize them
+const createProfileTasks = (profiles: any[], sets: number) => {
     const shuffled = [...profiles].sort(() => 0.5 - Math.random());
+    const cardsPerSet = Math.ceil(shuffled.length / sets);
     
     const tasks: any[] = [];
     for (let i = 0; i < sets; i++) {
@@ -110,7 +111,7 @@ export default function RankingConjointQuestion({
     isLastQuestion,
     submitSurvey
 }: RankingConjointQuestionProps) {
-    const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3 } = question;
+    const { attributes = [], profiles = [], sets = 1 } = question;
     const [currentTask, setCurrentTask] = useState(0);
 
     const tasks = useMemo(() => {
@@ -200,12 +201,16 @@ export default function RankingConjointQuestion({
         })});
     };
 
+    const totalCombinations = useMemo(() => {
+        if (!attributes || attributes.length === 0) return 0;
+        return attributes.reduce((acc, attr) => acc * Math.max(1, attr.levels.length), 1);
+    }, [attributes]);
+    
     const generateProfiles = () => {
         const allProfiles = generateFullFactorial(attributes);
-        const newProfiles = createProfileTasks(allProfiles, sets || 1, cardsPerSet || 3);
+        const newProfiles = createProfileTasks(allProfiles, sets || 1);
         onUpdate?.({ profiles: newProfiles });
     };
-
 
     if (isPreview) {
         return (
@@ -242,7 +247,7 @@ export default function RankingConjointQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
-                 <div className="mt-4 space-y-4">
+                <div className="mt-4 space-y-4">
                     <h4 className="font-semibold text-sm">Conjoint Attributes</h4>
                     {attributes.map((attr, attrIndex) => (
                         <Card key={attr.id} className="p-3 bg-slate-50">
@@ -271,13 +276,13 @@ export default function RankingConjointQuestion({
                             <Label htmlFor="sets">Number of Sets (Tasks)</Label>
                             <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
                         </div>
-                        <div>
-                             <Label htmlFor="cardsPerSet">Cards per Set</Label>
-                             <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="1" />
+                        <div className="p-3 bg-muted rounded-md text-center">
+                            <Label>Total Possible Profiles</Label>
+                            <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
                     <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">Total Profiles: {profiles.length}</p>
+                        <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
                     </div>
                      <ScrollArea className="h-48 border rounded-md p-2">
@@ -305,3 +310,4 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
+

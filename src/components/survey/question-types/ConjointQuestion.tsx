@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -5,7 +6,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +39,10 @@ const generateFullFactorial = (attributes: ConjointAttribute[]) => {
 };
 
 // Helper to create profile tasks
-const createProfileTasks = (profiles: any[], sets: number, cardsPerSet: number) => {
+const createProfileTasks = (profiles: any[], sets: number) => {
     // Shuffle profiles to randomize them
     const shuffled = [...profiles].sort(() => 0.5 - Math.random());
+    const cardsPerSet = Math.ceil(shuffled.length / sets);
     
     const tasks: any[] = [];
     for (let i = 0; i < sets; i++) {
@@ -87,7 +89,7 @@ export default function ConjointQuestion({
     isLastQuestion,
     submitSurvey
 }: ConjointQuestionProps) {
-    const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3 } = question;
+    const { attributes = [], profiles = [], sets = 1 } = question;
     const [currentTask, setCurrentTask] = useState(0);
 
     const tasks = useMemo(() => {
@@ -131,7 +133,7 @@ export default function ConjointQuestion({
                 <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
                 {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
                 
-                <div className={`grid grid-cols-1 md:grid-cols-${Math.min(cardsPerSet, 4)} gap-3`}>
+                <div className={`grid grid-cols-1 md:grid-cols-${Math.min(currentTaskProfiles.length, 4)} gap-3`}>
                     {(currentTaskProfiles || []).map((profile: any, index: number) => (
                         <Card 
                             key={profile.id} 
@@ -192,9 +194,14 @@ export default function ConjointQuestion({
         onUpdate?.({ attributes: produce(attributes, draft => { if(draft) draft[attrIndex].levels.splice(levelIndex, 1); }) });
     };
 
+    const totalCombinations = useMemo(() => {
+        if (!attributes || attributes.length === 0) return 0;
+        return attributes.reduce((acc, attr) => acc * Math.max(1, attr.levels.length), 1);
+    }, [attributes]);
+    
     const generateProfiles = () => {
         const allProfiles = generateFullFactorial(attributes);
-        const newProfiles = createProfileTasks(allProfiles, sets || 1, cardsPerSet || 3);
+        const newProfiles = createProfileTasks(allProfiles, sets || 1);
         onUpdate?.({ profiles: newProfiles });
     };
 
@@ -239,13 +246,13 @@ export default function ConjointQuestion({
                             <Label htmlFor="sets">Number of Sets (Tasks)</Label>
                             <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
                         </div>
-                        <div>
-                             <Label htmlFor="cardsPerSet">Cards per Set</Label>
-                             <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" />
+                        <div className="p-3 bg-muted rounded-md text-center">
+                            <Label>Total Possible Profiles</Label>
+                            <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
                     <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">Total Profiles: {profiles.length}</p>
+                        <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
                     </div>
                      <ScrollArea className="h-48 border rounded-md p-2">
@@ -273,3 +280,4 @@ export default function ConjointQuestion({
         </Card>
     );
 }
+
