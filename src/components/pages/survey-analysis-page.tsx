@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -449,7 +447,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                 </div>
             </CardHeader>
            <CardContent className="p-6">
-               {/* Content is the same as before */}
+                 {/* Content is the same as before */}
            </CardContent>
         </Card>
     );
@@ -581,28 +579,48 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 
 
 // --- Likert Chart (NEW) ---
-const LikertChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
-    // This component remains unchanged from the previous version.
-     return (
+const LikertChart = ({ data, title, onDownload, question }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void, question: Question }) => {
+    const totalResponses = data.reduce((acc, item) => acc + item.count, 0);
+    const midPoint = Math.ceil((question.scale?.length || 5) / 2);
+    const negativeResponses = data.slice(0, midPoint-1).reduce((acc, item) => acc + item.percentage, 0);
+    const positiveResponses = data.slice(midPoint).reduce((acc, item) => acc + item.percentage, 0);
+    const neutralResponses = data[midPoint-1]?.percentage || 0;
+
+    const chartData = [{
+        name: 'Distribution',
+        negative: -negativeResponses,
+        neutral: neutralResponses,
+        positive: positiveResponses
+    }];
+
+    return (
         <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
-             <div className="flex justify-between items-start">
-                   <div className="space-y-1">
-                       <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-                       <p className="text-sm text-muted-foreground">Likert scale distribution</p>
-                   </div>
-                   <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={onDownload}
-                       className="hover:bg-white/50 dark:hover:bg-slate-700/50"
-                   >
-                       <Download className="w-4 h-4" />
-                   </Button>
+             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Diverging Stacked Bar Chart for Likert Scale</p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={onDownload} className="hover:bg-white/50 dark:hover:bg-slate-700/50">
+                        <Download className="w-4 h-4" />
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-6">
-                 {/* Content is the same as before */}
+                 <ChartContainer config={{}} className="w-full h-64">
+                    <ResponsiveContainer>
+                        <BarChart data={chartData} layout="vertical" stackOffset="diverging">
+                            <XAxis type="number" domain={[-100, 100]} tickFormatter={(v) => `${Math.abs(v)}%`} />
+                            <YAxis type="category" dataKey="name" hide />
+                            <Tooltip />
+                            <Legend />
+                            <ReferenceLine x={0} stroke="#666" />
+                            <Bar dataKey="negative" name="Negative" fill="#ef4444" stackId="stack" />
+                            <Bar dataKey="neutral" name="Neutral" fill="#a8a29e" stackId="stack" />
+                            <Bar dataKey="positive" name="Positive" fill="#10b981" stackId="stack" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
             </CardContent>
         </Card>
     );
@@ -619,10 +637,8 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const router = useRouter();
     const { toast } = useToast();
     const pageRef = useRef<HTMLDivElement>(null);
-    const chartRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
     const [loading, setLoading] = useState(true);
     const [analysisData, setAnalysisData] = useState<any[]>([]);
-    const [activeFurtherAnalysis, setActiveFurtherAnalysis] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
     const numericHeaders = useMemo(() => {
@@ -799,6 +815,22 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
     const handleFurtherAnalysisClick = (analysisType: string) => {
         router.push(`/dashboard/statistica?analysis=${analysisType}`);
     };
+    
+    const chartRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+    const downloadChartAsPng = (chartId: string, chartTitle: string) => {
+        const chartElement = chartRefs.current[chartId];
+        if (chartElement) {
+            html2canvas(chartElement).then(canvas => {
+                const image = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `${chartTitle.replace(/\s+/g, '_')}.png`;
+                link.href = image;
+                link.click();
+            });
+        }
+    };
+
 
     return (
         <div ref={pageRef} className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -867,22 +899,22 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     {(() => {
                                         switch (result.type) {
                                             case 'categorical':
-                                                return <CategoricalChart data={result.data} title={result.title} onDownload={() => {}} />;
+                                                return <CategoricalChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'numeric':
-                                                return <NumericChart data={result.data} title={result.title} onDownload={() => {}} />;
+                                                return <NumericChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'rating':
-                                                return <RatingChart data={result.data} title={result.title} onDownload={() => {}}/>;
+                                                return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'likert':
-                                                return <LikertChart data={result.data} title={result.title} onDownload={() => {}} />;
+                                                return <LikertChart data={result.data} title={result.title} question={result.question} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'nps':
-                                                return <NPSChart data={result.data} title={result.title} onDownload={() => {}}/>;
+                                                return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             case 'text':
-                                                 return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => {}} />;
+                                                 return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                             case 'best-worst':
                                                 // return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                                 return null;
                                             case 'matrix':
-                                                return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => {}}/>;
+                                                return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                             default:
                                                 return null;
                                         }
@@ -901,7 +933,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                     
                     {hasFurtherAnalysis && (
                         <TabsContent value="further_analysis" className="mt-8">
-                            {activeFurtherAnalysis === null ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     <Card className="group hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer" onClick={() => handleFurtherAnalysisClick('reliability')}>
                                         <CardHeader className="pb-3">
@@ -929,7 +960,6 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                                     </Card>
                                     {/* Additional analysis cards can be added here */}
                                 </div>
-                            ) : null}
                         </TabsContent>
                     )}
                 </Tabs>
@@ -971,7 +1001,4 @@ const CustomizedTreemapContent = (props: any) => {
       </g>
     );
   };
-
     
-
-```

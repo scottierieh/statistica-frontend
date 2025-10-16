@@ -7,6 +7,8 @@ export interface Survey {
   created_date: string;
   startDate?: string;
   endDate?: string;
+  styles?: any;
+  showStartPage?: boolean;
 }
 
 export interface SurveyResponse {
