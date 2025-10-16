@@ -1,4 +1,6 @@
 
+'use client';
+import React from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
