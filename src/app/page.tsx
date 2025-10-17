@@ -103,7 +103,7 @@ export default function LandingPage() {
                 </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">About</Link>
-                <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">FAQ</Link>
+                <Link className="text-sm font-medium hover:underline underline-offset-4" href="/faq">FAQ</Link>
             </nav>
             <div className="flex-1 flex justify-end items-center gap-4">
                 <Button variant="ghost" asChild><Link href="/login">Login</Link></Button>
