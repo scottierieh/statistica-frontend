@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export default function LandingPage() {
   const features = {
@@ -101,6 +103,7 @@ export default function LandingPage() {
                 </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">About</Link>
+                <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">FAQ</Link>
             </nav>
             <div className="flex-1 flex justify-end items-center gap-4">
                 <Button variant="ghost" asChild><Link href="/login">Login</Link></Button>
@@ -311,7 +314,41 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        
+
+        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-slate-50 dark:bg-slate-900/50">
+          <div className="w-full max-w-4xl mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Frequently Asked Questions</h2>
+            </div>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger>Is Skarii suitable for academic research?</AccordionTrigger>
+                <AccordionContent>
+                  Yes! Skarii provides a comprehensive suite of statistical tools suitable for academic research, complete with APA-style reporting and robust data handling.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-2">
+                <AccordionTrigger>What kind of data can I upload?</AccordionTrigger>
+                <AccordionContent>
+                  You can upload data in various formats, including CSV, TSV, and Excel (.xls, .xlsx). The platform is designed to automatically parse your data and identify variable types.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-3">
+                <AccordionTrigger>How does the AI interpretation work?</AccordionTrigger>
+                <AccordionContent>
+                  Our AI models analyze the statistical output of your analysis, identify significant findings, and translate them into human-readable text, following established reporting standards.
+                </AccordionContent>
+              </AccordionItem>
+               <AccordionItem value="item-4">
+                <AccordionTrigger>Can I customize the surveys with my own branding?</AccordionTrigger>
+                <AccordionContent>
+                  Absolutely. The Survey tool includes a design panel that allows you to customize colors, fonts, spacing, and more to match your brand identity.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </section>
+
         <section id="pricing-cta" className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
            <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center">
