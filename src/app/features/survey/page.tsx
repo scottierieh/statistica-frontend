@@ -8,6 +8,7 @@ import { Target, Handshake, DollarSign, Users, ClipboardList, Network, Eye, Case
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 
 const analysisMethods = [
@@ -94,108 +95,117 @@ export default function SurveyFeaturePage() {
                             </div>
                         </CardContent>
                     </Card>
-          
-                    <Card className="mb-8">
-                        <CardHeader>
-                            <CardTitle>Available Survey Question Types</CardTitle>
-                            <CardDescription>A wide range of question formats to collect the data you need.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-1/6">Category</TableHead>
-                                        <TableHead className="w-1/6">Question Type</TableHead>
-                                        <TableHead className="w-1/3">Description</TableHead>
-                                        <TableHead className="w-1/3">Use Case</TableHead>
-                                        <TableHead className="text-center">Preview</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(groupedQuestionTypes).map(([category, types]) => (
-                                        <React.Fragment key={category}>
-                                            {types.map((q, index) => (
-                                                <TableRow key={q.type}>
-                                                    {index === 0 && (
-                                                        <TableCell rowSpan={types.length} className="align-middle font-semibold">
-                                                            {category}
-                                                        </TableCell>
-                                                    )}
-                                                    <TableCell><div className="flex items-center gap-2"><q.icon className="w-4 h-4 text-muted-foreground"/> {q.type}</div></TableCell>
-                                                    <TableCell>{q.description}</TableCell>
-                                                    <TableCell>{q.useCase}</TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-3xl">
-                                                                <DialogHeader><DialogTitle>{q.type} - Example</DialogTitle></DialogHeader>
-                                                                <div className="flex justify-center p-4">
-                                                                    <Image src={`https://picsum.photos/seed/${q.type.replace(/\s+/g, '-')}/800/400`} alt={`Example for ${q.type}`} width={800} height={400} className="rounded-lg border" />
-                                                                </div>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    </TableCell>
-                                                </TableRow>
+                    
+                    <Tabs defaultValue="questionTypes" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="questionTypes">Question Types</TabsTrigger>
+                            <TabsTrigger value="analysisTypes">Analysis Types</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="questionTypes">
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <CardTitle>Available Survey Question Types</CardTitle>
+                                    <CardDescription>A wide range of question formats to collect the data you need.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-1/6">Category</TableHead>
+                                                <TableHead className="w-1/6">Question Type</TableHead>
+                                                <TableHead className="w-1/3">Description</TableHead>
+                                                <TableHead className="w-1/3">Use Case</TableHead>
+                                                <TableHead className="text-center">Preview</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {Object.entries(groupedQuestionTypes).map(([category, types]) => (
+                                                <React.Fragment key={category}>
+                                                    {types.map((q, index) => (
+                                                        <TableRow key={q.type}>
+                                                            {index === 0 && (
+                                                                <TableCell rowSpan={types.length} className="align-middle font-semibold">
+                                                                    {category}
+                                                                </TableCell>
+                                                            )}
+                                                            <TableCell><div className="flex items-center gap-2"><q.icon className="w-4 h-4 text-muted-foreground"/> {q.type}</div></TableCell>
+                                                            <TableCell>{q.description}</TableCell>
+                                                            <TableCell>{q.useCase}</TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
+                                                                    </DialogTrigger>
+                                                                    <DialogContent className="max-w-3xl">
+                                                                        <DialogHeader><DialogTitle>{q.type} - Example</DialogTitle></DialogHeader>
+                                                                        <div className="flex justify-center p-4">
+                                                                            <Image src={`https://picsum.photos/seed/${q.type.replace(/\s+/g, '-')}/800/400`} alt={`Example for ${q.type}`} width={800} height={400} className="rounded-lg border" />
+                                                                        </div>
+                                                                    </DialogContent>
+                                                                </Dialog>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </React.Fragment>
                                             ))}
-                                        </React.Fragment>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Specialized Survey Analysis Types</CardTitle>
-                            <CardDescription>A suite of integrated tools for advanced market research and decision analysis.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-1/6">Category</TableHead>
-                                        <TableHead className="w-1/6">Analysis Type</TableHead>
-                                        <TableHead className="w-1/3">Description</TableHead>
-                                        <TableHead className="w-1/3">Use Case</TableHead>
-                                        <TableHead className="text-center">Preview</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(groupedAnalysisMethods).map(([category, methods]) => (
-                                        <React.Fragment key={category}>
-                                            {methods.map((method, index) => (
-                                                <TableRow key={method.method}>
-                                                    {index === 0 && (
-                                                        <TableCell rowSpan={methods.length} className="align-middle font-semibold">
-                                                            {category}
-                                                        </TableCell>
-                                                    )}
-                                                    <TableCell>{method.method}</TableCell>
-                                                    <TableCell>{method.description}</TableCell>
-                                                    <TableCell>{method.useCase}</TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-3xl">
-                                                                <DialogHeader><DialogTitle>{method.method} - Example Result</DialogTitle></DialogHeader>
-                                                                <div className="flex justify-center p-4">
-                                                                    <Image src={`https://picsum.photos/seed/${method.method.replace(/\s+/g, '-')}/800/600`} alt={`Example result for ${method.method}`} width={800} height={600} className="rounded-lg border" />
-                                                                </div>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    </TableCell>
-                                                </TableRow>
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="analysisTypes">
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <CardTitle>Specialized Survey Analysis Types</CardTitle>
+                                    <CardDescription>A suite of integrated tools for advanced market research and decision analysis.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-1/6">Category</TableHead>
+                                                <TableHead className="w-1/6">Analysis Type</TableHead>
+                                                <TableHead className="w-1/3">Description</TableHead>
+                                                <TableHead className="w-1/3">Use Case</TableHead>
+                                                <TableHead className="text-center">Preview</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {Object.entries(groupedAnalysisMethods).map(([category, methods]) => (
+                                                <React.Fragment key={category}>
+                                                    {methods.map((method, index) => (
+                                                        <TableRow key={method.method}>
+                                                            {index === 0 && (
+                                                                <TableCell rowSpan={methods.length} className="align-middle font-semibold">
+                                                                    {category}
+                                                                </TableCell>
+                                                            )}
+                                                            <TableCell>{method.method}</TableCell>
+                                                            <TableCell>{method.description}</TableCell>
+                                                            <TableCell>{method.useCase}</TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
+                                                                    </DialogTrigger>
+                                                                    <DialogContent className="max-w-3xl">
+                                                                        <DialogHeader><DialogTitle>{method.method} - Example Result</DialogTitle></DialogHeader>
+                                                                        <div className="flex justify-center p-4">
+                                                                            <Image src={`https://picsum.photos/seed/${method.method.replace(/\s+/g, '-')}/800/600`} alt={`Example result for ${method.method}`} width={800} height={600} className="rounded-lg border" />
+                                                                        </div>
+                                                                    </DialogContent>
+                                                                </Dialog>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </React.Fragment>
                                             ))}
-                                        </React.Fragment>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </main>
         </div>
