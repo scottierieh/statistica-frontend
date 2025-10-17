@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -6,7 +5,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,224 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 
-class ConjointDesignGenerator {
-    static generateFullFactorial(attributes: ConjointAttribute[]) {
-        if (!attributes || attributes.length === 0) return [];
-        
-        const levels = attributes.map(attr => attr.levels);
-        if (levels.some(l => l.length === 0)) return [];
-
-        let combinations: any[] = [{}];
-        
-        attributes.forEach(attr => {
-            const newCombinations: any[] = [];
-            combinations.forEach(existingCombo => {
-                attr.levels.forEach(level => {
-                    newCombinations.push({ 
-                        ...existingCombo, 
-                        [attr.name]: level 
-                    });
-                });
-            });
-            combinations = newCombinations;
-        });
-
-        return combinations.map((combo, index) => ({
-            id: `profile_${index + 1}`,
-            attributes: combo
-        }));
-    }
-
-    static generateFractionalFactorial(attributes: ConjointAttribute[]) {
-        if (!attributes || attributes.length === 0) return [];
-        
-        const fullDesign = this.generateFullFactorial(attributes);
-        const targetSize = this.calculateOptimalProfileCount(attributes);
-        
-        return this.selectDOptimalProfiles(fullDesign, targetSize, attributes);
-    }
-
-    static calculateOptimalProfileCount(attributes: ConjointAttribute[]) {
-        const totalLevels = attributes.reduce((sum, attr) => sum + attr.levels.length, 0);
-        const minProfiles = totalLevels - attributes.length + 1;
-        return Math.min(Math.max(minProfiles * 2, 16), 32);
-    }
-
-    static selectDOptimalProfiles(fullDesign: any[], targetSize: number, attributes: ConjointAttribute[]) {
-        if (fullDesign.length <= targetSize) return fullDesign;
-        
-        const selected: any[] = [];
-        const remaining = [...fullDesign];
-        
-        const firstIndex = Math.floor(Math.random() * remaining.length);
-        selected.push(remaining[firstIndex]);
-        remaining.splice(firstIndex, 1);
-        
-        while (selected.length < targetSize && remaining.length > 0) {
-            let bestProfile = null;
-            let bestScore = -Infinity;
-            
-            for (const profile of remaining) {
-                const tempSelected = [...selected, profile];
-                const score = this.calculateDesignBalance(tempSelected, attributes);
-                
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestProfile = profile;
-                }
-            }
-            
-            if (bestProfile) {
-                selected.push(bestProfile);
-                remaining.splice(remaining.indexOf(bestProfile), 1);
-            }
-        }
-        
-        return selected;
-    }
-
-    static generateOrthogonalDesign(attributes: ConjointAttribute[]) {
-        const orthogonalArray = this.selectOrthogonalArray(attributes);
-        
-        if (!orthogonalArray) {
-            return ConjointDesignGenerator.generateFractionalFactorial(attributes);
-        }
-        
-        return this.mapOrthogonalArrayToProfiles(orthogonalArray, attributes);
-    }
-
-    static selectOrthogonalArray(attributes: ConjointAttribute[]) {
-        const numFactors = attributes.length;
-        const maxLevels = Math.max(...attributes.map(a => a.levels.length));
-        
-        const arrays: { [key: string]: any } = {
-            'L4_2_3': { suitable: numFactors <= 3 && maxLevels <= 2, runs: 4, array: [[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]] },
-            'L8_2_7': { suitable: numFactors <= 7 && maxLevels <= 2, runs: 8, array: [[0,0,0,0,0,0,0],[0,0,0,1,1,1,1],[0,1,1,0,0,1,1],[0,1,1,1,1,0,0],[1,0,1,0,1,0,1],[1,0,1,1,0,1,0],[1,1,0,0,1,1,0],[1,1,0,1,0,0,1]] },
-            'L9_3_4': { suitable: numFactors <= 4 && maxLevels <= 3, runs: 9, array: [[0,0,0,0],[0,1,1,1],[0,2,2,2],[1,0,1,2],[1,1,2,0],[1,2,0,1],[2,0,2,1],[2,1,0,2],[2,2,1,0]] },
-        };
-        
-        let selectedArray = null;
-        let minRuns = Infinity;
-        
-        for (const [key, arrayDef] of Object.entries(arrays)) {
-            if (arrayDef.suitable && arrayDef.runs < minRuns) {
-                selectedArray = arrayDef;
-                minRuns = arrayDef.runs;
-            }
-        }
-        
-        return selectedArray;
-    }
-
-    static mapOrthogonalArrayToProfiles(orthogonalArray: any, attributes: ConjointAttribute[]) {
-        const profiles = [];
-        
-        for (let run = 0; run < orthogonalArray.runs; run++) {
-            const profile: any = {
-                id: `profile_${run + 1}`,
-                attributes: {}
-            };
-            
-            for (let factor = 0; factor < attributes.length; factor++) {
-                const attr = attributes[factor];
-                const levelIndex = orthogonalArray.array[run][factor] % attr.levels.length;
-                profile.attributes[attr.name] = attr.levels[levelIndex];
-            }
-            
-            profiles.push(profile);
-        }
-        
-        return profiles;
-    }
-    
-    static calculateDesignStatistics(profiles: any[], attributes: ConjointAttribute[]) {
-        const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
-        const balance = this.checkBalance(profiles, attributes);
-        const orthogonality = this.checkOrthogonality(profiles, attributes);
-        
-        return {
-            totalProfiles: profiles.length,
-            totalPossibleCombinations: totalCombinations,
-            reductionRatio: ((1 - profiles.length / totalCombinations) * 100).toFixed(1),
-            balance: (balance * 100).toFixed(1),
-            orthogonality: (orthogonality * 100).toFixed(1)
-        };
-    }
-
-    static checkBalance(profiles: any[], attributes: ConjointAttribute[]) {
-        let totalBalance = 0;
-        let attrCount = 0;
-        
-        for (const attr of attributes) {
-            const levelCounts: { [key: string]: number } = {};
-            attr.levels.forEach(level => { levelCounts[level] = 0; });
-            
-            profiles.forEach(profile => {
-                const level = profile.attributes[attr.name];
-                if (level) levelCounts[level]++;
-            });
-            
-            const counts = Object.values(levelCounts);
-            const expectedCount = profiles.length / attr.levels.length;
-            const maxDeviation = Math.max(...counts.map(c => Math.abs(c - expectedCount)));
-            
-            totalBalance += 1 - (maxDeviation / profiles.length);
-            attrCount++;
-        }
-        
-        return totalBalance / attrCount;
-    }
-
-    static checkOrthogonality(profiles: any[], attributes: ConjointAttribute[]) {
-        if (attributes.length < 2) return 1;
-        let totalOrthogonality = 0;
-        let pairCount = 0;
-        
-        for (let i = 0; i < attributes.length - 1; i++) {
-            for (let j = i + 1; j < attributes.length; j++) {
-                const correlation = this.calculateCorrelation(profiles, attributes[i], attributes[j]);
-                totalOrthogonality += 1 - Math.abs(correlation);
-                pairCount++;
-            }
-        }
-        return totalOrthogonality / pairCount;
-    }
-
-    static calculateCorrelation(profiles: any[], attr1: ConjointAttribute, attr2: ConjointAttribute) {
-        const contingencyTable: { [key: string]: { [key: string]: number } } = {};
-        
-        attr1.levels.forEach(l1 => {
-            contingencyTable[l1] = {};
-            attr2.levels.forEach(l2 => { contingencyTable[l1][l2] = 0; });
-        });
-        
-        profiles.forEach(profile => {
-            const l1 = profile.attributes[attr1.name];
-            const l2 = profile.attributes[attr2.name];
-            if (l1 && l2) contingencyTable[l1][l2]++;
-        });
-        
-        let chiSquare = 0;
-        const n = profiles.length;
-        
-        attr1.levels.forEach(l1 => {
-            attr2.levels.forEach(l2 => {
-                const observed = contingencyTable[l1][l2];
-                const expected = n / (attr1.levels.length * attr2.levels.length);
-                if (expected > 0) {
-                    chiSquare += Math.pow(observed - expected, 2) / expected;
-                }
-            });
-        });
-        
-        const minDim = Math.min(attr1.levels.length - 1, attr2.levels.length - 1);
-        if (n * minDim === 0) return 0;
-        return Math.sqrt(chiSquare / (n * minDim));
-    }
-}
-
+// Helper to create profile tasks for rating
 const createProfileTasks = (profiles: any[], sets: number, cardsPerSet: number) => {
     const shuffled = [...profiles].sort(() => 0.5 - Math.random());
     const tasks: any[] = [];
@@ -285,6 +70,7 @@ export default function ConjointQuestion({
     isLastQuestion,
     submitSurvey
 }: ConjointQuestionProps) {
+    const { toast } = useToast();
     const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3, designMethod = 'fractional-factorial' } = question;
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
@@ -392,26 +178,40 @@ export default function ConjointQuestion({
         onUpdate?.({ attributes: produce(attributes, draft => { if(draft) draft[attrIndex].levels.splice(levelIndex, 1); }) });
     };
 
-    const generateProfiles = () => {
-        let generatedProfiles: any[] = [];
-        
-        switch (designMethod) {
-            case 'full-factorial':
-                generatedProfiles = ConjointDesignGenerator.generateFullFactorial(attributes);
-                break;
-            case 'fractional-factorial':
-                generatedProfiles = ConjointDesignGenerator.generateFractionalFactorial(attributes);
-                break;
-            case 'orthogonal':
-                generatedProfiles = ConjointDesignGenerator.generateOrthogonalDesign(attributes);
-                break;
+    const generateProfiles = async () => {
+        try {
+            const response = await fetch('/api/analysis/conjoint-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    attributes,
+                    design_method: designMethod,
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || 'Failed to generate design');
+            }
+            
+            const result = await response.json();
+            
+            const newProfiles = createProfileTasks(result.profiles, sets || 1, cardsPerSet || 3);
+            onUpdate?.({ profiles: newProfiles });
+            
+            setDesignStats(result.statistics);
+            toast({
+                title: "Profiles Generated",
+                description: `${result.profiles.length} profiles created using ${designMethod} design.`
+            });
+
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: "Design Generation Failed",
+                description: e.message
+            });
         }
-        
-        const newProfiles = createProfileTasks(generatedProfiles, sets || 1, cardsPerSet || 3);
-        onUpdate?.({ profiles: newProfiles });
-        
-        const stats = ConjointDesignGenerator.calculateDesignStatistics(generatedProfiles, attributes);
-        setDesignStats(stats);
     };
 
 
@@ -517,3 +317,4 @@ export default function ConjointQuestion({
         </Card>
     );
 }
+
