@@ -60,15 +60,7 @@ export default function FaqPage() {
                     <h1 className="text-xl font-headline font-bold">Skarii</h1>
                 </Link>
             </div>
-            <nav className="hidden md:flex items-center gap-4 sm:gap-6 text-sm">
-                <Link href="#" className="hover:underline">Community</Link>
-                <Link href="#" className="hover:underline">Academy</Link>
-                <Link href="#" className="hover:underline">Developer Hub</Link>
-                <Button variant="ghost" className="gap-2 hover:bg-white/10">
-                    <Globe className="w-4 h-4"/>
-                    English
-                </Button>
-            </nav>
+            
             <div className="flex-1 flex justify-end">
                 <Button asChild variant="outline" className="bg-white/10 border-white/20 hover:bg-white/20">
                     <Link href="/dashboard">Go to Dashboard</Link>
@@ -103,7 +95,7 @@ export default function FaqPage() {
             </div>
         </section>
         
-        <section className="py-12 md:py-20 -mt-20 relative z-10 px-4">
+        <section className="py-12 md:py-20 -mt-16 relative z-10 px-4">
             <div className="max-w-5xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {helpCategories.map((category) => (
