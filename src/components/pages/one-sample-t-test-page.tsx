@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sigma, Loader2, HelpCircle, BookOpen, CheckCircle, AlertCircle, BarChart, Settings, FileSearch, MoveRight } from 'lucide-react';
+import { Sigma, Loader2, HelpCircle, BookOpen, CheckCircle, AlertTriangle, BarChart, Settings, FileSearch, MoveRight, FlaskConical } from 'lucide-react';
 import Image from 'next/image';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 
@@ -47,18 +48,18 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             This test is useful when you want to compare your sample's average against a benchmark, a standard value, or a previously established mean. For example, testing if the average IQ score of a group of students is different from the national average of 100.
                         </p>
                     </div>
-                    <div className="flex justify-center">
-                        {ttestExample && (
-                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                                <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                    {ttestExample && (
+                        <div className="flex justify-center">
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                <FlaskConical className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{ttestExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
                                 </div>
                             </Card>
-                        )}
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
+                        </div>
+                    )}
+                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
@@ -92,11 +93,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
             </Card>
         </div>
     );
-};
-
-const AnalysisPlaceholder = ({ onLoadExample }: { onLoadExample: (data: any) => void }) => {
-    // This is a simplified placeholder as the main control is handled by the parent page
-    return <IntroPage onStart={() => {}} onLoadExample={onLoadExample} />;
 };
 
 
@@ -155,7 +151,7 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample, onFileSelecte
     if (!result) return null;
     const p_value = result.t_test['p-value'];
     const significant = p_value < 0.05;
-    const Icon = significant ? AlertCircle : CheckCircle;
+    const Icon = significant ? AlertTriangle : CheckCircle;
     const alertVariant = significant ? 'destructive' : 'default';
     const title = `The sample mean is statistically ${significant ? 'different' : 'not different'} from the test mean.`;
     const description = `The p-value is ${p_value < 0.001 ? '< 0.001' : p_value.toFixed(4)}. The sample mean (${result.summary_stats.Mean.toFixed(2)}) is ${significant ? 'significantly' : 'not significantly'} different from the hypothesized population mean of ${result.t_test['Test Mean']}.`;
@@ -241,19 +237,19 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample, onFileSelecte
                             </Table>
                         </CardContent>
                      </Card>
+                       <Card>
+                        <CardHeader><CardTitle>Effect Size &amp; Confidence Interval</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableBody>
+                                    <TableRow><TableCell>Cohen&apos;s d</TableCell><TableCell className="text-right font-mono">{result.effect_size["Cohen's d"].toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Interpretation</TableCell><TableCell className="text-right font-mono">{result.effect_size.Interpretation}</TableCell></TableRow>
+                                    <TableRow><TableCell>95% Confidence Interval</TableCell><TableCell className="text-right font-mono">[{result.confidence_interval.CI_lower.toFixed(3)}, {result.confidence_interval.CI_upper.toFixed(3)}]</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
-                 <Card className="md:col-span-2">
-                    <CardHeader><CardTitle>Effect Size &amp; Confidence Interval</CardTitle></CardHeader>
-                    <CardContent>
-                        <Table>
-                             <TableBody>
-                                <TableRow><TableCell>Cohen&apos;s d</TableCell><TableCell className="text-right font-mono">{result.effect_size["Cohen's d"].toFixed(3)}</TableCell></TableRow>
-                                <TableRow><TableCell>Interpretation</TableCell><TableCell className="text-right font-mono">{result.effect_size.Interpretation}</TableCell></TableRow>
-                                <TableRow><TableCell>95% Confidence Interval</TableCell><TableCell className="text-right font-mono">[{result.confidence_interval.CI_lower.toFixed(3)}, {result.confidence_interval.CI_upper.toFixed(3)}]</TableCell></TableRow>
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
             </div>
         </div>
       )}
@@ -262,3 +258,4 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample, onFileSelecte
 };
 
 export default OneSampleTTestPage;
+
