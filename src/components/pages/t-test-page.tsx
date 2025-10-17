@@ -456,7 +456,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                             <CardTitle>Diagnostic Plots</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Image src={analysisResult.plot} alt="T-Test Plots" width={1200} height={1000} className="w-full rounded-md border"/>
+                             <Image src={analysisResult.plot} alt="T-Test Plots" width={1000} height={800} className="rounded-md border mx-auto"/>
                         </CardContent>
                     </Card>
                     <div className="grid md:grid-cols-2 gap-4">
@@ -467,7 +467,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                     <TableBody>
                                         <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell></TableRow>
                                         <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell></TableRow>
-                                        <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value < 0.001 ? '&lt; 0.001' : results.p_value.toFixed(4)}</TableCell></TableRow>
+                                        <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value < 0.001 ? ' 0.001' : results.p_value.toFixed(4)}</TableCell></TableRow>
                                     </TableBody>
                                 </Table>
                             </CardContent>

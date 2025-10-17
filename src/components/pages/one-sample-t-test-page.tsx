@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -11,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sigma, Loader2, HelpCircle, BookOpen, CheckCircle, AlertCircle, BarChart } from 'lucide-react';
+import { Sigma, Loader2, HelpCircle, BookOpen, CheckCircle, AlertCircle, BarChart, Settings, FileSearch, MoveRight } from 'lucide-react';
 import Image from 'next/image';
-import { exampleDatasets } from '@/lib/example-datasets';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 
 interface AnalysisResult {
   summary_stats: Record<string, number>;
@@ -25,64 +24,104 @@ interface AnalysisResult {
   };
 }
 
-const AnalysisPlaceholder = ({ onLoadExample }: { onLoadExample: (data: any) => void }) => {
-    // We can create a specific example for one-sample t-test later if needed.
-    const example = exampleDatasets.find(d => d.id === 'student-performance');
-    
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const ttestExample = exampleDatasets.find(d => d.id === 't-test-suite');
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><HelpCircle /> About One-Sample T-Test</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 prose prose-sm dark:prose-invert max-w-full">
-                <p>A One-Sample T-Test is used to determine whether the mean of a single sample is statistically different from a known or hypothesized population mean.</p>
-                
-                <h4>Key Questions</h4>
-                <ul>
-                    <li>Is the average score of a group of students significantly different from the national average of 75?</li>
-                    <li>Is the average weight of a manufactured product significantly different from the required specification of 500g?</li>
-                </ul>
-
-                <h4>Assumptions</h4>
-                <ol>
-                    <li>The dependent variable must be continuous (i.e., measured on an interval or ratio scale).</li>
-                    <li>The observations are independent of one another.</li>
-                    <li>The dependent variable should be approximately normally distributed.</li>
-                     <li>The dependent variable should not contain any significant outliers.</li>
-                </ol>
-                
-                 <h4>Interpretation of Results</h4>
-                <ul>
-                    <li><strong>t-statistic:</strong> The ratio of the difference between the sample mean and the hypothesized mean to the standard error of the mean. A larger absolute t-value indicates a larger difference.</li>
-                    <li><strong>p-value:</strong> The probability of observing a t-statistic as extreme as, or more extreme than, the one calculated, assuming the null hypothesis is true. A p-value less than your chosen alpha level (e.g., 0.05) suggests that you can reject the null hypothesis.</li>
-                    <li><strong>Cohen&apos;s d:</strong> An effect size used to indicate the standardized difference between two means. It helps in understanding the magnitude of the difference, regardless of statistical significance.</li>
-                </ul>
-
-                {example && (
-                    <div className="text-center py-4">
-                        <Button onClick={() => onLoadExample(example)}>
-                            <BookOpen className="mr-2" /> Load Example: {example.name}
-                        </Button>
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Sigma size={36} />
+                        </div>
                     </div>
-                )}
-            </CardContent>
-        </Card>
-    )
+                    <CardTitle className="font-headline text-4xl font-bold">One-Sample T-Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Determine if the mean of a single sample is statistically different from a known or hypothesized population mean.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use a One-Sample T-Test?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            This test is useful when you want to compare your sample's average against a benchmark, a standard value, or a previously established mean. For example, testing if the average IQ score of a group of students is different from the national average of 100.
+                        </p>
+                    </div>
+                    <div className="flex justify-center">
+                        {ttestExample && (
+                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{ttestExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Variable:</strong> Choose the single numeric variable you want to test.</li>
+                                <li><strong>Enter Test Mean:</strong> Input the known or hypothesized mean you want to compare your sample against.</li>
+                                <li><strong>Run Analysis:</strong> The tool will perform the t-test and provide all relevant statistics and visualizations.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>t-statistic &amp; p-value:</strong> The core of the test. A p-value less than 0.05 indicates a statistically significant difference between your sample mean and the test mean.
+                                </li>
+                                <li>
+                                    <strong>Cohen's d:</strong> Measures the size of the effect. A larger 'd' indicates a more substantial difference.
+                                </li>
+                                 <li>
+                                    <strong>Confidence Interval:</strong> If this interval does not contain your test mean, it confirms a significant result.
+                                </li>
+                                <li>
+                                    <strong>Distribution Plot:</strong> Visually compare your sample's distribution against the test mean.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
 };
 
-const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: DataSet; numericHeaders: string[], onLoadExample: (data: any) => void }) => {
+const AnalysisPlaceholder = ({ onLoadExample }: { onLoadExample: (data: any) => void }) => {
+    // This is a simplified placeholder as the main control is handled by the parent page
+    return <IntroPage onStart={() => {}} onLoadExample={onLoadExample} />;
+};
+
+
+const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample, onFileSelected }: { data: DataSet; numericHeaders: string[], onLoadExample: (data: any) => void, onFileSelected: (file: File) => void }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [plot, setPlot] = useState<string | null>(null);
+  const [view, setView] = useState('intro');
 
   const [variable, setVariable] = useState<string>('');
   const [testMean, setTestMean] = useState<string>('0');
+  
+  const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
-  const canRun = variable && testMean !== '';
+  useEffect(() => {
+    setVariable(numericHeaders[0] || '');
+    setTestMean('0');
+    setResult(null);
+    setPlot(null);
+    setView(canRun ? 'main' : 'intro');
+  }, [data, numericHeaders, canRun]);
 
   const runAnalysis = useCallback(async () => {
-    if (!canRun) {
+    if (!variable || testMean === '') {
       toast({ title: 'Incomplete Selection', description: 'Please select a variable and enter a test mean.', variant: 'destructive' });
       return;
     }
@@ -110,16 +149,16 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
     } finally {
       setIsLoading(false);
     }
-  }, [data, variable, testMean, canRun, toast]);
+  }, [data, variable, testMean, toast]);
 
   const ResultSummary = () => {
     if (!result) return null;
     const p_value = result.t_test['p-value'];
     const significant = p_value < 0.05;
     const Icon = significant ? AlertCircle : CheckCircle;
-    const alertVariant = significant ? 'destructive' : 'success';
+    const alertVariant = significant ? 'destructive' : 'default';
     const title = `The sample mean is statistically ${significant ? 'different' : 'not different'} from the test mean.`;
-    const description = `The p-value is ${p_value.toFixed(4)}. The sample mean (${result.summary_stats.Mean.toFixed(2)}) is ${significant ? 'significantly' : 'not significantly'} different from the hypothesized population mean of ${result.t_test['Test Mean']}.`;
+    const description = `The p-value is ${p_value < 0.001 ? '< 0.001' : p_value.toFixed(4)}. The sample mean (${result.summary_stats.Mean.toFixed(2)}) is ${significant ? 'significantly' : 'not significantly'} different from the hypothesized population mean of ${result.t_test['Test Mean']}.`;
     return (
         <Alert variant={alertVariant}>
             <Icon className="h-4 w-4" />
@@ -129,15 +168,18 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
     )
   }
   
-  if (data.length === 0) {
-      return <AnalysisPlaceholder onLoadExample={onLoadExample} />
+  if (view === 'intro' || !canRun) {
+      return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>One-Sample T-Test</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>One-Sample T-Test</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+          </div>
           <CardDescription>Compares the mean of a single sample to a known or hypothesized population mean.</CardDescription>
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-4">
@@ -154,7 +196,7 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
             </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={runAnalysis} disabled={!canRun || isLoading}>
+          <Button onClick={runAnalysis} disabled={!variable || testMean === '' || isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />} Run Analysis
           </Button>
         </CardFooter>
@@ -201,7 +243,7 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
                      </Card>
                 </div>
                  <Card className="md:col-span-2">
-                    <CardHeader><CardTitle>Effect Size & Confidence Interval</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Effect Size &amp; Confidence Interval</CardTitle></CardHeader>
                     <CardContent>
                         <Table>
                              <TableBody>
@@ -220,4 +262,3 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
 };
 
 export default OneSampleTTestPage;
-
