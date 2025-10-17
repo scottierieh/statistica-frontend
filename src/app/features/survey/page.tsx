@@ -4,7 +4,7 @@ import React from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Target, Handshake, DollarSign, Users, ClipboardList, Network, Eye } from 'lucide-react';
+import { Target, Handshake, DollarSign, Users, ClipboardList, Network, Eye, CaseSensitive, CheckSquare, CircleDot, ChevronDown, ThumbsUp, Star, Share2, AlignLeft, Grid3x3, Replace, Phone, Mail, Sigma } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -27,15 +27,40 @@ const analysisMethods = [
     { category: 'Service Quality', method: 'SERVPERF', description: 'Measures service quality based on performance only', useCase: 'Simplified service assessment focusing on actual delivery' },
 ];
 
+const questionTypes = [
+    { category: 'Selection', type: 'Single Choice', icon: CircleDot, description: 'Respondent selects only one option', useCase: 'Gender, preferred product, yes/no questions' },
+    { category: 'Selection', type: 'Multiple Choice', icon: CheckSquare, description: 'Respondent can select multiple options', useCase: 'Features used, multiple preferences' },
+    { category: 'Selection', type: 'Dropdown', icon: ChevronDown, description: 'Compact list where only one option is chosen', useCase: 'Country, age group, profession' },
+    { category: 'Selection', type: 'Best/Worst Choice', icon: ThumbsUp, description: 'Choose most and least preferred options', useCase: 'Preference trade-off, brand ranking' },
+    { category: 'Text Input', type: 'Text (Long)', icon: AlignLeft, description: 'Open-ended text responses', useCase: 'Feedback, opinions, explanations' },
+    { category: 'Text Input', type: 'Short Text', icon: CaseSensitive, description: 'Short open text responses', useCase: 'Name, title, short comment' },
+    { category: 'Text Input', type: 'Number', icon: Sigma, description: 'Numeric entry field', useCase: 'Age, income, quantity' },
+    { category: 'Text Input', type: 'Phone', icon: Phone, description: 'Phone number input', useCase: 'Contact information' },
+    { category: 'Text Input', type: 'Email', icon: Mail, description: 'Email address input', useCase: 'Respondent identification, follow-up' },
+    { category: 'Rating & Scale', type: 'Star Rating', icon: Star, description: '1–5 or 1–7 star satisfaction rating', useCase: 'Service satisfaction, app feedback' },
+    { category: 'Rating & Scale', type: 'NPS Score', icon: Share2, description: '0–10 scale for recommendation likelihood', useCase: 'Net Promoter Score calculation' },
+    { category: 'Rating & Scale', type: 'Likert Scale', icon: ClipboardList, description: 'Agreement/disagreement scale (e.g., 1–5)', useCase: 'Attitude or opinion measurement' },
+    { category: 'Rating & Scale', type: 'Semantic Differential', icon: Replace, description: 'Bipolar adjective scale (e.g., Modern ↔ Traditional)', useCase: 'Brand or perception evaluation' },
+    { category: 'Advanced / Analytical', type: 'Matrix Grid', icon: Grid3x3, description: 'Multi-row and column structured questions', useCase: 'Multiple related items with same scale' },
+];
+
 
 export default function SurveyFeaturePage() {
-    const groupedMethods = analysisMethods.reduce((acc, method) => {
+    const groupedAnalysisMethods = analysisMethods.reduce((acc, method) => {
         if (!acc[method.category]) {
             acc[method.category] = [];
         }
         acc[method.category].push(method);
         return acc;
     }, {} as Record<string, typeof analysisMethods>);
+    
+    const groupedQuestionTypes = questionTypes.reduce((acc, q) => {
+        if (!acc[q.category]) {
+            acc[q.category] = [];
+        }
+        acc[q.category].push(q);
+        return acc;
+    }, {} as Record<string, typeof questionTypes>);
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50">
@@ -70,6 +95,57 @@ export default function SurveyFeaturePage() {
                         </CardContent>
                     </Card>
           
+                    <Card className="mb-8">
+                        <CardHeader>
+                            <CardTitle>Available Survey Question Types</CardTitle>
+                            <CardDescription>A wide range of question formats to collect the data you need.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-1/6">Category</TableHead>
+                                        <TableHead className="w-1/6">Question Type</TableHead>
+                                        <TableHead className="w-1/3">Description</TableHead>
+                                        <TableHead className="w-1/3">Use Case</TableHead>
+                                        <TableHead className="text-center">Preview</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(groupedQuestionTypes).map(([category, types]) => (
+                                        <React.Fragment key={category}>
+                                            {types.map((q, index) => (
+                                                <TableRow key={q.type}>
+                                                    {index === 0 && (
+                                                        <TableCell rowSpan={types.length} className="align-middle font-semibold">
+                                                            {category}
+                                                        </TableCell>
+                                                    )}
+                                                    <TableCell><div className="flex items-center gap-2"><q.icon className="w-4 h-4 text-muted-foreground"/> {q.type}</div></TableCell>
+                                                    <TableCell>{q.description}</TableCell>
+                                                    <TableCell>{q.useCase}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-3xl">
+                                                                <DialogHeader><DialogTitle>{q.type} - Example</DialogTitle></DialogHeader>
+                                                                <div className="flex justify-center p-4">
+                                                                    <Image src={`https://picsum.photos/seed/${q.type.replace(/\s+/g, '-')}/800/400`} alt={`Example for ${q.type}`} width={800} height={400} className="rounded-lg border" />
+                                                                </div>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </React.Fragment>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Specialized Survey Analysis Types</CardTitle>
@@ -87,7 +163,7 @@ export default function SurveyFeaturePage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {Object.entries(groupedMethods).map(([category, methods]) => (
+                                    {Object.entries(groupedAnalysisMethods).map(([category, methods]) => (
                                         <React.Fragment key={category}>
                                             {methods.map((method, index) => (
                                                 <TableRow key={method.method}>
@@ -102,22 +178,12 @@ export default function SurveyFeaturePage() {
                                                     <TableCell className="text-center">
                                                         <Dialog>
                                                             <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon">
-                                                                    <Eye className="w-4 h-4" />
-                                                                </Button>
+                                                                <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
                                                             </DialogTrigger>
                                                             <DialogContent className="max-w-3xl">
-                                                                <DialogHeader>
-                                                                    <DialogTitle>{method.method} - Example Result</DialogTitle>
-                                                                </DialogHeader>
+                                                                <DialogHeader><DialogTitle>{method.method} - Example Result</DialogTitle></DialogHeader>
                                                                 <div className="flex justify-center p-4">
-                                                                    <Image 
-                                                                        src={`https://picsum.photos/seed/${method.method.replace(/\s+/g, '-')}/800/600`}
-                                                                        alt={`Example result for ${method.method}`}
-                                                                        width={800}
-                                                                        height={600}
-                                                                        className="rounded-lg border"
-                                                                    />
+                                                                    <Image src={`https://picsum.photos/seed/${method.method.replace(/\s+/g, '-')}/800/600`} alt={`Example result for ${method.method}`} width={800} height={600} className="rounded-lg border" />
                                                                 </div>
                                                             </DialogContent>
                                                         </Dialog>
