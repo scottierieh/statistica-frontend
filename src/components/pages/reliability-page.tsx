@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -15,7 +16,6 @@ import { Checkbox } from '../ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { Survey, SurveyResponse } from '@/entities/Survey';
 
 // Type definitions for the rich Reliability results
 interface ReliabilityResults {
@@ -136,8 +136,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Cronbach's Alpha (α):</strong> Ranges from 0 to 1. General guidelines: α ≥ 0.9 (Excellent), ≥ 0.8 (Good), ≥ 0.7 (Acceptable), ≥ 0.6 (Questionable), ≥ 0.5 (Poor), < 0.5 (Unacceptable).</li>
-                                <li><strong>Corrected Item-Total Correlation:</strong> Shows how well each item correlates with the total score of the other items. Low values (e.g., < 0.3) suggest an item may not belong to the scale.</li>
+                                <li><strong>Cronbach's Alpha (α):</strong> Ranges from 0 to 1. General guidelines: α ≥ 0.9 (Excellent), ≥ 0.8 (Good), ≥ 0.7 (Acceptable), ≥ 0.6 (Questionable), ≥ 0.5 (Poor), &lt; 0.5 (Unacceptable).</li>
+                                <li><strong>Corrected Item-Total Correlation:</strong> Shows how well each item correlates with the total score of the other items. Low values (e.g., &lt; 0.3) suggest an item may not belong to the scale.</li>
                                 <li><strong>Alpha if Item Deleted:</strong> This crucial metric shows what the scale's alpha would be if you removed a specific item. If removing an item significantly increases the alpha, that item may be problematic and worth dropping.</li>
                             </ul>
                         </div>
@@ -218,7 +218,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample, o
             setIsLoading(false);
         }
     }, [data, selectedItems, reverseCodeItems, toast]);
-
+    
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -374,4 +374,3 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample, o
         </div>
     );
 }
-
