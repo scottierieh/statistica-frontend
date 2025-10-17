@@ -1,23 +1,23 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { type DataSet } from '@/lib/stats';
-import { type ExampleDataSet } from '@/lib/example-datasets';
-import { exampleDatasets } from '@/lib/example-datasets';
+import { type DataSet } from '@/lib/stats'; // 가정
+import { type ExampleDataSet } from '@/lib/example-datasets'; // 가정
+import { exampleDatasets } from '@/lib/example-datasets'; // 가정
 import { Button } from '@/components/ui/button';
 import { Sigma, FlaskConical, MoveRight, BarChart, Settings, FileSearch, Users, Repeat, CheckCircle, XCircle, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast'; // 가정
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 
+// --- Type Definitions ---
 interface TTestResults {
     test_type: string;
     variable?: string;
@@ -55,6 +55,8 @@ interface FullAnalysisResponse {
     results: TTestResults;
     plot: string;
 }
+
+// --- Helper Components (Intros) ---
 
 const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const ttestExample = exampleDatasets.find(d => d.id === 't-test-suite');
@@ -185,6 +187,8 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
     );
 };
 
+// --- Setup Components ---
+
 const OneSampleSetup = ({ numericHeaders, oneSampleVar, setOneSampleVar, testValue, setTestValue, oneSampleAlternative, setOneSampleAlternative }: any) => {
     return (
         <div className="grid md:grid-cols-3 gap-4">
@@ -255,7 +259,7 @@ const IndependentSamplesSetup = ({ numericHeaders, categoricalHeaders, data, gro
 };
 
 const PairedSamplesSetup = ({ numericHeaders, pairedVar1, setPairedVar1, pairedVar2, setPairedVar2, pairedSampleAlternative, setPairedSampleAlternative }: any) => {
-    const availablePairedVar2 = numericHeaders.filter((h: string) => h !== pairedVar1);
+    const variableOptions = numericHeaders.filter((h: string) => h !== pairedVar1 && h !== pairedVar2);
     return (
         <div className="grid md:grid-cols-3 gap-4">
             <div>
@@ -267,12 +271,12 @@ const PairedSamplesSetup = ({ numericHeaders, pairedVar1, setPairedVar1, pairedV
             </div>
             <div>
                 <Label htmlFor="pairedVar2">Variable 2 (e.g., Post-test)</Label>
-                <Select value={pairedVar2} onValueChange={setPairedVar2} disabled={!pairedVar1}>
+                <Select value={pairedVar2} onValueChange={setPairedVar2}>
                     <SelectTrigger id="pairedVar2"><SelectValue /></SelectTrigger>
-                    <SelectContent>{availablePairedVar2.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                    <SelectContent>{variableOptions.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                 </Select>
             </div>
-             <div>
+            <div>
                 <Label htmlFor="pairedSampleAlternative">Alternative Hypothesis</Label>
                 <Select value={pairedSampleAlternative} onValueChange={setPairedSampleAlternative}>
                     <SelectTrigger id="pairedSampleAlternative"><SelectValue /></SelectTrigger>
@@ -287,206 +291,390 @@ const PairedSamplesSetup = ({ numericHeaders, pairedVar1, setPairedVar1, pairedV
     );
 };
 
+// --- New Descriptive Statistics Table Component ---
+const DescriptiveStatisticsTable = ({ descriptives, testType }: { descriptives: TTestResults['descriptives'], testType: TTestResults['test_type'] }) => {
+    if (!descriptives) return null;
 
-interface TTestPageProps {
-    data: DataSet;
-    numericHeaders: string[];
-    categoricalHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
-    activeAnalysis: string;
-}
-
-
-export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
-    const { toast } = useToast();
-    const [activeTest, setActiveTest] = useState(activeAnalysis.replace('t-test-', ''));
+    const rows = Object.entries(descriptives).map(([key, value]) => ({
+        ...value,
+        label: key,
+    }));
     
+    // One-sample test의 경우 se_mean을 추가로 표시
+    const showSE = testType === 'one_sample';
+    
+    return (
+        <div className="space-y-3">
+            <h3 className="text-2xl font-semibold flex items-center gap-3 border-b pb-2 text-gray-700">
+                <FileSearch className="w-6 h-6 text-primary" />
+                Descriptive Statistics
+            </h3>
+            <Table>
+                <TableHeader>
+                    <TableRow className="bg-muted/50">
+                        <TableHead>{testType === 'one_sample' ? 'Variable' : (testType === 'paired_samples' ? 'Variable / Difference' : 'Group')}</TableHead>
+                        <TableHead className="text-right">N</TableHead>
+                        <TableHead className="text-right">Mean</TableHead>
+                        <TableHead className="text-right">Std. Dev.</TableHead>
+                        {showSE && <TableHead className="text-right">SE Mean</TableHead>}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {rows.map((row) => (
+                        <TableRow key={row.label}>
+                            <TableCell className="font-medium text-gray-900">{row.label}</TableCell>
+                            <TableCell className="text-right">{row.n}</TableCell>
+                            <TableCell className="text-right font-mono">{row.mean?.toFixed(3)}</TableCell>
+                            <TableCell className="text-right font-mono">{row.std_dev?.toFixed(3)}</TableCell>
+                            {showSE && <TableCell className="text-right font-mono">{row.se_mean?.toFixed(3) || 'N/A'}</TableCell>}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
+
+// --- T-Test Results Component (Refined) ---
+const TTestAnalysisResult = ({ analysisResult }: { analysisResult: FullAnalysisResponse }) => {
+    const results = analysisResult.results;
+
+    const getTestTitle = () => {
+        switch (results.test_type) {
+            case 'one_sample': return `One-Sample T-Test for ${results.variable}`;
+            case 'independent_samples': return `Independent Samples T-Test for ${results.variable}`;
+            case 'paired_samples': return `Paired Samples T-Test for ${results.variable1} vs ${results.variable2}`;
+            default: return 'T-Test Analysis Results';
+        }
+    }
+
+    const LeveneResult = results.levene_test ? (
+        <Alert variant={results.levene_test.assumption_met ? "default" : "destructive"}>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Variance Equality (Levene's Test)</AlertTitle>
+            <AlertDescription>
+                Statistic: **{results.levene_test.statistic.toFixed(3)}**, p-value: **{results.levene_test.p_value.toFixed(3)}**. <br/>
+                {results.levene_test.assumption_met 
+                    ? `Variances are assumed to be equal (p > 0.05). Standard t-test used.` 
+                    : `Variances are NOT assumed equal (p < 0.05). Welch's t-test used.`
+                }
+            </AlertDescription>
+        </Alert>
+    ) : null;
+    
+    const CI_text = results.confidence_interval ? 
+        `[${results.confidence_interval[0]?.toFixed(3)}, ${results.confidence_interval[1]?.toFixed(3)}]` : 'N/A';
+
+    return (
+        <Card className="w-full shadow-2xl">
+            <CardHeader className="bg-primary/5 rounded-t-lg p-6">
+                <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                    <BarChart className="w-8 h-8 text-primary" /> {getTestTitle()}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-10 p-8">
+                
+                {/* 1. DESCRIPTIVE STATISTICS TABLE (ADDED) */}
+                <DescriptiveStatisticsTable 
+                    descriptives={results.descriptives} 
+                    testType={results.test_type}
+                />
+                
+                {/* 2. HYPOTHESIS TESTING SUMMARY */}
+                <div className="space-y-3">
+                    <h3 className="text-2xl font-semibold flex items-center gap-3 border-b pb-2 text-gray-700">
+                        <FlaskConical className="w-6 h-6 text-primary" />
+                        Hypothesis Test Results
+                    </h3>
+                    {LeveneResult}
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-muted/50">
+                                <TableHead>Test Statistic</TableHead>
+                                <TableHead className="text-right">t</TableHead>
+                                <TableHead className="text-right">df</TableHead>
+                                <TableHead className="text-right">p-value</TableHead>
+                                <TableHead className="text-right">Cohen's d</TableHead>
+                                <TableHead className="text-right">95% CI {results.test_type === 'one_sample' ? 'for Mean' : (results.test_type === 'paired_samples' ? 'for Mean Diff' : '')}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell className="font-medium">T-Test</TableCell>
+                                <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
+                                <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
+                                <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
+                                <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
+                                <TableCell className="text-right font-mono">{CI_text}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                    <Alert variant={results.significant ? "success" : "warning"}>
+                        {results.significant ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        <AlertTitle>Decision ({results.p_value.toFixed(3)} vs $\alpha$ = 0.05)</AlertTitle>
+                        <AlertDescription>
+                            The result is **{results.significant ? 'statistically significant' : 'not statistically significant'}**. We {results.significant ? 'reject' : 'fail to reject'} the null hypothesis.
+                        </AlertDescription>
+                    </Alert>
+                </div>
+
+                {/* 3. INTERPRETATION */}
+                <div className="space-y-3">
+                    <h3 className="text-2xl font-semibold flex items-center gap-3 border-b pb-2 text-gray-700">
+                        <HelpCircle className="w-6 h-6 text-primary" />
+                        Interpretation (APA Style)
+                    </h3>
+                    <Card className="bg-muted/30 p-4 whitespace-pre-wrap text-sm border-l-4 border-primary">
+                        {results.interpretation}
+                    </Card>
+                </div>
+
+                {/* 4. PLOTS */}
+                <div className="space-y-3">
+                    <h3 className="text-2xl font-semibold flex items-center gap-3 border-b pb-2 text-gray-700">
+                        <BarChart className="w-6 h-6 text-primary" />
+                        Diagnostic Plots
+                    </h3>
+                    <div className="border rounded-lg p-2 bg-white">
+                        <img src={analysisResult.plot} alt="T-Test Diagnostic Plots" className="w-full h-auto" />
+                    </div>
+                </div>
+
+            </CardContent>
+        </Card>
+    );
+};
+
+// --- Main T-Test Analysis Component (Refined) ---
+const TTestAnalysisComponent = ({ data, numericHeaders, categoricalHeaders }: { data: DataSet[], numericHeaders: string[], categoricalHeaders: string[] }) => {
+    const { toast } = useToast();
+    const [analysisType, setAnalysisType] = useState<'one_sample' | 'independent_samples' | 'paired_samples'>('one_sample');
+    const [step, setStep] = useState<'intro' | 'setup' | 'results'>('intro');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+
     // One-Sample State
-    const [oneSampleVar, setOneSampleVar] = useState(numericHeaders[0]);
-    const [testValue, setTestValue] = useState('0');
-    const [oneSampleAlternative, setOneSampleAlternative] = useState('two-sided');
+    const [oneSampleVar, setOneSampleVar] = useState<string>('');
+    const [testValue, setTestValue] = useState<string>('0');
+    const [oneSampleAlternative, setOneSampleAlternative] = useState<'two-sided' | 'greater' | 'less'>('two-sided');
 
     // Independent Samples State
-    const [groupVar, setGroupVar] = useState<string | undefined>();
-    const [valueVar, setValueVar] = useState<string | undefined>();
-    const [independentSampleAlternative, setIndependentSampleAlternative] = useState('two-sided');
-
+    const [groupVar, setGroupVar] = useState<string>('');
+    const [valueVar, setValueVar] = useState<string>('');
+    const [independentSampleAlternative, setIndependentSampleAlternative] = useState<'two-sided' | 'greater' | 'less'>('two-sided');
+    
     // Paired Samples State
-    const [pairedVar1, setPairedVar1] = useState(numericHeaders[0]);
-    const [pairedVar2, setPairedVar2] = useState(numericHeaders[1]);
-    const [pairedSampleAlternative, setPairedSampleAlternative] = useState('two-sided');
-    
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [view, setView] = useState('intro');
+    const [pairedVar1, setPairedVar1] = useState<string>('');
+    const [pairedVar2, setPairedVar2] = useState<string>('');
+    const [pairedSampleAlternative, setPairedSampleAlternative] = useState<'two-sided' | 'greater' | 'less'>('two-sided');
 
-    const canRun = useMemo(() => {
-        return data.length > 0 && numericHeaders.length > 0;
-    }, [data, numericHeaders]);
-
+    // Default selection logic
     useEffect(() => {
-        setActiveTest(activeAnalysis.replace('t-test-', ''));
-        setView(canRun ? 'main' : 'intro');
+        if (numericHeaders.length > 0) {
+            if (analysisType === 'one_sample' && !oneSampleVar) setOneSampleVar(numericHeaders[0]);
+            if (analysisType === 'paired_samples') {
+                if (!pairedVar1 && numericHeaders.length >= 2) {
+                    setPairedVar1(numericHeaders[0]);
+                    setPairedVar2(numericHeaders[1]);
+                } else if (!pairedVar1) {
+                    setPairedVar1(numericHeaders[0] || '');
+                }
+            }
+        }
+        if (analysisType === 'independent_samples' && categoricalHeaders.length > 0) {
+            const binaryHeaders = categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
+            if (!groupVar && binaryHeaders.length > 0) setGroupVar(binaryHeaders[0]);
+            if (!valueVar && numericHeaders.length > 0) setValueVar(numericHeaders[0]);
+        }
+    }, [numericHeaders, categoricalHeaders, data, analysisType, oneSampleVar, groupVar, valueVar, pairedVar1, pairedVar2]);
+
+    const handleRunAnalysis = useCallback(async () => {
+        setError(null);
         setAnalysisResult(null);
-
-        // Set defaults when data changes
-        const binaryHeaders = categoricalHeaders.filter(h => new Set(data.map(row => row[h])).size === 2);
-        setGroupVar(binaryHeaders[0]);
-        setValueVar(numericHeaders[0]);
-        setOneSampleVar(numericHeaders[0]);
-        setPairedVar1(numericHeaders[0]);
-        setPairedVar2(numericHeaders[1]);
-
-    }, [data, activeAnalysis, numericHeaders, categoricalHeaders, canRun]);
-    
-    const handleAnalysis = useCallback(async () => {
-        let params;
-        let testType;
-
-        switch (activeTest) {
-            case 'one-sample':
-                if (!oneSampleVar || testValue === '') {
-                    toast({ variant: 'destructive', title: 'Please select a variable and enter a test value.' });
-                    return;
-                }
-                params = { variable: oneSampleVar, test_value: parseFloat(testValue), alternative: oneSampleAlternative };
-                testType = 'one_sample';
-                break;
-            case 'independent-samples':
-                if (!groupVar || !valueVar) {
-                    toast({ variant: 'destructive', title: 'Please select group and value variables.' });
-                    return;
-                }
-                params = { variable: valueVar, group_variable: groupVar, alternative: independentSampleAlternative };
-                testType = 'independent_samples';
-                break;
-            case 'paired-samples':
-                 if (!pairedVar1 || !pairedVar2 || pairedVar1 === pairedVar2) {
-                    toast({ variant: 'destructive', title: 'Please select two different variables.' });
-                    return;
-                }
-                params = { variable1: pairedVar1, variable2: pairedVar2, alternative: pairedSampleAlternative };
-                testType = 'paired_samples';
-                break;
-            default:
-                toast({ variant: 'destructive', title: 'Invalid test type selected.' });
-                return;
+        if (!data || data.length === 0) {
+            setError('No data available to run the analysis.');
+            return;
         }
 
+        let params: any = {};
+        let valid = true;
+
+        if (analysisType === 'one_sample') {
+            if (!oneSampleVar || isNaN(parseFloat(testValue))) { valid = false; }
+            params = { variable: oneSampleVar, test_value: parseFloat(testValue), alternative: oneSampleAlternative };
+        } else if (analysisType === 'independent_samples') {
+            if (!valueVar || !groupVar) { valid = false; }
+            params = { variable: valueVar, group_variable: groupVar, alternative: independentSampleAlternative };
+        } else if (analysisType === 'paired_samples') {
+            if (!pairedVar1 || !pairedVar2 || pairedVar1 === pairedVar2) { valid = false; }
+            params = { variable1: pairedVar1, variable2: pairedVar2, alternative: pairedSampleAlternative };
+        }
+
+        if (!valid) {
+            setError('Please select all required variables and input a valid test value.');
+            return;
+        }
+
+        const payload = { testType: analysisType, data: data, params };
+
         setIsLoading(true);
-        setAnalysisResult(null);
-
         try {
-            const response = await fetch('/api/analysis/t-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType, params })
+            // Replace with actual API call to your Python backend
+            // For demonstration, this is a placeholder function call
+            const response = await fetch('/api/run-t-test', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
             });
+            const result: FullAnalysisResponse | { error: string } = await response.json();
 
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+            if ('error' in result) {
+                throw new Error(result.error);
             }
-
-            const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
-
-        } catch (e: any) {
-            console.error('Analysis error:', e);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+            setStep('results');
+            toast({ title: "Analysis Complete", description: "The T-Test analysis finished successfully.", duration: 3000 });
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "An unknown error occurred during analysis.";
+            setError(message);
+            toast({ title: "Analysis Failed", description: message, variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
-    }, [activeTest, data, oneSampleVar, testValue, oneSampleAlternative, groupVar, valueVar, independentSampleAlternative, pairedVar1, pairedVar2, pairedSampleAlternative, toast]);
+    }, [analysisType, data, oneSampleVar, testValue, oneSampleAlternative, valueVar, groupVar, independentSampleAlternative, pairedVar1, pairedVar2, pairedSampleAlternative, toast]);
 
-    const introPages: { [key: string]: React.FC<any> } = {
-        'one-sample': OneSampleIntroPage,
-        'independent-samples': IndependentSamplesIntroPage,
-        'paired-samples': PairedSamplesIntroPage,
+    const isRunDisabled = useMemo(() => {
+        if (analysisType === 'one_sample') {
+            return !oneSampleVar || isNaN(parseFloat(testValue));
+        } else if (analysisType === 'independent_samples') {
+            return !valueVar || !groupVar;
+        } else if (analysisType === 'paired_samples') {
+            return !pairedVar1 || !pairedVar2 || pairedVar1 === pairedVar2;
+        }
+        return true;
+    }, [analysisType, oneSampleVar, testValue, valueVar, groupVar, pairedVar1, pairedVar2]);
+
+    const handleLoadExample = (example: ExampleDataSet) => {
+        // Implement logic to load example data into the state
+        // This is a placeholder for actual data loading logic
+        toast({ title: "Example Loaded", description: `Loaded example data: ${example.name}. Start Setup.`, duration: 3000 });
+        setStep('setup');
     };
-    const IntroComponent = introPages[activeTest];
 
-    if (!canRun || view === 'intro') {
-        return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+
+    const renderSetup = () => {
+        if (numericHeaders.length === 0) {
+            return <Alert variant="destructive"><AlertTitle>Data Error</AlertTitle><AlertDescription>No numeric data columns found for T-test analysis.</AlertDescription></Alert>;
+        }
+
+        switch (analysisType) {
+            case 'one_sample':
+                return <OneSampleSetup 
+                    numericHeaders={numericHeaders} 
+                    oneSampleVar={oneSampleVar} setOneSampleVar={setOneSampleVar} 
+                    testValue={testValue} setTestValue={setTestValue} 
+                    oneSampleAlternative={oneSampleAlternative} setOneSampleAlternative={setOneSampleAlternative}
+                />;
+            case 'independent_samples':
+                return <IndependentSamplesSetup 
+                    numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} data={data} 
+                    groupVar={groupVar} setGroupVar={setGroupVar} 
+                    valueVar={valueVar} setValueVar={setValueVar} 
+                    independentSampleAlternative={independentSampleAlternative} setIndependentSampleAlternative={setIndependentSampleAlternative}
+                />;
+            case 'paired_samples':
+                return <PairedSamplesSetup 
+                    numericHeaders={numericHeaders} 
+                    pairedVar1={pairedVar1} setPairedVar1={setPairedVar1} 
+                    pairedVar2={pairedVar2} setPairedVar2={setPairedVar2} 
+                    pairedSampleAlternative={pairedSampleAlternative} setPairedSampleAlternative={setPairedSampleAlternative}
+                />;
+            default:
+                return null;
+        }
+    };
+
+    if (step === 'results' && analysisResult) {
+        return (
+            <div className="p-4 flex flex-col gap-4">
+                <Button onClick={() => setStep('setup')} variant="outline" className="w-fit">
+                    <MoveRight className="rotate-180 w-4 h-4 mr-2"/> Back to Setup
+                </Button>
+                <TTestAnalysisResult analysisResult={analysisResult} />
+            </div>
+        );
     }
     
-    const results = analysisResult?.results;
+    if (step === 'intro') {
+        const IntroComponent = analysisType === 'one_sample' ? OneSampleIntroPage : 
+                             analysisType === 'independent_samples' ? IndependentSamplesIntroPage : 
+                             PairedSamplesIntroPage;
+        return <IntroComponent onStart={() => setStep('setup')} onLoadExample={handleLoadExample} />;
+    }
 
     return (
-        <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">{activeTest.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())} T-Test Setup</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {activeTest === 'one-sample' && <OneSampleSetup {...{ numericHeaders, oneSampleVar, setOneSampleVar, testValue, setTestValue, oneSampleAlternative, setOneSampleAlternative }} />}
-                    {activeTest === 'independent-samples' && <IndependentSamplesSetup {...{ numericHeaders, categoricalHeaders, data, groupVar, setGroupVar, valueVar, setValueVar, independentSampleAlternative, setIndependentSampleAlternative }} />}
-                    {activeTest === 'paired-samples' && <PairedSamplesSetup {...{ numericHeaders, pairedVar1, setPairedVar1, pairedVar2, setPairedVar2, pairedSampleAlternative, setPairedSampleAlternative }} />}
-                </CardContent>
-                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                    </Button>
-                </CardFooter>
-            </Card>
-            
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
-
-            {analysisResult && results && (
-                <div className="space-y-4">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Analysis Interpretation</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Alert variant={results.significant ? 'default' : 'secondary'}>
-                                {results.significant ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                                <AlertTitle>{results.significant ? 'Statistically Significant Result' : 'Not Statistically Significant'}</AlertTitle>
-                                <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
-                            </Alert>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Diagnostic Plots</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <Image src={analysisResult.plot} alt="T-Test Plots" width={1000} height={800} className="rounded-md border mx-auto"/>
-                        </CardContent>
-                    </Card>
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader><CardTitle>T-Test Statistics</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableBody>
-                                        <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell></TableRow>
-                                        <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell></TableRow>
-                                        <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value < 0.001 ? ' 0.001' : results.p_value.toFixed(4)}</TableCell></TableRow>
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader><CardTitle>Effect Size &amp; Confidence Interval</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableBody>
-                                        <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell></TableRow>
-                                        {results.mean_diff !== undefined && <TableRow><TableCell>Mean Difference</TableCell><TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell></TableRow>}
-                                        {results.confidence_interval && <TableRow><TableCell>95% CI of Difference</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(3)}, {results.confidence_interval[1].toFixed(3)}]</TableCell></TableRow>}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </div>
+        <Card className="w-full max-w-5xl mx-auto shadow-xl">
+            <CardHeader className="bg-primary/10 rounded-t-lg p-6">
+                <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                    <Settings className="w-7 h-7 text-primary" /> T-Test Configuration
+                </CardTitle>
+                <CardDescription>
+                    Select the type of T-Test and configure the variables from your dataset.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 p-6">
+                <div className="space-y-2">
+                    <Label htmlFor="analysisType">Select Test Type</Label>
+                    <Select value={analysisType} onValueChange={(value: any) => {
+                        setAnalysisType(value);
+                        setStep('intro'); // Go back to intro for new type explanation
+                    }}>
+                        <SelectTrigger id="analysisType" className="w-full md:w-[300px]">
+                            <SelectValue placeholder="Select T-Test type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="one_sample"><Sigma className="w-4 h-4 mr-2"/> One-Sample T-Test</SelectItem>
+                            <SelectItem value="independent_samples"><Users className="w-4 h-4 mr-2"/> Independent Samples T-Test</SelectItem>
+                            <SelectItem value="paired_samples"><Repeat className="w-4 h-4 mr-2"/> Paired Samples T-Test</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-            )}
-        </div>
+                
+                <h3 className="text-xl font-semibold border-b pb-2 pt-4">Variable Selection</h3>
+                {renderSetup()}
+
+                {error && (
+                    <Alert variant="destructive">
+                        <XCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+
+            </CardContent>
+            <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                <Button onClick={() => setStep('intro')} variant="secondary">
+                    <MoveRight className="rotate-180 w-4 h-4 mr-2"/> Change Test Type
+                </Button>
+                <Button onClick={handleRunAnalysis} disabled={isRunDisabled || isLoading} size="lg">
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Running Analysis...
+                        </>
+                    ) : (
+                        <>
+                            Run Analysis <BarChart className="ml-2 w-5 h-5"/>
+                        </>
+                    )}
+                </Button>
+            </CardFooter>
+        </Card>
     );
-}
+};
+
+
+
+
