@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,6 +10,10 @@ import {
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Explicit imports from provider and client-provider
 import { FirebaseProvider, useAuth as useFirebaseAuth, useFirebaseApp, useFirestore } from './provider';
