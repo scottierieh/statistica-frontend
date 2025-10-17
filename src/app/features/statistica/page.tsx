@@ -1,6 +1,6 @@
 
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,6 +8,9 @@ import { FileUp, Bot, AppWindow, BookOpen, Eye } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { cn } from '@/lib/utils';
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview', imageSeed: 'desc' },
@@ -53,6 +56,26 @@ const analysisMethods = [
     { category: 'Unstructured Data', method: 'Word Cloud', purpose: 'Visualizes most frequent words', useCase: 'Highlighting main keywords in feedback', imageSeed: 'wordcloud' },
 ];
 
+const FeatureCard = ({ icon: Icon, title, description, onMouseEnter, onMouseLeave, isActive }: { icon: React.ElementType; title: string; description: string; onMouseEnter: () => void; onMouseLeave: () => void; isActive: boolean; }) => {
+    return (
+        <div 
+            className={cn(
+                "relative p-4 rounded-lg bg-muted/50 text-center h-48 flex flex-col items-center justify-center cursor-pointer transition-all duration-300",
+                isActive ? "border-2 border-primary bg-primary/5 shadow-lg" : "border-2 border-transparent"
+            )}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+        >
+            <div className="flex justify-center mb-2">
+                <Icon className="h-10 w-10 text-primary" />
+            </div>
+            <h3 className="font-semibold">{title}</h3>
+            <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+    );
+};
+
+
 export default function StatisticaFeaturePage() {
     const groupedMethods = analysisMethods.reduce((acc, method) => {
         if (!acc[method.category]) {
@@ -61,6 +84,32 @@ export default function StatisticaFeaturePage() {
         acc[method.category].push(method);
         return acc;
     }, {} as Record<string, typeof analysisMethods>);
+    
+    const features = {
+        'upload': { icon: FileUp, title: 'Direct Data Upload', description: 'Upload CSV or Excel files and start analyzing instantly.', image: PlaceHolderImages.find(img => img.id === "empty-state-chart") },
+        'examples': { icon: BookOpen, title: 'Example Datasets', description: 'Explore any analysis with one-click example data loading.', image: PlaceHolderImages.find(img => img.id === "enterprise-feature") },
+        'ai': { icon: Bot, title: 'AI Interpretations', description: 'Get automated, APA-style reports and clear explanations.', image: PlaceHolderImages.find(img => img.id === "hero-image") },
+        'integrated': { icon: AppWindow, title: 'Integrated Interface', description: 'Results, charts, and interpretations all in one view.', image: PlaceHolderImages.find(img => img.id === "market-research-banner") },
+    };
+    
+    const featureKeys = Object.keys(features);
+    const [activeFeature, setActiveFeature] = useState(featureKeys[0]);
+    const [isHovering, setIsHovering] = useState(false);
+
+    useEffect(() => {
+        if (isHovering) return;
+
+        const interval = setInterval(() => {
+            setActiveFeature(current => {
+                const currentIndex = featureKeys.indexOf(current);
+                const nextIndex = (currentIndex + 1) % featureKeys.length;
+                return featureKeys[nextIndex];
+            });
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [isHovering, featureKeys]);
+
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50">
@@ -75,32 +124,48 @@ export default function StatisticaFeaturePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <FileUp className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">Direct Data Upload</h3>
-                                    <p className="text-xs text-muted-foreground">Upload CSV or Excel files and start analyzing instantly.</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <BookOpen className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">Example Datasets</h3>
-                                    <p className="text-xs text-muted-foreground">Explore any analysis with one-click example data loading.</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <Bot className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">AI Interpretations</h3>
-                                    <p className="text-xs text-muted-foreground">Get automated, APA-style reports and clear explanations.</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <AppWindow className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">Integrated Interface</h3>
-                                    <p className="text-xs text-muted-foreground">Results, charts, and interpretations all in one view.</p>
-                                </div>
+                             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                                {Object.entries(features).map(([key, feature]) => (
+                                    <FeatureCard 
+                                        key={key}
+                                        icon={feature.icon}
+                                        title={feature.title}
+                                        description={feature.description}
+                                        isActive={activeFeature === key}
+                                        onMouseEnter={() => { setActiveFeature(key); setIsHovering(true); }}
+                                        onMouseLeave={() => setIsHovering(false)}
+                                    />
+                                ))}
                             </div>
                         </CardContent>
                     </Card>
+                    
+                     <div className="mt-8 h-[400px] relative w-full overflow-hidden rounded-xl border shadow-lg">
+                        <AnimatePresence>
+                            {activeFeature && features[activeFeature as keyof typeof features].image && (
+                                <motion.div
+                                    key={activeFeature}
+                                    initial={{ opacity: 0, scale: 1.05 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 1.05 }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                                    className="absolute inset-0"
+                                >
+                                    <Image
+                                        src={features[activeFeature as keyof typeof features].image!.imageUrl}
+                                        alt={features[activeFeature as keyof typeof features].image!.description}
+                                        layout="fill"
+                                        objectFit="cover"
+                                        className="rounded-xl"
+                                        priority
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 rounded-xl" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
           
-                    <Card>
+                    <Card className="mt-8">
                         <CardHeader>
                             <CardTitle>Available Analysis Methods</CardTitle>
                             <CardDescription>A comprehensive suite of tools for any research question.</CardDescription>
@@ -122,7 +187,7 @@ export default function StatisticaFeaturePage() {
                                             {methods.map((method, index) => (
                                                 <TableRow key={method.method}>
                                                     {index === 0 && (
-                                                        <TableCell rowSpan={methods.length} className="align-middle font-semibold">
+                                                        <TableCell rowSpan={methods.length} className="align-top font-semibold">
                                                             {category}
                                                         </TableCell>
                                                     )}
@@ -166,3 +231,5 @@ export default function StatisticaFeaturePage() {
     );
 }
 
+
+    
