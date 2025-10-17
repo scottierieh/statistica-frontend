@@ -1,6 +1,6 @@
 
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowRight, BarChart2, CheckCircle, ClipboardList, Cpu, MoveRight, Users, TrendingUp, Link2, GitBranch, Network, Layers, Map, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, FlaskConical, LineChart, Target, Calculator, Handshake, Palette, FileUp, Database, BrainCircuit, Activity, ZoomIn, HeartPulse } from 'lucide-react';
@@ -76,6 +76,36 @@ export default function LandingPage() {
   const enterpriseImage = PlaceHolderImages.find(img => img.id === 'enterprise-feature');
   
   const autoplayPlugin = React.useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
+  
+  const [hoveredFeature, setHoveredFeature] = useState<'templates' | 'analytics' | 'design' | null>('templates');
+  const [isHovering, setIsHovering] = useState(false);
+
+  useEffect(() => {
+    if (isHovering) return;
+
+    const featuresCycle: ('templates' | 'analytics' | 'design')[] = ['templates', 'analytics', 'design'];
+    let currentIndex = 0;
+
+    const interval = setInterval(() => {
+        currentIndex = (currentIndex + 1) % featuresCycle.length;
+        setHoveredFeature(featuresCycle[currentIndex]);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isHovering]);
+  
+   const featureDetails: {[key: string]: any} = {
+        'templates': {
+            image: PlaceHolderImages.find(img => img.imageHint === 'dashboard integration')
+        },
+        'analytics': {
+            image: PlaceHolderImages.find(img => img.imageHint === 'data abstract')
+        },
+        'design': {
+            image: PlaceHolderImages.find(img => img.imageHint === 'team meeting')
+        }
+    };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200">
@@ -103,7 +133,7 @@ export default function LandingPage() {
                 </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">About</Link>
-                <Link className="text-sm font-medium hover:underline underline-offset-4" href="/faq">FAQ</Link>
+                <Link className="text-sm font-medium hover:underline underline-offset-4" href="/faq">Help Center</Link>
             </nav>
             <div className="flex-1 flex justify-end items-center gap-4">
                 <Button variant="ghost" asChild><Link href="/login">Login</Link></Button>
