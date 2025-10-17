@@ -1,6 +1,6 @@
 
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from 
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { motion, AnimatePresence } from 'framer-motion';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 const analysisMethods = [
@@ -45,6 +47,48 @@ const questionTypes = [
     { category: 'Advanced / Analytical', type: 'Matrix Grid', icon: Grid3x3, description: 'Multi-row and column structured questions', useCase: 'Multiple related items with same scale' },
 ];
 
+const FeatureCard = ({ icon, title, description, imageHint }: { icon: React.ElementType; title: string; description: string; imageHint: string }) => {
+    const [hovered, setHovered] = useState(false);
+    const featureImage = PlaceHolderImages.find(img => img.imageHint === imageHint);
+
+    return (
+        <div 
+            className="relative"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+        >
+            <div className="p-4 rounded-lg bg-muted/50 text-center relative z-10 bg-white">
+                <AnimatePresence>
+                    {hovered && featureImage && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10, height: 0 }}
+                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                            exit={{ opacity: 0, y: -10, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute bottom-full left-0 right-0 mb-2"
+                        >
+                            <Image
+                                src={featureImage.imageUrl}
+                                alt={featureImage.description}
+                                width={300}
+                                height={200}
+                                className="rounded-lg shadow-lg mx-auto"
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                <div className="p-4 rounded-lg bg-muted/50 text-center">
+                    <div className="flex justify-center mb-2">
+                        {React.createElement(icon, { className: "h-10 w-10 text-primary" })}
+                    </div>
+                    <h3 className="font-semibold">{title}</h3>
+                    <p className="text-xs text-muted-foreground">{description}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 export default function SurveyFeaturePage() {
     const groupedAnalysisMethods = analysisMethods.reduce((acc, method) => {
@@ -77,21 +121,24 @@ export default function SurveyFeaturePage() {
                         </CardHeader>
                         <CardContent>
                              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <Target className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">Purpose-Built Templates</h3>
-                                    <p className="text-xs text-muted-foreground">Utilize expert-designed templates for complex analyses like Conjoint, TURF, and IPA.</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <Handshake className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">Advanced Analytics</h3>
-                                    <p className="text-xs text-muted-foreground">Seamlessly transition from data collection to sophisticated analysis without leaving the platform.</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <ClipboardList className="mx-auto h-10 w-10 text-primary mb-2" />
-                                    <h3 className="font-semibold">Intuitive Design</h3>
-                                    <p className="text-xs text-muted-foreground">A user-friendly interface that makes powerful market research techniques accessible to everyone.</p>
-                                </div>
+                                <FeatureCard
+                                    icon={Target}
+                                    title="Purpose-Built Templates"
+                                    description="Utilize expert-designed templates for complex analyses like Conjoint, TURF, and IPA."
+                                    imageHint="dashboard integration"
+                                />
+                                <FeatureCard
+                                    icon={Handshake}
+                                    title="Advanced Analytics"
+                                    description="Seamlessly transition from data collection to sophisticated analysis without leaving the platform."
+                                    imageHint="data abstract"
+                                />
+                                <FeatureCard
+                                    icon={ClipboardList}
+                                    title="Intuitive Design"
+                                    description="A user-friendly interface that makes powerful market research techniques accessible to everyone."
+                                    imageHint="team meeting"
+                                />
                             </div>
                         </CardContent>
                     </Card>
