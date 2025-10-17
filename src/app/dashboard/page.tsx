@@ -132,10 +132,10 @@ function DashboardHub() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-headline font-bold">Skarii Dashboard</h1>
-        </div>
+        </Link>
          <div className="ml-auto flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name}</span>
             <UserNav />
