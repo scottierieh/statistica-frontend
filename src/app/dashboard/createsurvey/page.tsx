@@ -206,19 +206,13 @@ export default function CreateSurveyPage() {
       content: type === 'description' ? 'This is a description block.' : '',
       attributes: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
       sets: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 1 : undefined,
-      cardsPerSet: type === 'conjoint' ? 1 : undefined,
+      cardsPerSet: type === 'conjoint' ? 3 : undefined,
+      designMethod: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 'fractional-factorial' : undefined,
+      profiles: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [] : undefined,
       criteria: type === 'ahp' ? [{id:'c1', name:'Quality'}, {id:'c2', name:'Price'}, {id:'c3', name:'Service'}] : [],
       alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
     setSurvey(prev => ({...prev, questions: [...prev.questions, newQuestion]}));
-  };
-  
-  const handleQuestionsUpdate = (updater: Question[] | ((prev: Question[]) => Question[])) => {
-    if (typeof updater === 'function') {
-      setSurvey(prev => ({ ...prev, questions: updater(prev.questions) }));
-    } else {
-      setSurvey(prev => ({ ...prev, questions: updater }));
-    }
   };
 
   const handleImageUpload = (target: { type: 'question'; id: string } | { type: 'startPage'; field: 'logo' | 'image' }) => {
@@ -327,7 +321,6 @@ export default function CreateSurveyPage() {
                                 setSurvey={setSurvey}
                                 onImageUpload={handleImageUpload}
                                 onDuplicate={handleDuplicateQuestion}
-                                onUpdate={handleQuestionsUpdate}
                                 styles={styles}
                                 saveSurvey={saveSurveyAction}
                                 isSaving={isSaving}

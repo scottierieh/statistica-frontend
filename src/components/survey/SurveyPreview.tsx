@@ -80,7 +80,8 @@ export default function SurveyPreview({ styles, survey }: { styles: any, survey:
             <div className="h-[70vh] bg-muted/20">
                 <SurveyView 
                     isPreview={true}
-                    survey={{ ...survey, styles }}
+                    survey={survey}
+                    previewStyles={styles}
                 />
             </div>
         </Card>
