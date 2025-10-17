@@ -31,18 +31,26 @@ export default function FaqArticlePage() {
     const getTableOfContents = (content: string) => {
         const lines = content.split('\n');
         const headings = lines.filter(line => line.startsWith('### '));
-        return headings.map(heading => ({
-            title: heading.replace('### ', '').replace(/\*\*/g, ''),
-            href: '#' + heading.replace('### ', '').replace(/\s+/g, '-').toLowerCase()
-        }));
+        return headings.map(heading => {
+            const title = heading.replace('### ', '').replace(/\*\*/g, '');
+            // Create a URL-friendly slug from the title
+            const slug = title.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+            return {
+                title: title,
+                href: '#' + slug
+            };
+        });
     }
     
     const tableOfContents = getTableOfContents(article.content);
 
-    // Replace markdown-like syntax with HTML tags
+    // Replace markdown-like syntax with HTML tags, including IDs for linking
     const formatContent = (content: string) => {
         return content
-            .replace(/### (.*?)\n/g, '<h3 id="$1" class="text-xl font-semibold mt-6 mb-3">$1</h3>')
+            .replace(/### (.*?)\n/g, (match, p1) => {
+                const slug = p1.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+                return `<h3 id="${slug}" class="text-xl font-semibold mt-6 mb-3 scroll-mt-20">${p1.replace(/\*\*/g, '')}</h3>\n`;
+            })
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n\n/g, '<br/><br/>')
             .replace(/\n/g, '<br/>');
@@ -81,18 +89,7 @@ export default function FaqArticlePage() {
                         {/* Main Content */}
                         <div className="lg:col-span-3">
                             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">{article.title}</h1>
-                            <p className="text-lg text-muted-foreground mb-6">{article.description}</p>
-                            
-                            <div className="flex items-center gap-4 border-y py-4 mb-8">
-                                <Avatar>
-                                     <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                                    <AvatarFallback>CN</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-semibold">Written by The Skarii Team</p>
-                                    <p className="text-sm text-muted-foreground">Updated over a week ago</p>
-                                </div>
-                            </div>
+                            <p className="text-lg text-muted-foreground mb-8">{article.description}</p>
                             
                             <article className="prose prose-slate dark:prose-invert max-w-none"
                                      dangerouslySetInnerHTML={{ __html: formatContent(article.content) }}
@@ -119,4 +116,3 @@ export default function FaqArticlePage() {
         </div>
     );
 }
-
