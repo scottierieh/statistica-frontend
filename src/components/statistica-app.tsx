@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -412,10 +411,11 @@ export default function StatisticaApp() {
   };
 
 
-  const handleGenerateReport = async (stats: any, viz: string | null) => {
+  const handleGenerateReport = async (analysisType: string, stats: any, viz: string | null) => {
     setIsGeneratingReport(true);
     try {
         const result = await getSummaryReport({
+            analysisType,
             statistics: JSON.stringify(stats, null, 2),
             visualizations: viz || "No visualization available.",
         });
@@ -572,7 +572,7 @@ export default function StatisticaApp() {
                 onFileSelected={handleFileSelected}
                 isUploading={isUploading}
                 activeAnalysis={activeAnalysis}
-                onGenerateReport={handleGenerateReport}
+                onGenerateReport={(stats: any, viz: string | null) => handleGenerateReport(activeAnalysis, stats, viz)}
              />
           </div>
         </SidebarInset>
@@ -597,3 +597,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+

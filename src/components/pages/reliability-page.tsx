@@ -1,8 +1,6 @@
-
-      
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -138,8 +136,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Cronbach's Alpha (α):</strong> Ranges from 0 to 1. General guidelines: α ≥ 0.9 (Excellent), ≥ 0.8 (Good), ≥ 0.7 (Acceptable), ≥ 0.6 (Questionable), ≥ 0.5 (Poor), &lt; 0.5 (Unacceptable).</li>
-                                <li><strong>Corrected Item-Total Correlation:</strong> Shows how well each item correlates with the total score of the other items. Low values (e.g., &lt; 0.3) suggest an item may not belong to the scale.</li>
+                                <li><strong>Cronbach's Alpha (α):</strong> Ranges from 0 to 1. General guidelines: α ≥ 0.9 (Excellent), ≥ 0.8 (Good), ≥ 0.7 (Acceptable), ≥ 0.6 (Questionable), ≥ 0.5 (Poor), < 0.5 (Unacceptable).</li>
+                                <li><strong>Corrected Item-Total Correlation:</strong> Shows how well each item correlates with the total score of the other items. Low values (e.g., < 0.3) suggest an item may not belong to the scale.</li>
                                 <li><strong>Alpha if Item Deleted:</strong> This crucial metric shows what the scale's alpha would be if you removed a specific item. If removing an item significantly increases the alpha, that item may be problematic and worth dropping.</li>
                             </ul>
                         </div>
@@ -154,112 +152,52 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 };
 
 interface ReliabilityPageProps {
-    survey: Survey;
-    responses: SurveyResponse[];
+    data: DataSet;
+    numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    onGenerateReport: (stats: any, viz: string | null) => void;
 }
 
-export default function ReliabilityPage({ survey, responses, onLoadExample }: ReliabilityPageProps) {
+export default function ReliabilityPage({ data, numericHeaders, onLoadExample, onGenerateReport }: ReliabilityPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [reverseCodeItems, setReverseCodeItems] = useState<string[]>([]);
     
     const [reliabilityResult, setReliabilityResult] = useState<ReliabilityResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const numericLikeQuestions = useMemo(() => {
-        if (!survey || !survey.questions) return [];
-        return survey.questions.filter(q => ['rating', 'nps', 'likert', 'matrix'].includes(q.type));
-    }, [survey]);
-    
-    const itemOptions = useMemo(() => {
-        return numericLikeQuestions.flatMap(q => {
-            if (q.type === 'matrix' && q.rows) {
-                return q.rows.map(row => ({
-                    label: `${q.title} - ${row}`,
-                    value: `${q.id}__${row}`,
-                }));
-            }
-            return {
-                label: q.title,
-                value: q.id,
-            };
-        });
-    }, [numericLikeQuestions]);
-
     useEffect(() => {
-      setSelectedItems(itemOptions.map(i => i.value));
-      setReverseCodeItems([]);
-      setReliabilityResult(null);
-      setView(itemOptions.length > 1 ? 'main' : 'intro');
-    }, [itemOptions]);
+        setSelectedItems(numericHeaders);
+        setReverseCodeItems([]);
+        setReliabilityResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
+    }, [data, numericHeaders]);
 
-    const canRun = useMemo(() => itemOptions.length >= 2, [itemOptions]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
-    const handleItemSelectionChange = (value: string, checked: boolean) => {
-        setSelectedItems(prev => 
-          checked ? [...prev, value] : prev.filter(v => v !== value)
-        );
+    const handleItemSelectionChange = (header: string, checked: boolean) => {
+        setSelectedItems(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
-    const handleReverseCodeSelectionChange = (value: string, checked: boolean) => {
-        setReverseCodeItems(prev => 
-          checked ? [...prev, value] : prev.filter(v => v !== value)
-        );
+    const handleReverseCodeSelectionChange = (header: string, checked: boolean) => {
+        setReverseCodeItems(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
         if (selectedItems.length < 2) {
             toast({variant: 'destructive', title: 'Selection Error', description: 'Please select at least two items for the analysis.'});
             return;
-        };
-        
+        }
+
         setIsLoading(true);
         setReliabilityResult(null);
-
-        // Prepare data for backend
-        const analysisData = responses.map(resp => {
-            const row: {[key: string]: number | null} = {};
-            selectedItems.forEach(itemValue => {
-                const parts = itemValue.split('__');
-                const questionId = parts[0];
-                const rowName = parts[1]; // for matrix questions
-
-                const answer = (resp.answers as any)[questionId];
-
-                if(rowName) { // It's a matrix question
-                    row[itemValue] = answer && answer[rowName] ? Number(answer[rowName]) : null;
-                } else { // It's another numeric-like question
-                    row[itemValue] = answer !== undefined ? Number(answer) : null;
-                }
-            });
-            return row;
-        });
-        
-        // Map back to labels for python script
-        const dataForPython = analysisData.map(row => {
-            const newRow: {[key: string]: number | null} = {};
-            for(const key in row) {
-                const label = itemOptions.find(opt => opt.value === key)?.label || key;
-                newRow[label] = row[key];
-            }
-            return newRow;
-        });
-
-        const itemsForPython = selectedItems.map(val => itemOptions.find(opt => opt.value === val)?.label || val);
-        const reverseForPython = reverseCodeItems.map(val => itemOptions.find(opt => opt.value === val)?.label || val);
-
 
         try {
             const response = await fetch('/api/analysis/reliability', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    data: dataForPython,
-                    items: itemsForPython,
-                    reverseCodeItems: reverseForPython,
-                })
+                body: JSON.stringify({ data, items: selectedItems, reverseCodeItems })
             });
 
             if (!response.ok) {
@@ -268,12 +206,10 @@ export default function ReliabilityPage({ survey, responses, onLoadExample }: Re
             }
 
             const result = await response.json();
-            if (result.error) {
-                throw new Error(result.error);
-            }
+            if (result.error) throw new Error(result.error);
             setReliabilityResult(result);
             toast({ title: 'Analysis Complete', description: "Cronbach's Alpha has been calculated." });
-            
+
         } catch (e: any) {
             console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'Reliability Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
@@ -281,12 +217,12 @@ export default function ReliabilityPage({ survey, responses, onLoadExample }: Re
         } finally {
             setIsLoading(false);
         }
-    }, [selectedItems, reverseCodeItems, responses, toast, itemOptions]);
+    }, [data, selectedItems, reverseCodeItems, toast]);
 
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
-    
+
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -297,7 +233,7 @@ export default function ReliabilityPage({ survey, responses, onLoadExample }: Re
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                     <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">Reliability Analysis Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
@@ -305,67 +241,66 @@ export default function ReliabilityPage({ survey, responses, onLoadExample }: Re
                         Select the scale items to calculate Cronbach's Alpha for internal consistency.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4">
+                <CardContent className="space-y-4">
                     <Label>Select Items for Analysis</Label>
                     <ScrollArea className="h-48 border rounded-lg p-4">
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {itemOptions.map(option => (
-                          <div key={option.value} className="flex items-center space-x-2">
+                        {numericHeaders.map(header => (
+                          <div key={header} className="flex items-center space-x-2">
                             <Checkbox
-                              id={`rel-${option.value}`}
-                              checked={selectedItems.includes(option.value)}
-                              onCheckedChange={(checked) => handleItemSelectionChange(option.value, !!checked)}
+                              id={`rel-${header}`}
+                              checked={selectedItems.includes(header)}
+                              onCheckedChange={(checked) => handleItemSelectionChange(header, !!checked)}
                             />
-                            <label htmlFor={`rel-${option.value}`} className="text-sm font-medium leading-none">
-                              {option.label}
+                            <label htmlFor={`rel-${header}`} className="text-sm font-medium leading-none">
+                              {header}
                             </label>
                           </div>
                         ))}
                       </div>
                     </ScrollArea>
-
-                    <div className="flex items-center justify-end gap-4">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline"><Settings2 className="mr-2"/>Reverse-Code Items</Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80">
-                                <div className="grid gap-4">
-                                    <div className="space-y-2">
-                                        <h4 className="font-medium leading-none">Reverse-Coding</h4>
-                                        <p className="text-sm text-muted-foreground">Select negatively worded items to reverse their scores.</p>
-                                    </div>
-                                    <ScrollArea className="h-48">
-                                        <div className="grid gap-2 p-1">
-                                            {selectedItems.map(itemValue => {
-                                                const itemLabel = itemOptions.find(opt => opt.value === itemValue)?.label || itemValue;
-                                                return (
-                                                    <div key={`rev-${itemValue}`} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                        id={`rev-${itemValue}`}
-                                                        checked={reverseCodeItems.includes(itemValue)}
-                                                        onCheckedChange={(checked) => handleReverseCodeSelectionChange(itemValue, !!checked)}
-                                                        />
-                                                        <label htmlFor={`rev-${itemValue}`} className="text-sm font-medium leading-none">
-                                                        {itemLabel}
-                                                        </label>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </ScrollArea>
+                </CardContent>
+                <CardFooter className="flex justify-between items-center">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline"><Settings2 className="mr-2"/>Reverse-Code Items</Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                             <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Reverse-Coding</h4>
+                                    <p className="text-sm text-muted-foreground">Select negatively worded items to reverse their scores.</p>
                                 </div>
-                            </PopoverContent>
-                        </Popover>
+                                <ScrollArea className="h-48">
+                                    <div className="grid gap-2 p-1">
+                                        {selectedItems.map(item => (
+                                            <div key={`rev-${item}`} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                id={`rev-${item}`}
+                                                checked={reverseCodeItems.includes(item)}
+                                                onCheckedChange={(checked) => handleReverseCodeSelectionChange(item, !!checked)}
+                                                />
+                                                <label htmlFor={`rev-${item}`} className="text-sm font-medium leading-none">
+                                                {item}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                    <div className="flex gap-2">
+                        {reliabilityResult && <Button variant="ghost" onClick={() => onGenerateReport({ ...reliabilityResult, analysisType: 'reliability' }, null)}><Bot className="mr-2"/>AI Report</Button>}
                         <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedItems.length < 2 || isLoading}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
                         </Button>
                     </div>
-                </CardContent>
+                </CardFooter>
             </Card>
 
             {isLoading && (
-                 <Card>
+                <Card>
                     <CardContent className="p-6">
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="h-8 w-8 text-primary animate-spin" />
@@ -440,4 +375,3 @@ export default function ReliabilityPage({ survey, responses, onLoadExample }: Re
     );
 }
 
-    
