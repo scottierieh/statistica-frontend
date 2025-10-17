@@ -1,12 +1,10 @@
 'use client';
 
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { getApp } from 'firebase/app';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { initializeFirebase } from './index';
 
-export function getStorageInstance() {
-    const app = getApp();
-    return getStorage(app);
-}
+// Initialize Firebase and get storage instance
+const { storage } = initializeFirebase();
 
 export const uploadImage = (
     file: File,
@@ -14,7 +12,6 @@ export const uploadImage = (
     onProgress: (progress: number) => void
 ): Promise<string> => {
     return new Promise((resolve, reject) => {
-        const storage = getStorageInstance();
         const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -39,7 +36,6 @@ export const uploadImage = (
 
 export const deleteImage = (imageUrl: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-        const storage = getStorageInstance();
         const imageRef = ref(storage, imageUrl);
 
         deleteObject(imageRef)
