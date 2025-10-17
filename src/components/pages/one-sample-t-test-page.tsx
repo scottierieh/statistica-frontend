@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -168,7 +169,9 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
                 {plot && (
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Distribution Plot</CardTitle></CardHeader>
-                        <CardContent className="flex justify-center items-center"><Image src={`data:image/png;base64,${plot}`} alt="Distribution Plot" width={500} height={400} /></CardContent>
+                        <CardContent className="flex justify-center items-center">
+                            <Image src={`data:image/png;base64,${plot}`} alt="Distribution Plot" width={600} height={400} className="mx-auto h-auto rounded-md border" />
+                        </CardContent>
                     </Card>
                 )}
                 <div className='space-y-4'>
@@ -217,3 +220,4 @@ const OneSampleTTestPage = ({ data, numericHeaders, onLoadExample }: { data: Dat
 };
 
 export default OneSampleTTestPage;
+
