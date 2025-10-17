@@ -121,7 +121,7 @@ export default function SurveyFeaturePage() {
                 <div className="max-w-6xl mx-auto">
                     <Card className="mb-8">
                         <CardHeader className="text-center">
-                            <CardTitle className="text-4xl font-headline">Integrated Survey &amp; Analysis Platform</CardTitle>
+                            <CardTitle className="text-4xl font-headline">Integrated Survey & Analysis Platform</CardTitle>
                             <CardDescription className="text-lg text-muted-foreground mt-2">
                                 From survey design to advanced market research—all in one place.
                             </CardDescription>

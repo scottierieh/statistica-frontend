@@ -8,6 +8,14 @@ import { motion } from 'framer-motion';
 import { ArrowRight, BarChart, BrainCircuit, Check, ClipboardList, Database, DollarSign, FastForward, LineChart, Calculator } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ChevronDown } from 'lucide-react';
+
 
 const heroImage = PlaceHolderImages.find(p => p.id === 'hero-image');
 const securityImage = PlaceHolderImages.find(p => p.id === 'security-feature');
@@ -25,7 +33,21 @@ export default function LandingPage() {
                 </Link>
             </div>
             <nav className="hidden lg:flex gap-4 sm:gap-6 flex-1 justify-center">
-                <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">Features</Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-sm font-medium">
+                      Features <ChevronDown className="w-4 h-4 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem asChild>
+                      <Link href="/features/statistica">Statistica</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/features/survey">Survey</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#testimonials">Testimonials</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/faq">FAQ</Link>
