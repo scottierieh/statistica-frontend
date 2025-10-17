@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users, AlertTriangle } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import { Label } from '../ui/label';
@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
 import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Input } from '../ui/input';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface CbcResults {
     partWorths: { attribute: string, level: string, value: number }[];
@@ -51,6 +52,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     const { toast } = useToast();
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     
     // Advanced features state
     const [scenarios, setScenarios] = useState<Scenario[]>([
@@ -78,7 +80,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
     const handleAnalysis = useCallback(async (simulationScenarios?: Scenario[]) => {
         if (!conjointQuestion || !responses || responses.length === 0) {
-            toast({ variant: 'destructive', title: 'Data Error', description: 'No conjoint question or responses found for this survey.' });
+            setError('No conjoint question or responses found for this survey.');
             setIsLoading(false);
             return;
         }
@@ -88,9 +90,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             const answerBlock = (resp.answers as any)[conjointQuestion.id];
             if (!answerBlock || typeof answerBlock !== 'object') return;
     
-            // 각 choice task에 대해 처리
             Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
-                // 해당 task에 제시된 모든 프로필 찾기
                 const presentedProfiles = (conjointQuestion.profiles || []).filter(
                     (p: any) => p.taskId === taskKey
                 );
@@ -100,9 +100,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                     return;
                 }
     
-                // 각 프로필에 대해 행 생성 (Exploded Logit)
                 presentedProfiles.forEach((profile: any) => {
-                    // profile.attributes가 존재하는지 확인
                     if (!profile.attributes) {
                         console.warn(`Profile ${profile.id} missing attributes:`, profile);
                         return;
@@ -112,9 +110,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         respondent_id: resp.id,
                         choice_set_id: taskKey,
                         profile_id: profile.id,
-                        // 각 속성 값 펼치기
                         ...profile.attributes,
-                        // 선택 여부: 선택된 프로필은 1, 나머지는 0
                         chosen: profile.id === chosenProfileId ? 1 : 0
                     };
                     
@@ -124,12 +120,13 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         });
         
         if (analysisData.length === 0) {
-            toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
+            setError('No valid choice data found in responses.');
             setIsLoading(false);
             return;
         }
 
         setIsLoading(true);
+        setError(null);
         if (!simulationScenarios) {
             setAnalysisResult(null);
             setSimulationResult(null);
@@ -170,6 +167,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             }
 
         } catch (e: any) {
+            setError(e.message);
             console.error('CBC error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
@@ -180,16 +178,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     useEffect(() => {
         handleAnalysis();
     }, [handleAnalysis]);
-    
-    const runSimulation = () => {
-        handleAnalysis(scenarios);
-    };
-
-    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
-        const newScenarios = [...scenarios];
-        newScenarios[scenarioIndex] = { ...newScenarios[scenarioIndex], [attrName]: value };
-        setScenarios(newScenarios);
-    };
     
     const importanceData = useMemo(() => {
         if (!analysisResult?.results.importance) return [];
@@ -224,6 +212,16 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         );
     }
     
+    if (error) {
+         return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        );
+    }
+
     if (!analysisResult?.results) {
         return (
             <Card>
@@ -239,7 +237,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className={`grid w-full grid-cols-3`}>
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="importance"><PieIcon className="mr-2 h-4 w-4"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2 h-4 w-4"/>Part-Worths</TabsTrigger>
                     <TabsTrigger value="modelfit"><TrendingUp className="mr-2 h-4 w-4"/>Model Fit</TabsTrigger>
@@ -319,3 +317,4 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     </div>
   );
     
+
