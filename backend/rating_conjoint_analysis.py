@@ -27,7 +27,7 @@ def calculate_importance(part_worths):
     for attribute, levels in part_worths.items():
         if attribute == 'Base': continue
         utilities = list(levels.values())
-        utility_ranges[attribute] = max(utilities) - min(utilities)
+        utility_ranges[attribute] = max(utilities) - min(utilities) if utilities else 0
     
     total_range = sum(utility_ranges.values())
     
@@ -54,15 +54,14 @@ def main():
         base_levels = {}
         
         for attr, props in attributes.items():
-            if props.get('includeInAnalysis', True):
-                if props['type'] == 'categorical':
-                    df[attr] = df[attr].astype('category')
-                    base_level = props['levels'][0]
-                    base_levels[attr] = base_level
-                    
-                    dummies = pd.get_dummies(df[attr], prefix=attr, drop_first=True, dtype=float)
-                    X_df = pd.concat([X_df, dummies], axis=1)
-                    feature_names.extend(dummies.columns.tolist())
+            if props.get('includeInAnalysis', True) and props['type'] == 'categorical':
+                df[attr] = df[attr].astype('category')
+                base_level = props['levels'][0]
+                base_levels[attr] = base_level
+                
+                dummies = pd.get_dummies(df[attr], prefix=attr, drop_first=True, dtype=float)
+                X_df = pd.concat([X_df, dummies], axis=1)
+                feature_names.extend(dummies.columns.tolist())
         
         model = LinearRegression()
         model.fit(X_df, y)
@@ -76,11 +75,11 @@ def main():
         part_worths = {}
         coeff_map = dict(zip(X_df.columns, model.coef_))
         
-        for attr, levels in attributes.items():
+        for attr, props in attributes.items():
              if props.get('includeInAnalysis', True) and props['type'] == 'categorical':
-                base_level = base_levels[attr]
+                base_level = props['levels'][0]
                 part_worths[attr] = {base_level: 0}
-                for level in levels[1:]:
+                for level in props['levels'][1:]:
                     feature_name = f"{attr}_{level}"
                     part_worths[attr][level] = coeff_map.get(feature_name, 0)
         
