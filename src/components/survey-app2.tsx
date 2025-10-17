@@ -12,13 +12,13 @@ export default function SurveyApp2() {
           <div className="flex justify-center items-center mb-4">
             <ClipboardList className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="font-headline">Survey Tool 2</CardTitle>
+          <CardTitle className="font-headline">Survey Tool</CardTitle>
           <CardDescription>
-            This section is under construction. More survey tools are coming soon!
+            This section allows you to create, manage, and analyze surveys.
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <p className="text-muted-foreground">Stay tuned for updates.</p>
+            <p className="text-muted-foreground">Select a survey from the dashboard or create a new one to get started.</p>
         </CardContent>
       </Card>
     </div>
