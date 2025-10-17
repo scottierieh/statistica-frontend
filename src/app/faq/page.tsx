@@ -69,7 +69,11 @@ export default function FaqPage() {
                     English
                 </Button>
             </nav>
-            <div className="flex-1" />
+            <div className="flex-1 flex justify-end">
+                <Button asChild variant="outline" className="bg-white/10 border-white/20 hover:bg-white/20">
+                    <Link href="/dashboard">Go to Dashboard</Link>
+                </Button>
+            </div>
         </div>
       </header>
       
