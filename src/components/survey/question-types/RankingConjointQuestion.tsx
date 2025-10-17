@@ -11,12 +11,14 @@ import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useEffect } from "react";
 import { produce } from "immer";
 import { cn } from "@/lib/utils";
-import { PlusCircle, Trash2, Zap, X } from "lucide-react";
+import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
     const { attributes: dndAttributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -39,29 +41,7 @@ const SortableCard = ({ id, profile, index, attributes }: { id: string, profile:
     )
 };
 
-// Helper function to generate full factorial design
-const generateFullFactorial = (attributes: ConjointAttribute[]) => {
-    if (!attributes || attributes.length === 0) return [];
-    
-    const levels = attributes.map(attr => attr.levels);
-    if (levels.some(l => l.length === 0)) return [];
-
-    let combinations: any[] = [{}];
-    
-    attributes.forEach(attr => {
-        const newCombinations: any[] = [];
-        combinations.forEach(existingCombo => {
-            attr.levels.forEach(level => {
-                newCombinations.push({ ...existingCombo, [attr.name]: level });
-            });
-        });
-        combinations = newCombinations;
-    });
-
-    return combinations;
-};
-
-// Helper to create profile tasks
+// Helper to create profile tasks for rating
 const createProfileTasks = (profiles: any[], sets: number) => {
     const shuffled = [...profiles].sort(() => 0.5 - Math.random());
     const cardsPerSet = Math.ceil(shuffled.length / sets);
@@ -69,11 +49,11 @@ const createProfileTasks = (profiles: any[], sets: number) => {
     const tasks: any[] = [];
     for (let i = 0; i < sets; i++) {
         const taskProfiles = shuffled.slice(i * cardsPerSet, (i + 1) * cardsPerSet);
-        taskProfiles.forEach((profileAttrs, profileIndex) => {
+        taskProfiles.forEach((profile, profileIndex) => {
             tasks.push({
+                ...profile,
                 id: `profile_${i}_${profileIndex}`,
-                taskId: `task_${i}`,
-                attributes: profileAttrs
+                taskId: `task_${i}`
             });
         });
     }
@@ -111,8 +91,10 @@ export default function RankingConjointQuestion({
     isLastQuestion,
     submitSurvey
 }: RankingConjointQuestionProps) {
-    const { attributes = [], profiles = [], sets = 1 } = question;
+    const { toast } = useToast();
+    const { attributes = [], profiles = [], sets = 1, designMethod = 'fractional-factorial' } = question;
     const [currentTask, setCurrentTask] = useState(0);
+    const [designStats, setDesignStats] = useState<any>(null);
 
     const tasks = useMemo(() => {
         const groupedProfiles: { [taskId: string]: any[] } = {};
@@ -206,13 +188,45 @@ export default function RankingConjointQuestion({
         return attributes.reduce((acc, attr) => acc * Math.max(1, attr.levels.length), 1);
     }, [attributes]);
     
-    const generateProfiles = () => {
-        const allProfiles = generateFullFactorial(attributes);
-        const newProfiles = createProfileTasks(allProfiles, sets || 1);
-        onUpdate?.({ profiles: newProfiles });
+    const generateProfiles = async () => {
+        try {
+            const response = await fetch('/api/analysis/conjoint-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    attributes,
+                    design_method: designMethod,
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || 'Failed to generate design');
+            }
+            
+            const result = await response.json();
+            
+            const newProfiles = createProfileTasks(result.profiles, sets || 1);
+            onUpdate?.({ profiles: newProfiles });
+            
+            setDesignStats(result.statistics);
+            toast({
+                title: "Profiles Generated",
+                description: `${result.profiles.length} profiles created using ${designMethod} design.`
+            });
+
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: "Design Generation Failed",
+                description: e.message
+            });
+        }
     };
 
     if (isPreview) {
+        if (tasks.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
+    
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                  <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
@@ -273,33 +287,53 @@ export default function RankingConjointQuestion({
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
+                            <Label htmlFor="designType">Design Type</Label>
+                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
+                                    <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
+                                    <SelectItem value="orthogonal">Orthogonal Design</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
                             <Label htmlFor="sets">Number of Sets (Tasks)</Label>
                             <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
                         </div>
-                        <div className="p-3 bg-muted rounded-md text-center">
-                            <Label>Total Possible Profiles</Label>
-                            <p className="text-2xl font-bold">{totalCombinations}</p>
-                        </div>
                     </div>
+                     <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                           {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} possible combinations will be generated. Best for small designs.`}
+                           {designMethod === 'fractional-factorial' && `Fractional Factorial: Optimal subset using D-optimal algorithm. Balances statistical efficiency with practicality.`}
+                           {designMethod === 'orthogonal' && `Orthogonal Design: Uses standard orthogonal arrays (L4, L8, L9, etc.). Ensures statistical independence between attributes.`}
+                        </AlertDescription>
+                    </Alert>
+
+                     {designStats && (
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                           <Card className="p-2 bg-blue-50"><CardTitle className="text-sm">Generated</CardTitle><p className="font-bold text-blue-700 text-lg">{designStats.totalProfiles}</p></Card>
+                           <Card className="p-2 bg-green-50"><CardTitle className="text-sm">Balance</CardTitle><p className="font-bold text-green-700 text-lg">{designStats.balance}%</p></Card>
+                           <Card className="p-2 bg-purple-50"><CardTitle className="text-sm">Orthogonality</CardTitle><p className="font-bold text-purple-700 text-lg">{designStats.orthogonality}%</p></Card>
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
                     </div>
                      <ScrollArea className="h-48 border rounded-md p-2">
                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Profile ID</TableHead>
-                                    <TableHead>Task ID</TableHead>
-                                    {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
-                                </TableRow>
-                            </TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-xs">Profile ID</TableHead><TableHead className="text-xs">Task ID</TableHead>{attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
-                                        <TableCell>{p.id}</TableCell>
-                                        <TableCell>{p.taskId}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
+                                        <TableCell className="text-xs">{p.id}</TableCell>
+                                        <TableCell className="text-xs">{p.taskId}</TableCell>
+                                        {attributes.map(a => <TableCell key={a.id} className="text-xs">{p.attributes[a.name]}</TableCell>)}
                                     </TableRow>
                                 ))}
                             </TableBody>

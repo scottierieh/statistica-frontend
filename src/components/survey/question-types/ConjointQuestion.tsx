@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -5,7 +6,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,27 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
-// Helper to create profile tasks for rating
-const createProfileTasks = (profiles: any[], sets: number, cardsPerSet: number) => {
-    const shuffled = [...profiles].sort(() => 0.5 - Math.random());
-    const tasks: any[] = [];
-    let profileIndex = 0;
-
-    for (let i = 0; i < sets; i++) {
-        for (let j = 0; j < cardsPerSet; j++) {
-            if (profileIndex >= shuffled.length) profileIndex = 0; // Loop back if not enough profiles
-            tasks.push({
-                ...shuffled[profileIndex],
-                id: `profile_${i}_${j}`,
-                taskId: `task_${i}`
-            });
-            profileIndex++;
-        }
-    }
-    return tasks;
-};
-
-// --- Component Code ---
 interface ConjointQuestionProps {
     question: Question;
     answer?: { [taskId: string]: string };
@@ -110,7 +90,7 @@ export default function ConjointQuestion({
     }, [attributes]);
     
     if (isPreview) {
-        if (tasks.length === 0) return <p>Conjoint profiles are not generated.</p>;
+        if (tasks.length === 0) return <div className="p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md text-sm">Conjoint profiles not generated. Please generate profiles in the editor.</div>;
     
         const currentTaskProfiles = tasks[currentTask];
         const taskId = currentTaskProfiles?.[0]?.taskId;
@@ -195,8 +175,17 @@ export default function ConjointQuestion({
             
             const result = await response.json();
             
-            const newProfiles = createProfileTasks(result.profiles, sets || 1, cardsPerSet || 3);
-            onUpdate?.({ profiles: newProfiles });
+            const taskProfiles = result.profiles.reduce((acc: any, profile: any, index: number) => {
+                const taskId = `task_${Math.floor(index / (cardsPerSet || 3))}`;
+                return {
+                    ...acc,
+                    [taskId]: [...(acc[taskId] || []), { ...profile, taskId }],
+                };
+            }, {});
+
+            const flattenedProfiles = Object.values(taskProfiles).flat();
+
+            onUpdate?.({ profiles: flattenedProfiles });
             
             setDesignStats(result.statistics);
             toast({
