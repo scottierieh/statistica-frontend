@@ -17,3 +17,4 @@ skl2onnx
 onnx
 onnxruntime
 cffi==1.16.0
+semopy
