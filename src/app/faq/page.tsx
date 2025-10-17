@@ -8,44 +8,7 @@ import { Calculator, ArrowLeft, LifeBuoy, CreditCard, UserCircle, BrainCircuit, 
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-const helpCategories = [
-    {
-        icon: BookOpen,
-        title: "Getting Started",
-        description: "How it works, uploading data, creating surveys."
-    },
-    {
-        icon: BrainCircuit,
-        title: "Statistical Analysis",
-        description: "Interpreting results, choosing tests, assumptions."
-    },
-    {
-        icon: BarChart,
-        title: "Survey & Features",
-        description: "Question types, advanced analysis, distribution."
-    },
-    {
-        icon: UserCircle,
-        title: "Account",
-        description: "Settings, security, profile management."
-    },
-    {
-        icon: CreditCard,
-        title: "Plans & Billing",
-        description: "Pricing, invoices, payment options, refunds."
-    },
-    {
-        icon: Wrench,
-        title: "Technical Issues",
-        description: "Troubleshooting, error messages, performance."
-    },
-    {
-        icon: MessageSquare,
-        title: "Contact Support",
-        description: "Get help from our support team, provide feedback."
-    },
-];
+import { faqData } from '@/lib/faq-data';
 
 const helpCenterBg = PlaceHolderImages.find(p => p.id === 'help-center-bg');
 
@@ -79,6 +42,7 @@ export default function FaqPage() {
                     objectFit="cover"
                     className="opacity-40"
                     data-ai-hint={helpCenterBg.imageHint}
+                    priority
                 />
             )}
             <div className="relative z-10 p-4">
@@ -95,19 +59,21 @@ export default function FaqPage() {
             </div>
         </section>
         
-        <section className="py-12 md:py-20 -mt-16 relative z-10 px-4">
+        <section className="py-12 md:py-20 -mt-20 relative z-10 px-4">
             <div className="max-w-5xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {helpCategories.map((category) => (
-                        <Card key={category.title} className="group bg-white dark:bg-slate-900/80 backdrop-blur-sm hover:shadow-xl hover:-translate-y-1 transition-transform duration-300">
-                            <CardContent className="p-6 text-center">
-                                <div className="inline-block p-4 bg-muted rounded-xl mb-4 group-hover:bg-primary/10 transition-colors">
-                                    <category.icon className="w-8 h-8 text-primary" />
-                                </div>
-                                <h3 className="font-semibold text-lg">{category.title}</h3>
-                                <p className="text-sm text-muted-foreground mt-1">{category.description}</p>
-                            </CardContent>
-                        </Card>
+                    {faqData.map((category) => (
+                        <Link href={`/faq/${category.slug}`} key={category.slug}>
+                            <Card className="group bg-white dark:bg-slate-900/80 backdrop-blur-sm hover:shadow-xl hover:-translate-y-1 transition-transform duration-300 h-full">
+                                <CardContent className="p-6 text-center">
+                                    <div className="inline-block p-4 bg-muted rounded-xl mb-4 group-hover:bg-primary/10 transition-colors">
+                                        <category.icon className="w-8 h-8 text-primary" />
+                                    </div>
+                                    <h3 className="font-semibold text-lg">{category.title}</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">{category.description}</p>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     ))}
                 </div>
             </div>
