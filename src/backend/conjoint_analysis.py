@@ -1,210 +1,865 @@
+'use client';
+import React from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users, AlertCircle } from 'lucide-react';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
+interface RatingConjointResults {
+    partWorths: { attribute: string, level: string, value: number }[];
+    importance: { attribute: string, importance: number }[];
+    regression: {
+        rSquared: number;
+        adjustedRSquared: number;
+        predictions: number[];
+        intercept: number;
+        coefficients: {[key: string]: number};
+    };
+    targetVariable: string;
+    optimalProduct?: {
+        config: {[key: string]: string};
+        totalUtility: number;
+    };
+    simulation?: any;
+    segmentation?: SegmentationAnalysis;
+}
 
-import sys
-import json
-import pandas as pd
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-import warnings
+interface SegmentationAnalysis {
+    segmentVariable: string;
+    resultsBySegment: { [segmentValue: string]: SegmentResult };
+}
 
-warnings.filterwarnings('ignore')
+interface SegmentResult {
+    importance: { attribute: string; importance: number }[];
+    partWorths: { attribute: string; level: string; value: number }[];
+}
 
-def _to_native_type(obj):
-    if isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, (float, np.floating)):
-        if np.isnan(obj) or np.isinf(obj):
-            return None
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, np.bool_):
-        return bool(obj)
-    return obj
+interface FullAnalysisResponse {
+    results: RatingConjointResults;
+    error?: string;
+}
 
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        data = payload.get('data')
-        attributes = payload.get('attributes')
-        target_variable = payload.get('targetVariable')
-        segment_variable = payload.get('segmentVariable')
-        scenarios = payload.get('scenarios')
+interface Scenario {
+    name: string;
+    [key: string]: string;
+}
 
-        if not all([data, attributes, target_variable]):
-            raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
+interface RatingConjointAnalysisPageProps {
+    survey: any;
+    responses: any[];
+}
 
-        df = pd.DataFrame(data)
+export default function RatingConjointAnalysisPage({ survey, responses }: RatingConjointAnalysisPageProps) {
+    const { toast } = useToast();
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [debugInfo, setDebugInfo] = useState<string>('');
+    
+    // Advanced features state
+    const [scenarios, setScenarios] = useState<Scenario[]>([
+        { name: 'My Product' }, { name: 'Competitor A' }, { name: 'Competitor B' }
+    ]);
+    const [simulationResult, setSimulationResult] = useState<any>(null);
+    const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
+    
+    const conjointQuestion = useMemo(() => {
+        const question = survey.questions?.find((q: any) => q.type === 'rating-conjoint');
+        console.log('Found conjoint question:', question);
+        return question;
+    }, [survey]);
 
-        def run_conjoint_analysis(sub_df, sub_attributes):
-            X_list, feature_names, original_levels_map = [], [], {}
-            
-            independent_vars = [attr for attr, props in sub_attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
-            
-            all_cols_to_check = independent_vars + [target_variable]
-            sub_df_clean = sub_df[all_cols_to_check].copy()
-            
-            for col in all_cols_to_check:
-                if col == target_variable:
-                    sub_df_clean[col] = pd.to_numeric(sub_df_clean[col], errors='coerce')
-                else:
-                    sub_df_clean[col] = sub_df_clean[col].astype(str)
-
-            sub_df_clean.dropna(inplace=True)
-
-            if sub_df_clean.empty: return None
-
-            for attr_name in independent_vars:
-                props = sub_attributes[attr_name]
-                if props['type'] == 'categorical':
-                    sub_df_clean[attr_name] = sub_df_clean[attr_name].astype('category')
-                    original_levels_map[attr_name] = sub_df_clean[attr_name].cat.categories.tolist()
-                    dummies = pd.get_dummies(sub_df_clean[attr_name], prefix=attr_name, drop_first=True).astype(int)
-                    X_list.append(dummies)
-                    feature_names.extend(dummies.columns.tolist())
-                elif props['type'] == 'numerical':
-                    scaler = StandardScaler()
-                    scaled_feature = scaler.fit_transform(sub_df_clean[[attr_name]])
-                    X_list.append(pd.DataFrame(scaled_feature, columns=[f"{attr_name}_std"], index=sub_df_clean.index))
-                    feature_names.append(f"{attr_name}_std")
-            
-            if not X_list: return None
-
-            X = pd.concat(X_list, axis=1)
-            y = sub_df_clean[target_variable]
-            
-            if len(X) < len(feature_names) + 1:
-                return None
-
-            model = LinearRegression()
-            model.fit(X, y)
-            y_pred = model.predict(X)
-            
-            r_squared = r2_score(y, y_pred)
-            adj_r_squared = 1 - (1 - r_squared) * (len(y) - 1) / (len(y) - X.shape[1] - 1) if (len(y) - X.shape[1] - 1) > 0 else r_squared
-            
-            coefficients = np.concatenate([[model.intercept_], model.coef_])
-            
-            # Reconstruct coefficients for all levels
-            full_coeffs = {'intercept': coefficients[0]}
-            coeff_index = 1
-            for attr_name in independent_vars:
-                 if sub_attributes[attr_name]['type'] == 'categorical':
-                    levels = original_levels_map.get(attr_name, [])
-                    # Base level (first one) has a utility of 0
-                    full_coeffs[f"{attr_name}_{levels[0]}"] = 0
-                    # Other levels get coefficients from the model
-                    for level in levels[1:]:
-                        full_coeffs[f"{attr_name}_{level}"] = coefficients[coeff_index]
-                        coeff_index += 1
-                 elif sub_attributes[attr_name]['type'] == 'numerical':
-                    full_coeffs[f"{attr_name}_std"] = coefficients[coeff_index]
-                    coeff_index += 1
-
-            regression_results = {
-                'rSquared': r_squared,
-                'adjustedRSquared': adj_r_squared,
-                'predictions': y_pred.tolist(),
-                'intercept': model.intercept_,
-                'coefficients': dict(zip(feature_names, model.coef_))
-            }
-            
-            part_worths = []
-            for attr_name in independent_vars:
-                props = sub_attributes[attr_name]
-                if props['type'] == 'categorical':
-                    level_names = original_levels_map.get(attr_name, [])
-                    level_worths = []
-                    for level in level_names:
-                        coef_name = f"{attr_name}_{level}"
-                        level_worths.append(full_coeffs.get(coef_name, 0))
-                    
-                    mean_worth = np.mean(level_worths) if level_worths else 0
-                    zero_centered_worths = [w - mean_worth for w in level_worths]
-
-                    for i, level in enumerate(level_names):
-                        part_worths.append({'attribute': attr_name, 'level': level, 'value': zero_centered_worths[i]})
-
-            attribute_ranges = {}
-            for attr_name in independent_vars:
-                 level_worths = [pw['value'] for pw in part_worths if pw['attribute'] == attr_name]
-                 attribute_ranges[attr_name] = max(level_worths) - min(level_worths) if level_worths else 0
-
-            total_range = sum(attribute_ranges.values())
-            importance = [{'attribute': attr, 'importance': (val / total_range) * 100 if total_range > 0 else 0} for attr, val in attribute_ranges.items()]
-            importance.sort(key=lambda x: x['importance'], reverse=True)
-            
-            optimal_profile = {}
-            total_utility = regression_results['intercept']
-            for attr_name in independent_vars:
-                if sub_attributes[attr_name]['type'] == 'categorical':
-                    attr_worths = [p for p in part_worths if p['attribute'] == attr_name]
-                    if not attr_worths: continue
-                    best_level = max(attr_worths, key=lambda x: x['value'])
-                    optimal_profile[attr_name] = best_level['level']
-                    total_utility += best_level['value']
-
-            return {
-                'regression': regression_results,
-                'partWorths': part_worths,
-                'importance': importance,
-                'targetVariable': target_variable,
-                'optimalProduct': { 'config': optimal_profile, 'totalUtility': total_utility }
-            }
-
-        def run_simulation(scenarios_to_sim, analysis_res):
-            def predict_utility(profile):
-                utility = analysis_res['regression']['intercept']
-                for attr, level in profile.items():
-                    if attr == 'name': continue
-                    pw = next((p for p in analysis_res['partWorths'] if p['attribute'] == attr and str(p['level']) == str(level)), None)
-                    if pw:
-                        utility += pw['value']
-                return utility
-            
-            scenario_utilities = [predict_utility(sc) for sc in scenarios_to_sim]
-            
-            # Simple preference share (not market share)
-            total_utility = sum(scenario_utilities)
-            shares = [u / total_utility * 100 if total_utility > 0 else 0 for u in scenario_utilities]
-
-            return [{'name': sc['name'], 'preferenceShare': share} for sc, share in zip(scenarios_to_sim, shares)]
-
-        if segment_variable and segment_variable != '-' and segment_variable in df.columns:
-            segments = df[segment_variable].unique()
-            results_by_segment = {}
-            for segment in segments:
-                if pd.isna(segment): continue
-                sub_df = df[df[segment_variable] == segment]
-                segment_result = run_conjoint_analysis(sub_df, attributes)
-                if segment_result:
-                    results_by_segment[str(segment)] = segment_result
-            
-            overall_results = run_conjoint_analysis(df, attributes)
-            if overall_results:
-                overall_results['segmentation'] = {
-                    'segmentVariable': segment_variable,
-                    'resultsBySegment': results_by_segment
-                }
-                final_results = overall_results
-            else:
-                 raise ValueError("Could not compute overall conjoint analysis.")
-        else:
-            final_results = run_conjoint_analysis(df, attributes)
-            if not final_results:
-                 raise ValueError("Conjoint analysis failed. Check data and attribute configuration.")
+    const allAttributes = useMemo(() => {
+        if (!conjointQuestion || !conjointQuestion.attributes) {
+            console.log('No attributes found in conjoint question');
+            return {};
+        }
         
-        if scenarios and final_results:
-            final_results['simulation'] = run_simulation(scenarios, final_results)
+        const attributesObj: any = {};
+        conjointQuestion.attributes.forEach((attr: any) => {
+            attributesObj[attr.name] = {
+                name: attr.name,
+                type: 'categorical',
+                levels: attr.levels || [],
+                includeInAnalysis: true,
+            };
+        });
+        
+        console.log('Processed attributes:', attributesObj);
+        return attributesObj;
+    }, [conjointQuestion]);
 
-        print(json.dumps({'results': final_results}, default=_to_native_type))
+    const attributeCols = useMemo(() => Object.keys(allAttributes), [allAttributes]);
 
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+    const handleAnalysis = useCallback(async (simulationScenarios?: Scenario[]) => {
+        try {
+            console.log('Starting analysis...');
+            console.log('Conjoint Question:', conjointQuestion);
+            console.log('Responses count:', responses?.length);
+            console.log('Attributes:', allAttributes);
 
-if __name__ == '__main__':
-    main()
+            if (!conjointQuestion) {
+                const error = 'No rating-based conjoint question found in survey';
+                console.error(error);
+                setDebugInfo(error);
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Configuration Error', 
+                    description: error 
+                });
+                setIsLoading(false);
+                return;
+            }
 
+            if (!responses || responses.length === 0) {
+                const error = 'No responses found for analysis';
+                console.error(error);
+                setDebugInfo(error);
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Data Error', 
+                    description: error 
+                });
+                setIsLoading(false);
+                return;
+            }
+
+            if (!conjointQuestion.profiles || conjointQuestion.profiles.length === 0) {
+                const error = 'No profiles defined in conjoint question';
+                console.error(error);
+                setDebugInfo(error);
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Configuration Error', 
+                    description: error 
+                });
+                setIsLoading(false);
+                return;
+            }
+
+            // Collect analysis data
+            const analysisData: any[] = [];
+            let processedResponses = 0;
+            let skippedResponses = 0;
+
+            responses.forEach((resp, respIndex) => {
+                console.log(`\nProcessing response ${respIndex + 1}:`, resp);
+                
+                // Try different answer structures
+                let answerBlock = resp.answers?.[conjointQuestion.id];
+                
+                // If answers is an array, try to find the right answer
+                if (Array.isArray(resp.answers)) {
+                    const answerObj = resp.answers.find((a: any) => a.questionId === conjointQuestion.id);
+                    answerBlock = answerObj?.ratings || answerObj?.answer || answerObj;
+                }
+                
+                console.log(`Answer block for response ${respIndex + 1}:`, answerBlock);
+                
+                if (!answerBlock || typeof answerBlock !== 'object') {
+                    console.warn(`Skipping response ${respIndex + 1}: Invalid answer block`);
+                    skippedResponses++;
+                    return;
+                }
+                
+                // Process each profile rating
+                let profilesProcessed = 0;
+                Object.entries(answerBlock).forEach(([profileKey, rating]) => {
+                    // Find matching profile
+                    const profile = conjointQuestion.profiles?.find((p: any) => 
+                        p.id === profileKey || 
+                        p.id === parseInt(profileKey) || 
+                        p.id.toString() === profileKey
+                    );
+                    
+                    if (!profile) {
+                        console.warn(`Profile not found for key: ${profileKey}`);
+                        return;
+                    }
+                    
+                    if (!profile.attributes) {
+                        console.warn(`Profile ${profileKey} has no attributes`);
+                        return;
+                    }
+                    
+                    const dataPoint: any = { ...profile.attributes };
+                    
+                    // Ensure rating is a number
+                    const ratingValue = Number(rating);
+                    if (isNaN(ratingValue)) {
+                        console.warn(`Invalid rating value: ${rating}`);
+                        return;
+                    }
+                    
+                    dataPoint.rating = ratingValue;
+                    analysisData.push(dataPoint);
+                    profilesProcessed++;
+                    
+                    console.log(`Added data point:`, dataPoint);
+                });
+                
+                if (profilesProcessed > 0) {
+                    processedResponses++;
+                }
+            });
+
+            console.log(`\nData collection complete:`);
+            console.log(`- Processed responses: ${processedResponses}/${responses.length}`);
+            console.log(`- Skipped responses: ${skippedResponses}`);
+            console.log(`- Total data points: ${analysisData.length}`);
+            console.log('Sample data points:', analysisData.slice(0, 3));
+            
+            if (analysisData.length === 0) {
+                const error = `No valid rating data found. Processed ${processedResponses} responses but found no valid ratings.`;
+                console.error(error);
+                setDebugInfo(error);
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Data Error', 
+                    description: error 
+                });
+                setIsLoading(false);
+                return;
+            }
+
+            setIsLoading(true);
+            if (!simulationScenarios) {
+                setAnalysisResult(null);
+                setSimulationResult(null);
+            }
+
+            // Prepare attributes for backend
+            const attributesForBackend = attributeCols.reduce((acc, attrName) => {
+                if (allAttributes[attrName]) {
+                    acc[attrName] = { 
+                        ...allAttributes[attrName], 
+                        includeInAnalysis: true 
+                    };
+                }
+                return acc;
+            }, {} as any);
+
+            console.log('Sending to backend:', {
+                dataLength: analysisData.length,
+                attributesCount: Object.keys(attributesForBackend).length,
+                targetVariable: 'rating',
+                hasScenarios: !!simulationScenarios
+            });
+
+            const requestBody = {
+                data: analysisData,
+                attributes: attributesForBackend,
+                targetVariable: 'rating',
+                scenarios: simulationScenarios
+            };
+
+            console.log('Full request body:', requestBody);
+
+            const response = await fetch('/api/analysis/conjoint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            console.log('API Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error response:', errorText);
+                
+                let errorMessage = `Server error: ${response.status}`;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.error || errorJson.message || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            const result: FullAnalysisResponse = await response.json();
+            console.log('API Result:', result);
+            
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            
+            if (!result.results) {
+                throw new Error('No results returned from analysis');
+            }
+            
+            setDebugInfo('Analysis completed successfully');
+            
+            if (simulationScenarios && result.results.simulation) {
+                setSimulationResult(result.results.simulation);
+                toast({ 
+                    title: 'Simulation Complete', 
+                    description: 'Market shares have been predicted.'
+                });
+            } else {
+                setAnalysisResult(result);
+                toast({ 
+                    title: 'Analysis Complete', 
+                    description: `Successfully analyzed ${analysisData.length} rating data points.` 
+                });
+            }
+
+        } catch (e: any) {
+            console.error('Analysis error:', e);
+            const errorMessage = e.message || 'Unknown error occurred';
+            setDebugInfo(`Error: ${errorMessage}`);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Analysis Error', 
+                description: errorMessage 
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [conjointQuestion, responses, toast, attributeCols, allAttributes]);
+
+    useEffect(() => {
+        handleAnalysis();
+    }, [handleAnalysis]);
+    
+    useEffect(() => {
+        if (analysisResult && attributeCols.length > 0) {
+            setSensitivityAttribute(attributeCols[0]);
+
+            const initialScenarios = [
+                { name: 'My Product' }, 
+                { name: 'Competitor A' }, 
+                { name: 'Competitor B' }
+            ].map((sc, scIndex) => {
+                const newSc: Scenario = { ...sc };
+                attributeCols.forEach((attrName, i) => {
+                    const levels = allAttributes[attrName]?.levels || [];
+                    if (levels.length > 0) {
+                        // Use different levels for each scenario
+                        newSc[attrName] = levels[(scIndex + i) % levels.length];
+                    }
+                });
+                return newSc;
+            });
+            setScenarios(initialScenarios);
+        }
+    }, [analysisResult, attributeCols, allAttributes]);
+
+    const runSimulation = () => {
+        handleAnalysis(scenarios);
+    };
+
+    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
+        setScenarios(prev => {
+            const newScenarios = [...prev];
+            newScenarios[scenarioIndex] = { 
+                ...newScenarios[scenarioIndex], 
+                [attrName]: value 
+            };
+            return newScenarios;
+        });
+    };
+    
+    const sensitivityData = useMemo(() => {
+        if (!analysisResult?.results || !sensitivityAttribute) return [];
+        
+        const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
+        
+        return analysisResult.results.partWorths
+            .filter(p => p.attribute === sensitivityAttribute)
+            .map(p => {
+                let otherUtility = 0;
+                otherAttributes.forEach(otherAttr => {
+                    const levels = allAttributes[otherAttr]?.levels || [];
+                    if (levels.length > 0) {
+                        const baseLevelWorth = analysisResult.results.partWorths.find(
+                            pw => pw.attribute === otherAttr && pw.level === levels[0]
+                        );
+                        otherUtility += baseLevelWorth?.value || 0;
+                    }
+                });
+                return {
+                    level: p.level,
+                    utility: (analysisResult.results.regression.intercept || 0) + p.value + otherUtility,
+                };
+            });
+    }, [analysisResult, sensitivityAttribute, attributeCols, allAttributes]);
+
+    const importanceData = useMemo(() => {
+        if (!analysisResult?.results.importance) return [];
+        return analysisResult.results.importance
+            .map(({ attribute, importance }) => ({ 
+                name: attribute, 
+                value: importance 
+            }))
+            .sort((a, b) => b.value - a.value);
+    }, [analysisResult]);
+
+    const partWorthsData = useMemo(() => {
+        if (!analysisResult?.results.partWorths) return [];
+        return analysisResult.results.partWorths;
+    }, [analysisResult]);
+
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    
+    const importanceChartConfig = useMemo(() => {
+        if (!analysisResult) return {};
+        return importanceData.reduce((acc, item, index) => {
+            acc[item.name] = { 
+                label: item.name, 
+                color: COLORS[index % COLORS.length] 
+            };
+            return acc;
+        }, {} as any);
+    }, [analysisResult, importanceData, COLORS]);
+
+    const partWorthChartConfig = { value: { label: "Part-Worth" } };
+
+    if (isLoading && !analysisResult) {
+        return (
+            <Card>
+                <CardContent className="p-6 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-4 text-muted-foreground">Running Rating-based Conjoint analysis...</p>
+                    {debugInfo && (
+                        <Alert className="mt-4">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{debugInfo}</AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    if (!analysisResult?.results) {
+        return (
+            <Card>
+                <CardContent className="p-6">
+                    <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            No analysis results available. {debugInfo || 'Please check your data and try again.'}
+                        </AlertDescription>
+                    </Alert>
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                        <p className="text-sm font-semibold mb-2">Debug Information:</p>
+                        <ul className="text-xs space-y-1">
+                            <li>• Survey has conjoint question: {conjointQuestion ? 'Yes' : 'No'}</li>
+                            <li>• Number of responses: {responses?.length || 0}</li>
+                            <li>• Number of attributes: {attributeCols.length}</li>
+                            {conjointQuestion && (
+                                <li>• Number of profiles: {conjointQuestion.profiles?.length || 0}</li>
+                            )}
+                        </ul>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const results = analysisResult.results;
+    
+    return (
+        <div className="space-y-4">
+            <Tabs defaultValue="importance" className="w-full">
+                <TabsList className={`grid w-full ${results.segmentation ? 'grid-cols-6' : 'grid-cols-5'}`}>
+                    <TabsTrigger value="importance">
+                        <PieIcon className="mr-2 h-4 w-4"/>Importance
+                    </TabsTrigger>
+                    <TabsTrigger value="partworths">
+                        <BarIcon className="mr-2 h-4 w-4"/>Part-Worths
+                    </TabsTrigger>
+                    <TabsTrigger value="optimal">
+                        <Star className="mr-2 h-4 w-4"/>Optimal
+                    </TabsTrigger>
+                    <TabsTrigger value="simulation">
+                        <Activity className="mr-2 h-4 w-4"/>Simulation
+                    </TabsTrigger>
+                    <TabsTrigger value="sensitivity">
+                        <LineChartIcon className="mr-2 h-4 w-4"/>Sensitivity
+                    </TabsTrigger>
+                    {results.segmentation && (
+                        <TabsTrigger value="segmentation">
+                            <Users className="mr-2 h-4 w-4"/>Segmentation
+                        </TabsTrigger>
+                    )}
+                </TabsList>
+                
+                <TabsContent value="importance" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className='flex items-center gap-2'>
+                                <PieIcon className="h-5 w-5"/>
+                                Relative Importance of Attributes
+                            </CardTitle>
+                            <CardDescription>
+                                Shows which attributes have the most influence on ratings
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={importanceChartConfig} className="w-full h-[400px]">
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie 
+                                            data={importanceData} 
+                                            dataKey="value" 
+                                            nameKey="name" 
+                                            cx="50%" 
+                                            cy="50%" 
+                                            outerRadius={120}
+                                            label={(entry) => `${entry.name} (${entry.value.toFixed(1)}%)`}
+                                            labelLine={false}
+                                        >
+                                            {importanceData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip 
+                                            content={
+                                                <ChartTooltipContent 
+                                                    formatter={(value) => `${(value as number).toFixed(2)}%`}
+                                                />
+                                            } 
+                                        />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="partworths" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className='flex items-center gap-2'>
+                                <BarIcon className="h-5 w-5"/>
+                                Part-Worth Utilities
+                            </CardTitle>
+                            <CardDescription>
+                                Utility values for each attribute level (zero-centered)
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {attributeCols.map(attr => {
+                                    const attrData = partWorthsData.filter(p => p.attribute === attr);
+                                    
+                                    return (
+                                        <div key={attr} className="space-y-2">
+                                            <h3 className="font-semibold text-lg">{attr}</h3>
+                                            <ChartContainer config={partWorthChartConfig} className="w-full h-[250px]">
+                                                <ResponsiveContainer>
+                                                    <BarChart 
+                                                        data={attrData} 
+                                                        layout="vertical" 
+                                                        margin={{ left: 100, right: 20, top: 20, bottom: 20 }}
+                                                    >
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis type="number" />
+                                                        <YAxis 
+                                                            dataKey="level" 
+                                                            type="category" 
+                                                            width={90}
+                                                            tick={{ fontSize: 12 }}
+                                                        />
+                                                        <Tooltip content={<ChartTooltipContent />} />
+                                                        <Bar 
+                                                            dataKey="value" 
+                                                            name="Part-Worth" 
+                                                            fill="hsl(var(--primary))" 
+                                                            barSize={30}
+                                                        />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </ChartContainer>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="optimal" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className='flex items-center gap-2'>
+                                <Star className="h-5 w-5"/>
+                                Optimal Product Profile
+                            </CardTitle>
+                            <CardDescription>
+                                The combination of attributes that yields the highest predicted preference rating
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {results.optimalProduct ? (
+                                <>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Attribute</TableHead>
+                                                <TableHead>Best Level</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {Object.entries(results.optimalProduct.config).map(([attr, level]) => (
+                                                <TableRow key={attr}>
+                                                    <TableCell className="font-medium">{attr}</TableCell>
+                                                    <TableCell>{level as string}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                    <div className="mt-6 p-4 bg-primary/10 rounded-lg text-center">
+                                        <p className="text-lg">
+                                            Predicted Rating: 
+                                            <span className="text-2xl font-bold text-primary ml-2">
+                                                {results.optimalProduct.totalUtility.toFixed(2)}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="text-muted-foreground">Could not determine optimal profile.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="simulation" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className='flex items-center gap-2'>
+                                <Activity className="h-5 w-5"/>
+                                Preference Share Simulation
+                            </CardTitle>
+                            <CardDescription>
+                                Build product scenarios to predict market preference shares
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-3 gap-4 mb-6">
+                                {scenarios.map((scenario, index) => (
+                                    <Card key={index}>
+                                        <CardHeader className="pb-3">
+                                            <Input 
+                                                value={scenario.name} 
+                                                onChange={(e) => handleScenarioChange(index, 'name', e.target.value)}
+                                                className="font-semibold"
+                                                placeholder="Scenario name"
+                                            />
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            {attributeCols.map((attrName) => {
+                                                const levels = allAttributes[attrName]?.levels || [];
+                                                return (
+                                                    <div key={attrName}>
+                                                        <Label className="text-sm">{attrName}</Label>
+                                                        <Select 
+                                                            value={scenario[attrName]} 
+                                                            onValueChange={(v) => handleScenarioChange(index, attrName, v)}
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select level" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {levels.map((l: string) => (
+                                                                    <SelectItem key={l} value={l}>{l}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                );
+                                            })}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                            
+                            <Button onClick={runSimulation} disabled={isLoading} size="lg">
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="animate-spin mr-2 h-4 w-4"/>
+                                        Running Simulation...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Activity className="mr-2 h-4 w-4"/>
+                                        Run Simulation
+                                    </>
+                                )}
+                            </Button>
+                            
+                            {simulationResult && (
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold mb-4">Simulation Results</h3>
+                                    <ChartContainer 
+                                        config={{
+                                            preferenceShare: {
+                                                label: 'Preference Share', 
+                                                color: 'hsl(var(--chart-1))'
+                                            }
+                                        }} 
+                                        className="w-full h-[300px]"
+                                    >
+                                        <ResponsiveContainer>
+                                            <BarChart data={simulationResult}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="name" />
+                                                <YAxis unit="%" />
+                                                <Tooltip 
+                                                    content={
+                                                        <ChartTooltipContent 
+                                                            formatter={(value) => `${(value as number).toFixed(2)}%`}
+                                                        />
+                                                    } 
+                                                />
+                                                <Bar 
+                                                    dataKey="preferenceShare" 
+                                                    name="Preference Share (%)" 
+                                                    fill="var(--color-preferenceShare)" 
+                                                    radius={[8, 8, 0, 0]} 
+                                                />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="sensitivity" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className='flex items-center gap-2'>
+                                <LineChartIcon className="h-5 w-5"/>
+                                Sensitivity Analysis
+                            </CardTitle>
+                            <CardDescription>
+                                See how the overall utility changes as you vary the levels of a single attribute
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                <div>
+                                    <Label>Attribute to Analyze</Label>
+                                    <Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}>
+                                        <SelectTrigger className="w-full md:w-[300px]">
+                                            <SelectValue placeholder="Select attribute" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {attributeCols.map(attr => (
+                                                <SelectItem key={attr} value={attr}>{attr}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                <ChartContainer 
+                                    config={{ utility: { label: 'Utility', color: 'hsl(var(--primary))' } }} 
+                                    className="w-full h-[400px]"
+                                >
+                                    <ResponsiveContainer>
+                                        <LineChart data={sensitivityData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="level" />
+                                            <YAxis />
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="utility" 
+                                                stroke="hsl(var(--primary))" 
+                                                strokeWidth={3}
+                                                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 6 }}
+                                                activeDot={{ r: 8 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                {results.segmentation && (
+                    <TabsContent value="segmentation" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className='flex items-center gap-2'>
+                                    <Users className="h-5 w-5"/>
+                                    Segmentation Analysis
+                                </CardTitle>
+                                <CardDescription>
+                                    Analysis results broken down by segment
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Alert>
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        Segmentation analysis visualization coming soon!
+                                    </AlertDescription>
+                                </Alert>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
+            </Tabs>
+            
+            {/* Model Fit Statistics Card */}
+            {results.regression && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className='flex items-center gap-2'>
+                            <Brain className="h-5 w-5"/>
+                            Model Fit Statistics
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground">R-Squared</p>
+                                <p className="text-2xl font-bold">
+                                    {(results.regression.rSquared * 100).toFixed(1)}%
+                                </p>
+                            </div>
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground">Adjusted R-Squared</p>
+                                <p className="text-2xl font-bold">
+                                    {(results.regression.adjustedRSquared * 100).toFixed(1)}%
+                                </p>
+                            </div>
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground">Intercept</p>
+                                <p className="text-2xl font-bold">
+                                    {results.regression.intercept.toFixed(2)}
+                                </p>
+                            </div>
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground">Predictions</p>
+                                <p className="text-2xl font-bold">
+                                    {results.regression.predictions?.length || 0}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}

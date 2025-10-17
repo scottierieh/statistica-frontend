@@ -1,5 +1,4 @@
 
-
 'use client';
 import React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -161,13 +160,13 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
             const result: FullAnalysisResponse = await response.json();
             if (result.error) throw new Error(result.error);
-
+            
             if (simulationScenarios && result.results.simulation) {
                 setSimulationResult(result.results.simulation);
                 toast({ title: 'Simulation Complete', description: 'Market shares have been predicted.'});
             } else {
                 setAnalysisResult(result);
-                toast({ title: 'CBC Analysis Complete', description: 'Part-worths and importance have been calculated.' });
+                toast({ title: 'Analysis Complete', description: 'CBC analysis finished successfully.' });
             }
 
         } catch (e: any) {
@@ -240,10 +239,9 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     return (
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
-                <TabsList className={`grid w-full grid-cols-4`}>
+                <TabsList className={`grid w-full grid-cols-3`}>
                     <TabsTrigger value="importance"><PieIcon className="mr-2 h-4 w-4"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2 h-4 w-4"/>Part-Worths</TabsTrigger>
-                    <TabsTrigger value="simulation"><Activity className="mr-2 h-4 w-4"/>Simulation</TabsTrigger>
                     <TabsTrigger value="modelfit"><TrendingUp className="mr-2 h-4 w-4"/>Model Fit</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
@@ -288,47 +286,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="simulation" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle>Market Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference shares.</CardDescription></CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-3 gap-4 mb-4">
-                                {scenarios.map((scenario, index) => (
-                                    <Card key={index}>
-                                        <CardHeader><Input value={scenario.name} onChange={(e) => handleScenarioChange(index, 'name', e.target.value)} /></CardHeader>
-                                        <CardContent className="space-y-2">
-                                            {attributeCols.map((attrName) => (
-                                                <div key={attrName}>
-                                                    <Label>{attrName}</Label>
-                                                    <Select value={scenario[attrName]} onValueChange={(v) => handleScenarioChange(index, attrName, v)}>
-                                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                                        <SelectContent>{allAttributes[attrName].levels.map((l:any) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-                                                    </Select>
-                                                </div>
-                                            ))}
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                            <Button onClick={runSimulation} disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin mr-2"/> : null} Run Simulation</Button>
-                            {simulationResult && (
-                                <div className="mt-4">
-                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
-                                      <ResponsiveContainer>
-                                          <BarChart data={simulationResult}>
-                                              <CartesianGrid strokeDasharray="3 3" />
-                                              <XAxis dataKey="name" />
-                                              <YAxis unit="%"/>
-                                              <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
-                                              <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
-                                          </BarChart>
-                                      </ResponsiveContainer>
-                                    </ChartContainer>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
                 <TabsContent value="modelfit" className="mt-4">
                     <Card>
                         <CardHeader>
@@ -361,5 +318,4 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
-
     
