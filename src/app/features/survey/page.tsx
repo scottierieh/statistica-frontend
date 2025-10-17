@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Target, Handshake, DollarSign, Users, ClipboardList, Network, Eye, CaseSensitive, CheckSquare, CircleDot, ChevronDown, ThumbsUp, Star, Share2, AlignLeft, Grid3x3, Replace, Phone, Mail, Sigma } from 'lucide-react';
+import { Target, Handshake, DollarSign, Users, ClipboardList, Network, Eye, CaseSensitive, CheckSquare, CircleDot, ChevronDown, ThumbsUp, Star, Share2, AlignLeft, Grid3x3, Replace, Phone, Mail, Sigma, ArrowDownUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -47,44 +47,52 @@ const questionTypes = [
     { category: 'Advanced / Analytical', type: 'Matrix Grid', icon: Grid3x3, description: 'Multi-row and column structured questions', useCase: 'Multiple related items with same scale' },
 ];
 
-const FeatureCard = ({ icon, title, description, imageHint }: { icon: React.ElementType; title: string; description: string; imageHint: string }) => {
+const FeatureCard = ({ icon: Icon, title, description, imageHint }: { icon: React.ElementType; title: string; description: string; imageHint: string }) => {
     const [hovered, setHovered] = useState(false);
     const featureImage = PlaceHolderImages.find(img => img.imageHint === imageHint);
 
     return (
-        <div 
-            className="relative"
+        <div
+            className="relative p-4 rounded-lg bg-muted/50 text-center overflow-hidden h-48 flex items-center justify-center"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
-            <div className="p-4 rounded-lg bg-muted/50 text-center relative z-10 bg-white">
-                <AnimatePresence>
-                    {hovered && featureImage && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10, height: 0 }}
-                            animate={{ opacity: 1, y: 0, height: 'auto' }}
-                            exit={{ opacity: 0, y: -10, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="absolute bottom-full left-0 right-0 mb-2"
-                        >
-                            <Image
-                                src={featureImage.imageUrl}
-                                alt={featureImage.description}
-                                width={300}
-                                height={200}
-                                className="rounded-lg shadow-lg mx-auto"
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <div className="p-4 rounded-lg bg-muted/50 text-center">
-                    <div className="flex justify-center mb-2">
-                        {React.createElement(icon, { className: "h-10 w-10 text-primary" })}
-                    </div>
-                    <h3 className="font-semibold">{title}</h3>
-                    <p className="text-xs text-muted-foreground">{description}</p>
-                </div>
-            </div>
+            <AnimatePresence>
+                {!hovered && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 flex flex-col items-center justify-center p-4"
+                    >
+                        <div className="flex justify-center mb-2">
+                            <Icon className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 className="font-semibold">{title}</h3>
+                        <p className="text-xs text-muted-foreground">{description}</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {hovered && featureImage && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute inset-0"
+                    >
+                        <Image
+                            src={featureImage.imageUrl}
+                            alt={featureImage.description}
+                            layout="fill"
+                            objectFit="cover"
+                            className="rounded-lg"
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
