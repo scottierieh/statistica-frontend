@@ -50,7 +50,7 @@ const questionTypes = [
 const FeatureCard = ({ icon: Icon, title, description, onMouseEnter, onMouseLeave }: { icon: React.ElementType; title: string; description: string; onMouseEnter: () => void; onMouseLeave: () => void; }) => {
     return (
         <div 
-            className="relative p-4 rounded-lg bg-muted/50 text-center h-48 flex flex-col items-center justify-center"
+            className="relative p-4 rounded-lg bg-muted/50 text-center h-48 flex flex-col items-center justify-center cursor-pointer"
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
         >
@@ -100,36 +100,13 @@ export default function SurveyFeaturePage() {
             <FeaturePageHeader title="Survey" />
             <main className="flex-1 p-4 md:p-8 lg:p-12">
                 <div className="max-w-6xl mx-auto">
-                    <Card className="mb-8 overflow-hidden">
-                        <div className="relative">
-                            <AnimatePresence>
-                                {hoveredFeature && featureDetails[hoveredFeature]?.image ? (
-                                     <motion.div
-                                        key={hoveredFeature}
-                                        initial={{ opacity: 0, y: 50 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -50 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="absolute inset-0"
-                                    >
-                                        <Image
-                                            src={featureDetails[hoveredFeature].image.imageUrl}
-                                            alt={featureDetails[hoveredFeature].image.description}
-                                            layout="fill"
-                                            objectFit="cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/30" />
-                                    </motion.div>
-                                ) : (
-                                     <CardHeader className="text-center relative z-10">
-                                        <CardTitle className="text-4xl font-headline">Integrated Survey &amp; Analysis Platform</CardTitle>
-                                        <CardDescription className="text-lg text-muted-foreground mt-2">
-                                            From survey design to advanced market research—all in one place.
-                                        </CardDescription>
-                                    </CardHeader>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                    <Card className="mb-8">
+                        <CardHeader className="text-center">
+                            <CardTitle className="text-4xl font-headline">Integrated Survey &amp; Analysis Platform</CardTitle>
+                            <CardDescription className="text-lg text-muted-foreground mt-2">
+                                From survey design to advanced market research—all in one place.
+                            </CardDescription>
+                        </CardHeader>
                         <CardContent>
                              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
                                 <FeatureCard
@@ -157,7 +134,35 @@ export default function SurveyFeaturePage() {
                         </CardContent>
                     </Card>
                     
-                    <Tabs defaultValue="questionTypes" className="w-full">
+                    <div className="mt-8 h-[400px] relative w-full overflow-hidden rounded-xl border shadow-lg">
+                        <AnimatePresence>
+                            {hoveredFeature && featureDetails[hoveredFeature]?.image ? (
+                                <motion.div
+                                    key={hoveredFeature}
+                                    initial={{ opacity: 0, scale: 1.05 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 1.05 }}
+                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                    className="absolute inset-0"
+                                >
+                                    <Image
+                                        src={featureDetails[hoveredFeature].image.imageUrl}
+                                        alt={featureDetails[hoveredFeature].image.description}
+                                        layout="fill"
+                                        objectFit="cover"
+                                        className="rounded-xl"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 rounded-xl" />
+                                </motion.div>
+                            ) : (
+                                <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                                    <p className="text-muted-foreground">Hover over a feature above to see an image.</p>
+                                </div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                    
+                    <Tabs defaultValue="questionTypes" className="w-full mt-8">
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="questionTypes">Question Types</TabsTrigger>
                             <TabsTrigger value="analysisTypes">Analysis Types</TabsTrigger>
@@ -272,5 +277,3 @@ export default function SurveyFeaturePage() {
         </div>
     );
 }
-
-    
