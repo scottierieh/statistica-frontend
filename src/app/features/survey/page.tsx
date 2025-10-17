@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FeaturePageHeader } from '@/components/feature-page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { cn } from '@/lib/utils';
 
 
 const analysisMethods = [
@@ -47,10 +48,13 @@ const questionTypes = [
     { category: 'Advanced / Analytical', type: 'Matrix Grid', icon: Grid3x3, description: 'Multi-row and column structured questions', useCase: 'Multiple related items with same scale' },
 ];
 
-const FeatureCard = ({ icon: Icon, title, description, onMouseEnter, onMouseLeave }: { icon: React.ElementType; title: string; description: string; onMouseEnter: () => void; onMouseLeave: () => void; }) => {
+const FeatureCard = ({ icon: Icon, title, description, onMouseEnter, onMouseLeave, isActive }: { icon: React.ElementType; title: string; description: string; onMouseEnter: () => void; onMouseLeave: () => void; isActive: boolean; }) => {
     return (
         <div 
-            className="relative p-4 rounded-lg bg-muted/50 text-center h-48 flex flex-col items-center justify-center cursor-pointer"
+            className={cn(
+                "relative p-4 rounded-lg bg-muted/50 text-center h-48 flex flex-col items-center justify-center cursor-pointer transition-all duration-300",
+                isActive ? "border-2 border-primary bg-primary/5 shadow-lg" : "border-2 border-transparent"
+            )}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
         >
@@ -63,9 +67,24 @@ const FeatureCard = ({ icon: Icon, title, description, onMouseEnter, onMouseLeav
     );
 };
 
-
 export default function SurveyFeaturePage() {
-    const [hoveredFeature, setHoveredFeature] = useState<string | null>('templates');
+    const featureKeys = ['templates', 'analytics', 'design'];
+    const [activeFeature, setActiveFeature] = useState(featureKeys[0]);
+    const [isHovering, setIsHovering] = useState(false);
+
+    useEffect(() => {
+        if (isHovering) return;
+
+        const interval = setInterval(() => {
+            setActiveFeature(current => {
+                const currentIndex = featureKeys.indexOf(current);
+                const nextIndex = (currentIndex + 1) % featureKeys.length;
+                return featureKeys[nextIndex];
+            });
+        }, 5000); // Change image every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [isHovering]);
 
     const featureDetails: {[key: string]: any} = {
         'templates': {
@@ -108,27 +127,30 @@ export default function SurveyFeaturePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-center" onMouseLeave={() => setHoveredFeature('templates')}>
+                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
                                 <FeatureCard
                                     icon={Target}
                                     title="Purpose-Built Templates"
                                     description="Utilize expert-designed templates for complex analyses like Conjoint, TURF, and IPA."
-                                    onMouseEnter={() => setHoveredFeature('templates')}
-                                    onMouseLeave={() => {}}
+                                    onMouseEnter={() => { setActiveFeature('templates'); setIsHovering(true); }}
+                                    onMouseLeave={() => setIsHovering(false)}
+                                    isActive={activeFeature === 'templates'}
                                 />
                                 <FeatureCard
                                     icon={Handshake}
                                     title="Advanced Analytics"
                                     description="Seamlessly transition from data collection to sophisticated analysis without leaving the platform."
-                                     onMouseEnter={() => setHoveredFeature('analytics')}
-                                     onMouseLeave={() => {}}
+                                     onMouseEnter={() => { setActiveFeature('analytics'); setIsHovering(true); }}
+                                     onMouseLeave={() => setIsHovering(false)}
+                                     isActive={activeFeature === 'analytics'}
                                 />
                                 <FeatureCard
                                     icon={ClipboardList}
                                     title="Intuitive Design"
                                     description="A user-friendly interface that makes powerful market research techniques accessible to everyone."
-                                    onMouseEnter={() => setHoveredFeature('design')}
-                                    onMouseLeave={() => {}}
+                                    onMouseEnter={() => { setActiveFeature('design'); setIsHovering(true); }}
+                                     onMouseLeave={() => setIsHovering(false)}
+                                     isActive={activeFeature === 'design'}
                                 />
                             </div>
                         </CardContent>
@@ -136,18 +158,18 @@ export default function SurveyFeaturePage() {
                     
                     <div className="mt-8 h-[400px] relative w-full overflow-hidden rounded-xl border shadow-lg">
                         <AnimatePresence>
-                            {hoveredFeature && featureDetails[hoveredFeature]?.image && (
+                            {activeFeature && featureDetails[activeFeature]?.image && (
                                 <motion.div
-                                    key={hoveredFeature}
+                                    key={activeFeature}
                                     initial={{ opacity: 0, scale: 1.05 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 1.05 }}
-                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
                                     className="absolute inset-0"
                                 >
                                     <Image
-                                        src={featureDetails[hoveredFeature].image.imageUrl}
-                                        alt={featureDetails[hoveredFeature].image.description}
+                                        src={featureDetails[activeFeature].image.imageUrl}
+                                        alt={featureDetails[activeFeature].image.description}
                                         layout="fill"
                                         objectFit="cover"
                                         className="rounded-xl"
@@ -187,7 +209,7 @@ export default function SurveyFeaturePage() {
                                                     {types.map((q, index) => (
                                                         <TableRow key={q.type}>
                                                             {index === 0 && (
-                                                                <TableCell rowSpan={types.length} className="align-middle font-semibold">
+                                                                <TableCell rowSpan={types.length} className="align-top font-semibold">
                                                                     {category}
                                                                 </TableCell>
                                                             )}
@@ -239,7 +261,7 @@ export default function SurveyFeaturePage() {
                                                     {methods.map((method, index) => (
                                                         <TableRow key={method.method}>
                                                             {index === 0 && (
-                                                                <TableCell rowSpan={methods.length} className="align-middle font-semibold">
+                                                                <TableCell rowSpan={methods.length} className="align-top font-semibold">
                                                                     {category}
                                                                 </TableCell>
                                                             )}
@@ -274,3 +296,5 @@ export default function SurveyFeaturePage() {
         </div>
     );
 }
+
+    
