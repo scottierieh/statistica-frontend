@@ -1,15 +1,13 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { Sigma, Loader2, DollarSign, Brain, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -26,8 +24,7 @@ interface AnalysisResults {
 interface FullAnalysisResponse {
     results: AnalysisResults;
     plots: {
-        psm_plot: string;
-        acceptance_plot: string;
+        psm_plot?: string;
     };
     error?: string;
 }
@@ -95,7 +92,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                mapping[q_title.replace(' ', '_')] = question.id;
+                mapping[q_title] = question.id;
             }
         });
         return mapping;
@@ -104,23 +101,23 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     const canRun = useMemo(() => Object.keys(questionMap).length === requiredQuestions.length, [questionMap, requiredQuestions]);
 
     const handleAnalysis = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        setAnalysisResult(null);
+
         if (!canRun) {
             setError("Not all required Van Westendorp questions were found. Please ensure questions containing 'Too Cheap', 'Cheap', 'Expensive', and 'Too Expensive' exist and are of 'number' type.");
             setIsLoading(false);
             return;
         }
 
-        setIsLoading(true);
-        setError(null);
-        setAnalysisResult(null);
-        
         const analysisData = responses.map(r => {
             const answers = r.answers as any;
             return {
-                too_cheap: answers[questionMap['too_cheap']],
-                cheap: answers[questionMap['cheap']],
-                expensive: answers[questionMap['expensive']],
-                too_expensive: answers[questionMap['too_expensive']],
+                'Too Cheap': answers[questionMap['too cheap']],
+                'Cheap': answers[questionMap['cheap']],
+                'Expensive': answers[questionMap['expensive']],
+                'Too Expensive': answers[questionMap['too expensive']],
             };
         });
         
@@ -130,10 +127,10 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     data: analysisData,
-                    too_cheap_col: 'too_cheap',
-                    cheap_col: 'cheap',
-                    expensive_col: 'expensive',
-                    too_expensive_col: 'too_expensive',
+                    too_cheap_col: 'Too Cheap',
+                    cheap_col: 'Cheap',
+                    expensive_col: 'Expensive',
+                    too_expensive_col: 'Too Expensive',
                 })
             });
 
@@ -161,27 +158,21 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         handleAnalysis();
     }, [handleAnalysis]);
     
-    const results = analysisResult?.results;
-
     if (error) {
          return (
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Analysis Error</AlertTitle>
-                <AlertDescription>
-                    {error}
-                </AlertDescription>
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
             </Alert>
         );
     }
     
-    if (isLoading) {
+    if (isLoading || !analysisResult) {
         return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> <p>Analyzing price sensitivity...</p></CardContent></Card>;
     }
     
-    if (!analysisResult) {
-         return <Card><CardContent className="p-6 text-center text-muted-foreground"><p>Could not load analysis results.</p></CardContent></Card>;
-    }
+    const { results, plots } = analysisResult;
 
     return (
         <div className="space-y-4">
@@ -190,38 +181,26 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                     <CardTitle className="font-headline">Key Price Points</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard title="Optimal Price (OPP)" value={results?.opp} />
-                    <StatCard title="Indifference Price (IDP)" value={results?.idp} />
-                    <StatCard title="Marginal Cheapness (PMC)" value={results?.pmc} />
-                    <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
+                    <StatCard title="Optimal Price (OPP)" value={results.opp} />
+                    <StatCard title="Indifference Price (IDP)" value={results.idp} />
+                    <StatCard title="Marginal Cheapness (PMC)" value={results.pmc} />
+                    <StatCard title="Marginal Expensiveness (PME)" value={results.pme} />
                 </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {analysisResult.plots.psm_plot ? (
-                            <Image src={`data:image/png;base64,${analysisResult.plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
-                        ) : <p>Could not render PSM plot.</p>}
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Price Acceptance Curve</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {analysisResult.plots.acceptance_plot ? (
-                            <Image src={`data:image/png;base64,${analysisResult.plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1000} height={700} className="w-full rounded-md border" />
-                        ) : <p>Could not render Acceptance plot.</p>}
-                    </CardContent>
-                </Card>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {plots.psm_plot ? (
+                        <Image src={`data:image/png;base64,${plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
+                    ) : <p>Could not render PSM plot.</p>}
+                </CardContent>
+            </Card>
 
-            <InterpretationDisplay interpretation={results?.interpretation} />
-
+            <InterpretationDisplay interpretation={results.interpretation} />
         </div>
     );
 }
+

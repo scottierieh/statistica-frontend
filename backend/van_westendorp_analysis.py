@@ -4,14 +4,21 @@ import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import interpolate
 import io
 import base64
 import warnings
 
+# Van Westendorp PSM 패키지 import
+try:
+    import VanWestendorp_PriceSensitivityMeter as VWPSM
+except ImportError:
+    print(json.dumps({"error": "VanWestendorp_PriceSensitivityMeter package not installed. Please install it using: pip install VanWestendorp-PriceSensitivityMeter"}), file=sys.stderr)
+    sys.exit(1)
+
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
+    """Convert numpy types to native Python types for JSON serialization"""
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
@@ -22,37 +29,8 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
-def find_intersection(x, y1, y2):
-    """Finds the intersection of two line segments."""
-    try:
-        f1 = interpolate.interp1d(x, y1, fill_value="extrapolate", bounds_error=False)
-        f2 = interpolate.interp1d(x, y2, fill_value="extrapolate", bounds_error=False)
-        
-        diff = f1(x) - f2(x)
-        
-        sign_change_indices = np.where(np.diff(np.sign(diff)))[0]
-        
-        if len(sign_change_indices) == 0:
-            idx = np.argmin(np.abs(diff))
-            return x[idx]
-
-        idx = sign_change_indices[0]
-        
-        x_a, x_b = x[idx], x[idx+1]
-        y_a, y_b = diff[idx], diff[idx+1]
-        
-        if y_a == y_b: return x_a
-
-        return x_a - y_a * (x_b - x_a) / (y_b - y_a)
-    except Exception:
-        # Fallback to minimum difference if interpolation fails
-        diff = np.abs(np.array(y1) - np.array(y2))
-        if len(diff) == 0: return None
-        idx = np.argmin(diff)
-        return x[idx]
-
-
 def generate_interpretation(results):
+    """Generate strategic pricing interpretation based on PSM results"""
     rap_lower = results.get('pmc')
     rap_upper = results.get('pme')
     opp = results.get('opp')
@@ -72,159 +50,105 @@ def generate_interpretation(results):
     )
     return interpretation.strip()
 
-def create_psm_plot(price_range, cumulative_curves, results):
-    fig, ax1 = plt.subplots(figsize=(10, 7))
-    
-    pmc_price, opp_price, idp_price, pme_price = results.get('pmc'), results.get('opp'), results.get('idp'), results.get('pme')
-
-    ax1.plot(price_range, cumulative_curves['too_cheap'], label='Too Cheap', color='lightblue', linewidth=2)
-    ax1.plot(price_range, cumulative_curves['cheap'], label='Cheap', color='blue', linewidth=2, linestyle='--')
-    ax1.plot(price_range, cumulative_curves['expensive'], label='Expensive', color='orange', linewidth=2)
-    ax1.plot(price_range, cumulative_curves['too_expensive'], label='Too Expensive', color='red', linewidth=2, linestyle='--')
-
-    if pmc_price: ax1.axvline(pmc_price, color='purple', linestyle='--', alpha=0.7, label=f'PMC: ${pmc_price:.2f}')
-    if opp_price: ax1.axvline(opp_price, color='green', linestyle='-', linewidth=2, alpha=0.9, label=f'OPP: ${opp_price:.2f}')
-    if idp_price: ax1.axvline(idp_price, color='black', linestyle='--', alpha=0.7, label=f'IDP: ${idp_price:.2f}')
-    if pme_price: ax1.axvline(pme_price, color='darkred', linestyle='--', alpha=0.7, label=f'PME: ${pme_price:.2f}')
-
-    ax1.set_xlabel('Price ($)')
-    ax1.set_ylabel('Cumulative Percentage (%)')
-    ax1.set_title('Van Westendorp Price Sensitivity Meter (PSM)')
-    ax1.legend(loc='best')
-    ax1.grid(True, alpha=0.3)
-    ax1.set_ylim(0, 100)
-
-    plt.tight_layout()
+def save_plot_to_base64(fig):
+    """Convert matplotlib figure to base64 encoded string"""
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close(fig)
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     buf.seek(0)
-    return base64.b64encode(buf.read()).decode('utf-8')
-
-def create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative):
-    not_too_cheap = 100 - too_cheap_cumulative
-    not_too_expensive = 100 - expensive_cumulative
-    acceptance = np.minimum(not_too_cheap, not_too_expensive)
-    max_acceptance_idx = np.argmax(acceptance)
-    max_acceptance_price = price_range[max_acceptance_idx]
-    max_acceptance_pct = acceptance[max_acceptance_idx]
-    
-    fig, ax2 = plt.subplots(figsize=(10, 7))
-
-    ax2.plot(price_range, not_too_cheap, label='Not Too Cheap', color='blue', linewidth=2, linestyle='--')
-    ax2.plot(price_range, not_too_expensive, label='Not Too Expensive', color='red', linewidth=2, linestyle='--')
-    ax2.fill_between(price_range, 0, acceptance, alpha=0.3, color='green', label='Acceptable Range')
-    ax2.plot(price_range, acceptance, color='green', linewidth=3, label='Acceptance Curve')
-
-    ax2.scatter([max_acceptance_price], [max_acceptance_pct], s=200, c='green', marker='*', 
-               zorder=5, edgecolors='black', linewidth=1.5)
-    ax2.annotate(f'Max Acceptance\n${max_acceptance_price:.2f}\n({max_acceptance_pct:.1f}%)', 
-                (max_acceptance_price, max_acceptance_pct),
-                xytext=(max_acceptance_price + 5, max_acceptance_pct - 15), fontsize=10, fontweight='bold',
-                bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.7))
-
-    ax2.set_xlabel('Price ($)')
-    ax2.set_ylabel('Acceptance Percentage (%)')
-    ax2.set_title('Price Acceptance Curve')
-    ax2.legend(loc='best')
-    ax2.grid(True, alpha=0.3)
-    ax2.set_ylim(0, 100)
-    
-    plt.tight_layout()
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
     plt.close(fig)
-    buf.seek(0)
-    return base64.b64encode(buf.read()).decode('utf-8')
+    return img_base64
 
 def main():
     try:
+        # Read input data from stdin
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        too_cheap_col = payload.get('too_cheap_col')
-        cheap_col = payload.get('cheap_col')
-        expensive_col = payload.get('expensive_col')
-        too_expensive_col = payload.get('too_expensive_col')
+        too_cheap_col = payload.get('too_cheap_col', 'Too Cheap')
+        cheap_col = payload.get('cheap_col', 'Cheap')
+        expensive_col = payload.get('expensive_col', 'Expensive')
+        too_expensive_col = payload.get('too_expensive_col', 'Too Expensive')
 
         if not data:
             raise ValueError("Missing required data.")
 
+        # Create DataFrame
         df = pd.DataFrame(data)
         
+        # Define column order for Van Westendorp
         price_cols = [too_cheap_col, cheap_col, expensive_col, too_expensive_col]
         
+        # Validate columns exist
         for col in price_cols:
-            if col is None or col not in df.columns:
-                 raise ValueError(f"Required column '{col}' not found in data.")
+            if col not in df.columns:
+                raise ValueError(f"Required column '{col}' not found in data.")
+        
+        # Clean and prepare data
+        for col in price_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-
-        df.dropna(subset=price_cols, inplace=True)
-
-        if df.shape[0] < 10:
-            raise ValueError(f"No valid numeric responses found. Need at least 10 complete responses, but found {df.shape[0]}.")
-
-        # Validate that prices are ordered correctly
-        for i in range(len(df)):
-            prices = df.iloc[i][price_cols].values.tolist()
-            if not all(x <= y for x, y in zip(prices, prices[1:])):
-                sorted_prices = sorted(prices)
-                df.iloc[i][price_cols] = sorted_prices
-
-        price_range = np.linspace(df[price_cols].values.min(), df[price_cols].values.max(), 500)
-        n = len(df)
         
-        too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
-        cheap_cumulative = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
-        expensive_cumulative = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
-        too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
+        # Remove rows with any NaN values in price columns
+        df_clean = df[price_cols].dropna()
         
-        # Inverted curves
-        not_cheap = 100 - cheap_cumulative
-        not_expensive = 100 - expensive_cumulative
+        if df_clean.shape[0] < 10:
+            raise ValueError(f"Need at least 10 complete responses, but found {df_clean.shape[0]}.")
         
-        # Find intersection points using the correct curves for each point
-        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_expensive)
-        pme_price = find_intersection(price_range, expensive_cumulative, not_cheap)
-        opp_price = find_intersection(price_range, too_expensive_cumulative, not_cheap)
-        idp_price = find_intersection(price_range, expensive_cumulative, not_cheap)
-
-        # The user provided script has a different logic for intersections, let's correct it based on standard PSM.
-        # OPP: 'Too Expensive' and 'Not Too Cheap'
-        # IDP: 'Expensive' and 'Cheap' (not their inverted counterparts)
-        opp_price_correct = find_intersection(price_range, too_expensive_cumulative, 100 - too_cheap_cumulative)
-        idp_price_correct = find_intersection(price_range, expensive_cumulative, cheap_cumulative)
-        pmc_price_correct = find_intersection(price_range, too_cheap_cumulative, 100 - cheap_cumulative)
-        pme_price_correct = find_intersection(price_range, expensive_cumulative, 100 - too_expensive_cumulative)
-
-
-        results = {
-            'pme': pme_price_correct,
-            'pmc': pmc_price_correct,
-            'opp': opp_price_correct,
-            'idp': idp_price_correct,
-        }
-        results['interpretation'] = generate_interpretation(results)
+        # Validate price ordering (too_cheap <= cheap <= expensive <= too_expensive)
+        for idx in df_clean.index:
+            prices = df_clean.loc[idx, price_cols].values
+            if not all(prices[i] <= prices[i+1] for i in range(len(prices)-1)):
+                # Sort prices if they're out of order
+                df_clean.loc[idx, price_cols] = sorted(prices)
         
-        cumulative_curves_for_psm = {
-            'too_cheap': too_cheap_cumulative,
-            'cheap': cheap_cumulative,
-            'expensive': expensive_cumulative,
-            'too_expensive': too_expensive_cumulative,
-        }
-        
-        psm_plot = create_psm_plot(price_range, cumulative_curves_for_psm, results)
-
-        acceptance_plot = create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative)
-
-        response = {
-            'results': results,
-            'plots': {
-                'psm_plot': psm_plot,
-                'acceptance_plot': acceptance_plot,
+        # Use VanWestendorp_PriceSensitivityMeter package
+        try:
+            # Call the VWPSM.results function with the cleaned data
+            vw_results = VWPSM.results(df_clean, price_cols)
+            
+            # Extract key price points from the package results
+            opp = getattr(vw_results, 'optimal_price_point', None)
+            idp = getattr(vw_results, 'indifference_price_point', None)
+            pmc = getattr(vw_results, 'point_of_marginal_cheapness', None)
+            pme = getattr(vw_results, 'point_of_marginal_expensiveness', None)
+            
+            # If the package provides a plot method, use it
+            plots = {}
+            if hasattr(vw_results, 'plot'):
+                fig = vw_results.plot
+                plots['psm_plot'] = save_plot_to_base64(fig)
+            
+            # Prepare results dictionary
+            results = {
+                'pme': _to_native_type(pme),
+                'pmc': _to_native_type(pmc),
+                'opp': _to_native_type(opp),
+                'idp': _to_native_type(idp),
             }
-        }
-
-        print(json.dumps(response, default=_to_native_type))
+            
+            # Add interpretation
+            results['interpretation'] = generate_interpretation(results)
+            
+            # Prepare response
+            response = {
+                'results': results,
+                'plots': plots,
+                'summary': {
+                    'total_responses': len(df_clean),
+                    'price_range': {
+                        'min': float(df_clean[price_cols].min().min()),
+                        'max': float(df_clean[price_cols].max().max())
+                    }
+                }
+            }
+            
+            print(json.dumps(response, default=_to_native_type))
+            
+        except Exception as e:
+            # If the package fails, provide informative error
+            error_msg = f"Error using VanWestendorp_PriceSensitivityMeter package: {str(e)}"
+            print(json.dumps({"error": error_msg}), file=sys.stderr)
+            sys.exit(1)
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -232,5 +156,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
