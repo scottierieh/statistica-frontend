@@ -94,33 +94,11 @@ class ConjointDesignGenerator {
         return selected;
     }
 
-    static calculateDesignBalance(profiles: any[], attributes: ConjointAttribute[]) {
-        let balanceScore = 0;
-        
-        for (const attr of attributes) {
-            const levelCounts: { [key: string]: number } = {};
-            attr.levels.forEach(level => { levelCounts[level] = 0; });
-            
-            profiles.forEach(profile => {
-                const level = profile.attributes[attr.name];
-                if (level) levelCounts[level]++;
-            });
-            
-            const counts = Object.values(levelCounts);
-            const mean = counts.reduce((a, b) => a + b, 0) / counts.length;
-            const variance = counts.reduce((sum, count) => sum + Math.pow(count - mean, 2), 0) / counts.length;
-            
-            balanceScore -= variance;
-        }
-        
-        return balanceScore;
-    }
-
     static generateOrthogonalDesign(attributes: ConjointAttribute[]) {
         const orthogonalArray = this.selectOrthogonalArray(attributes);
         
         if (!orthogonalArray) {
-            return this.generateFractionalFactorial(attributes);
+            return ConjointDesignGenerator.generateFractionalFactorial(attributes);
         }
         
         return this.mapOrthogonalArrayToProfiles(orthogonalArray, attributes);
@@ -169,7 +147,7 @@ class ConjointDesignGenerator {
         
         return profiles;
     }
-
+    
     static calculateDesignStatistics(profiles: any[], attributes: ConjointAttribute[]) {
         const totalCombinations = attributes.reduce((acc, attr) => acc * attr.levels.length, 1);
         const balance = this.checkBalance(profiles, attributes);
@@ -307,7 +285,7 @@ export default function ConjointQuestion({
     isLastQuestion,
     submitSurvey
 }: ConjointQuestionProps) {
-    const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3, designMethod = 'fractional' } = question;
+    const { attributes = [], profiles = [], sets = 1, cardsPerSet = 3, designMethod = 'fractional-factorial' } = question;
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
 
