@@ -411,23 +411,24 @@ export default function StatisticaApp() {
   };
 
 
-  const handleGenerateReport = async () => {
-    if (data.length === 0) {
-      toast({ title: 'No Data to Report', description: 'Please upload a file first.' });
-      return;
-    }
+  const handleGenerateReport = async (stats: any, viz: string | null) => {
     setIsGeneratingReport(true);
-    const statsString = `Columns in the loaded data: ${allHeaders.join(', ')}`;
-    const vizString = "Statistical visualizations for the loaded data.";
-
-    const result = await getSummaryReport({ statistics: statsString, visualizations: vizString });
-    if (result.success && result.report) {
-      setReport({ title: 'Statistical Analysis Report', content: result.report });
-    } else {
-      toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
+    try {
+        const result = await getSummaryReport({
+            statistics: JSON.stringify(stats, null, 2),
+            visualizations: viz || "No visualization available.",
+        });
+        if (result.success && result.report) {
+            setReport({ title: 'Analysis Report', content: result.report });
+        } else {
+            toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
+        }
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while generating the report.' });
+    } finally {
+        setIsGeneratingReport(false);
     }
-    setIsGeneratingReport(false);
-  };
+};
   
   const downloadReport = () => {
     if (!report) return;
@@ -531,13 +532,13 @@ export default function StatisticaApp() {
           </SidebarContent>
           <SidebarFooter>
              <div className="w-full flex gap-2">
-                <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="flex-1">
-                    {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
-                    {isGeneratingReport ? '' : 'Report'}
+                <Button variant="outline" onClick={() => setActiveAnalysis('history')} className="flex-1">
+                    <Clock />
+                    <span className="group-data-[collapsible=icon]:hidden">History</span>
                 </Button>
                  <Button onClick={handleDownloadAsPDF} disabled={!hasData} className="flex-1">
                     <Download />
-                    <span>PDF</span>
+                    <span className="group-data-[collapsible=icon]:hidden">PDF</span>
                 </Button>
             </div>
           </SidebarFooter>
@@ -567,7 +568,10 @@ export default function StatisticaApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
+                isUploading={isUploading}
                 activeAnalysis={activeAnalysis}
+                onGenerateReport={handleGenerateReport}
              />
           </div>
         </SidebarInset>
