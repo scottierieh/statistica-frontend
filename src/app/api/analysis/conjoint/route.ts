@@ -1,4 +1,5 @@
 
+'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
@@ -8,6 +9,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
+    // This route is now specifically for Choice-Based Conjoint (CBC)
     const scriptPath = path.resolve(process.cwd(), 'backend', 'cbc_analysis.py');
 
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
@@ -29,13 +31,13 @@ export async function POST(req: NextRequest) {
     return new Promise<NextResponse>((resolve) => {
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
-          console.error(`Script exited with code ${code}`);
+          console.error(`CBC Script exited with code ${code}`);
           console.error(error);
           try {
             const errorJson = JSON.parse(error);
             resolve(NextResponse.json({ error: errorJson.error || `Script failed: ${error}` }, { status: 500 }));
           } catch(e) {
-            resolve(NextResponse.json({ error: `Script failed: ${error}` }, { status: 500 }));
+            resolve(NextResponse.json({ error: `Script failed with non-JSON error: ${error}` }, { status: 500 }));
           }
         } else {
           try {
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
               resolve(NextResponse.json(jsonResult));
             }
           } catch(e) {
-            console.error('Failed to parse python script output');
+            console.error('Failed to parse python script output for CBC');
             console.error(result);
             resolve(NextResponse.json({ error: `Failed to parse script output: ${result}` }, { status: 500 }));
           }

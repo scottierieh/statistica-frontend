@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
 import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Input } from '../ui/input';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface CbcResults {
     partWorths: { attribute: string, level: string, value: number }[];
@@ -140,7 +140,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         }, {} as any);
 
         try {
-            const response = await fetch('/api/analysis/cbc', {
+            const response = await fetch('/api/analysis/conjoint', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -301,20 +301,3 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         </div>
     );
 }
-
-// --- STEP INDICATOR (reusable, if needed elsewhere) --- //
-const StepIndicator = ({ currentStep }: { currentStep: number }) => (
-    <div className="flex items-center justify-center p-4">
-      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
-        <React.Fragment key={index}>
-          <div className="flex flex-col items-center">
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
-            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
-          </div>
-          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
-        </React.Fragment>
-      ))}
-    </div>
-  );
-    
-
