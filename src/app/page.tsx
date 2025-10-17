@@ -32,7 +32,7 @@ export default function LandingPage() {
                     <h1 className="text-xl font-headline font-bold">Skarii</h1>
                 </Link>
             </div>
-            <nav className="hidden lg:flex gap-4 sm:gap-6 flex-1 justify-center">
+            <nav className="hidden lg:flex items-center gap-4 sm:gap-6 flex-1 justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="text-sm font-medium">
