@@ -65,7 +65,7 @@ const FeatureCard = ({ icon: Icon, title, description, onMouseEnter, onMouseLeav
 
 
 export default function SurveyFeaturePage() {
-    const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
+    const [hoveredFeature, setHoveredFeature] = useState<string | null>('templates');
 
     const featureDetails: {[key: string]: any} = {
         'templates': {
@@ -108,27 +108,27 @@ export default function SurveyFeaturePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
+                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-center" onMouseLeave={() => setHoveredFeature('templates')}>
                                 <FeatureCard
                                     icon={Target}
                                     title="Purpose-Built Templates"
                                     description="Utilize expert-designed templates for complex analyses like Conjoint, TURF, and IPA."
                                     onMouseEnter={() => setHoveredFeature('templates')}
-                                    onMouseLeave={() => setHoveredFeature(null)}
+                                    onMouseLeave={() => {}}
                                 />
                                 <FeatureCard
                                     icon={Handshake}
                                     title="Advanced Analytics"
                                     description="Seamlessly transition from data collection to sophisticated analysis without leaving the platform."
                                      onMouseEnter={() => setHoveredFeature('analytics')}
-                                    onMouseLeave={() => setHoveredFeature(null)}
+                                     onMouseLeave={() => {}}
                                 />
                                 <FeatureCard
                                     icon={ClipboardList}
                                     title="Intuitive Design"
                                     description="A user-friendly interface that makes powerful market research techniques accessible to everyone."
                                     onMouseEnter={() => setHoveredFeature('design')}
-                                    onMouseLeave={() => setHoveredFeature(null)}
+                                    onMouseLeave={() => {}}
                                 />
                             </div>
                         </CardContent>
@@ -136,7 +136,7 @@ export default function SurveyFeaturePage() {
                     
                     <div className="mt-8 h-[400px] relative w-full overflow-hidden rounded-xl border shadow-lg">
                         <AnimatePresence>
-                            {hoveredFeature && featureDetails[hoveredFeature]?.image ? (
+                            {hoveredFeature && featureDetails[hoveredFeature]?.image && (
                                 <motion.div
                                     key={hoveredFeature}
                                     initial={{ opacity: 0, scale: 1.05 }}
@@ -151,13 +151,10 @@ export default function SurveyFeaturePage() {
                                         layout="fill"
                                         objectFit="cover"
                                         className="rounded-xl"
+                                        priority
                                     />
                                     <div className="absolute inset-0 bg-black/20 rounded-xl" />
                                 </motion.div>
-                            ) : (
-                                <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                                    <p className="text-muted-foreground">Hover over a feature above to see an image.</p>
-                                </div>
                             )}
                         </AnimatePresence>
                     </div>
