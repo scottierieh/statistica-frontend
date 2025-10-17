@@ -69,8 +69,8 @@ export default function FaqCategoryPage() {
                         <CardContent className="p-0">
                             <ul className="divide-y">
                                 {category.articles.map(article => (
-                                    <li key={article.title} className="group">
-                                        <Link href="#" className="block p-6 hover:bg-muted/50 transition-colors">
+                                    <li key={article.slug} className="group">
+                                        <Link href={`/faq/${category.slug}/${article.slug}`} className="block p-6 hover:bg-muted/50 transition-colors">
                                              <div className="flex justify-between items-center">
                                                 <div>
                                                     <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{article.title}</h3>
