@@ -184,6 +184,30 @@ class ConjointDesignGenerator {
         };
     }
 
+    static checkBalance(profiles: any[], attributes: ConjointAttribute[]) {
+        let totalBalance = 0;
+        let attrCount = 0;
+        
+        for (const attr of attributes) {
+            const levelCounts: { [key: string]: number } = {};
+            attr.levels.forEach(level => { levelCounts[level] = 0; });
+            
+            profiles.forEach(profile => {
+                const level = profile.attributes[attr.name];
+                if (level) levelCounts[level]++;
+            });
+            
+            const counts = Object.values(levelCounts);
+            const expectedCount = profiles.length / attr.levels.length;
+            const maxDeviation = Math.max(...counts.map(c => Math.abs(c - expectedCount)));
+            
+            totalBalance += 1 - (maxDeviation / profiles.length);
+            attrCount++;
+        }
+        
+        return totalBalance / attrCount;
+    }
+
     static checkOrthogonality(profiles: any[], attributes: ConjointAttribute[]) {
         if (attributes.length < 2) return 1;
         let totalOrthogonality = 0;
@@ -227,6 +251,7 @@ class ConjointDesignGenerator {
         });
         
         const minDim = Math.min(attr1.levels.length - 1, attr2.levels.length - 1);
+        if (n * minDim === 0) return 0;
         return Math.sqrt(chiSquare / (n * minDim));
     }
 }
@@ -336,7 +361,10 @@ export default function ConjointQuestion({
                     {(currentTaskProfiles || []).map((profile: any, index: number) => (
                         <Card 
                             key={profile.id} 
-                            className={cn("text-left transition-all overflow-hidden cursor-pointer", answer?.[taskId] === profile.id ? "ring-2 ring-primary bg-primary/5" : "hover:shadow-md hover:-translate-y-1")}
+                            className={cn(
+                                "text-left transition-all overflow-hidden cursor-pointer", 
+                                answer?.[taskId] === profile.id ? "ring-2 ring-primary bg-primary/5" : "hover:shadow-md hover:-translate-y-1"
+                            )}
                             onClick={() => handleChoice(taskId, profile.id)}
                         >
                             <CardHeader className="p-3 bg-muted/50"><CardTitle className="text-sm font-semibold">Option {index + 1}</CardTitle></CardHeader>
@@ -454,7 +482,7 @@ export default function ConjointQuestion({
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
                                     <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
-                                    <SelectItem value="orthogonal">Orthogonal</SelectItem>
+                                    <SelectItem value="orthogonal">Orthogonal Design</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -494,7 +522,7 @@ export default function ConjointQuestion({
                     </div>
                      <ScrollArea className="h-48 border rounded-md p-2">
                         <Table>
-                            <TableHeader><TableRow><TableHead className="text-xs">Profile</TableHead><TableHead className="text-xs">Task</TableHead>{attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}</TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-xs">Profile ID</TableHead><TableHead className="text-xs">Task ID</TableHead>{attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
