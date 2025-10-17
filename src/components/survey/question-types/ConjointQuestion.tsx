@@ -6,7 +6,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,7 +164,9 @@ export default function ConjointQuestion({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    design_method: designMethod,
+                    designType: question.type,
+                    sets: sets || 8,
+                    cardsPerSet: cardsPerSet || 3,
                 }),
             });
             
@@ -174,23 +176,12 @@ export default function ConjointQuestion({
             }
             
             const result = await response.json();
-            
-            const taskProfiles = result.profiles.reduce((acc: any, profile: any, index: number) => {
-                const taskId = `task_${Math.floor(index / (cardsPerSet || 3))}`;
-                return {
-                    ...acc,
-                    [taskId]: [...(acc[taskId] || []), { ...profile, taskId }],
-                };
-            }, {});
-
-            const flattenedProfiles = Object.values(taskProfiles).flat();
-
-            onUpdate?.({ profiles: flattenedProfiles });
+            onUpdate?.({ profiles: result.profiles });
             
             setDesignStats(result.statistics);
             toast({
                 title: "Profiles Generated",
-                description: `${result.profiles.length} profiles created using ${designMethod} design.`
+                description: `${result.profiles.length} profiles created.`
             });
 
         } catch (e: any) {
@@ -227,7 +218,7 @@ export default function ConjointQuestion({
                                 {attr.levels.map((level, levelIndex) => (
                                     <div key={levelIndex} className="flex items-center gap-2">
                                         <Input value={level} onChange={e => handleLevelUpdate(attrIndex, levelIndex, e.target.value)} />
-                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)}><X className="w-4 h-4"/></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)} disabled={attr.levels.length <= 1}><X className="w-4 h-4"/></Button>
                                     </div>
                                 ))}
                                 <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="mr-2"/>Add Level</Button>
@@ -248,7 +239,6 @@ export default function ConjointQuestion({
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
                                     <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
-                                    <SelectItem value="orthogonal">Orthogonal Design</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -270,7 +260,6 @@ export default function ConjointQuestion({
                         <AlertDescription className="text-xs">
                            {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} possible combinations will be generated. Best for small designs.`}
                            {designMethod === 'fractional-factorial' && `Fractional Factorial: Optimal subset using D-optimal algorithm.`}
-                           {designMethod === 'orthogonal' && `Orthogonal Design: Uses standard arrays (L4, L8, etc.). Ensures statistical independence between attributes.`}
                         </AlertDescription>
                     </Alert>
 

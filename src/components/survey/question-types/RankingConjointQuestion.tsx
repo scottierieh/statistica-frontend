@@ -41,25 +41,6 @@ const SortableCard = ({ id, profile, index, attributes }: { id: string, profile:
     )
 };
 
-// Helper to create profile tasks for rating
-const createProfileTasks = (profiles: any[], sets: number) => {
-    const shuffled = [...profiles].sort(() => 0.5 - Math.random());
-    const cardsPerSet = Math.ceil(shuffled.length / sets);
-    
-    const tasks: any[] = [];
-    for (let i = 0; i < sets; i++) {
-        const taskProfiles = shuffled.slice(i * cardsPerSet, (i + 1) * cardsPerSet);
-        taskProfiles.forEach((profile, profileIndex) => {
-            tasks.push({
-                ...profile,
-                id: `profile_${i}_${profileIndex}`,
-                taskId: `task_${i}`
-            });
-        });
-    }
-    return tasks;
-};
-
 interface RankingConjointQuestionProps {
     question: Question;
     answer?: { [taskId: string]: string[] };
@@ -178,9 +159,11 @@ export default function RankingConjointQuestion({
     };
 
     const removeLevel = (attrIndex: number, levelIndex: number) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].levels.splice(levelIndex, 1);
-        })});
+        if (attributes[attrIndex].levels.length > 1) {
+            onUpdate?.({ attributes: produce(attributes, draft => {
+                if (draft) draft[attrIndex].levels.splice(levelIndex, 1);
+            })});
+        }
     };
 
     const totalCombinations = useMemo(() => {
@@ -195,7 +178,9 @@ export default function RankingConjointQuestion({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    design_method: designMethod,
+                    designType: question.type, // Pass the correct type
+                    sets: sets || 5,
+                    cardsPerSet: question.cardsPerSet || 4,
                 }),
             });
             
@@ -205,14 +190,12 @@ export default function RankingConjointQuestion({
             }
             
             const result = await response.json();
-            
-            const newProfiles = createProfileTasks(result.profiles, sets || 1);
-            onUpdate?.({ profiles: newProfiles });
+            onUpdate?.({ profiles: result.profiles });
             
             setDesignStats(result.statistics);
             toast({
                 title: "Profiles Generated",
-                description: `${result.profiles.length} profiles created using ${designMethod} design.`
+                description: `${result.profiles.length} profiles created.`
             });
 
         } catch (e: any) {
@@ -273,7 +256,7 @@ export default function RankingConjointQuestion({
                                 {attr.levels.map((level, levelIndex) => (
                                     <div key={levelIndex} className="flex items-center gap-2">
                                         <Input value={level} onChange={e => handleLevelUpdate(attrIndex, levelIndex, e.target.value)} />
-                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)}><X className="w-4 h-4"/></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)} disabled={attr.levels.length <= 1}><X className="w-4 h-4"/></Button>
                                     </div>
                                 ))}
                                 <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="mr-2"/>Add Level</Button>
@@ -285,17 +268,14 @@ export default function RankingConjointQuestion({
 
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <Label htmlFor="designType">Design Type</Label>
+                            <Label htmlFor="designMethod">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
                                     <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
-                                    <SelectItem value="orthogonal">Orthogonal Design</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -303,13 +283,20 @@ export default function RankingConjointQuestion({
                             <Label htmlFor="sets">Number of Sets (Tasks)</Label>
                             <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
                         </div>
+                         <div>
+                             <Label htmlFor="cardsPerSet">Profiles per Set</Label>
+                             <Input id="cardsPerSet" type="number" value={question.cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" />
+                        </div>
+                        <div className="p-3 bg-muted rounded-md text-center">
+                            <Label>Total Combinations</Label>
+                            <p className="text-2xl font-bold">{totalCombinations}</p>
+                        </div>
                     </div>
                      <Alert>
                         <Info className="h-4 w-4" />
                         <AlertDescription className="text-xs">
                            {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} possible combinations will be generated. Best for small designs.`}
                            {designMethod === 'fractional-factorial' && `Fractional Factorial: Optimal subset using D-optimal algorithm. Balances statistical efficiency with practicality.`}
-                           {designMethod === 'orthogonal' && `Orthogonal Design: Uses standard orthogonal arrays (L4, L8, L9, etc.). Ensures statistical independence between attributes.`}
                         </AlertDescription>
                     </Alert>
 
@@ -323,22 +310,23 @@ export default function RankingConjointQuestion({
 
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
-                        <Button variant="secondary" size="sm" onClick={generateProfiles}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
+                        <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
                     </div>
-                     <ScrollArea className="h-48 border rounded-md p-2">
+
+                    <ScrollArea className="h-48 border rounded-md p-2">
                         <Table>
-                            <TableHeader><TableRow><TableHead className="text-xs">Profile ID</TableHead><TableHead className="text-xs">Task ID</TableHead>{attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}</TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Profile ID</TableHead><TableHead>Task ID</TableHead>{attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
-                                        <TableCell className="text-xs">{p.id}</TableCell>
-                                        <TableCell className="text-xs">{p.taskId}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id} className="text-xs">{p.attributes[a.name]}</TableCell>)}
+                                        <TableCell>{p.id}</TableCell>
+                                        <TableCell>{p.taskId}</TableCell>
+                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
-                     </ScrollArea>
+                    </ScrollArea>
                 </div>
             </CardContent>
         </Card>

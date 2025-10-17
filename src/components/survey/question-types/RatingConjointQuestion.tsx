@@ -17,25 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
-// Helper to create profile tasks for rating
-const createProfileTasks = (profiles: any[], sets: number) => {
-    const shuffled = [...profiles].sort(() => 0.5 - Math.random());
-    const cardsPerSet = Math.ceil(shuffled.length / sets);
-    
-    const tasks: any[] = [];
-    for (let i = 0; i < sets; i++) {
-        const taskProfiles = shuffled.slice(i * cardsPerSet, (i + 1) * cardsPerSet);
-        taskProfiles.forEach((profile, profileIndex) => {
-            tasks.push({
-                ...profile,
-                id: `profile_${i}_${profileIndex}`,
-                taskId: `task_${i}`
-            });
-        });
-    }
-    return tasks;
-};
-
 interface RatingConjointQuestionProps {
     question: Question;
     answer?: { [profileId: string]: number };
@@ -92,8 +73,10 @@ export default function RatingConjointQuestion({
         }
     };
     
+    const isLastTask = currentTask === tasks.length - 1;
+
     const handleNextTask = () => {
-        if (currentTask < tasks.length - 1) {
+        if (!isLastTask) {
             setCurrentTask(currentTask + 1);
         } else {
              if (isLastQuestion && submitSurvey) {
@@ -156,7 +139,7 @@ export default function RatingConjointQuestion({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    design_method: designMethod,
+                    designType: question.type, // Pass the correct type
                 }),
             });
             
@@ -166,12 +149,12 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-            const newProfiles = createProfileTasks(result.profiles, sets || 1);
-            onUpdate?.({ profiles: newProfiles });
+            onUpdate?.({ profiles: result.profiles });
+            
             setDesignStats(result.statistics);
             toast({
                 title: "Profiles Generated",
-                description: `${result.profiles.length} profiles created using ${designMethod} design.`
+                description: `${result.profiles.length} profiles created.`
             });
 
         } catch (e: any) {
@@ -187,7 +170,6 @@ export default function RatingConjointQuestion({
         if (tasks.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
     
         const currentTaskProfiles = tasks[currentTask];
-        const isLastTask = currentTask === tasks.length - 1;
 
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
@@ -313,13 +295,13 @@ export default function RatingConjointQuestion({
 
                     <ScrollArea className="h-48 border rounded-md p-2">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Profile ID</TableHead><TableHead>Task ID</TableHead>{attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}</TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-xs">Profile ID</TableHead><TableHead className="text-xs">Task ID</TableHead>{attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
-                                        <TableCell>{p.id}</TableCell>
-                                        <TableCell>{p.taskId}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
+                                        <TableCell className="text-xs">{p.id}</TableCell>
+                                        <TableCell className="text-xs">{p.taskId}</TableCell>
+                                        {attributes.map(a => <TableCell key={a.id} className="text-xs">{p.attributes[a.name]}</TableCell>)}
                                     </TableRow>
                                 ))}
                             </TableBody>
