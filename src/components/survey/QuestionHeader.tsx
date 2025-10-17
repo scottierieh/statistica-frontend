@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { GripVertical, Info, ImageIcon, X, Copy, Trash2 } from "lucide-react";
+import { GripVertical, Info, ImageIcon, X, Copy, Trash2, GitBranch } from "lucide-react";
 import Image from 'next/image';
 import type { Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ interface QuestionHeaderProps {
     onDelete?: (id: string) => void;
     onImageUpload?: (id: string) => void;
     onDuplicate?: (id: string) => void;
+    onLogicEdit?: (id: string) => void;
     styles: any;
     questionNumber: number;
 }
@@ -28,6 +29,7 @@ export default function QuestionHeader({
     onDelete, 
     onImageUpload, 
     onDuplicate,
+    onLogicEdit,
     styles,
     questionNumber
 }: QuestionHeaderProps) {
@@ -79,6 +81,16 @@ export default function QuestionHeader({
                     >
                         <ImageIcon className="w-4 h-4 text-muted-foreground" />
                     </Button>
+
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => onLogicEdit?.(question.id)}
+                        title="Edit Logic"
+                    >
+                        <GitBranch className="w-4 h-4 text-muted-foreground" />
+                    </Button>
                     
                     
                     <div className="flex items-center gap-2 px-2">
@@ -122,10 +134,3 @@ export default function QuestionHeader({
                         className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => onUpdate?.({...question, imageUrl: undefined})}
                     >
-                        <X className="w-4 h-4" />
-                    </Button>
-                </div>
-            )}
-        </div>
-    );
-};

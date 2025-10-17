@@ -1,9 +1,24 @@
-
-
 export interface Criterion {
   id: string;
   name: string;
   subCriteria?: { id: string; name: string }[];
+}
+
+export interface LogicCondition {
+  questionId: string;
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
+  value: any;
+}
+
+export interface DisplayLogic {
+  conditions: LogicCondition[];
+  // Future: condition_operator: 'and' | 'or';
+}
+
+export interface SkipLogic {
+    conditionValue: any; // The value of the option that triggers the logic
+    action: 'skip_to' | 'end_survey';
+    targetQuestionId?: string; // for 'skip_to'
 }
 
 export type Question = {
@@ -35,6 +50,9 @@ export type Question = {
     alternatives?: string[];
     // For SERVQUAL
     servqualType?: 'Expectation' | 'Perception';
+    // Logic
+    displayLogic?: DisplayLogic;
+    skipLogic?: SkipLogic[];
 };
 
 
