@@ -1,7 +1,7 @@
 'use client';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { getFirebaseApp } from './client';
+import { getFirebaseApp } from './index';
 
 export function getStorageInstance() {
     const app = getFirebaseApp();
