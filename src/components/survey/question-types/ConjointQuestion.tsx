@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -317,6 +316,11 @@ export default function ConjointQuestion({
         }
     };
     
+    const totalCombinations = useMemo(() => {
+        if (!attributes || attributes.length === 0) return 0;
+        return attributes.reduce((acc, attr) => acc * Math.max(1, attr.levels.length), 1);
+    }, [attributes]);
+    
     if (isPreview) {
         if (tasks.length === 0) return <p>Conjoint profiles are not generated.</p>;
     
@@ -346,7 +350,9 @@ export default function ConjointQuestion({
                             </CardContent>
                             <CardFooter className="p-2 bg-muted/50">
                                 <div className="w-full flex items-center justify-center">
-                                    <RadioGroup value={answer?.[taskId]}><RadioGroupItem value={profile.id} id={`q${question.id}-${profile.id}`} /></RadioGroup>
+                                    <RadioGroup value={answer?.[taskId]}>
+                                        <RadioGroupItem value={profile.id} id={`q${question.id}-${profile.id}`} />
+                                    </RadioGroup>
                                 </div>
                             </CardFooter>
                         </Card>
@@ -468,9 +474,9 @@ export default function ConjointQuestion({
                      <Alert>
                         <Info className="h-4 w-4" />
                         <AlertDescription className="text-xs">
-                           {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} combinations. Best for small designs.`}
+                           {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} possible combinations will be generated. Best for small designs.`}
                            {designMethod === 'fractional-factorial' && `Fractional Factorial: Optimal subset using D-optimal algorithm.`}
-                           {designMethod === 'orthogonal' && `Orthogonal Design: Uses standard arrays (L4, L8, etc.).`}
+                           {designMethod === 'orthogonal' && `Orthogonal Design: Uses standard arrays (L4, L8, etc.). Ensures statistical independence between attributes.`}
                         </AlertDescription>
                     </Alert>
 
