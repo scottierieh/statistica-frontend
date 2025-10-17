@@ -1,6 +1,7 @@
+
 'use client';
 
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject, getStorage } from 'firebase/storage';
 import { initializeFirebase } from './index';
 
 // Initialize Firebase and get storage instance
