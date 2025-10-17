@@ -68,6 +68,7 @@ import {
   Clock,
   Filter,
   Download,
+  Bot
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';

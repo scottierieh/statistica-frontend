@@ -8,7 +8,7 @@ import { type DataSet } from '@/lib/stats';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import { exampleDatasets } from '@/lib/example-datasets';
 import { Button } from '@/components/ui/button';
-import { Sigma, FlaskConical, MoveRight, BarChart as BarChartIcon, Settings, FileSearch, Users, Coffee } from 'lucide-react';
+import { Sigma, FlaskConical, MoveRight, BarChart as BarChartIcon, Settings, FileSearch, Users, Coffee, Bot } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
@@ -23,6 +23,7 @@ interface AnovaPageProps {
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    onGenerateReport: (stats: any, viz: string | null) => void;
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
@@ -94,7 +95,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 };
 
 
-export default function AnovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: AnovaPageProps) {
+export default function AnovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample, onGenerateReport }: AnovaPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [dependentVar, setDependentVar] = useState<string | undefined>(numericHeaders[0]);
@@ -189,7 +190,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                         </Select>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                <CardFooter className="flex justify-end gap-2">
+                    {results && <Button variant="ghost" onClick={() => onGenerateReport(results, plot)}><Bot className="mr-2"/>AI Report</Button>}
                     <Button onClick={handleAnalysis} disabled={isLoading}>
                         {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Running...</> : <><Sigma className="mr-2 h-4 w-4"/>Run Analysis</>}
                     </Button>
