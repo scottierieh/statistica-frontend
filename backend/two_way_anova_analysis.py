@@ -66,8 +66,6 @@ class TwoWayAnovaAnalysis:
     def run_analysis(self):
         anova_table = anova_lm(self.model, typ=2)
         
-        anova_table['MS'] = anova_table['sum_sq'] / anova_table['df']
-
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
         interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
         
@@ -219,7 +217,7 @@ class TwoWayAnovaAnalysis:
         fig, axes = plt.subplots(2, 2, figsize=(14, 12))
         fig.suptitle('Two-Way ANOVA Results', fontsize=16, fontweight='bold')
         
-        sns.pointplot(data=self.clean_data_renamed, x=self.fa_clean, y=self.dv_clean, hue=self.fb_clean, ax=axes[0, 0], dodge=True, errorbar='ci')
+        sns.pointplot(data=self.clean_data_renamed, x=self.fa_clean, y=self.dv_clean, hue=self.fb_clean, ax=axes[0, 0], dodge=True, errorbar='ci', capsize=.1)
         axes[0, 0].set_title('Interaction Plot')
         axes[0, 0].set_xlabel(self.factor_a)
         axes[0, 0].set_ylabel(f'Mean of {self.dependent_var}')
@@ -270,7 +268,8 @@ def main():
         print(json.dumps(response, default=_to_native_type, indent=2))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        error_response = {"error": str(e), "details": "Error in Python script execution"}
+        print(json.dumps(error_response, ensure_ascii=False), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
