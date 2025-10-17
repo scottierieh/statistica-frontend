@@ -6,10 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { GripVertical, Info, ImageIcon, X, Copy, Trash2, GitBranch } from "lucide-react";
 import Image from 'next/image';
-import type { Question } from '@/entities/Survey';
+import type { Question, SkipLogic } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Badge } from "@/components/ui/badge";
 
 interface QuestionHeaderProps {
@@ -82,7 +80,7 @@ export default function QuestionHeader({
                         <ImageIcon className="w-4 h-4 text-muted-foreground" />
                     </Button>
 
-                    <Button 
+                     <Button 
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
@@ -134,3 +132,10 @@ export default function QuestionHeader({
                         className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => onUpdate?.({...question, imageUrl: undefined})}
                     >
+                        <X className="w-4 h-4" />
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}

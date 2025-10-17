@@ -10,14 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { GripVertical, Plus, Trash2, Info, ImageIcon, X, Copy, FileText, Save, PlusCircle } from "lucide-react";
+import { GripVertical, Plus, Save, PlusCircle } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
-import Image from 'next/image';
-import type { Survey, Question, ConjointAttribute, Criterion } from '@/entities/Survey';
+import type { Survey, Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 import SingleSelectionQuestion from '@/components/survey/question-types/SingleSelectionQuestion';
@@ -43,7 +39,7 @@ import ServqualQuestion from '@/components/survey/question-types/ServqualQuestio
 interface SurveyDetailsCardProps {
     survey: Survey;
     setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
-    onImageUpload: (target: { type: 'startPage', field: 'logo' | 'image' }) => void;
+    onImageUpload: (target: { type: 'startPage'; field: 'logo' | 'image' }) => void;
 }
 
 
@@ -57,98 +53,24 @@ const SurveyDetailsCard = ({ survey, setSurvey, onImageUpload }: SurveyDetailsCa
 
     return (
         <Card className="border-0 shadow-sm">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-                <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                    <CardTitle>Start Page Configuration</CardTitle>
-                </div>
+            <CardHeader>
+                <CardTitle>Survey Details</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-6">
-                
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4"
-                >
-                    <div className="flex items-center gap-2 mb-2">
-                        <Info className="w-4 h-4 text-indigo-600" />
-                        <h4 className="font-semibold text-sm">Start Page Configuration</h4>
-                    </div>
-                    
-                    <div className="space-y-3">
-                        <div className="space-y-1">
-                            <Label className="text-xs font-medium text-muted-foreground">
-                                Welcome Title
-                            </Label>
-                            <Input 
-                                value={survey.startPage?.title || ''} 
-                                onChange={(e) => handleSurveyChange(draft => {
-                                    if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
-                                    draft.startPage.title = e.target.value;
-                                })} 
-                                placeholder="e.g., Welcome to our Survey!"
-                            />
-                        </div>
-                        
-                        <div className="space-y-1">
-                            <Label className="text-xs font-medium text-muted-foreground">
-                                Description
-                            </Label>
-                            <Textarea 
-                                value={survey.startPage?.description || ''} 
-                                onChange={(e) => handleSurveyChange(draft => {
-                                     if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
-                                    draft.startPage.description = e.target.value
-                                })} 
-                                placeholder="e.g., Your feedback helps us improve our services."
-                                rows={2}
-                            />
-                        </div>
-                        
-                        <div className="space-y-1">
-                            <Label className="text-xs font-medium text-muted-foreground">
-                                Button Text
-                            </Label>
-                            <Input 
-                                value={survey.startPage?.buttonText || 'Start Survey'} 
-                                onChange={(e) => handleSurveyChange(draft => {
-                                    if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
-                                    draft.startPage.buttonText = e.target.value
-                                })} 
-                                placeholder="e.g., Begin Survey"
-                            />
-                        </div>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label className="text-xs font-medium text-muted-foreground">Logo Image</Label>
-                                <Button variant="outline" className="w-full" onClick={() => onImageUpload({ type: 'startPage', field: 'logo' })}>
-                                    <ImageIcon className="w-4 h-4 mr-2" />
-                                    Upload Logo
-                                </Button>
-                                {survey.startPage?.logo?.src && (
-                                    <div className="relative mt-2">
-                                        <Image src={survey.startPage.logo.src} alt={survey.startPage.logo.alt || 'Survey logo preview'} width={80} height={80} className="rounded-md border p-1" />
-                                        <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => { if (draft.startPage?.logo) draft.startPage.logo.src = undefined; })}><X className="w-3 h-3"/></Button>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs font-medium text-muted-foreground">Content Image</Label>
-                                <Button variant="outline" className="w-full" onClick={() => onImageUpload({ type: 'startPage', field: 'image' })}>
-                                    <ImageIcon className="w-4 h-4 mr-2" />
-                                    Upload Image
-                                </Button>
-                                { (survey.startPage?.imageUrl || defaultImage?.imageUrl) && (
-                                     <div className="relative mt-2">
-                                        <Image src={survey.startPage?.imageUrl || defaultImage!.imageUrl} alt="Survey content image preview" width={150} height={75} className="rounded-md border p-1" />
-                                         <Button variant="destructive" size="icon" className="h-6 w-6 absolute -top-2 -right-2 rounded-full" onClick={() => handleSurveyChange(draft => { if (draft.startPage) draft.startPage.imageUrl = undefined; })}><X className="w-3 h-3"/></Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
+            <CardContent className="space-y-4">
+                <div>
+                    <label>Title *</label>
+                    <Input 
+                        value={survey.title} 
+                        onChange={(e) => handleSurveyChange(draft => { draft.title = e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label>Description</label>
+                    <Textarea 
+                        value={survey.description} 
+                        onChange={(e) => handleSurveyChange(draft => { draft.description = e.target.value })}
+                    />
+                </div>
             </CardContent>
         </Card>
     );
@@ -260,11 +182,14 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
     const handleReorder = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            setSurvey(prev => {
-                const oldIndex = prev.questions.findIndex(item => item.id === active.id);
-                const newIndex = prev.questions.findIndex(item => item.id === over.id);
-                return {...prev, questions: arrayMove(prev.questions, oldIndex, newIndex) };
-            });
+            setSurvey(produce((draft: Survey) => {
+                const oldIndex = draft.questions.findIndex(item => item.id === active.id);
+                const newIndex = draft.questions.findIndex(item => item.id === over.id);
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    const [removed] = draft.questions.splice(oldIndex, 1);
+                    draft.questions.splice(newIndex, 0, removed);
+                }
+            }));
         }
         setActiveId(null);
     };
@@ -316,7 +241,8 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
                                 return (
                                     <SortableQuestionCard key={q.id} id={q.id} questionNumber={index + 1}>
                                         {QuestionComponent ? (
-                                            <QuestionComponent 
+                                             <QuestionComponent 
+                                                survey={survey}
                                                 question={q} 
                                                 onUpdate={handleUpdateQuestion} 
                                                 onDelete={() => handleDeleteQuestion(q.id)}
