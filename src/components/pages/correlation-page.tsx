@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -219,9 +220,10 @@ interface CorrelationPageProps {
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    onGenerateReport: (stats: any, viz: string | null) => void;
 }
 
-export default function CorrelationPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: CorrelationPageProps) {
+export default function CorrelationPage({ data, numericHeaders, categoricalHeaders, onLoadExample, onGenerateReport }: CorrelationPageProps) {
   const { toast } = useToast();
   const [view, setView] = useState('intro');
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 8));
@@ -355,11 +357,14 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                         </SelectContent>
                     </Select>
                 </div>
-                <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedHeaders.length < 2 || isLoading}>
+                 <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedHeaders.length < 2 || isLoading}>
                     {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
                 </Button>
            </div>
         </CardContent>
+         <CardFooter className="flex justify-end gap-2">
+            {results && <Button variant="ghost" onClick={() => onGenerateReport(results, null)}><Bot className="mr-2"/>AI Report</Button>}
+        </CardFooter>
       </Card>
       
       {isLoading && <Card><CardHeader><CardTitle>Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-96 w-full" /></CardContent></Card>}
