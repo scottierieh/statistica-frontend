@@ -57,7 +57,6 @@ export default function RatingConjointQuestion({
     } = question;
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [targetProfiles, setTargetProfiles] = useState<number | undefined>(10);
 
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
@@ -68,7 +67,7 @@ export default function RatingConjointQuestion({
         }
     };
     
-    const isLastTask = true; // Rating conjoint is always a single "task"
+    const isLastTask = true; 
 
     const handleNextTask = () => {
         if (isLastQuestion && submitSurvey) {
@@ -80,13 +79,13 @@ export default function RatingConjointQuestion({
     
     const handleAttributeUpdate = (attrIndex: number, newName: string) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].name = newName;
+            if (draft && draft[attrIndex]) draft[attrIndex].name = newName;
         })});
     };
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
+            if (draft && draft[attrIndex]) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
@@ -102,7 +101,9 @@ export default function RatingConjointQuestion({
 
     const addLevel = (attrIndex: number) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
+            if (draft && draft[attrIndex]) {
+                draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
+            }
         })});
     };
 
@@ -113,7 +114,7 @@ export default function RatingConjointQuestion({
     const removeLevel = (attrIndex: number, levelIndex: number) => {
         if (attributes[attrIndex].levels.length > 1) {
             onUpdate?.({ attributes: produce(attributes, draft => {
-                if (draft) draft[attrIndex].levels.splice(levelIndex, 1);
+                if (draft && draft[attrIndex]) draft[attrIndex].levels.splice(levelIndex, 1);
             })});
         }
     };
@@ -134,15 +135,16 @@ export default function RatingConjointQuestion({
         }
         setIsGenerating(true);
         try {
+            const requestBody: any = {
+                attributes,
+                designType: 'rating-conjoint',
+                designMethod: designMethod,
+            };
+
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    attributes,
-                    designType: 'rating-conjoint',
-                    designMethod: designMethod,
-                    targetProfiles: designMethod === 'fractional-factorial' ? targetProfiles : undefined,
-                }),
+                body: JSON.stringify(requestBody),
             });
             
             if (!response.ok) {
@@ -151,7 +153,7 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-
+            
             if (result.profiles) {
                 onUpdate?.({ profiles: result.profiles, tasks: [] });
             }
@@ -260,7 +262,7 @@ export default function RatingConjointQuestion({
                 </div>
 
                 <div className="mt-6 space-y-4">
-                    <h4 className="font-semibold text-sm">Design & Profiles</h4>
+                    <h4 className="font-semibold text-sm">Design &amp; Profiles</h4>
                     
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -278,19 +280,6 @@ export default function RatingConjointQuestion({
                             <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
-
-                     {designMethod === 'fractional-factorial' && (
-                        <div>
-                            <Label htmlFor="target-profiles">Number of Profiles to Generate</Label>
-                            <Input 
-                                id="target-profiles"
-                                type="number"
-                                placeholder="e.g., 12"
-                                value={targetProfiles || ''}
-                                onChange={(e) => setTargetProfiles(e.target.value ? parseInt(e.target.value) : undefined)}
-                            />
-                        </div>
-                    )}
                     
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">
@@ -320,3 +309,4 @@ export default function RatingConjointQuestion({
         </Card>
     );
 }
+

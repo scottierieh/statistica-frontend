@@ -54,89 +54,73 @@ class BaseConjointDesign:
             elif total_combinations <= 27:
                 target_size = max(min_profiles, total_combinations // 2)  # 절반 사용
             else:
-                target_size = min(total_combinations, max(min_profiles, 16))
+                target_size = min(total_combinations, max(min_profiles, 20)) # Increase max default
         
-        # 디버깅을 위한 로그 (선택사항)
         print(f"Debug: Total combinations: {len(full_design_dicts)}, Target size: {target_size}", file=sys.stderr)
 
         if len(full_design_dicts) <= target_size:
             return full_design_dicts
         
-        # Convert dicts to a more usable format for calculation
         full_design_df = pd.DataFrame([p['attributes'] for p in full_design_dicts])
-        
-        # Select profiles to maximize orthogonality
         selected_indices = self._select_orthogonal_subset(full_design_df, target_size)
-        
-        # Return the selected profiles as dicts
         return [full_design_dicts[i] for i in selected_indices]
 
     def _select_orthogonal_subset(self, design_df, target_size):
-        """
-        Selects a subset of profiles that maximizes orthogonality and balance.
-        This is a heuristic approach, not a formal orthogonal array generator.
-        """
         num_profiles = len(design_df)
         if target_size >= num_profiles:
             return list(range(num_profiles))
         
-        # Start with a random set of indices
         np.random.seed(42)
         selected_indices = list(np.random.choice(num_profiles, target_size, replace=False))
         
-        # Iteratively improve the selection
-        max_iterations = 100 
+        max_iterations = 200 # Increased iterations
+        best_score = self._calculate_design_score(design_df.iloc[selected_indices])
+        
         for _ in range(max_iterations):
-            current_score = self._calculate_design_score(design_df.iloc[selected_indices])
+            current_score = best_score
             
-            # Try swapping one profile
             potential_swap_in_idx = np.random.choice(list(set(range(num_profiles)) - set(selected_indices)))
             swap_out_idx_pos = np.random.choice(len(selected_indices))
             
             temp_indices = selected_indices.copy()
+            original_index_to_replace = temp_indices[swap_out_idx_pos]
             temp_indices[swap_out_idx_pos] = potential_swap_in_idx
             
             new_score = self._calculate_design_score(design_df.iloc[temp_indices])
             
-            if new_score > current_score:
+            # Use simulated annealing like approach to escape local minima
+            if new_score > best_score or np.random.rand() < 0.1:
+                best_score = new_score
                 selected_indices = temp_indices
                 
         return selected_indices
 
     def _calculate_design_score(self, subset_df):
-        """
-        Calculates a score based on level balance and 2-way orthogonality.
-        Higher score is better.
-        """
-        score = 0
+        score = 0.0
         
         # 1. Level Balance Score
         for col in subset_df.columns:
             counts = subset_df[col].value_counts(normalize=True)
-            # Penalize deviation from perfect balance
             if not counts.empty:
-                perfect_balance = 1 / len(counts)
-                balance_penalty = np.sum((counts - perfect_balance)**2)
+                balance_penalty = np.sum((counts - (1 / len(counts)))**2)
                 score -= balance_penalty
 
         # 2. Orthogonality Score (for pairs of attributes)
+        from scipy.stats import chi2_contingency
         for i in range(len(subset_df.columns)):
             for j in range(i + 1, len(subset_df.columns)):
-                col1 = subset_df.columns[i]
-                col2 = subset_df.columns[j]
-                
-                crosstab = pd.crosstab(subset_df[col1], subset_df[col2])
+                crosstab = pd.crosstab(subset_df.iloc[:, i], subset_df.iloc[:, j])
                 
                 # Chi-squared test for independence
-                from scipy.stats import chi2_contingency
                 try:
-                    chi2, p, _, _ = chi2_contingency(crosstab)
-                    # We want p to be high (independent), so we reward high p-values
-                    if not np.isnan(p):
-                        score += p 
+                    if crosstab.sum().sum() > 0 and all(crosstab.sum(axis=0) > 0) and all(crosstab.sum(axis=1) > 0):
+                        chi2, p, _, _ = chi2_contingency(crosstab)
+                        if not np.isnan(p):
+                            score += p # Reward high p-values (independence)
+                    else:
+                        score -= 1 # Penalize if table is sparse
                 except ValueError:
-                    # Occurs if a row/column sum is 0
-                    pass
+                    score -= 1 # Penalize if crosstab is invalid
 
         return score
 
@@ -157,10 +141,8 @@ class CBCDesign(BaseConjointDesign):
         tasks = []
         used_combinations = set()
         
-        # Ensure we have enough unique profiles for the number of tasks
         if len(base_profiles) < self.num_tasks * self.profiles_per_task:
             warnings.warn("Not enough unique profiles for all tasks. Profiles may be repeated across tasks.")
-            # Duplicate profiles to meet task requirements
             while len(base_profiles) < self.num_tasks * self.profiles_per_task:
                 base_profiles.extend(base_profiles)
 
@@ -172,7 +154,6 @@ class CBCDesign(BaseConjointDesign):
                 task_id=f"task_{i}"
             )
             
-            # Add none option if configured
             if self.include_none_option:
                 none_profile = {
                     "id": f"none_{i}",
@@ -190,38 +171,31 @@ class CBCDesign(BaseConjointDesign):
         return tasks
     
     def _create_balanced_choice_set(self, profiles, n_profiles, used_combinations, task_id):
-        """Create a choice set with balanced attribute levels and minimal overlap"""
         max_attempts = 100
         best_set = None
         best_score = -1
         
         for _ in range(max_attempts):
-            # Randomly select profiles
             indices = np.random.choice(len(profiles), n_profiles, replace=False)
             candidate_set = [profiles[i].copy() for i in indices]
             
-            # Check if this combination was used before
             combo_key = tuple(sorted([p['id'] for p in candidate_set]))
             if combo_key in used_combinations:
                 continue
             
-            # Calculate balance score
             score = self._calculate_balance_score(candidate_set)
             
-            # Check for dominance (one clearly better option)
             if not self._has_clear_dominance(candidate_set):
-                score += 0.5  # Bonus for no dominance
+                score += 0.5
             
             if score > best_score:
                 best_score = score
                 best_set = candidate_set
                 
-        # Mark this combination as used
         if best_set:
             combo_key = tuple(sorted([p['id'] for p in best_set]))
             used_combinations.add(combo_key)
             
-            # Add task ID to each profile
             for i, profile in enumerate(best_set):
                 profile['taskId'] = task_id
                 profile['id'] = f"{task_id}_profile_{i}"
@@ -229,20 +203,15 @@ class CBCDesign(BaseConjointDesign):
         return best_set or [profiles[i].copy() for i in np.random.choice(len(profiles), n_profiles, replace=False)]
     
     def _calculate_balance_score(self, choice_set):
-        """Calculate how well balanced the attribute levels are within a choice set"""
         score = 0
         for attr in self.attributes:
             attr_name = attr['name']
             levels_in_set = [p['attributes'][attr_name] for p in choice_set]
-            # Prefer sets where each level appears at most once (minimal overlap)
             unique_levels = len(set(levels_in_set))
             score += unique_levels / len(levels_in_set)
         return score / len(self.attributes)
     
     def _has_clear_dominance(self, choice_set):
-        """Check if one profile clearly dominates others"""
-        # Simplified dominance check - in practice, you'd use utility estimates
-        # This is a placeholder - real implementation would need utility values
         return False
 
 
@@ -256,15 +225,13 @@ class RankingDesign(BaseConjointDesign):
     def create_ranking_sets(self, design_method='fractional-factorial'):
         if design_method == 'full-factorial':
             base_profiles = self.generate_full_factorial()
-            
-            # For full factorial ranking, often present all profiles in one go if feasible
             return [{
                 "taskId": "task_0",
                 "profiles": base_profiles,
                 "allowPartialRanking": self.allow_partial_ranking
             }]
         
-        else: # Fractional factorial
+        else:
             target_profile_count = self.num_tasks * self.profiles_per_task
             base_profiles = self.generate_fractional_factorial(target_size=target_profile_count)
             
@@ -274,7 +241,7 @@ class RankingDesign(BaseConjointDesign):
             
             for i in range(self.num_tasks):
                 if len(profile_pool) < self.profiles_per_task:
-                    break # Not enough profiles left
+                    break 
                     
                 task_profiles_raw = profile_pool[:self.profiles_per_task]
                 profile_pool = profile_pool[self.profiles_per_task:]
@@ -295,18 +262,16 @@ class RankingDesign(BaseConjointDesign):
 
 
 class RatingDesign(BaseConjointDesign):
-    def __init__(self, attributes, scale_min=1, scale_max=10, target_profiles=None):
+    def __init__(self, attributes, scale_min=1, scale_max=10):
         super().__init__(attributes)
         self.scale_min = scale_min
         self.scale_max = scale_max
-        self.target_profiles = target_profiles
     
-    def create_rating_profiles(self, design_method='fractional-factorial'):
-        """For rating, return profiles with scale information"""
+    def create_rating_profiles(self, design_method='fractional-factorial', target_size=None):
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            profiles = self.generate_fractional_factorial(target_size=self.target_profiles)
+            profiles = self.generate_fractional_factorial(target_size=target_size)
         
         print(f"Generated {len(profiles)} profiles for rating conjoint", file=sys.stderr)
         
@@ -317,7 +282,6 @@ class RatingDesign(BaseConjointDesign):
                 "max": self.scale_max,
                 "type": "rating"
             }
-            
         return profiles
 
 
@@ -327,23 +291,15 @@ def main():
         attributes = payload.get('attributes')
         design_type = payload.get('designType', 'cbc')
         
-        # Common options
         design_method = payload.get('designMethod', 'fractional-factorial')
         
         # CBC/Ranking options
         num_tasks = int(payload.get('numTasks', 8))
         profiles_per_task = int(payload.get('profilesPerTask', 3))
         
-        # CBC specific
-        include_none = payload.get('includeNone', True)
-
-        # Ranking specific
-        allow_partial_ranking = payload.get('allowPartialRanking', False)
-
         # Rating specific
+        target_size = payload.get('target_size')
         rating_scale = payload.get('ratingScale', [1, 10])
-        target_profiles = payload.get('targetProfiles', None)
-
 
         if not attributes:
             raise ValueError("Missing 'attributes' data")
@@ -351,35 +307,23 @@ def main():
         result = {}
         
         if design_type == 'cbc':
-            cbc_designer = CBCDesign(attributes, num_tasks, profiles_per_task, include_none)
+            cbc_designer = CBCDesign(attributes, num_tasks, profiles_per_task, payload.get('includeNone', True))
             tasks = cbc_designer.create_choice_sets(design_method)
-            result = {
-                "type": "cbc",
-                "tasks": tasks,
-                "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "includeNone": include_none }
-            }
+            result = {"type": "cbc", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "includeNone": payload.get('includeNone', True) }}
             
         elif design_type == 'ranking-conjoint':
-            ranking_designer = RankingDesign(attributes, num_tasks, profiles_per_task, allow_partial_ranking)
+            ranking_designer = RankingDesign(attributes, num_tasks, profiles_per_task, payload.get('allowPartialRanking', False))
             tasks = ranking_designer.create_ranking_sets(design_method)
-            result = {
-                "type": "ranking",
-                "tasks": tasks,
-                "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "allowPartialRanking": allow_partial_ranking }
-            }
+            result = {"type": "ranking", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "allowPartialRanking": payload.get('allowPartialRanking', False) }}
             
         elif design_type == 'rating-conjoint':
-            rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1], target_profiles=target_profiles)
-            profiles = rating_designer.create_rating_profiles(design_method)
-            result = {
-                "type": "rating",
-                "profiles": profiles,
-                "metadata": { "scale": rating_scale, "numProfiles": len(profiles) }
-            }
+            rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1])
+            profiles = rating_designer.create_rating_profiles(design_method, target_size=target_size)
+            result = {"type": "rating", "profiles": profiles, "metadata": { "scale": rating_scale, "numProfiles": len(profiles) }}
             
         else:
             base_designer = BaseConjointDesign(attributes)
-            profiles = base_designer.generate_fractional_factorial()
+            profiles = base_designer.generate_fractional_factorial(target_size=target_size)
             result = {"profiles": profiles}
         
         print(json.dumps(result, default=_to_native_type))
