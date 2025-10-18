@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -96,8 +97,7 @@ export default function RankingConjointQuestion({
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-    const prevTaskRef = useRef(currentTask);
-
+    
     const tasks = useMemo(() => {
         if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
             return questionTasks;
@@ -136,22 +136,20 @@ export default function RankingConjointQuestion({
     const currentTaskProfiles = currentTaskData.profiles || [];
     const currentTaskId = currentTaskData.taskId;
 
-    const [rankedItems, setRankedItems] = useState(() => currentTaskProfiles);
-    
-    useEffect(() => {
+    const rankedItems = useMemo(() => {
         const newProfiles = tasks[currentTask]?.profiles || [];
         if (answer && answer[currentTaskId]) {
+            const answerOrder = answer[currentTaskId];
             const sortedProfiles = [...newProfiles].sort((a, b) => {
-                const indexA = answer[currentTaskId].indexOf(a.id);
-                const indexB = answer[currentTaskId].indexOf(b.id);
+                const indexA = answerOrder.indexOf(a.id);
+                const indexB = answerOrder.indexOf(b.id);
                 if (indexA === -1) return 1;
                 if (indexB === -1) return -1;
                 return indexA - indexB;
             });
-            setRankedItems(sortedProfiles);
-        } else {
-            setRankedItems(newProfiles);
+            return sortedProfiles;
         }
+        return newProfiles;
     }, [currentTask, tasks, answer, currentTaskId]);
     
     const sensors = useSensors(
@@ -168,20 +166,16 @@ export default function RankingConjointQuestion({
     const handleReorder = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            setRankedItems((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                
-                if (oldIndex === -1 || newIndex === -1) return items;
-                
-                const newOrder = arrayMove(items, oldIndex, newIndex);
-                
-                onAnswerChange?.(produce(answer || {}, (draft: any) => {
-                    draft[currentTaskId] = newOrder.map(item => item.id);
-                }));
-                
-                return newOrder;
-            });
+            const oldIndex = rankedItems.findIndex(item => item.id === active.id);
+            const newIndex = rankedItems.findIndex(item => item.id === over.id);
+            
+            if (oldIndex === -1 || newIndex === -1) return;
+            
+            const newOrder = arrayMove(rankedItems, oldIndex, newIndex);
+            
+            onAnswerChange?.(produce(answer || {}, (draft: any) => {
+                draft[currentTaskId] = newOrder.map(item => item.id);
+            }));
         }
     };
     
@@ -280,8 +274,8 @@ export default function RankingConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: 'ranking-conjoint',
-                    numTasks,
-                    profilesPerTask,
+                    numTasks: designMethod === 'fractional-factorial' ? numTasks : undefined,
+                    profilesPerTask: designMethod === 'fractional-factorial' ? profilesPerTask : undefined,
                     allowPartialRanking,
                 }),
             });
@@ -294,10 +288,9 @@ export default function RankingConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                 onUpdate?.({ tasks: result.tasks });
+                 onUpdate?.({ profiles: [], tasks: result.tasks });
             } else if (result.profiles) {
-                // Handle full factorial case
-                onUpdate?.({ tasks: [{ taskId: 'task_0', profiles: result.profiles, allowPartialRanking }] });
+                onUpdate?.({ profiles: [], tasks: [{ taskId: 'task_0', profiles: result.profiles, allowPartialRanking }] });
             }
             
             if (result.metadata) {
@@ -441,7 +434,7 @@ export default function RankingConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                          <div>
                             <Label htmlFor="designMethod">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
