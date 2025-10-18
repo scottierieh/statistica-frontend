@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -87,10 +86,10 @@ export default function RankingConjointQuestion({
     const { 
         attributes = [], 
         profiles = [], 
-        sets: numTasks = 8,
-        cardsPerSet: profilesPerTask = 4,
-        designMethod = 'fractional-factorial',
-        allowPartialRanking = false,
+        sets: numTasks,
+        cardsPerSet: profilesPerTask,
+        designMethod,
+        allowPartialRanking,
         tasks: questionTasks = []
     } = question;
 
@@ -536,9 +535,3 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
-
-```
-- src/components/survey/question-types/RatingConjointQuestion.tsx
-- src/components/survey/question-types/ConjointQuestion.tsx
-```
-
