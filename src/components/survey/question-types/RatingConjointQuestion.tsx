@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -53,7 +54,6 @@ export default function RatingConjointQuestion({
     } = question;
 
     const [isGenerating, setIsGenerating] = useState(false);
-    const [numProfilesToGenerate, setNumProfilesToGenerate] = useState(10);
     
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
@@ -141,10 +141,6 @@ export default function RatingConjointQuestion({
                 designType: 'rating-conjoint',
                 designMethod: designMethod,
             };
-
-            if (designMethod === 'fractional-factorial') {
-                requestBody.target_size = numProfilesToGenerate;
-            }
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -269,7 +265,7 @@ export default function RatingConjointQuestion({
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                        <div>
+                       <div>
                            <Label htmlFor="designMethod">Design Method</Label>
                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
                                <SelectTrigger><SelectValue /></SelectTrigger>
@@ -279,19 +275,6 @@ export default function RatingConjointQuestion({
                                </SelectContent>
                            </Select>
                        </div>
-                       {designMethod === 'fractional-factorial' && (
-                           <div>
-                               <Label htmlFor="profiles-to-generate">Number of Profiles to Generate</Label>
-                               <Input 
-                                   id="profiles-to-generate"
-                                   type="number" 
-                                   value={numProfilesToGenerate} 
-                                   onChange={e => setNumProfilesToGenerate(parseInt(e.target.value))} 
-                                   min="3" 
-                                   max={totalCombinations > 0 ? totalCombinations -1 : 20}
-                               />
-                           </div>
-                       )}
                        <div className="p-3 bg-muted rounded-md text-center">
                            <Label>Total Combinations</Label>
                            <p className="text-2xl font-bold">{totalCombinations}</p>
