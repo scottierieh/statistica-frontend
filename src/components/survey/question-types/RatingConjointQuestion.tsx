@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -153,7 +152,7 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-            
+
             if (result.profiles) {
                 onUpdate?.({ profiles: result.profiles, tasks: [] });
             }
@@ -281,7 +280,10 @@ export default function RatingConjointQuestion({
                         </div>
                     </div>
                     
-                    <div className="flex justify-end items-center">
+                    <div className="flex justify-between items-center">
+                         <p className="text-sm text-muted-foreground">
+                            Generated Profiles: {profiles.length}
+                        </p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
                             {isGenerating ? 'Generating...' : 'Generate Profiles'}
