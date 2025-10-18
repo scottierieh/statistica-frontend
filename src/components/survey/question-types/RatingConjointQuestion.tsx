@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -56,7 +55,6 @@ export default function RatingConjointQuestion({
         designMethod = 'fractional-factorial',
     } = question;
 
-    const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
     const handleRatingChange = (profileId: string, value: string) => {
@@ -156,11 +154,7 @@ export default function RatingConjointQuestion({
             const result = await response.json();
 
             if (result.profiles) {
-                onUpdate?.({ profiles: result.profiles, tasks: [] });
-            }
-            
-            if (result.metadata) {
-                setDesignStats(result.metadata);
+                onUpdate?.({ ...question, profiles: result.profiles, tasks: [] });
             }
             
             onAnswerChange?.({});
