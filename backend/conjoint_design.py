@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -40,6 +41,7 @@ class BaseConjointDesign:
         if not target_size:
             total_levels = sum(len(attr['levels']) for attr in self.attributes)
             min_profiles = total_levels - len(self.attributes) + 1
+            # Default to a reasonable number if not specified
             target_size = min(len(full_design_dicts), max(min_profiles, 16))
 
         if len(full_design_dicts) <= target_size:
@@ -60,6 +62,8 @@ class BaseConjointDesign:
         This is a heuristic approach, not a formal orthogonal array generator.
         """
         num_profiles = len(design_df)
+        if target_size >= num_profiles:
+            return list(range(num_profiles))
         
         # Start with a random set of indices
         np.random.seed(42)
@@ -95,9 +99,10 @@ class BaseConjointDesign:
         for col in subset_df.columns:
             counts = subset_df[col].value_counts(normalize=True)
             # Penalize deviation from perfect balance
-            perfect_balance = 1 / len(counts)
-            balance_penalty = np.sum((counts - perfect_balance)**2)
-            score -= balance_penalty
+            if not counts.empty:
+                perfect_balance = 1 / len(counts)
+                balance_penalty = np.sum((counts - perfect_balance)**2)
+                score -= balance_penalty
 
         # 2. Orthogonality Score (for pairs of attributes)
         for i in range(len(subset_df.columns)):
@@ -245,17 +250,10 @@ class RankingDesign(BaseConjointDesign):
             }]
         
         else: # Fractional factorial
-            base_profiles = self.generate_fractional_factorial()
+            target_profile_count = self.num_tasks * self.profiles_per_task
+            base_profiles = self.generate_fractional_factorial(target_size=target_profile_count)
             
-            # Ensure we have enough profiles
-            if len(base_profiles) < self.profiles_per_task * self.num_tasks:
-                 base_profiles = self.generate_fractional_factorial(
-                     target_size = self.profiles_per_task * self.num_tasks
-                 )
-
             tasks = []
-            used_indices = set()
-            
             profile_pool = base_profiles.copy()
             np.random.shuffle(profile_pool)
             
@@ -282,17 +280,30 @@ class RankingDesign(BaseConjointDesign):
 
 
 class RatingDesign(BaseConjointDesign):
-    def __init__(self, attributes, scale_min=1, scale_max=10):
+    def __init__(self, attributes, scale_min=1, scale_max=10, target_profiles=None):
         super().__init__(attributes)
         self.scale_min = scale_min
         self.scale_max = scale_max
+        self.target_profiles = target_profiles
     
     def create_rating_profiles(self, design_method='fractional-factorial'):
         """For rating, return profiles with scale information"""
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            profiles = self.generate_fractional_factorial()
+            # For rating conjoint, we want more profiles for better analysis
+            # Use a target size that's meaningful but not full factorial
+            full_size = 1
+            for attr in self.attributes:
+                full_size *= len(attr['levels'])
+            
+            if self.target_profiles:
+                target_size = self.target_profiles
+            else:
+                # Default: Use about 1/2 to 2/3 of full factorial, with minimum of 8 and max of 20
+                target_size = max(8, min(full_size, 20)) # Changed to min(full_size, 20)
+            
+            profiles = self.generate_fractional_factorial(target_size=target_size)
         
         for i, profile in enumerate(profiles):
             profile['taskId'] = f"task_{i}"
@@ -326,6 +337,8 @@ def main():
 
         # Rating specific
         rating_scale = payload.get('ratingScale', [1, 10])
+        target_profiles = payload.get('targetProfiles', None)
+
 
         if not attributes:
             raise ValueError("Missing 'attributes' data")
@@ -351,7 +364,7 @@ def main():
             }
             
         elif design_type == 'rating-conjoint':
-            rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1])
+            rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1], target_profiles)
             profiles = rating_designer.create_rating_profiles(design_method)
             result = {
                 "type": "rating",
