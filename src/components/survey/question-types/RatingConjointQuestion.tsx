@@ -5,12 +5,12 @@ import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
+import { PlusCircle, Trash2, Zap, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -86,7 +86,7 @@ export default function RatingConjointQuestion({
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft && draft[attrIndex]) draft[attrIndex].levels[levelIndex] = newLevel;
+            if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
@@ -266,7 +266,7 @@ export default function RatingConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
-                           <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as 'full-factorial' | 'fractional-factorial' })}>
+                           <Select value={designMethod} onValueChange={(value) => onUpdate?.({...question, designMethod: value as 'full-factorial' | 'fractional-factorial' })}>
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
