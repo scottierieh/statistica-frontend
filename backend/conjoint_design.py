@@ -136,8 +136,8 @@ class CBCDesign(BaseConjointDesign):
     def create_choice_sets(self, design_method='d-efficient'):
         if design_method == 'full-factorial':
             base_profiles = self.generate_full_factorial()
-        elif design_method == 'orthogonal':
-            # For simplicity, treat orthogonal as a fractional factorial for now
+        elif design_method == 'orthogonal' or design_method == 'd-efficient':
+            # For simplicity, treat orthogonal and d-efficient as a fractional factorial for now
             base_profiles = self.generate_fractional_factorial()
         elif design_method == 'random':
             full_design = self.generate_full_factorial()
@@ -147,29 +147,26 @@ class CBCDesign(BaseConjointDesign):
                  base_profiles = [full_design[i] for i in indices]
             else:
                  base_profiles = full_design
-
-        # D-efficient is more complex and would ideally use a specialized library.
-        # Here, we'll use fractional factorial as a proxy for D-efficient and orthogonal.
-        else: # Default to fractional/d-efficient proxy
+        else: # Default to fractional
             base_profiles = self.generate_fractional_factorial()
         
         tasks = []
-        used_combinations = set()
         
-        if len(base_profiles) < self.num_tasks * self.profiles_per_task:
-            warnings.warn("Not enough unique profiles for all tasks. Profiles may be repeated across tasks.")
-            profile_pool = base_profiles * ( (self.num_tasks * self.profiles_per_task // len(base_profiles)) + 1 )
-        else:
-            profile_pool = base_profiles.copy()
-            np.random.shuffle(profile_pool)
-
+        if not base_profiles:
+             return []
+             
+        np.random.shuffle(base_profiles)
+        
+        profile_pool = base_profiles.copy()
 
         for i in range(self.num_tasks):
-            if len(profile_pool) < self.profiles_per_task:
-                 break # Not enough profiles left for a full task
-                 
-            task_profiles_raw = profile_pool[:self.profiles_per_task]
-            profile_pool = profile_pool[self.profiles_per_task:]
+            task_profiles_raw = []
+            for _ in range(self.profiles_per_task):
+                if not profile_pool:
+                    # If we run out of unique profiles, reset the pool to allow reuse
+                    profile_pool = base_profiles.copy()
+                    np.random.shuffle(profile_pool)
+                task_profiles_raw.append(profile_pool.pop(0))
             
             task_profiles = []
             for j, profile in enumerate(task_profiles_raw):
@@ -261,7 +258,10 @@ class RatingDesign(BaseConjointDesign):
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            profiles = self.generate_fractional_factorial(target_size=target_size)
+            if target_size:
+                profiles = self.generate_fractional_factorial(target_size=target_size)
+            else:
+                profiles = self.generate_full_factorial()
         
         for i, profile in enumerate(profiles):
             profile['taskId'] = f"task_{i}"
@@ -294,21 +294,27 @@ def main():
 
         result = {}
         
-        if design_type == 'cbc' or design_type == 'conjoint':
+        if design_type == 'cbc':
             cbc_designer = CBCDesign(attributes, num_tasks, profiles_per_task, payload.get('includeNone', True))
             tasks = cbc_designer.create_choice_sets(design_method)
             result = {"type": "cbc", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "includeNone": payload.get('includeNone', True) }}
             
         elif design_type == 'ranking-conjoint':
-            # For fractional factorial, dynamically set num_tasks and profiles_per_task based on what's generated.
-            # This is a bit simplified, but ensures the frontend reflects reality.
             if design_method == 'fractional-factorial':
-                 num_tasks = payload.get('numTasks', 5)  # A reasonable default
-                 profiles_per_task = payload.get('profilesPerTask', 4)
-
+                 target_size = 20
+                 num_tasks = 5  
+                 profiles_per_task = 4
+                 
             ranking_designer = RankingDesign(attributes, num_tasks, profiles_per_task, payload.get('allowPartialRanking', False))
-            tasks = ranking_designer.create_ranking_sets(design_method, target_size=target_size)
-            result = {"type": "ranking", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task if len(tasks) == 0 else len(tasks[0]['profiles']), "allowPartialRanking": payload.get('allowPartialRanking', False) }}
+            
+            if design_method == 'full-factorial':
+                tasks = ranking_designer.create_ranking_sets(design_method)
+            else:
+                 tasks = ranking_designer.create_ranking_sets(design_method, target_size=target_size)
+
+            profiles_per_task_actual = len(tasks[0]['profiles']) if tasks and tasks[0]['profiles'] else 0
+
+            result = {"type": "ranking", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task_actual, "allowPartialRanking": payload.get('allowPartialRanking', False) }}
             
         elif design_type == 'rating-conjoint':
             rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1])
@@ -328,5 +334,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 

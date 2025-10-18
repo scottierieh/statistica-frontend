@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -16,12 +17,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Survey, SurveyResponse } from '@/entities/Survey';
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 
 interface ConjointQuestionProps {
     survey: Survey;
@@ -260,7 +255,7 @@ export default function ConjointQuestion({
                                     {(attributes || []).map(attr => (
                                         <div key={attr.id} className="flex justify-between items-center text-xs">
                                             <span className="font-medium text-muted-foreground">{attr.name}:</span>
-                                            <span className="font-semibold">{profile.attributes[attr.name]}</span>
+                                            <span className="font-semibold">{profile.attributes?.[attr.name]}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -334,16 +329,19 @@ export default function ConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as any })}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="d-efficient">D-efficient</SelectItem>
-                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
-                                    <SelectItem value="orthogonal">Orthogonal</SelectItem>
-                                    <SelectItem value="random">Random</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                            <Select 
+                                value={designMethod} 
+                                onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as any })}
+                            >
+                               <SelectTrigger><SelectValue /></SelectTrigger>
+                               <SelectContent>
+                                   <SelectItem value="d-efficient">D-efficient</SelectItem>
+                                   <SelectItem value="full-factorial">Full Factorial</SelectItem>
+                                   <SelectItem value="orthogonal">Orthogonal</SelectItem>
+                                   <SelectItem value="random">Random</SelectItem>
+                               </SelectContent>
+                           </Select>
+                       </div>
                         
                         {['d-efficient', 'orthogonal', 'random'].includes(designMethod) && (
                             <>
