@@ -3,10 +3,9 @@
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -334,9 +333,7 @@ export default function RankingConjointQuestion({
 
     // Preview mode
     if (isPreview) {
-        if (tasks.length === 0) {
-            return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate profiles first.</div>;
-        }
+        if (tasks.length === 0) return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate profiles first.</div>;
     
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
@@ -447,8 +444,8 @@ export default function RankingConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                         <div>
                             <Label htmlFor="designMethod">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as any })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -537,3 +534,9 @@ export default function RankingConjointQuestion({
                                 </div>
                             </ScrollArea>
                         </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
