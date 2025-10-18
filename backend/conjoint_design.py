@@ -308,6 +308,8 @@ class RatingDesign(BaseConjointDesign):
         else:
             profiles = self.generate_fractional_factorial(target_size=self.target_profiles)
         
+        print(f"Generated {len(profiles)} profiles for rating conjoint", file=sys.stderr)
+        
         for i, profile in enumerate(profiles):
             profile['taskId'] = f"task_{i}"
             profile['scale'] = {
@@ -367,9 +369,8 @@ def main():
             }
             
         elif design_type == 'rating-conjoint':
-            rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1], target_profiles)
+            rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1], target_profiles=target_profiles)
             profiles = rating_designer.create_rating_profiles(design_method)
-            print(f"Generated {len(profiles)} profiles for rating conjoint", file=sys.stderr)
             result = {
                 "type": "rating",
                 "profiles": profiles,

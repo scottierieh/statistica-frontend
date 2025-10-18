@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -56,6 +57,7 @@ export default function RatingConjointQuestion({
     } = question;
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [targetProfiles, setTargetProfiles] = useState<number | undefined>(10);
 
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
@@ -139,6 +141,7 @@ export default function RatingConjointQuestion({
                     attributes,
                     designType: 'rating-conjoint',
                     designMethod: designMethod,
+                    targetProfiles: designMethod === 'fractional-factorial' ? targetProfiles : undefined,
                 }),
             });
             
@@ -148,9 +151,9 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-            
+
             if (result.profiles) {
-                onUpdate?.({ profiles: result.profiles });
+                onUpdate?.({ profiles: result.profiles, tasks: [] });
             }
             
             if (result.metadata) {
@@ -275,6 +278,19 @@ export default function RatingConjointQuestion({
                             <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
+
+                     {designMethod === 'fractional-factorial' && (
+                        <div>
+                            <Label htmlFor="target-profiles">Number of Profiles to Generate</Label>
+                            <Input 
+                                id="target-profiles"
+                                type="number"
+                                placeholder="e.g., 12"
+                                value={targetProfiles || ''}
+                                onChange={(e) => setTargetProfiles(e.target.value ? parseInt(e.target.value) : undefined)}
+                            />
+                        </div>
+                    )}
                     
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">
