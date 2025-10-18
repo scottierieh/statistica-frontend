@@ -4,16 +4,14 @@
 import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useState, useMemo, useEffect, useRef } from "react";
-import { produce } from "immer";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { PlusCircle, Trash2, Zap, X, Info, GripVertical } from "lucide-react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { produce } from "immer";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlusCircle, Trash2, Zap, X, Info, GripVertical } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +19,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
     const { attributes: dndAttributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -82,6 +84,11 @@ export default function RankingConjointQuestion({
     submitSurvey
 }: RankingConjointQuestionProps) {
     const { toast } = useToast();
+    const [currentTask, setCurrentTask] = useState(0);
+    const [designStats, setDesignStats] = useState<any>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const prevTaskRef = useRef(currentTask);
+
     const { 
         attributes = [], 
         profiles = [], 
@@ -91,11 +98,6 @@ export default function RankingConjointQuestion({
         allowPartialRanking = false,
         tasks: questionTasks = []
     } = question;
-    
-    const [currentTask, setCurrentTask] = useState(0);
-    const [designStats, setDesignStats] = useState<any>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const prevTaskRef = useRef(currentTask);
 
     const tasks = useMemo(() => {
         if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
@@ -191,7 +193,7 @@ export default function RankingConjointQuestion({
                 }));
                 
                 return newOrder;
-            });
+            }));
         }
     };
     
@@ -289,8 +291,7 @@ export default function RankingConjointQuestion({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    designType: 'ranking-conjoint',
-                    designMethod,
+                    designType: 'ranking',
                     numTasks: sets,
                     profilesPerTask: cardsPerSet,
                     allowPartialRanking,
@@ -305,9 +306,7 @@ export default function RankingConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                onUpdate?.({ tasks: result.tasks });
-            } else if (result.profiles) {
-                onUpdate?.({ profiles: result.profiles });
+                 onUpdate?.({ tasks: result.tasks });
             }
             
             if (result.metadata) {
