@@ -94,18 +94,12 @@ def main():
         y = df[target_variable]
         
         X_df = pd.DataFrame()
-        feature_names = []
-        base_levels = {}
         
         for attr, props in attributes.items():
             if props.get('includeInAnalysis', True) and props['type'] == 'categorical':
                 df[attr] = df[attr].astype('category')
-                base_level = props['levels'][0]
-                base_levels[attr] = base_level
-                
-                dummies = pd.get_dummies(df[attr], prefix=attr, drop_first=True, dtype=float)
+                dummies = pd.get_dummies(df[attr], prefix=attr, dtype=float)
                 X_df = pd.concat([X_df, dummies], axis=1)
-                feature_names.extend(dummies.columns.tolist())
         
         model = LinearRegression()
         model.fit(X_df, y)
@@ -121,11 +115,17 @@ def main():
         
         for attr, props in attributes.items():
              if props.get('includeInAnalysis', True) and props['type'] == 'categorical':
-                base_level = base_levels[attr]
-                part_worths[attr] = {base_level: 0}
-                for level in props['levels'][1:]:
+                part_worths[attr] = {}
+                for level in props['levels']:
                     feature_name = f"{attr}_{level}"
                     part_worths[attr][level] = coeff_map.get(feature_name, 0)
+
+        # Zero-center part-worths for better interpretation
+        for attr in part_worths:
+            levels = part_worths[attr]
+            mean_utility = np.mean(list(levels.values()))
+            for level in levels:
+                levels[level] -= mean_utility
         
         importance = calculate_importance(part_worths)
         
