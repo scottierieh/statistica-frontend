@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -86,10 +87,10 @@ export default function RankingConjointQuestion({
     const { 
         attributes = [], 
         profiles = [], 
-        sets: numTasks,
-        cardsPerSet,
-        designMethod,
-        allowPartialRanking,
+        sets: numTasks = 8,
+        cardsPerSet: profilesPerTask = 4,
+        designMethod = 'fractional-factorial',
+        allowPartialRanking = false,
         tasks: questionTasks = []
     } = question;
 
@@ -292,7 +293,7 @@ export default function RankingConjointQuestion({
                     attributes,
                     designType: 'ranking',
                     numTasks,
-                    profilesPerTask: cardsPerSet,
+                    profilesPerTask,
                     allowPartialRanking,
                 }),
             });
@@ -445,7 +446,8 @@ export default function RankingConjointQuestion({
 
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <Label htmlFor="designMethod">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as any })}>
@@ -456,14 +458,18 @@ export default function RankingConjointQuestion({
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
-                            <Label htmlFor="sets">Number of Tasks</Label>
-                            <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
-                        </div>
-                        <div>
-                             <Label htmlFor="cardsPerSet">Profiles per Task</Label>
-                             <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
-                        </div>
+                        {designMethod === 'fractional-factorial' && (
+                            <>
+                                <div>
+                                    <Label htmlFor="sets">Number of Tasks</Label>
+                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                                </div>
+                                <div>
+                                    <Label htmlFor="cardsPerSet">Profiles per Task</Label>
+                                    <Input id="cardsPerSet" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                                </div>
+                            </>
+                        )}
                         <div className="p-3 bg-muted rounded-md text-center">
                             <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
@@ -531,9 +537,3 @@ export default function RankingConjointQuestion({
                                 </div>
                             </ScrollArea>
                         </div>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
