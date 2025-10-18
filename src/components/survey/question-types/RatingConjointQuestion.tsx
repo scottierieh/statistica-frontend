@@ -148,9 +148,9 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-
+            
             if (result.profiles) {
-                 onUpdate?.({ profiles: result.profiles, tasks: [] });
+                onUpdate?.({ profiles: result.profiles });
             }
             
             if (result.metadata) {
@@ -293,7 +293,7 @@ export default function RatingConjointQuestion({
                                 {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.id}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
+                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes?.[a.name] || '-'}</TableCell>)}
                                     </TableRow>
                                 ))}
                             </TableBody>
