@@ -262,7 +262,7 @@ export default function RatingConjointQuestion({
                 </div>
 
                 <div className="mt-6 space-y-4">
-                    <h4 className="font-semibold text-sm">Design &amp; Profiles</h4>
+                    <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -281,32 +281,14 @@ export default function RatingConjointQuestion({
                         </div>
                     </div>
                     
-                    <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">
-                            Generated Profiles: {profiles.length}
-                        </p>
+                    <div className="flex justify-end items-center">
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
                             {isGenerating ? 'Generating...' : 'Generate Profiles'}
                         </Button>
                     </div>
-
-                    <ScrollArea className="h-48 border rounded-md p-2">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Profile ID</TableHead>{attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}</TableRow></TableHeader>
-                            <TableBody>
-                                {(profiles || []).map(p => (
-                                    <TableRow key={p.id}>
-                                        <TableCell>{p.id}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes?.[a.name] || '-'}</TableCell>)}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
                 </div>
             </CardContent>
         </Card>
     );
 }
-
