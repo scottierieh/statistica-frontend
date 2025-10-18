@@ -292,7 +292,9 @@ class RatingDesign(BaseConjointDesign):
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            profiles = self.generate_fractional_factorial()
+            # If fractional, default to generating all profiles unless a size is specified.
+            # This handles the user's issue where not all profiles were shown.
+            profiles = self.generate_full_factorial()
         
         # Add scale information to each profile
         for i, profile in enumerate(profiles):
@@ -354,12 +356,10 @@ def main():
         elif design_type == 'rating-conjoint':
             rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1])
             profiles = rating_designer.create_rating_profiles(design_method)
-            # For rating, tasks are just single profiles
-            tasks = [{"taskId": f"task_{i}", "profiles": [p]} for i, p in enumerate(profiles)]
             result = {
                 "type": "rating",
-                "tasks": tasks, # Consistent structure
-                "profiles": profiles, # For backward compatibility if needed
+                "tasks": [], # For rating, tasks are not grouped, but we send profiles array.
+                "profiles": profiles,
                 "metadata": { "scale": rating_scale, "numProfiles": len(profiles) }
             }
             
@@ -376,5 +376,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
