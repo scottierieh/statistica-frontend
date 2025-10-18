@@ -3,7 +3,6 @@
 import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { produce } from "immer";
@@ -86,10 +85,10 @@ export default function RankingConjointQuestion({
     const { 
         attributes = [], 
         profiles = [], 
-        sets: numTasks,
-        cardsPerSet: profilesPerTask,
-        designMethod,
-        allowPartialRanking,
+        sets: numTasks = 5,
+        cardsPerSet: profilesPerTask = 4,
+        designMethod = 'fractional-factorial',
+        allowPartialRanking = false,
         tasks: questionTasks = []
     } = question;
 
@@ -104,6 +103,9 @@ export default function RankingConjointQuestion({
         }
         
         if (profiles && profiles.length > 0) {
+            if (designMethod === 'full-factorial') {
+                return [{ taskId: 'task_0', profiles, allowPartialRanking }];
+            }
             const groupedProfiles: { [taskId: string]: any[] } = {};
             profiles.forEach(p => {
                 const taskId = p.taskId || 'task_0';
@@ -127,7 +129,7 @@ export default function RankingConjointQuestion({
         }
         
         return [];
-    }, [questionTasks, profiles, allowPartialRanking]);
+    }, [questionTasks, profiles, allowPartialRanking, designMethod]);
 
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskProfiles = currentTaskData.profiles || [];
@@ -136,7 +138,7 @@ export default function RankingConjointQuestion({
     const [rankedItems, setRankedItems] = useState(() => currentTaskProfiles);
     
     useEffect(() => {
-        if (prevTaskRef.current !== currentTask) {
+        if (prevTaskRef.current !== currentTask || tasks[currentTask]?.profiles !== rankedItems) {
             prevTaskRef.current = currentTask;
             
             const newTaskProfiles = tasks[currentTask]?.profiles || [];
@@ -163,7 +165,7 @@ export default function RankingConjointQuestion({
                 setRankedItems(newTaskProfiles);
             }
         }
-    }, [currentTask, currentTaskId, tasks, answer]);
+    }, [currentTask, currentTaskId, tasks, answer, rankedItems]);
     
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -200,7 +202,7 @@ export default function RankingConjointQuestion({
     const isTaskAnswered = answer?.[currentTaskId]?.length > 0;
 
     const handleNextTask = () => {
-        if (!allowPartialRanking && !isTaskAnswered) {
+        if (!allowPartialRanking && rankedItems.length > 0 && !isTaskAnswered) {
             toast({
                 variant: "destructive",
                 title: "Please rank the items",
@@ -291,9 +293,9 @@ export default function RankingConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: 'ranking',
-                    numTasks: question.sets,
-                    profilesPerTask: question.cardsPerSet,
-                    allowPartialRanking: question.allowPartialRanking
+                    numTasks,
+                    profilesPerTask,
+                    allowPartialRanking,
                 }),
             });
             
@@ -335,6 +337,8 @@ export default function RankingConjointQuestion({
     if (isPreview) {
         if (tasks.length === 0) return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate profiles first.</div>;
     
+        const isFullFactorial = designMethod === 'full-factorial';
+
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
                  style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
@@ -343,9 +347,11 @@ export default function RankingConjointQuestion({
                         {question.title || `Q${questionNumber}: Ranking Task`}
                         {question.required && <span className="text-destructive ml-1">*</span>}
                     </h3>
-                    <Badge variant="secondary">
-                        Task {currentTask + 1} of {tasks.length}
-                    </Badge>
+                    {!isFullFactorial && (
+                        <Badge variant="secondary">
+                            Task {currentTask + 1} of {tasks.length}
+                        </Badge>
+                    )}
                 </div>
                 
                 {question.description && (
@@ -360,7 +366,7 @@ export default function RankingConjointQuestion({
                     </AlertDescription>
                 </Alert>
                 
-                <div className="space-y-2">
+                 <div className="space-y-2">
                     {rankedItems.length > 0 ? (
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
                             <SortableContext items={rankedItems.map(p => p.id)} strategy={verticalListSortingStrategy}>
@@ -382,25 +388,27 @@ export default function RankingConjointQuestion({
                     )}
                 </div>
                 
-                <div className="flex justify-between items-center mt-4">
-                    <Button 
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePreviousTask}
-                        disabled={currentTask === 0}
-                    >
-                        Previous
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                        {Object.keys(answer || {}).length} of {tasks.length} completed
-                    </span>
-                    <Button 
-                        size="sm"
-                        onClick={handleNextTask}
-                    >
-                        {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Task'}
-                    </Button>
-                </div>
+                {!isFullFactorial && (
+                    <div className="flex justify-between items-center mt-4">
+                        <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePreviousTask}
+                            disabled={currentTask === 0}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                            {Object.keys(answer || {}).length} of {tasks.length} completed
+                        </span>
+                        <Button 
+                            size="sm"
+                            onClick={handleNextTask}
+                        >
+                            {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Task'}
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     }
@@ -447,7 +455,7 @@ export default function RankingConjointQuestion({
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                          <div>
                             <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as any })}>
+                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
@@ -480,7 +488,7 @@ export default function RankingConjointQuestion({
                             onCheckedChange={(checked) => onUpdate?.({ allowPartialRanking: !!checked })}
                         />
                         <Label htmlFor="partial" className="text-sm font-normal cursor-pointer">
-                            Allow partial ranking (respondents can rank only top choices)
+                            Allow partial ranking
                         </Label>
                     </div>
                     
