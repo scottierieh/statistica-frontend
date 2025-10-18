@@ -225,7 +225,6 @@ export default function RatingConjointQuestion({
         );
     }
     
-    // Editor mode
     return (
         <Card className="bg-white">
             <CardContent className="p-6">
@@ -267,7 +266,7 @@ export default function RatingConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
-                           <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
+                           <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as 'full-factorial' | 'fractional-factorial' })}>
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
