@@ -3,19 +3,20 @@
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { produce } from "immer";
-import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface RatingConjointQuestionProps {
     question: Question;
@@ -49,21 +50,10 @@ export default function RatingConjointQuestion({
     submitSurvey
 }: RatingConjointQuestionProps) {
     const { toast } = useToast();
-    const { attributes = [], profiles = [], sets = 1, designMethod = 'fractional-factorial' } = question;
-    const [currentTask, setCurrentTask] = useState(0);
+    const { attributes = [], profiles = [], designMethod = 'fractional-factorial' } = question;
     const [designStats, setDesignStats] = useState<any>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    const tasks = useMemo(() => {
-        const groupedProfiles: { [taskId: string]: any[] } = {};
-        (profiles || []).forEach(p => {
-            if (!groupedProfiles[p.taskId]) {
-                groupedProfiles[p.taskId] = [];
-            }
-            groupedProfiles[p.taskId].push(p);
-        });
-        return Object.values(groupedProfiles);
-    }, [profiles]);
-    
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
         if (rating >= 1 && rating <= 10) {
@@ -73,17 +63,13 @@ export default function RatingConjointQuestion({
         }
     };
     
-    const isLastTask = currentTask === tasks.length - 1;
+    const isLastTask = true; // Rating conjoint is always a single "task"
 
     const handleNextTask = () => {
-        if (!isLastTask) {
-            setCurrentTask(currentTask + 1);
-        } else {
-             if (isLastQuestion && submitSurvey) {
-                submitSurvey();
-            } else if(onNextTask) {
-                onNextTask();
-            }
+        if (isLastQuestion && submitSurvey) {
+            submitSurvey();
+        } else if(onNextTask) {
+            onNextTask();
         }
     };
     
@@ -133,13 +119,22 @@ export default function RatingConjointQuestion({
     }, [attributes]);
     
     const generateProfiles = async () => {
+        if (attributes.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: "No Attributes",
+                description: "Please add at least one attribute before generating profiles."
+            });
+            return;
+        }
+        setIsGenerating(true);
         try {
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    designType: question.type, // Pass the correct type
+                    designType: 'rating-conjoint', // Specific type for rating
                 }),
             });
             
@@ -149,12 +144,21 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-            onUpdate?.({ profiles: result.profiles });
             
-            setDesignStats(result.statistics);
+            if (result.profiles) {
+                const profilesWithTaskId = result.profiles.map((p: any) => ({...p, taskId: 'task_0'}));
+                onUpdate?.({ profiles: profilesWithTaskId, tasks: [] });
+            }
+            
+            if (result.metadata) {
+                setDesignStats(result.metadata);
+            }
+            
+            onAnswerChange?.({});
+            
             toast({
                 title: "Profiles Generated",
-                description: `${result.profiles.length} profiles created.`
+                description: `${result.profiles?.length || 0} profiles created successfully.`
             });
 
         } catch (e: any) {
@@ -163,52 +167,51 @@ export default function RatingConjointQuestion({
                 title: "Design Generation Failed",
                 description: e.message
             });
+        } finally {
+            setIsGenerating(false);
         }
     };
 
     if (isPreview) {
-        if (tasks.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
+        if (profiles.length === 0) return <div className="p-3 text-sm text-muted-foreground">No rating profiles generated yet. Please generate profiles first.</div>;
     
-        const currentTaskProfiles = tasks[currentTask];
-
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
                  style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
+                <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
                 {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
                 
-                <div className="grid grid-cols-2 gap-2">
-                    {currentTaskProfiles.map((profile: any, index: number) => (
-                        <Card key={profile.id} className="text-center">
-                            <CardHeader className="p-2 pb-1">
-                                <CardTitle className="text-xs font-semibold">Option {index + 1}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-2 space-y-1">
-                                {(attributes || []).map(attr => (
-                                    <div key={attr.id} className="flex justify-between items-center text-xs py-1 border-b last:border-b-0">
-                                        <span className="font-medium text-muted-foreground w-16 text-left">{attr.name}:</span>
-                                        <span className="font-semibold flex-1 text-right">{profile.attributes[attr.name]}</span>
-                                    </div>
-                                ))}
+                <div className="space-y-3">
+                    {profiles.map((profile: any) => (
+                        <Card key={profile.id}>
+                            <CardContent className="p-3 flex items-center justify-between">
+                                <div className="space-y-1 text-xs">
+                                     {(attributes || []).map(attr => (
+                                        <div key={attr.id} className="flex items-center gap-2">
+                                            <span className="font-medium text-muted-foreground w-16">{attr.name}:</span>
+                                            <span className="font-semibold">{profile.attributes[attr.name]}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="w-24">
+                                     <Input
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        placeholder="1-10"
+                                        value={answer?.[profile.id] || ''}
+                                        onChange={(e) => handleRatingChange(profile.id, e.target.value)}
+                                        className="h-8 text-center text-sm"
+                                    />
+                                </div>
                             </CardContent>
-                            <CardFooter className="p-2">
-                                <Input
-                                    type="number"
-                                    min="1"
-                                    max="10"
-                                    placeholder="1-10"
-                                    value={answer?.[profile.id] || ''}
-                                    onChange={(e) => handleRatingChange(profile.id, e.target.value)}
-                                    className="h-8 text-xs"
-                                />
-                            </CardFooter>
                         </Card>
                     ))}
                 </div>
                 
-                <div className="text-right mt-4">
+                 <div className="text-right mt-4">
                     <Button onClick={handleNextTask}>
-                        {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Set'}
+                        {isLastQuestion ? 'Submit' : 'Next'}
                     </Button>
                 </div>
             </div>
@@ -255,53 +258,37 @@ export default function RatingConjointQuestion({
                     
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label htmlFor="designType">Design Type</Label>
+                            <Label htmlFor="designType">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
                                     <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
-                                    <SelectItem value="orthogonal">Orthogonal Design</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
-                            <Label htmlFor="sets">Number of Sets (Tasks)</Label>
-                            <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
+                        <div className="p-3 bg-muted rounded-md text-center">
+                            <Label>Total Combinations</Label>
+                            <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
                     
-                    <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertDescription className="text-xs">
-                           {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} possible combinations will be generated. Best for small designs.`}
-                           {designMethod === 'fractional-factorial' && `Fractional Factorial: Optimal subset using D-optimal algorithm. Balances statistical efficiency with practicality.`}
-                           {designMethod === 'orthogonal' && `Orthogonal Design: Uses standard orthogonal arrays (L4, L8, L9, etc.). Ensures statistical independence between attributes.`}
-                        </AlertDescription>
-                    </Alert>
-
-                     {designStats && (
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                           <Card className="p-2 bg-blue-50"><CardTitle className="text-sm">Generated</CardTitle><p className="font-bold text-blue-700 text-lg">{designStats.totalProfiles}</p></Card>
-                           <Card className="p-2 bg-green-50"><CardTitle className="text-sm">Balance</CardTitle><p className="font-bold text-green-700 text-lg">{designStats.balance}%</p></Card>
-                           <Card className="p-2 bg-purple-50"><CardTitle className="text-sm">Orthogonality</CardTitle><p className="font-bold text-purple-700 text-lg">{designStats.orthogonality}%</p></Card>
-                        </div>
-                    )}
-                    
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
-                        <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
+                        <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
+                            <Zap className="mr-2 h-4 w-4"/>
+                            {isGenerating ? 'Generating...' : 'Generate Profiles'}
+                        </Button>
                     </div>
 
                     <ScrollArea className="h-48 border rounded-md p-2">
                         <Table>
-                            <TableHeader><TableRow><TableHead className="text-xs">Profile ID</TableHead><TableHead className="text-xs">Task ID</TableHead>{attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}</TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Profile ID</TableHead>{attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {(profiles || []).map(p => (
                                     <TableRow key={p.id}>
-                                        <TableCell className="text-xs">{p.id}</TableCell>
-                                        <TableCell className="text-xs">{p.taskId}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id} className="text-xs">{p.attributes[a.name]}</TableCell>)}
+                                        <TableCell>{p.id}</TableCell>
+                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
                                     </TableRow>
                                 ))}
                             </TableBody>
