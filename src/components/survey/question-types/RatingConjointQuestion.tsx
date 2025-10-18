@@ -10,10 +10,11 @@ import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, Zap, X } from "lucide-react";
+import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface RatingConjointQuestionProps {
     question: Question;
@@ -54,7 +55,6 @@ export default function RatingConjointQuestion({
     } = question;
 
     const [isGenerating, setIsGenerating] = useState(false);
-    const [numProfilesToGenerate, setNumProfilesToGenerate] = useState(8);
     
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
@@ -141,11 +141,8 @@ export default function RatingConjointQuestion({
             const requestBody: any = {
                 attributes,
                 designType: 'rating-conjoint',
-                designMethod: designMethod,
+                designMethod,
             };
-            if(designMethod === 'fractional-factorial') {
-                requestBody.target_size = numProfilesToGenerate;
-            }
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -271,7 +268,7 @@ export default function RatingConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
-                           <Select 
+                            <Select 
                                 value={designMethod} 
                                 onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as 'full-factorial' | 'fractional-factorial' })}
                             >
@@ -298,6 +295,14 @@ export default function RatingConjointQuestion({
                             {isGenerating ? 'Generating...' : 'Generate Profiles'}
                         </Button>
                     </div>
+                     {(!profiles || profiles.length === 0) && (
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                You must generate profiles before you can publish the survey.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </div>
             </CardContent>
         </Card>

@@ -5,7 +5,7 @@ import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -288,9 +288,9 @@ export default function RankingConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                 onUpdate?.({ profiles: [], tasks: result.tasks });
+                 onUpdate?.({ id: question.id, profiles: [], tasks: result.tasks });
             } else if (result.profiles) {
-                onUpdate?.({ profiles: [], tasks: [{ taskId: 'task_0', profiles: result.profiles, allowPartialRanking }] });
+                onUpdate?.({ id: question.id, profiles: [], tasks: [{ taskId: 'task_0', profiles: result.profiles, allowPartialRanking }] });
             }
             
             if (result.metadata) {
@@ -437,7 +437,7 @@ export default function RankingConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                          <div>
                             <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
+                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ id: question.id, designMethod: value })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
@@ -449,11 +449,11 @@ export default function RankingConjointQuestion({
                             <>
                                 <div>
                                     <Label htmlFor="sets">Number of Tasks</Label>
-                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ id: question.id, sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
                                 </div>
                                 <div>
                                     <Label htmlFor="profilesPerTask">Profiles per Task</Label>
-                                    <Input id="profilesPerTask" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                                    <Input id="profilesPerTask" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ id: question.id, cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
                                 </div>
                             </>
                         )}
@@ -467,7 +467,7 @@ export default function RankingConjointQuestion({
                         <Checkbox 
                             id="partial"
                             checked={allowPartialRanking || false}
-                            onCheckedChange={(checked) => onUpdate?.({ allowPartialRanking: !!checked })}
+                            onCheckedChange={(checked) => onUpdate?.({ id: question.id, allowPartialRanking: !!checked })}
                         />
                         <Label htmlFor="partial" className="text-sm font-normal cursor-pointer">
                             Allow partial ranking
@@ -485,43 +485,17 @@ export default function RankingConjointQuestion({
                             {isGenerating ? 'Generating...' : 'Generate Tasks'}
                         </Button>
                     </div>
-
-                    <ScrollArea className="h-48 border rounded-md p-2">
-                        <div className="space-y-4">
-                            {tasks.map((task: any, taskIndex) => (
-                                <Card key={task.taskId} className="p-3">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <Badge>Task {taskIndex + 1}</Badge>
-                                        <span className="text-xs text-muted-foreground">
-                                            {task.profiles.length} profiles
-                                        </span>
-                                    </div>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead className="w-20">#</TableHead>
-                                                {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {task.profiles.map((p: any, pIndex: number) => (
-                                                <TableRow key={p.id}>
-                                                    <TableCell>{pIndex + 1}</TableCell>
-                                                    {attributes.map(a => (
-                                                        <TableCell key={a.id}>
-                                                            {p.attributes?.[a.name] || '-'}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </Card>
-                            ))}
-                        </div>
-                    </ScrollArea>
+                     {(!tasks || tasks.length === 0) && (
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                You must generate tasks before you can publish the survey.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </div>
             </CardContent>
         </Card>
     );
 }
+
