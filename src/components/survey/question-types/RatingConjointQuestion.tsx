@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -57,7 +56,6 @@ export default function RatingConjointQuestion({
     } = question;
 
     const [isGenerating, setIsGenerating] = useState(false);
-    const [numProfilesToGenerate, setNumProfilesToGenerate] = useState<number>(10);
 
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
@@ -146,10 +144,6 @@ export default function RatingConjointQuestion({
                 designMethod: designMethod,
             };
 
-            if (designMethod === 'fractional-factorial') {
-                requestBody.target_size = numProfilesToGenerate;
-            }
-
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -233,6 +227,7 @@ export default function RatingConjointQuestion({
         );
     }
     
+    // Editor mode
     return (
         <Card className="bg-white">
             <CardContent className="p-6">
@@ -283,16 +278,14 @@ export default function RatingConjointQuestion({
                             </Select>
                         </div>
                         <div className="p-3 bg-muted rounded-md text-center h-full flex flex-col justify-center">
-                            <Label>Total Possible Combinations</Label>
+                            <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
                     
                     <div className="flex justify-between items-center">
                          <p className="text-sm text-muted-foreground">
-                            {profiles.length > 0 ? 
-                                <span className="text-green-600">✓ {profiles.length} profiles generated</span> : 
-                                'No profiles generated yet'}
+                            Generated Profiles: {profiles.length}
                         </p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
