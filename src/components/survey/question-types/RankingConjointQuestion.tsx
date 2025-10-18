@@ -90,19 +90,12 @@ export default function RankingConjointQuestion({
         cardsPerSet: profilesPerTask = 4,
         designMethod = 'fractional-factorial',
         allowPartialRanking = false,
-        tasks: questionTasks = []
+        tasks = []
     } = question;
 
     const [currentTask, setCurrentTask] = useState(0);
     const [isGenerating, setIsGenerating] = useState(false);
     
-    const tasks = useMemo(() => {
-        if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
-            return questionTasks;
-        }
-        return [];
-    }, [questionTasks]);
-
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskProfiles = currentTaskData.profiles || [];
     const currentTaskId = currentTaskData.taskId;
@@ -228,7 +221,7 @@ export default function RankingConjointQuestion({
         return attributes.reduce((acc, attr) => acc * Math.max(1, attr.levels.length), 1);
     }, [attributes]);
     
-    const generateProfiles = async () => {
+    const generateTasks = async () => {
         if (attributes.length === 0) {
             toast({
                 variant: 'destructive',
@@ -261,7 +254,7 @@ export default function RankingConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                 onUpdate?.({ ...question, tasks: result.tasks, profiles: [] });
+                 onUpdate?.({ id: question.id, tasks: result.tasks, profiles: [] });
             }
             
             setCurrentTask(0);
@@ -406,7 +399,7 @@ export default function RankingConjointQuestion({
                            <Label htmlFor="designMethod">Design Method</Label>
                             <Select 
                                 value={designMethod} 
-                                onValueChange={(value) => onUpdate?.({...question, designMethod: value as any })}
+                                onValueChange={(value) => onUpdate?.({ ...question, designMethod: value as any })}
                             >
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
@@ -416,6 +409,18 @@ export default function RankingConjointQuestion({
                            </Select>
                        </div>
                        
+                        {designMethod === 'fractional-factorial' && (
+                            <>
+                                <div>
+                                    <Label htmlFor="sets">Number of Tasks</Label>
+                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({...question, sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                                </div>
+                                <div>
+                                    <Label htmlFor="cardsPerSet">Profiles per Task</Label>
+                                    <Input id="cardsPerSet" type="number" value={profilesPerTask} onChange={e => onUpdate?.({...question, cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                                </div>
+                            </>
+                        )}
                         <div className="p-3 bg-muted rounded-md text-center">
                             <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
@@ -435,11 +440,9 @@ export default function RankingConjointQuestion({
                     
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">
-                            {tasks.length > 0 ? 
-                                <span className="text-green-600">✓ Generated: {tasks.length} tasks</span> : 
-                                'No tasks generated yet'}
+                            Generated Tasks: {tasks.length}
                         </p>
-                        <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
+                        <Button variant="secondary" size="sm" onClick={generateTasks} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
                             {isGenerating ? 'Generating...' : 'Generate Tasks'}
                         </Button>

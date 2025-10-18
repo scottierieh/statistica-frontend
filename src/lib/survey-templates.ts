@@ -26,7 +26,7 @@ export const choiceBasedConjointTemplate = {
             designMethod: 'fractional-factorial',
             sets: 10,
             cardsPerSet: 3,
-            profiles: [],
+            tasks: [],
         },
     ],
 };
@@ -77,11 +77,7 @@ export const rankingConjointTemplate = {
                 { id: `attr-r-2`, name: 'Duration', levels: ['7 Days', '10 Days'] },
                 { id: `attr-r-3`, name: 'Price', levels: ['$2000', '$3000'] },
             ],
-            profiles: [
-                { id: 'profile_r_1', taskId: 'task_0', attributes: { Destination: 'Hawaii', Duration: '7 Days', Price: '$2000' }},
-                { id: 'profile_r_2', taskId: 'task_0', attributes: { Destination: 'Paris', Duration: '10 Days', Price: '$3000' }},
-                { id: 'profile_r_3', taskId: 'task_0', attributes: { Destination: 'Tokyo', Duration: '7 Days', Price: '$2000' }},
-            ]
+            tasks: []
         }
     ],
 };
