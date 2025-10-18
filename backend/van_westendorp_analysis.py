@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -9,13 +10,6 @@ import base64
 import warnings
 
 warnings.filterwarnings('ignore')
-
-# Try to import VWPSM package (optional)
-try:
-    import VanWestendorp_PriceSensitivityMeter as VWPSM
-    HAS_VWPSM = True
-except ImportError:
-    HAS_VWPSM = False
 
 def _to_native_type(obj):
     """Convert numpy types to native Python types for JSON serialization"""
@@ -56,10 +50,11 @@ def find_intersection(x, y1, y2):
         y2_1, y2_2 = f2(x1), f2(x2)
         
         # Solve for intersection
-        if (y1_2 - y1_1) - (y2_2 - y2_1) == 0:
+        denominator = (y1_2 - y1_1) - (y2_2 - y2_1)
+        if denominator == 0:
             return x1
         
-        t = (y2_1 - y1_1) / ((y1_2 - y1_1) - (y2_2 - y2_1))
+        t = (y2_1 - y1_1) / denominator
         return x1 + t * (x2 - x1)
         
     except Exception:
@@ -72,46 +67,39 @@ def calculate_vw_curves(df, price_cols, price_range):
     """Calculate Van Westendorp cumulative curves"""
     too_cheap_col, cheap_col, expensive_col, too_expensive_col = price_cols
     n = len(df)
-    
-    # Calculate cumulative distributions
-    # "Too cheap" and "Cheap" are cumulative from low to high
-    # "Expensive" and "Too expensive" are cumulative from low to high
-    too_cheap_cum = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
-    cheap_cum = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
-    expensive_cum = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
-    too_expensive_cum = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
-    
-    # Calculate inverse curves (100% - cumulative)
-    not_too_cheap = 100 - too_cheap_cum
-    not_cheap = 100 - cheap_cum
-    not_expensive = 100 - expensive_cum
-    not_too_expensive = 100 - too_expensive_cum
+    if n == 0:
+        return None
+
+    # Cumulative "Cheaper than" percentages
+    too_cheap_cum = np.array([(df[too_cheap_col] <= p).sum() / n * 100 for p in price_range])
+    cheap_cum = np.array([(df[cheap_col] <= p).sum() / n * 100 for p in price_range])
+
+    # Cumulative "More expensive than" percentages
+    expensive_cum_inv = np.array([(df[expensive_col] > p).sum() / n * 100 for p in price_range])
+    too_expensive_cum_inv = np.array([(df[too_expensive_col] > p).sum() / n * 100 for p in price_range])
     
     return {
         'too_cheap': too_cheap_cum,
         'cheap': cheap_cum,
-        'expensive': expensive_cum,
-        'too_expensive': too_expensive_cum,
-        'not_too_cheap': not_too_cheap,
-        'not_cheap': not_cheap,
-        'not_expensive': not_expensive,
-        'not_too_expensive': not_too_expensive
+        'expensive': expensive_cum_inv,
+        'too_expensive': too_expensive_cum_inv
     }
+
 
 def calculate_price_points(price_range, curves):
     """Calculate Van Westendorp price points from curves"""
-    # PMC: Point of Marginal Cheapness = intersection of "Too Cheap" and "Not Cheap"
-    pmc = find_intersection(price_range, curves['too_cheap'], curves['not_cheap'])
+    # Point of Marginal Cheapness (PMC): "Too Cheap" vs "Expensive"
+    pmc = find_intersection(price_range, curves['too_cheap'], curves['expensive'])
     
-    # PME: Point of Marginal Expensiveness = intersection of "Not Expensive" and "Too Expensive"
-    pme = find_intersection(price_range, curves['not_expensive'], curves['too_expensive'])
+    # Point of Marginal Expensiveness (PME): "Cheap" vs "Too Expensive"
+    pme = find_intersection(price_range, curves['cheap'], curves['too_expensive'])
     
-    # OPP: Optimal Price Point = intersection of "Too Cheap" and "Too Expensive"
-    opp = find_intersection(price_range, curves['too_cheap'], curves['too_expensive'])
-    
-    # IDP: Indifference Price Point = intersection of "Cheap" and "Expensive"
+    # Indifference Price Point (IDP): "Cheap" vs "Expensive"
     idp = find_intersection(price_range, curves['cheap'], curves['expensive'])
     
+    # Optimal Price Point (OPP): "Too Cheap" vs "Too Expensive"
+    opp = find_intersection(price_range, curves['too_cheap'], curves['too_expensive'])
+
     return {
         'pmc': float(pmc),
         'pme': float(pme),
@@ -124,32 +112,27 @@ def create_psm_plot(price_range, curves, results):
     fig, ax = plt.subplots(figsize=(12, 8))
     
     # Plot the four main curves
-    ax.plot(price_range, curves['too_cheap'], label='Too Cheap', color='#2E86AB', linewidth=2.5, linestyle='-')
-    ax.plot(price_range, curves['not_cheap'], label='Not Cheap', color='#A23B72', linewidth=2.5, linestyle='--')
-    ax.plot(price_range, curves['expensive'], label='Expensive', color='#F18F01', linewidth=2.5, linestyle='--')
+    ax.plot(price_range, curves['too_cheap'], label='Too Cheap', color='#2E86AB', linewidth=2.5, linestyle='--')
+    ax.plot(price_range, curves['cheap'], label='Cheap', color='#A23B72', linewidth=2.5, linestyle='--')
+    ax.plot(price_range, curves['expensive'], label='Expensive', color='#F18F01', linewidth=2.5, linestyle='-')
     ax.plot(price_range, curves['too_expensive'], label='Too Expensive', color='#C73E1D', linewidth=2.5, linestyle='-')
     
     # Add vertical lines for price points
     if results['pmc']:
         ax.axvline(results['pmc'], color='#2E86AB', linestyle=':', alpha=0.7, linewidth=2)
-        ax.text(results['pmc'], ax.get_ylim()[1] * 0.95, f'PMC\n${results["pmc"]:.2f}', 
-                ha='center', fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+        ax.text(results['pmc'], 95, f'PMC\n${results["pmc"]:.2f}', ha='center', fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
     
     if results['pme']:
         ax.axvline(results['pme'], color='#C73E1D', linestyle=':', alpha=0.7, linewidth=2)
-        ax.text(results['pme'], ax.get_ylim()[1] * 0.95, f'PME\n${results["pme"]:.2f}', 
-                ha='center', fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+        ax.text(results['pme'], 95, f'PME\n${results["pme"]:.2f}', ha='center', fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
     
     if results['opp']:
         ax.axvline(results['opp'], color='green', linestyle='-', alpha=0.9, linewidth=3)
-        ax.text(results['opp'], ax.get_ylim()[1] * 0.85, f'OPP\n${results["opp"]:.2f}', 
-                ha='center', fontsize=10, fontweight='bold',
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='lightgreen', alpha=0.9))
+        ax.text(results['opp'], 85, f'OPP\n${results["opp"]:.2f}', ha='center', fontsize=10, fontweight='bold', bbox=dict(boxstyle='round,pad=0.3', facecolor='lightgreen', alpha=0.9))
     
     if results['idp']:
         ax.axvline(results['idp'], color='purple', linestyle=':', alpha=0.7, linewidth=2)
-        ax.text(results['idp'], ax.get_ylim()[1] * 0.75, f'IDP\n${results["idp"]:.2f}', 
-                ha='center', fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+        ax.text(results['idp'], 75, f'IDP\n${results["idp"]:.2f}', ha='center', fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
     
     # Formatting
     ax.set_xlabel('Price ($)', fontsize=12)
@@ -160,16 +143,14 @@ def create_psm_plot(price_range, curves, results):
     ax.set_ylim(0, 100)
     ax.set_xlim(price_range.min(), price_range.max())
     
-    # Tight layout
     plt.tight_layout()
     
     # Convert to base64
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    plt.close(fig)
     
     return img_base64
 
@@ -177,36 +158,31 @@ def create_acceptance_plot(price_range, curves):
     """Create price acceptance curve plot"""
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    # Calculate acceptance curve (people who think it's neither too cheap nor too expensive)
-    acceptance = np.minimum(curves['not_too_cheap'], curves['not_too_expensive'])
+    not_too_expensive = 100 - curves['too_expensive']
     
-    # Find maximum acceptance point
+    # Calculate 'not too cheap' which is 100 - 'too cheap'
+    not_too_cheap = 100 - curves['too_cheap']
+
+    acceptance = np.minimum(not_too_cheap, not_too_expensive)
+    
     max_idx = np.argmax(acceptance)
     max_price = price_range[max_idx]
     max_acceptance = acceptance[max_idx]
     
     # Plot curves
-    ax.plot(price_range, curves['not_too_cheap'], label='Not Too Cheap', 
-            color='#2E86AB', linewidth=2, linestyle='--', alpha=0.7)
-    ax.plot(price_range, curves['not_too_expensive'], label='Not Too Expensive', 
-            color='#C73E1D', linewidth=2, linestyle='--', alpha=0.7)
-    ax.plot(price_range, acceptance, label='Acceptable Price Range', 
-            color='green', linewidth=3)
-    
-    # Fill area under acceptance curve
+    ax.plot(price_range, not_too_cheap, label='Not Too Cheap', color='#2E86AB', linewidth=2, linestyle='--', alpha=0.7)
+    ax.plot(price_range, not_too_expensive, label='Not Too Expensive', color='#C73E1D', linewidth=2, linestyle='--', alpha=0.7)
+    ax.plot(price_range, acceptance, label='Acceptable Price Range', color='green', linewidth=3)
     ax.fill_between(price_range, 0, acceptance, alpha=0.2, color='green')
     
-    # Mark maximum acceptance point
     ax.scatter([max_price], [max_acceptance], s=200, c='darkgreen', marker='*', 
                zorder=5, edgecolors='black', linewidth=1.5)
-    ax.annotate(f'Maximum Acceptance\n${max_price:.2f} ({max_acceptance:.1f}%)', 
-                (max_price, max_acceptance),
+    ax.annotate(f'Maximum Acceptance\n${max_price:.2f} ({max_acceptance:.1f}%)', (max_price, max_acceptance),
                 xytext=(max_price + (price_range.max() - price_range.min()) * 0.05, max_acceptance - 10),
                 fontsize=10, fontweight='bold',
                 bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.9),
                 arrowprops=dict(arrowstyle='->', color='darkgreen', lw=1.5))
     
-    # Formatting
     ax.set_xlabel('Price ($)', fontsize=12)
     ax.set_ylabel('Percentage of Respondents (%)', fontsize=12)
     ax.set_title('Price Acceptance Curve', fontsize=14, fontweight='bold')
@@ -217,13 +193,11 @@ def create_acceptance_plot(price_range, curves):
     
     plt.tight_layout()
     
-    # Convert to base64
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    plt.close(fig)
     
     return img_base64
 
@@ -288,56 +262,27 @@ def main():
             if not all(prices[i] <= prices[i+1] for i in range(len(prices)-1)):
                 df_clean.loc[idx, price_cols] = sorted(prices)
         
-        # Use VWPSM package if available, otherwise use custom implementation
-        if HAS_VWPSM:
-            # Use package
-            vw_output = VWPSM.results(df_clean, price_cols)
-            
-            # Capture any plots generated by package
-            import matplotlib.pyplot as plt
-            figs = [plt.figure(i) for i in plt.get_fignums()]
-            plots = {}
-            
-            if figs:
-                buf = io.BytesIO()
-                figs[0].savefig(buf, format='png', dpi=100, bbox_inches='tight')
-                buf.seek(0)
-                plots['psm_plot'] = base64.b64encode(buf.read()).decode('utf-8')
-                buf.close()
-                plt.close('all')
-            
-            # Extract results (package may return different formats)
-            if isinstance(vw_output, dict):
-                results = {
-                    'pmc': _to_native_type(vw_output.get('PMC', vw_output.get('pmc'))),
-                    'pme': _to_native_type(vw_output.get('PME', vw_output.get('pme'))),
-                    'opp': _to_native_type(vw_output.get('OPP', vw_output.get('opp'))),
-                    'idp': _to_native_type(vw_output.get('IDP', vw_output.get('idp')))
-                }
-            else:
-                # Fallback to custom implementation if package output is unclear
-                HAS_VWPSM = False
+        # Custom implementation
+        price_min = df_clean[price_cols].min().min()
+        price_max = df_clean[price_cols].max().max()
+        price_range = np.linspace(price_min, price_max, 500)
         
-        if not HAS_VWPSM:
-            # Custom implementation
-            price_min = df_clean[price_cols].min().min()
-            price_max = df_clean[price_cols].max().max()
-            price_range = np.linspace(price_min, price_max, 500)
-            
-            # Calculate curves
-            curves = calculate_vw_curves(df_clean, price_cols, price_range)
-            
-            # Calculate price points
-            results = calculate_price_points(price_range, curves)
-            
-            # Create plots
-            plots = {
-                'psm_plot': create_psm_plot(price_range, curves, results),
-                'acceptance_plot': create_acceptance_plot(price_range, curves)
-            }
+        # Calculate curves
+        curves = calculate_vw_curves(df_clean, price_cols, price_range)
+        if curves is None:
+            raise ValueError("Could not calculate VW curves.")
+
+        # Calculate price points
+        results = calculate_price_points(price_range, curves)
         
         # Add interpretation
         results['interpretation'] = generate_interpretation(results)
+        
+        # Create plots
+        plots = {
+            'psm_plot': create_psm_plot(price_range, curves, results),
+            'acceptance_plot': create_acceptance_plot(price_range, curves)
+        }
         
         # Prepare response
         response = {
@@ -346,10 +291,10 @@ def main():
             'summary': {
                 'total_responses': len(df_clean),
                 'price_range': {
-                    'min': float(df_clean[price_cols].min().min()),
-                    'max': float(df_clean[price_cols].max().max())
+                    'min': float(price_min),
+                    'max': float(price_max)
                 },
-                'method': 'VWPSM Package' if HAS_VWPSM else 'Custom Implementation'
+                'method': 'Custom Implementation'
             }
         }
         
@@ -361,4 +306,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
     
