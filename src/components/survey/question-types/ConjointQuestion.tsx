@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -17,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Survey, SurveyResponse } from '@/entities/Survey';
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
 
 interface ConjointQuestionProps {
     survey: Survey;
@@ -333,7 +334,7 @@ export default function ConjointQuestion({
                                 value={designMethod} 
                                 onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as any })}
                             >
-                               <SelectTrigger><SelectValue /></SelectTrigger>
+                               <SelectTrigger id="designMethod"><SelectValue /></SelectTrigger>
                                <SelectContent>
                                    <SelectItem value="d-efficient">D-efficient</SelectItem>
                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
