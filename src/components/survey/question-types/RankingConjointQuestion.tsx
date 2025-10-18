@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Trash2, Zap, X, Info, GripVertical } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -233,17 +232,19 @@ export default function RankingConjointQuestion({
         
         setIsGenerating(true);
         try {
+            const requestBody: any = {
+                attributes,
+                designType: 'ranking-conjoint',
+                designMethod,
+                numTasks,
+                profilesPerTask,
+                allowPartialRanking,
+            };
+
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    attributes,
-                    designType: 'ranking-conjoint',
-                    designMethod,
-                    numTasks: designMethod === 'fractional-factorial' ? numTasks : undefined,
-                    profilesPerTask: designMethod === 'fractional-factorial' ? profilesPerTask : undefined,
-                    allowPartialRanking,
-                }),
+                body: JSON.stringify(requestBody),
             });
             
             if (!response.ok) {
@@ -355,7 +356,6 @@ export default function RankingConjointQuestion({
         );
     }
     
-    // Editor mode
     return (
         <Card className="bg-white">
             <CardContent className="p-6">

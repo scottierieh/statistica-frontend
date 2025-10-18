@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye, Monitor, Tablet, Smartphone } from "lucide-react";
