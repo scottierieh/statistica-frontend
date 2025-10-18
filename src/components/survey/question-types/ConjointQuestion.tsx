@@ -5,7 +5,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,6 +95,16 @@ export default function ConjointQuestion({
         
         return [];
     }, [questionTasks, profiles]);
+
+    // Ensure currentTask is valid
+    useEffect(() => {
+        if (currentTask >= tasks.length && tasks.length > 0) {
+            setCurrentTask(tasks.length - 1);
+        } else if (tasks.length === 0) {
+            setCurrentTask(0);
+        }
+    }, [tasks, currentTask]);
+
 
     const handleChoice = (profileId: string) => {
         onAnswerChange?.(produce(answer || {}, (draft: any) => { 
