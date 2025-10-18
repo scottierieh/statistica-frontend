@@ -38,6 +38,23 @@ def calculate_importance(part_worths):
     
     return sorted([{'attribute': k, 'importance': v} for k, v in importance.items()], key=lambda x: x['importance'], reverse=True)
 
+def calculate_optimal_product(part_worths):
+    """Find the optimal product configuration with highest total utility"""
+    if not part_worths:
+        return {}, 0.0
+        
+    optimal_config = {}
+    total_utility = 0.0
+    
+    for attr, levels_pw in part_worths.items():
+        if not levels_pw: continue
+        best_level = max(levels_pw.items(), key=lambda x: x[1])
+        optimal_config[attr] = best_level[0]
+        total_utility += best_level[1]
+    
+    return optimal_config, total_utility
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -77,7 +94,7 @@ def main():
         
         for attr, props in attributes.items():
              if props.get('includeInAnalysis', True) and props['type'] == 'categorical':
-                base_level = props['levels'][0]
+                base_level = base_levels[attr]
                 part_worths[attr] = {base_level: 0}
                 for level in props['levels'][1:]:
                     feature_name = f"{attr}_{level}"
@@ -85,6 +102,10 @@ def main():
         
         importance = calculate_importance(part_worths)
         
+        # Calculate optimal product
+        optimal_config, optimal_utility = calculate_optimal_product(part_worths)
+        optimal_utility += model.intercept_ # Add intercept for total utility
+
         final_results = {
             'partWorths': [{'attribute': attr, 'level': level, 'value': value} for attr, levels in part_worths.items() for level, value in levels.items()],
             'importance': importance,
@@ -95,7 +116,11 @@ def main():
                 'intercept': model.intercept_,
                 'coefficients': coeff_map,
             },
-            'targetVariable': target_variable
+            'targetVariable': target_variable,
+            'optimalProduct': {
+                'config': optimal_config,
+                'totalUtility': optimal_utility
+            }
         }
         
         print(json.dumps({'results': final_results}, default=_to_native_type))
@@ -106,4 +131,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
