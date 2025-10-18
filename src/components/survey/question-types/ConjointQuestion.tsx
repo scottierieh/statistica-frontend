@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -56,7 +55,7 @@ export default function ConjointQuestion({
         profiles = [], 
         sets: numTasks = 8,
         cardsPerSet = 3,
-        designMethod = 'fractional-factorial',
+        designMethod = 'd-efficient',
         tasks: questionTasks = []
     } = question;
 
@@ -183,8 +182,9 @@ export default function ConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: question.type,
-                    numTasks, // Changed from sets
-                    profilesPerTask: cardsPerSet, // Changed from cardsPerSet
+                    numTasks,
+                    profilesPerTask: cardsPerSet,
+                    designMethod,
                 }),
             });
             
@@ -207,7 +207,7 @@ export default function ConjointQuestion({
             onAnswerChange?.({});
             
             toast({
-                title: "Profiles Generated",
+                title: "Tasks Generated",
                 description: `${result.tasks?.length || numTasks} choice sets created successfully.`
             });
 
@@ -231,7 +231,16 @@ export default function ConjointQuestion({
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
                  style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-semibold">
+                        {question.title || `Q${questionNumber}: Choice Task`}
+                        {question.required && <span className="text-destructive ml-1">*</span>}
+                    </h3>
+                    <Badge variant="secondary">
+                        Task {currentTask + 1} of {tasks.length}
+                    </Badge>
+                </div>
+                
                 {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
                 
                  <RadioGroup value={answer?.[currentTaskId]} onValueChange={(value) => handleChoice(value)}>
@@ -261,6 +270,9 @@ export default function ConjointQuestion({
                     >
                         Previous
                     </Button>
+                     <span className="text-xs text-muted-foreground">
+                        {Object.keys(answer || {}).length} of {tasks.length} completed
+                    </span>
                      <Button 
                         size="sm"
                         onClick={handleNextTask}
@@ -311,18 +323,21 @@ export default function ConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                         <div>
-                            <Label htmlFor="designMethod">Design Method</Label>
+                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                       <div>
+                           <Label htmlFor="designMethod">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as any })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="d-efficient">D-efficient</SelectItem>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
-                                    <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
+                                    <SelectItem value="orthogonal">Orthogonal</SelectItem>
+                                    <SelectItem value="random">Random</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        {designMethod === 'fractional-factorial' && (
+                        
+                        {['d-efficient', 'orthogonal', 'random'].includes(designMethod) && (
                             <>
                                 <div>
                                     <Label htmlFor="sets">Number of Sets (Tasks)</Label>
@@ -359,45 +374,8 @@ export default function ConjointQuestion({
                             </AlertDescription>
                         </Alert>
                     )}
-
-                    {tasks.length > 0 && (
-                        <div>
-                            <h5 className="text-sm font-semibold mb-2">Generated Tasks Preview</h5>
-                            <ScrollArea className="h-48 border rounded-md p-2">
-                                <div className="space-y-4">
-                                    {tasks.map((task: any, taskIndex) => (
-                                        <Card key={task.taskId} className="p-3">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <Badge>Task {taskIndex + 1}</Badge>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {task.profiles.length} profiles
-                                                </span>
-                                            </div>
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="text-xs">Profile ID</TableHead>
-                                                        {attributes.map(a => <TableHead key={a.id} className="text-xs">{a.name}</TableHead>)}
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {task.profiles.map((p: any) => (
-                                                        <TableRow key={p.id}>
-                                                            <TableCell className="text-xs">{p.id}</TableCell>
-                                                            {attributes.map(a => <TableCell key={a.id} className="text-xs">{p.attributes?.[a.name] || '-'}</TableCell>)}
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        </div>
-                    )}
                 </div>
             </CardContent>
         </Card>
     );
 }
-

@@ -133,10 +133,24 @@ class CBCDesign(BaseConjointDesign):
         self.profiles_per_task = profiles_per_task
         self.include_none_option = include_none_option
 
-    def create_choice_sets(self, design_method='fractional-factorial'):
+    def create_choice_sets(self, design_method='d-efficient'):
         if design_method == 'full-factorial':
             base_profiles = self.generate_full_factorial()
-        else:
+        elif design_method == 'orthogonal':
+            # For simplicity, treat orthogonal as a fractional factorial for now
+            base_profiles = self.generate_fractional_factorial()
+        elif design_method == 'random':
+            full_design = self.generate_full_factorial()
+            num_to_generate = self.num_tasks * self.profiles_per_task
+            if len(full_design) > num_to_generate:
+                 indices = np.random.choice(len(full_design), num_to_generate, replace=False)
+                 base_profiles = [full_design[i] for i in indices]
+            else:
+                 base_profiles = full_design
+
+        # D-efficient is more complex and would ideally use a specialized library.
+        # Here, we'll use fractional factorial as a proxy for D-efficient and orthogonal.
+        else: # Default to fractional/d-efficient proxy
             base_profiles = self.generate_fractional_factorial()
         
         tasks = []
@@ -144,17 +158,26 @@ class CBCDesign(BaseConjointDesign):
         
         if len(base_profiles) < self.num_tasks * self.profiles_per_task:
             warnings.warn("Not enough unique profiles for all tasks. Profiles may be repeated across tasks.")
-            while len(base_profiles) < self.num_tasks * self.profiles_per_task:
-                base_profiles.extend(base_profiles)
+            profile_pool = base_profiles * ( (self.num_tasks * self.profiles_per_task // len(base_profiles)) + 1 )
+        else:
+            profile_pool = base_profiles.copy()
+            np.random.shuffle(profile_pool)
+
 
         for i in range(self.num_tasks):
-            task_profiles = self._create_balanced_choice_set(
-                base_profiles, 
-                self.profiles_per_task,
-                used_combinations,
-                task_id=f"task_{i}"
-            )
+            if len(profile_pool) < self.profiles_per_task:
+                 break # Not enough profiles left for a full task
+                 
+            task_profiles_raw = profile_pool[:self.profiles_per_task]
+            profile_pool = profile_pool[self.profiles_per_task:]
             
+            task_profiles = []
+            for j, profile in enumerate(task_profiles_raw):
+                 new_profile = profile.copy()
+                 new_profile['taskId'] = f"task_{i}"
+                 new_profile['id'] = f"{new_profile['taskId']}_profile_{j}"
+                 task_profiles.append(new_profile)
+
             if self.include_none_option:
                 none_profile = {
                     "id": f"none_{i}",
@@ -170,50 +193,6 @@ class CBCDesign(BaseConjointDesign):
             })
             
         return tasks
-    
-    def _create_balanced_choice_set(self, profiles, n_profiles, used_combinations, task_id):
-        max_attempts = 100
-        best_set = None
-        best_score = -1
-        
-        for _ in range(max_attempts):
-            indices = np.random.choice(len(profiles), n_profiles, replace=False)
-            candidate_set = [profiles[i].copy() for i in indices]
-            
-            combo_key = tuple(sorted([p['id'] for p in candidate_set]))
-            if combo_key in used_combinations:
-                continue
-            
-            score = self._calculate_balance_score(candidate_set)
-            
-            if not self._has_clear_dominance(candidate_set):
-                score += 0.5
-            
-            if score > best_score:
-                best_score = score
-                best_set = candidate_set
-                
-        if best_set:
-            combo_key = tuple(sorted([p['id'] for p in best_set]))
-            used_combinations.add(combo_key)
-            
-            for i, profile in enumerate(best_set):
-                profile['taskId'] = task_id
-                profile['id'] = f"{task_id}_profile_{i}"
-                
-        return best_set or [profiles[i].copy() for i in np.random.choice(len(profiles), n_profiles, replace=False)]
-    
-    def _calculate_balance_score(self, choice_set):
-        score = 0
-        for attr in self.attributes:
-            attr_name = attr['name']
-            levels_in_set = [p['attributes'][attr_name] for p in choice_set]
-            unique_levels = len(set(levels_in_set))
-            score += unique_levels / len(levels_in_set)
-        return score / len(self.attributes)
-    
-    def _has_clear_dominance(self, choice_set):
-        return False
 
 
 class RankingDesign(BaseConjointDesign):
@@ -300,7 +279,7 @@ def main():
         attributes = payload.get('attributes')
         design_type = payload.get('designType', 'cbc')
         
-        design_method = payload.get('designMethod', 'fractional-factorial')
+        design_method = payload.get('designMethod', 'd-efficient')
         
         # CBC/Ranking options
         num_tasks = int(payload.get('numTasks', 8))
@@ -315,7 +294,7 @@ def main():
 
         result = {}
         
-        if design_type == 'cbc':
+        if design_type == 'cbc' or design_type == 'conjoint':
             cbc_designer = CBCDesign(attributes, num_tasks, profiles_per_task, payload.get('includeNone', True))
             tasks = cbc_designer.create_choice_sets(design_method)
             result = {"type": "cbc", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "includeNone": payload.get('includeNone', True) }}
@@ -349,4 +328,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
