@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -19,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { Survey, SurveyResponse } from '@/entities/Survey';
 
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
@@ -115,6 +117,7 @@ export default function RankingConjointQuestion({
             }));
         }
     };
+
 
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskProfiles = currentTaskData.profiles || [];
@@ -245,7 +248,7 @@ export default function RankingConjointQuestion({
             toast({
                 variant: 'destructive',
                 title: "No Attributes",
-                description: "Please add at least one attribute before generating profiles."
+                description: "Please add at least one attribute before generating tasks."
             });
             return;
         }
@@ -257,6 +260,8 @@ export default function RankingConjointQuestion({
                 designType: 'ranking-conjoint',
                 designMethod,
             };
+            
+            // Only add these if using fractional factorial
             if (designMethod === 'fractional-factorial') {
                 requestBody.numTasks = numTasks;
                 requestBody.profilesPerTask = profilesPerTask;
@@ -384,7 +389,6 @@ export default function RankingConjointQuestion({
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={() => onDelete?.(question.id)}
-                    onImageUpload={() => onImageUpload?.(question.id)}
                     onDuplicate={() => onDuplicate?.(question.id)}
                     styles={styles}
                     questionNumber={questionNumber}
@@ -413,14 +417,14 @@ export default function RankingConjointQuestion({
                 </div>
 
                 <div className="mt-6 space-y-4">
-                    <h4 className="font-semibold text-sm">Design &amp; Profiles</h4>
+                    <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                        <div>
+                       <div>
                            <Label htmlFor="designMethod">Design Method</Label>
                             <Select 
                                 value={designMethod} 
-                                onValueChange={(value) => onUpdate({ designMethod: value as 'full-factorial' | 'fractional-factorial' })}
+                                onValueChange={(value) => onUpdate?.({ designMethod: value as 'full-factorial' | 'fractional-factorial' })}
                             >
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
@@ -434,11 +438,11 @@ export default function RankingConjointQuestion({
                             <>
                                 <div>
                                     <Label htmlFor="sets">Number of Tasks</Label>
-                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
                                 </div>
                                 <div>
                                     <Label htmlFor="cardsPerSet">Profiles per Task</Label>
-                                    <Input id="cardsPerSet" type="number" value={profilesPerTask} onChange={e => onUpdate({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                                    <Input id="cardsPerSet" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
                                 </div>
                             </>
                         )}
@@ -452,7 +456,7 @@ export default function RankingConjointQuestion({
                         <Checkbox 
                             id="partial"
                             checked={allowPartialRanking || false}
-                            onCheckedChange={(checked) => onUpdate({ allowPartialRanking: !!checked })}
+                            onCheckedChange={(checked) => onUpdate?.({ allowPartialRanking: !!checked })}
                         />
                         <Label htmlFor="partial" className="text-sm font-normal cursor-pointer">
                             Allow partial ranking
@@ -468,7 +472,7 @@ export default function RankingConjointQuestion({
                             {isGenerating ? 'Generating...' : 'Generate Tasks'}
                         </Button>
                     </div>
-                     {(!tasks || tasks.length === 0) && (
+                    {(!tasks || tasks.length === 0) && (
                         <Alert>
                             <Info className="h-4 w-4" />
                             <AlertDescription>
@@ -481,3 +485,4 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
+```
