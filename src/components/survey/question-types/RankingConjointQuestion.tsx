@@ -12,13 +12,13 @@ import { Label } from "@/components/ui/label";
 import { PlusCircle, Trash2, Zap, X, Info, GripVertical } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import type { Survey, SurveyResponse } from '@/entities/Survey';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
@@ -235,12 +235,9 @@ export default function RankingConjointQuestion({
                     designType: 'ranking-conjoint',
                     designMethod,
                     allowPartialRanking,
+                    numTasks: question.sets,
+                    profilesPerTask: question.cardsPerSet,
                 };
-                
-                 if (designMethod === 'fractional-factorial') {
-                    requestBody.numTasks = question.sets;
-                    requestBody.profilesPerTask = question.cardsPerSet;
-                }
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -415,26 +412,13 @@ export default function RankingConjointQuestion({
                            </Select>
                        </div>
                        
-                        {designMethod === 'fractional-factorial' && (
-                           <>
-                               <div>
-                                   <Label htmlFor="sets">Number of Tasks</Label>
-                                   <Input id="sets" type="number" value={question.sets} onChange={e => onUpdate?.({ id: question.id, sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
-                               </div>
-                               <div>
-                                   <Label htmlFor="cardsPerSet">Profiles per Task</Label>
-                                   <Input id="cardsPerSet" type="number" value={question.cardsPerSet} onChange={e => onUpdate?.({ id: question.id, cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
-                               </div>
-                           </>
-                       )}
-
                        <div className="p-3 bg-muted rounded-md text-center">
                            <Label>Total Combinations</Label>
                            <p className="text-2xl font-bold">{totalCombinations}</p>
                        </div>
                    </div>
                     <div className="flex items-center gap-2">
-                        <Checkbox id="allowPartialRanking" checked={allowPartialRanking} onCheckedChange={(checked) => onUpdate({ id: question.id, allowPartialRanking: !!checked })}/>
+                        <Checkbox id="allowPartialRanking" checked={allowPartialRanking} onCheckedChange={(checked) => onUpdate?.({id: question.id, allowPartialRanking: !!checked })}/>
                         <Label htmlFor="allowPartialRanking">Allow partial ranking</Label>
                     </div>
 
