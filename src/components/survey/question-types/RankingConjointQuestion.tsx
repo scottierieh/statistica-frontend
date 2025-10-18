@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -84,20 +83,20 @@ export default function RankingConjointQuestion({
     submitSurvey
 }: RankingConjointQuestionProps) {
     const { toast } = useToast();
+    const { 
+        attributes = [], 
+        profiles = [], 
+        sets: numTasks,
+        cardsPerSet,
+        designMethod,
+        allowPartialRanking,
+        tasks: questionTasks = []
+    } = question;
+
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const prevTaskRef = useRef(currentTask);
-
-    const { 
-        attributes = [], 
-        profiles = [], 
-        sets = 5, 
-        cardsPerSet = 4,
-        designMethod = 'fractional-factorial',
-        allowPartialRanking = false,
-        tasks: questionTasks = []
-    } = question;
 
     const tasks = useMemo(() => {
         if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
@@ -193,7 +192,7 @@ export default function RankingConjointQuestion({
                 }));
                 
                 return newOrder;
-            }));
+            });
         }
     };
     
@@ -292,7 +291,7 @@ export default function RankingConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: 'ranking',
-                    numTasks: sets,
+                    numTasks,
                     profilesPerTask: cardsPerSet,
                     allowPartialRanking,
                 }),
@@ -318,7 +317,7 @@ export default function RankingConjointQuestion({
             
             toast({
                 title: "Profiles Generated",
-                description: `${result.tasks?.length || sets} ranking tasks created successfully.`
+                description: `${result.tasks?.length || numTasks} ranking tasks created successfully.`
             });
 
         } catch (e: any) {
@@ -459,7 +458,7 @@ export default function RankingConjointQuestion({
                         </div>
                         <div>
                             <Label htmlFor="sets">Number of Tasks</Label>
-                            <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                            <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
                         </div>
                         <div>
                              <Label htmlFor="cardsPerSet">Profiles per Task</Label>
