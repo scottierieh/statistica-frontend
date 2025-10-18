@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -12,11 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 
 interface RatingConjointQuestionProps {
     question: Question;
@@ -32,7 +28,6 @@ interface RatingConjointQuestionProps {
     onNextTask?: () => void;
     isLastQuestion?: boolean;
     submitSurvey?: () => void;
-    survey: Survey;
 }
 
 export default function RatingConjointQuestion({ 
@@ -48,8 +43,7 @@ export default function RatingConjointQuestion({
     isPreview,
     onNextTask,
     isLastQuestion,
-    submitSurvey,
-    survey
+    submitSurvey
 }: RatingConjointQuestionProps) {
     const { toast } = useToast();
     const { 
@@ -59,7 +53,8 @@ export default function RatingConjointQuestion({
     } = question;
 
     const [isGenerating, setIsGenerating] = useState(false);
-
+    const [numProfilesToGenerate, setNumProfilesToGenerate] = useState(10);
+    
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
         if (!isNaN(rating) && rating >= 1 && rating <= 10) {
@@ -147,6 +142,10 @@ export default function RatingConjointQuestion({
                 designMethod: designMethod,
             };
 
+            if (designMethod === 'fractional-factorial') {
+                requestBody.target_size = numProfilesToGenerate;
+            }
+
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -161,7 +160,7 @@ export default function RatingConjointQuestion({
             const result = await response.json();
             
             if (result.profiles) {
-                onUpdate?.({ ...question, profiles: result.profiles, tasks: [] });
+                onUpdate?.({ profiles: result.profiles, tasks: [] });
             }
             
             onAnswerChange?.({});
@@ -242,7 +241,6 @@ export default function RatingConjointQuestion({
                     onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
-                    survey={survey}
                 />
                 
                 <div className="mt-4 space-y-4">
@@ -271,25 +269,37 @@ export default function RatingConjointQuestion({
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                         <div>
-                            <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
-                                    <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
-                        <div className="p-3 bg-muted rounded-md text-center h-full flex flex-col justify-center">
-                            <Label>Total Combinations</Label>
-                            <p className="text-2xl font-bold">{totalCombinations}</p>
-                        </div>
-                    </div>
+                        <div>
+                           <Label htmlFor="designMethod">Design Method</Label>
+                           <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
+                               <SelectTrigger><SelectValue /></SelectTrigger>
+                               <SelectContent>
+                                   <SelectItem value="full-factorial">Full Factorial</SelectItem>
+                                   <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
+                               </SelectContent>
+                           </Select>
+                       </div>
+                       {designMethod === 'fractional-factorial' && (
+                           <div>
+                               <Label htmlFor="profiles-to-generate">Number of Profiles to Generate</Label>
+                               <Input 
+                                   id="profiles-to-generate"
+                                   type="number" 
+                                   value={numProfilesToGenerate} 
+                                   onChange={e => setNumProfilesToGenerate(parseInt(e.target.value))} 
+                                   min="3" 
+                                   max={totalCombinations > 0 ? totalCombinations -1 : 20}
+                               />
+                           </div>
+                       )}
+                       <div className="p-3 bg-muted rounded-md text-center">
+                           <Label>Total Combinations</Label>
+                           <p className="text-2xl font-bold">{totalCombinations}</p>
+                       </div>
+                   </div>
                     
                     <div className="flex justify-between items-center">
-                         <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                             Generated Profiles: {profiles.length}
                         </p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
