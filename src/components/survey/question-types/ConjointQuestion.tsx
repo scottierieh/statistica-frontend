@@ -55,46 +55,15 @@ export default function ConjointQuestion({
     const { toast } = useToast();
     const { 
         attributes = [], 
-        profiles = [], 
         sets: numTasks = 8,
         cardsPerSet = 3,
         designMethod = 'd-efficient',
-        tasks: questionTasks = []
+        tasks = []
     } = question;
 
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-
-    const tasks = useMemo(() => {
-        if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
-            return questionTasks;
-        }
-        
-        if (profiles && profiles.length > 0) {
-            const groupedProfiles: { [taskId: string]: any[] } = {};
-            profiles.forEach(p => {
-                const taskId = p.taskId || 'task_0';
-                if (!groupedProfiles[taskId]) {
-                    groupedProfiles[taskId] = [];
-                }
-                groupedProfiles[taskId].push(p);
-            });
-            
-            const sortedTaskIds = Object.keys(groupedProfiles).sort((a, b) => {
-                const numA = parseInt(a.replace('task_', ''));
-                const numB = parseInt(b.replace('task_', ''));
-                return numA - numB;
-            });
-            
-            return sortedTaskIds.map(taskId => ({
-                taskId,
-                profiles: groupedProfiles[taskId]
-            }));
-        }
-        
-        return [];
-    }, [questionTasks, profiles]);
 
     // Ensure currentTask is valid
     useEffect(() => {
@@ -374,9 +343,7 @@ export default function ConjointQuestion({
                     
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">
-                            {tasks.length > 0 ? 
-                                <span className="text-green-600">✓ Generated: {tasks.length} tasks</span> : 
-                                'No tasks generated yet'}
+                            Generated Tasks: {tasks.length}
                         </p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
