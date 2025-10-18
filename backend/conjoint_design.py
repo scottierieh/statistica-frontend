@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -224,14 +225,22 @@ class RankingDesign(BaseConjointDesign):
 
     def create_ranking_sets(self, design_method='fractional-factorial', target_size=None):
         if design_method == 'full-factorial':
-            base_profiles = self.generate_full_factorial()
+            base_profiles_raw = self.generate_full_factorial()
+            
+            task_profiles = []
+            for j, profile in enumerate(base_profiles_raw):
+                new_profile = profile.copy()
+                new_profile['taskId'] = "task_0"
+                new_profile['id'] = f"task_0_profile_{j}"
+                task_profiles.append(new_profile)
+
             return [{
                 "taskId": "task_0",
-                "profiles": base_profiles,
+                "profiles": task_profiles,
                 "allowPartialRanking": self.allow_partial_ranking
             }]
         
-        else:
+        else: # Fractional Factorial
             target_profile_count = target_size if target_size else self.num_tasks * self.profiles_per_task
             base_profiles = self.generate_fractional_factorial(target_size=target_profile_count)
             
@@ -239,9 +248,11 @@ class RankingDesign(BaseConjointDesign):
             profile_pool = base_profiles.copy()
             np.random.shuffle(profile_pool)
             
-            for i in range(self.num_tasks):
-                if len(profile_pool) < self.profiles_per_task:
-                    break 
+            num_actual_tasks = int(np.ceil(len(profile_pool) / self.profiles_per_task))
+            
+            for i in range(num_actual_tasks):
+                if len(profile_pool) == 0:
+                    break
                     
                 task_profiles_raw = profile_pool[:self.profiles_per_task]
                 profile_pool = profile_pool[self.profiles_per_task:]
@@ -271,11 +282,7 @@ class RatingDesign(BaseConjointDesign):
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            # If fractional, use the target_size, otherwise generate all.
-            if target_size:
-                profiles = self.generate_fractional_factorial(target_size=target_size)
-            else:
-                profiles = self.generate_full_factorial()
+            profiles = self.generate_fractional_factorial(target_size=target_size)
         
         for i, profile in enumerate(profiles):
             profile['taskId'] = f"task_{i}"
@@ -314,9 +321,15 @@ def main():
             result = {"type": "cbc", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "includeNone": payload.get('includeNone', True) }}
             
         elif design_type == 'ranking-conjoint':
+            # For fractional factorial, dynamically set num_tasks and profiles_per_task based on what's generated.
+            # This is a bit simplified, but ensures the frontend reflects reality.
+            if design_method == 'fractional-factorial':
+                 num_tasks = payload.get('numTasks', 5)  # A reasonable default
+                 profiles_per_task = payload.get('profilesPerTask', 4)
+
             ranking_designer = RankingDesign(attributes, num_tasks, profiles_per_task, payload.get('allowPartialRanking', False))
             tasks = ranking_designer.create_ranking_sets(design_method, target_size=target_size)
-            result = {"type": "ranking", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "allowPartialRanking": payload.get('allowPartialRanking', False) }}
+            result = {"type": "ranking", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task if len(tasks) == 0 else len(tasks[0]['profiles']), "allowPartialRanking": payload.get('allowPartialRanking', False) }}
             
         elif design_type == 'rating-conjoint':
             rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1])
@@ -336,3 +349,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
