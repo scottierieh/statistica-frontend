@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -19,6 +20,7 @@ import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, v
 import { CSS } from '@dnd-kit/utilities';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
@@ -93,7 +95,7 @@ export default function RankingConjointQuestion({
 
     const [currentTask, setCurrentTask] = useState(0);
     const [isGenerating, setIsGenerating] = useState(false);
-    
+
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskId = currentTaskData.taskId;
 
@@ -238,7 +240,7 @@ export default function RankingConjointQuestion({
             };
 
             if (designMethod === 'fractional-factorial') {
-                requestBody.target_size = 20; // Generate up to 20 profiles
+                requestBody.target_size = 20; 
             }
 
             const response = await fetch('/api/analysis/conjoint-design', {
@@ -256,9 +258,6 @@ export default function RankingConjointQuestion({
 
             if (result.tasks) {
                  onUpdate?.({ id: question.id, tasks: result.tasks });
-            } else if (result.profiles) {
-                // Handle full-factorial where it might return a single task in 'profiles'
-                 onUpdate?.({ id: question.id, tasks: [{ taskId: 'task_0', profiles: result.profiles }] });
             }
             
             setCurrentTask(0);
@@ -401,7 +400,7 @@ export default function RankingConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                     <div className="grid grid-cols-2 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
                             <Select 
@@ -449,3 +448,5 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
+
+    
