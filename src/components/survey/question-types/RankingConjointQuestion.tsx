@@ -15,12 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import type { Survey, SurveyResponse } from '@/entities/Survey';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Survey, SurveyResponse } from '@/entities/Survey';
 
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
@@ -52,11 +50,11 @@ const SortableCard = ({ id, profile, index, attributes }: { id: string, profile:
 };
 
 interface RankingConjointQuestionProps {
+    survey: Survey;
+    setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
     question: Question;
     answer?: { [taskId: string]: string[] };
     onAnswerChange?: (value: any) => void;
-    survey: Survey;
-    setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
     styles: any;
     questionNumber: number;
     isPreview?: boolean;
@@ -66,11 +64,11 @@ interface RankingConjointQuestionProps {
 }
 
 export default function RankingConjointQuestion({ 
+    survey,
+    setSurvey,
     question, 
     answer, 
     onAnswerChange, 
-    survey,
-    setSurvey,
     styles,
     questionNumber,
     isPreview,
@@ -82,8 +80,6 @@ export default function RankingConjointQuestion({
     
     const { 
         attributes = [], 
-        sets: numTasks = 5,
-        cardsPerSet: profilesPerTask = 4,
         designMethod = 'fractional-factorial',
         allowPartialRanking = false,
         tasks = []
@@ -117,7 +113,6 @@ export default function RankingConjointQuestion({
             }));
         }
     };
-
 
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskProfiles = currentTaskData.profiles || [];
@@ -260,12 +255,6 @@ export default function RankingConjointQuestion({
                 designType: 'ranking-conjoint',
                 designMethod,
             };
-            
-            // Only add these if using fractional factorial
-            if (designMethod === 'fractional-factorial') {
-                requestBody.numTasks = numTasks;
-                requestBody.profilesPerTask = profilesPerTask;
-            }
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -388,8 +377,8 @@ export default function RankingConjointQuestion({
                 <QuestionHeader 
                     question={question}
                     onUpdate={onUpdate}
-                    onDelete={() => onDelete?.(question.id)}
-                    onDuplicate={() => onDuplicate?.(question.id)}
+                    onDelete={onDelete}
+                    onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -434,18 +423,6 @@ export default function RankingConjointQuestion({
                            </Select>
                        </div>
                        
-                        {designMethod === 'fractional-factorial' && (
-                            <>
-                                <div>
-                                    <Label htmlFor="sets">Number of Tasks</Label>
-                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
-                                </div>
-                                <div>
-                                    <Label htmlFor="cardsPerSet">Profiles per Task</Label>
-                                    <Input id="cardsPerSet" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
-                                </div>
-                            </>
-                        )}
                         <div className="p-3 bg-muted rounded-md text-center">
                             <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
@@ -485,4 +462,3 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
-```
