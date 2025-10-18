@@ -54,6 +54,7 @@ export default function RatingConjointQuestion({
     } = question;
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const [numProfilesToGenerate, setNumProfilesToGenerate] = useState(8);
     
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
@@ -79,19 +80,20 @@ export default function RatingConjointQuestion({
     };
     
     const handleAttributeUpdate = (attrIndex: number, newName: string) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft && draft[attrIndex]) draft[attrIndex].name = newName;
         })});
     };
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
     const addAttribute = () => {
         onUpdate?.({
+            id: question.id,
             attributes: [...attributes, { 
                 id: `attr-${Date.now()}`, 
                 name: `Attribute ${attributes.length + 1}`, 
@@ -101,7 +103,7 @@ export default function RatingConjointQuestion({
     };
 
     const addLevel = (attrIndex: number) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft && draft[attrIndex]) {
                 draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
             }
@@ -109,12 +111,12 @@ export default function RatingConjointQuestion({
     };
 
     const removeAttribute = (attrIndex: number) => {
-        onUpdate?.({ attributes: attributes.filter((_, i) => i !== attrIndex) });
+        onUpdate?.({ id: question.id, attributes: attributes.filter((_, i) => i !== attrIndex) });
     };
 
     const removeLevel = (attrIndex: number, levelIndex: number) => {
         if (attributes[attrIndex].levels.length > 1) {
-            onUpdate?.({ attributes: produce(attributes, draft => {
+            onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
                 if (draft && draft[attrIndex]) draft[attrIndex].levels.splice(levelIndex, 1);
             })});
         }
@@ -141,6 +143,9 @@ export default function RatingConjointQuestion({
                 designType: 'rating-conjoint',
                 designMethod: designMethod,
             };
+            if(designMethod === 'fractional-factorial') {
+                requestBody.target_size = numProfilesToGenerate;
+            }
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -156,7 +161,7 @@ export default function RatingConjointQuestion({
             const result = await response.json();
             
             if (result.profiles) {
-                onUpdate?.({ profiles: result.profiles, tasks: [] });
+                onUpdate?.({ id: question.id, profiles: result.profiles });
             }
             
             onAnswerChange?.({});
@@ -266,7 +271,10 @@ export default function RatingConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
-                           <Select value={designMethod} onValueChange={(value) => onUpdate?.({...question, designMethod: value as 'full-factorial' | 'fractional-factorial' })}>
+                           <Select 
+                                value={designMethod} 
+                                onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as 'full-factorial' | 'fractional-factorial' })}
+                            >
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
@@ -274,6 +282,7 @@ export default function RatingConjointQuestion({
                                </SelectContent>
                            </Select>
                        </div>
+                       
                        <div className="p-3 bg-muted rounded-md text-center">
                            <Label>Total Combinations</Label>
                            <p className="text-2xl font-bold">{totalCombinations}</p>
