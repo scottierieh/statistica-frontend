@@ -326,7 +326,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
             </div>
         );
     }
-
+    
     const surveyContent = (
              <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
                  <Card className="w-full rounded-none border-0 shadow-none flex-1 flex flex-col bg-transparent">
@@ -349,7 +349,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
                                                 answer={answers[currentQuestion.id]}
                                                 onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
                                                 styles={survey.styles || {}}
-                                                isPreview={isPreview}
+                                                isPreview={true}
                                                 onNextTask={handleNext}
                                                 isLastQuestion={currentQuestionIndex === survey.questions.length - 1}
                                                 submitSurvey={handleSubmit}

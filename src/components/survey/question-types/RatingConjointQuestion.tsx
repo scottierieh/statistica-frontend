@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -31,6 +32,7 @@ interface RatingConjointQuestionProps {
     onNextTask?: () => void;
     isLastQuestion?: boolean;
     submitSurvey?: () => void;
+    survey: Survey;
 }
 
 export default function RatingConjointQuestion({ 
@@ -46,7 +48,8 @@ export default function RatingConjointQuestion({
     isPreview,
     onNextTask,
     isLastQuestion,
-    submitSurvey
+    submitSurvey,
+    survey
 }: RatingConjointQuestionProps) {
     const { toast } = useToast();
     const { 
@@ -156,9 +159,9 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-
+            
             if (result.profiles) {
-                onUpdate?.({ profiles: result.profiles, tasks: [] });
+                onUpdate?.({ ...question, profiles: result.profiles, tasks: [] });
             }
             
             onAnswerChange?.({});
@@ -239,6 +242,7 @@ export default function RatingConjointQuestion({
                     onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
+                    survey={survey}
                 />
                 
                 <div className="mt-4 space-y-4">
@@ -277,6 +281,7 @@ export default function RatingConjointQuestion({
                                 </SelectContent>
                             </Select>
                         </div>
+                        
                         <div className="p-3 bg-muted rounded-md text-center h-full flex flex-col justify-center">
                             <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
