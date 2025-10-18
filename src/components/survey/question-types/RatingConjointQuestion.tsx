@@ -1,10 +1,11 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,12 +57,17 @@ export default function RatingConjointQuestion({
     } = question;
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const [numProfilesToGenerate, setNumProfilesToGenerate] = useState<number>(10);
 
     const handleRatingChange = (profileId: string, value: string) => {
         const rating = parseInt(value, 10);
-        if (rating >= 1 && rating <= 10) {
+        if (!isNaN(rating) && rating >= 1 && rating <= 10) {
             onAnswerChange?.(produce(answer || {}, (draft: any) => { 
                 draft[profileId] = rating; 
+            }));
+        } else if (value === '') {
+             onAnswerChange?.(produce(answer || {}, (draft: any) => { 
+                delete draft[profileId];
             }));
         }
     };
@@ -140,6 +146,10 @@ export default function RatingConjointQuestion({
                 designMethod: designMethod,
             };
 
+            if (designMethod === 'fractional-factorial') {
+                requestBody.target_size = numProfilesToGenerate;
+            }
+
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -154,7 +164,7 @@ export default function RatingConjointQuestion({
             const result = await response.json();
 
             if (result.profiles) {
-                onUpdate?.({ ...question, profiles: result.profiles, tasks: [] });
+                onUpdate?.({ profiles: result.profiles, tasks: [] });
             }
             
             onAnswerChange?.({});
@@ -176,27 +186,29 @@ export default function RatingConjointQuestion({
     };
 
     if (isPreview) {
-        if (profiles.length === 0) return <div className="p-3 text-sm text-muted-foreground">No rating profiles generated yet. Please generate profiles first.</div>;
+        if (!profiles || profiles.length === 0) return <div className="p-3 text-sm text-muted-foreground">No rating profiles generated yet. Please generate profiles first.</div>;
     
         return (
             <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
                  style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+                <h3 className="text-base font-semibold mb-3" style={{ fontSize: `${styles.questionTextSize}px` }}>
+                    {question.title} {question.required && <span className="text-destructive">*</span>}
+                </h3>
                 {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
                 
                 <div className="space-y-3">
                     {profiles.map((profile: any) => (
                         <Card key={profile.id}>
                             <CardContent className="p-3 flex items-center justify-between">
-                                <div className="space-y-1 text-xs">
+                                <div className="space-y-1 text-xs flex-1">
                                      {(attributes || []).map(attr => (
                                         <div key={attr.id} className="flex items-center gap-2">
-                                            <span className="font-medium text-muted-foreground w-16">{attr.name}:</span>
+                                            <span className="font-medium text-muted-foreground w-1/3">{attr.name}:</span>
                                             <span className="font-semibold">{profile.attributes[attr.name]}</span>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="w-24">
+                                <div className="w-24 ml-4">
                                      <Input
                                         type="number"
                                         min="1"
@@ -204,7 +216,7 @@ export default function RatingConjointQuestion({
                                         placeholder="1-10"
                                         value={answer?.[profile.id] || ''}
                                         onChange={(e) => handleRatingChange(profile.id, e.target.value)}
-                                        className="h-8 text-center text-sm"
+                                        className="h-10 text-center text-base"
                                     />
                                 </div>
                             </CardContent>
@@ -259,8 +271,8 @@ export default function RatingConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
+                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                         <div>
                             <Label htmlFor="designMethod">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -270,7 +282,7 @@ export default function RatingConjointQuestion({
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="p-3 bg-muted rounded-md text-center">
+                        <div className="p-3 bg-muted rounded-md text-center h-full flex flex-col justify-center">
                             <Label>Total Possible Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
@@ -278,7 +290,9 @@ export default function RatingConjointQuestion({
                     
                     <div className="flex justify-between items-center">
                          <p className="text-sm text-muted-foreground">
-                            Generated Profiles: {profiles.length}
+                            {profiles.length > 0 ? 
+                                <span className="text-green-600">✓ {profiles.length} profiles generated</span> : 
+                                'No profiles generated yet'}
                         </p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
