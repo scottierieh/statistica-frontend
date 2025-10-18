@@ -135,6 +135,7 @@ export default function RatingConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: 'rating-conjoint', // Specific type for rating
+                    designMethod: designMethod,
                 }),
             });
             
@@ -146,8 +147,7 @@ export default function RatingConjointQuestion({
             const result = await response.json();
             
             if (result.profiles) {
-                const profilesWithTaskId = result.profiles.map((p: any) => ({...p, taskId: 'task_0'}));
-                onUpdate?.({ profiles: profilesWithTaskId, tasks: [] });
+                onUpdate?.({ profiles: result.profiles, tasks: [] }); // Use profiles directly
             }
             
             if (result.metadata) {
@@ -274,7 +274,9 @@ export default function RatingConjointQuestion({
                     </div>
                     
                     <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
+                        <p className="text-sm text-muted-foreground">
+                            Generated Profiles: {profiles.length}
+                        </p>
                         <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
                             <Zap className="mr-2 h-4 w-4"/>
                             {isGenerating ? 'Generating...' : 'Generate Profiles'}
