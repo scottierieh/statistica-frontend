@@ -3,21 +3,21 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Brain, AlertTriangle } from 'lucide-react';
+import { Loader2, DollarSign, Brain, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import type { Survey, SurveyResponse } from '@/types/survey';
 
 interface AnalysisResults {
-    pme: number | null; // Point of Marginal Expensiveness
-    pmc: number | null; // Point of Marginal Cheapness
-    opp: number | null; // Optimal Price Point
-    idp: number | null; // Indifference Price Point
+    pme: number | null;
+    pmc: number | null;
+    opp: number | null;
+    idp: number | null;
     interpretation: string;
 }
 
@@ -25,6 +25,7 @@ interface FullAnalysisResponse {
     results: AnalysisResults;
     plots: {
         psm_plot?: string;
+        acceptance_plot?: string;
     };
     error?: string;
 }
@@ -136,19 +137,17 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
             if (!response.ok) {
                 const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                throw new Error(errorResult.error || 'API error');
             }
-
-            const result: FullAnalysisResponse = await response.json();
-            if (result.error) throw new Error(result.error);
             
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
             toast({ title: "Analysis Complete", description: "Van Westendorp analysis finished successfully." });
 
-        } catch (e: any) {
-            console.error('Van Westendorp error:', e);
-            setError(e.message);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+        } catch (err: any) {
+            setError(err.message);
+            toast({ title: "Analysis Error", description: err.message, variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -169,7 +168,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     }
     
     if (isLoading || !analysisResult) {
-        return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> <p>Analyzing price sensitivity...</p></CardContent></Card>;
+        return <Card><CardContent className="p-12 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" /></CardContent></Card>;
     }
     
     const { results, plots } = analysisResult;
@@ -188,19 +187,38 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {plots.psm_plot ? (
-                        <Image src={`data:image/png;base64,${plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
-                    ) : <p>Could not render PSM plot.</p>}
-                </CardContent>
-            </Card>
+             <InterpretationDisplay interpretation={results.interpretation} />
 
-            <InterpretationDisplay interpretation={results.interpretation} />
+             <Tabs defaultValue="psm">
+                <TabsList>
+                    <TabsTrigger value="psm">Price Sensitivity Meter</TabsTrigger>
+                    <TabsTrigger value="acceptance">Price Acceptance Curve</TabsTrigger>
+                </TabsList>
+                <TabsContent value="psm">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {plots.psm_plot ? (
+                                <Image src={`data:image/png;base64,${plots.psm_plot}`} alt="Van Westendorp Plot" width={1200} height={800} className="w-full rounded-md border" />
+                            ) : <p>Could not render PSM plot.</p>}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="acceptance">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Price Acceptance Curve</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {plots.acceptance_plot ? (
+                                <Image src={`data:image/png;base64,${plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1200} height={800} className="w-full rounded-md border" />
+                            ) : <p>Could not render acceptance plot.</p>}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
-
