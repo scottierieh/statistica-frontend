@@ -1,29 +1,30 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Eye, Monitor, Tablet, Smartphone } from "lucide-react";
 import { motion } from 'framer-motion';
 import type { Survey, Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from './survey/QuestionTypePalette';
 import { SpecialAnalysisPalette } from './survey/SpecialAnalysisPalette';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate, rankingConjointTemplate } from '@/lib/survey-templates';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 import SurveyView from './survey-view';
+import { cn } from '@/lib/utils';
+import { produce } from 'immer';
 
 
-// --- Main CreateSurvey Component ---
 export default function SurveyApp() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
   const template = searchParams.get("template");
-  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [survey, setSurvey] = useState<Survey>({
     id: surveyId || '',
     title: "My New Survey",
@@ -31,26 +32,38 @@ export default function SurveyApp() {
     questions: [],
     status: 'draft',
     created_date: '',
+    showStartPage: true,
+    startPage: {
+        title: "Welcome to the Survey",
+        description: "Your feedback is important to us. Please take a few moments to complete this survey.",
+        buttonText: "Start Survey"
+    }
   });
   
   const [isSaving, setIsSaving] = useState(false);
   const [styles, setStyles] = useState({
     theme: 'default',
     primaryColor: '#3C5462',
-    secondaryColor: '#E0E0E0',
+    secondaryColor: '#F3F4F6',
     font: 'Default',
     foregroundColor: 'Medium',
     questionSpacing: 'Comfortable',
     questionTextSize: 22,
     answerTextSize: 16
   });
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   useEffect(() => {
     const loadSurvey = async () => {
       const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
       const foundSurvey = allSurveys.find((s:any) => s.id === surveyId);
       if (foundSurvey) {
-        setSurvey(foundSurvey);
+        setSurvey(prev => ({
+            ...prev,
+            ...foundSurvey,
+            showStartPage: foundSurvey.showStartPage !== undefined ? foundSurvey.showStartPage : true,
+            startPage: foundSurvey.startPage || prev.startPage
+        }));
         if (foundSurvey.styles) {
             setStyles(prevStyles => ({...prevStyles, ...foundSurvey.styles}));
         }
@@ -130,17 +143,40 @@ export default function SurveyApp() {
     setIsSaving(true);
     try {
         const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
-        const surveyData = { ...survey, status, styles };
         
+        let finalSurvey: Survey;
+
         if (surveyId) {
             const index = allSurveys.findIndex((s) => s.id === surveyId);
             if (index > -1) {
-                allSurveys[index] = { ...allSurveys[index], ...surveyData };
+                const existingSurvey = allSurveys[index];
+                finalSurvey = {
+                    ...existingSurvey,
+                    ...survey,
+                    status,
+                    styles,
+                    created_date: existingSurvey.created_date, // Preserve original creation date
+                };
+                allSurveys[index] = finalSurvey;
             } else {
-                 allSurveys.push({ ...surveyData, id: surveyId, created_date: new Date().toISOString() });
+                 finalSurvey = {
+                    ...survey,
+                    status,
+                    styles,
+                    id: surveyId,
+                    created_date: new Date().toISOString(),
+                };
+                allSurveys.push(finalSurvey);
             }
         } else {
-            allSurveys.push({ ...surveyData, id: Date.now().toString(), created_date: new Date().toISOString() });
+             finalSurvey = {
+                ...survey,
+                status,
+                styles,
+                id: Date.now().toString(),
+                created_date: new Date().toISOString(),
+            };
+            allSurveys.push(finalSurvey);
         }
 
         localStorage.setItem('surveys', JSON.stringify(allSurveys));
@@ -169,24 +205,67 @@ export default function SurveyApp() {
       content: type === 'description' ? 'This is a description block.' : '',
       attributes: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
       sets: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 1 : undefined,
-      cardsPerSet: type === 'conjoint' ? 1 : undefined,
+      cardsPerSet: type === 'conjoint' ? 3 : undefined,
+      designMethod: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 'd-efficient' : undefined,
+      profiles: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [] : undefined,
+      tasks: ['conjoint', 'ranking-conjoint'].includes(type) ? [] : undefined,
       criteria: type === 'ahp' ? [{id:'c1', name:'Quality'}, {id:'c2', name:'Price'}, {id:'c3', name:'Service'}] : [],
       alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
     setSurvey(prev => ({...prev, questions: [...prev.questions, newQuestion]}));
   };
+
+  const handleImageUpload = (target: { type: 'question'; id: string } | { type: 'startPage'; field: 'logo' | 'image' }) => {
+    const input = fileInputRef.current;
+    if (input) {
+      input.onchange = (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files[0]) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const imageUrl = event.target?.result as string;
+            if (target.type === 'question') {
+              setSurvey(produce(draft => {
+                const question = draft.questions.find(q => q.id === target.id);
+                if (question) {
+                  question.imageUrl = imageUrl;
+                }
+              }));
+            } else { // startPage
+              setSurvey(produce(draft => {
+                if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
+                if (target.field === 'logo') {
+                  if (!draft.startPage.logo) draft.startPage.logo = {};
+                  draft.startPage.logo.src = imageUrl;
+                } else {
+                  draft.startPage.imageUrl = imageUrl;
+                }
+              }));
+            }
+          };
+          reader.readAsDataURL(files[0]);
+        }
+      };
+      input.click();
+    }
+  };
   
-  const handleQuestionsUpdate = (updater: Question[] | ((prev: Question[]) => Question[])) => {
-    if (typeof updater === 'function') {
-      setSurvey(prev => ({ ...prev, questions: updater(prev.questions) }));
-    } else {
-      setSurvey(prev => ({ ...prev, questions: updater }));
+  const handleDuplicateQuestion = (questionId: string) => {
+    const questionToDuplicate = survey.questions.find(q => q.id === questionId);
+    if (questionToDuplicate) {
+        const newQuestion = { ...questionToDuplicate, id: Date.now().toString() };
+        const index = survey.questions.findIndex(q => q.id === questionId);
+        setSurvey(prev => {
+            const newQuestions = [...prev.questions];
+            newQuestions.splice(index + 1, 0, newQuestion);
+            return { ...prev, questions: newQuestions };
+        });
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex items-center gap-4 mb-8">
@@ -198,14 +277,21 @@ export default function SurveyApp() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-                           <DialogHeader>
+                         <DialogContent className={cn("h-[95vh] flex flex-col p-0 w-full", "max-w-5xl")}>
+                           <DialogHeader className="p-4 border-b">
                                 <DialogTitle>Survey Preview</DialogTitle>
+                                 <div className="flex items-center justify-center space-x-2 mt-2">
+                                    <Button variant={previewDevice === 'desktop' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('desktop')}><Monitor className="w-5 h-5"/></Button>
+                                    <Button variant={previewDevice === 'tablet' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('tablet')}><Tablet className="w-5 h-5"/></Button>
+                                    <Button variant={previewDevice === 'mobile' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('mobile')}><Smartphone className="w-5 h-5"/></Button>
+                                </div>
                            </DialogHeader>
-                           <div className="flex-1 overflow-auto">
+                           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                                 <SurveyView
                                     isPreview={true}
+                                    previewDevice={previewDevice}
                                     survey={survey}
+                                    previewStyles={styles}
                                 />
                            </div>
                         </DialogContent>
@@ -233,7 +319,8 @@ export default function SurveyApp() {
                             <QuestionList 
                                 survey={survey}
                                 setSurvey={setSurvey}
-                                onUpdate={handleQuestionsUpdate}
+                                onImageUpload={handleImageUpload}
+                                onDuplicate={handleDuplicateQuestion}
                                 styles={styles}
                                 saveSurvey={saveSurveyAction}
                                 isSaving={isSaving}

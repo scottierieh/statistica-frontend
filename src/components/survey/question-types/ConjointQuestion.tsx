@@ -5,7 +5,7 @@ import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { Survey, SurveyResponse } from '@/entities/Survey';
+import type { Survey } from '@/entities/Survey';
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -24,7 +24,7 @@ interface ConjointQuestionProps {
     question: Question;
     answer?: { [taskId: string]: string };
     onAnswerChange?: (value: any) => void;
-    onUpdate?: (question: Partial<Question>) => void;
+    setSurvey: React.Dispatch<React.SetStateAction<Survey>>;
     onDelete?: (id: string) => void;
     onImageUpload?: (id: string) => void;
     onDuplicate?: (id: string) => void;
@@ -41,7 +41,7 @@ export default function ConjointQuestion({
     question, 
     answer, 
     onAnswerChange, 
-    onUpdate,
+    setSurvey,
     onDelete,
     onImageUpload,
     onDuplicate,
@@ -58,22 +58,22 @@ export default function ConjointQuestion({
         sets: numTasks = 8,
         cardsPerSet = 3,
         designMethod = 'd-efficient',
-        tasks = []
     } = question;
 
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    
+    const tasks = question.tasks || [];
 
-    // Ensure currentTask is valid
-    useEffect(() => {
-        if (currentTask >= tasks.length && tasks.length > 0) {
-            setCurrentTask(tasks.length - 1);
-        } else if (tasks.length === 0) {
-            setCurrentTask(0);
-        }
-    }, [tasks, currentTask]);
-
+    const onUpdate = (data: Partial<Question>) => {
+        setSurvey(produce((draft: Survey) => {
+            const q = draft.questions.find(q => q.id === question.id);
+            if (q) {
+                Object.assign(q, data);
+            }
+        }));
+    };
 
     const handleChoice = (profileId: string) => {
         onAnswerChange?.(produce(answer || {}, (draft: any) => { 
@@ -102,20 +102,19 @@ export default function ConjointQuestion({
     };
     
     const handleAttributeUpdate = (attrIndex: number, newName: string) => {
-        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
+        onUpdate({ attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].name = newName;
         })});
     };
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
+        onUpdate({ attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
     const addAttribute = () => {
-        onUpdate?.({
-            id: question.id,
+        onUpdate({
             attributes: [...attributes, { 
                 id: `attr-${Date.now()}`, 
                 name: `Attribute ${attributes.length + 1}`, 
@@ -125,18 +124,18 @@ export default function ConjointQuestion({
     };
 
     const addLevel = (attrIndex: number) => {
-        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
+        onUpdate({ attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
         })});
     };
 
     const removeAttribute = (attrIndex: number) => {
-        onUpdate?.({ id: question.id, attributes: attributes.filter((_, i) => i !== attrIndex) });
+        onUpdate({ attributes: attributes.filter((_, i) => i !== attrIndex) });
     };
 
     const removeLevel = (attrIndex: number, levelIndex: number) => {
         if (attributes[attrIndex].levels.length > 1) {
-            onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
+            onUpdate({ attributes: produce(attributes, draft => {
                 if (draft) draft[attrIndex].levels.splice(levelIndex, 1);
             })});
         }
@@ -164,7 +163,7 @@ export default function ConjointQuestion({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    designType: question.type,
+                    designType: 'cbc',
                     numTasks,
                     profilesPerTask: cardsPerSet,
                     designMethod,
@@ -179,7 +178,7 @@ export default function ConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                 onUpdate?.({ id: question.id, tasks: result.tasks });
+                 onUpdate({ id: question.id, tasks: result.tasks });
             }
             
             if (result.metadata) {
@@ -228,7 +227,7 @@ export default function ConjointQuestion({
                 
                  <RadioGroup value={answer?.[currentTaskId]} onValueChange={(value) => handleChoice(value)}>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                        {currentTaskProfiles.map((profile: any, index: number) => (
+                        {currentTaskProfiles.map((profile: any) => (
                            <Label key={profile.id} htmlFor={`profile-${profile.id}`} className={cn("p-3 rounded-lg border-2 cursor-pointer transition-all", answer?.[currentTaskId] === profile.id ? 'border-primary bg-primary/10' : 'bg-background hover:bg-accent/50')}>
                                 <RadioGroupItem value={profile.id} id={`profile-${profile.id}`} className="sr-only"/>
                                 <div className="space-y-1">

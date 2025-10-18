@@ -1,17 +1,15 @@
-
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { produce } from 'immer';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { GripVertical, Plus, Save, PlusCircle } from "lucide-react";
+import { GripVertical, PlusCircle, Save } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Survey, Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
@@ -265,6 +263,7 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
                                                 survey={survey}
                                                 question={q} 
                                                 onUpdate={handleUpdateQuestion} 
+                                                setSurvey={setSurvey}
                                                 onDelete={() => handleDeleteQuestion(q.id)}
                                                 onImageUpload={(id: string) => onImageUpload({ type: 'question', id })}
                                                 onDuplicate={() => onDuplicate(q.id)}
