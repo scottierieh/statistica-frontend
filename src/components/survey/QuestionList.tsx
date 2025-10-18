@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -167,7 +168,7 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
     const handleUpdateQuestion = (updatedQuestion: Partial<Question>) => {
-      setSurvey(prevSurvey => produce(prevSurvey, draft => {
+      setSurvey(produce((draft: Survey) => {
         const questionIndex = draft.questions.findIndex(q => q.id === updatedQuestion.id);
         if (questionIndex !== -1) {
           draft.questions[questionIndex] = { ...draft.questions[questionIndex], ...updatedQuestion };

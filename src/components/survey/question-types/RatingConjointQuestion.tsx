@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -54,6 +55,7 @@ export default function RatingConjointQuestion({
         profiles = [], 
         designMethod = 'fractional-factorial',
     } = question;
+
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
