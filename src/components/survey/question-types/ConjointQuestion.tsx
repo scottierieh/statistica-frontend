@@ -14,11 +14,17 @@ import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import type { Survey, SurveyResponse } from '@/entities/Survey';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 
 interface ConjointQuestionProps {
+    survey: Survey;
     question: Question;
     answer?: { [taskId: string]: string };
     onAnswerChange?: (value: any) => void;
@@ -35,6 +41,7 @@ interface ConjointQuestionProps {
 }
 
 export default function ConjointQuestion({ 
+    survey,
     question, 
     answer, 
     onAnswerChange, 
@@ -120,19 +127,20 @@ export default function ConjointQuestion({
     };
     
     const handleAttributeUpdate = (attrIndex: number, newName: string) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].name = newName;
         })});
     };
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
     const addAttribute = () => {
         onUpdate?.({
+            id: question.id,
             attributes: [...attributes, { 
                 id: `attr-${Date.now()}`, 
                 name: `Attribute ${attributes.length + 1}`, 
@@ -142,18 +150,18 @@ export default function ConjointQuestion({
     };
 
     const addLevel = (attrIndex: number) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft) draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
         })});
     };
 
     const removeAttribute = (attrIndex: number) => {
-        onUpdate?.({ attributes: attributes.filter((_, i) => i !== attrIndex) });
+        onUpdate?.({ id: question.id, attributes: attributes.filter((_, i) => i !== attrIndex) });
     };
 
     const removeLevel = (attrIndex: number, levelIndex: number) => {
         if (attributes[attrIndex].levels.length > 1) {
-            onUpdate?.({ attributes: produce(attributes, draft => {
+            onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
                 if (draft) draft[attrIndex].levels.splice(levelIndex, 1);
             })});
         }
@@ -290,10 +298,10 @@ export default function ConjointQuestion({
             <CardContent className="p-6">
                 <QuestionHeader 
                     question={question}
-                    onUpdate={onUpdate}
-                    onDelete={onDelete}
-                    onImageUpload={onImageUpload}
-                    onDuplicate={onDuplicate}
+                    onUpdate={(d) => onUpdate?.({ id: question.id, ...d})}
+                    onDelete={() => onDelete?.(question.id)}
+                    onImageUpload={() => onImageUpload?.(question.id)}
+                    onDuplicate={() => onDuplicate?.(question.id)}
                     styles={styles}
                     questionNumber={questionNumber}
                 />
@@ -326,7 +334,7 @@ export default function ConjointQuestion({
                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                        <div>
                            <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as any })}>
+                            <Select value={designMethod} onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as any })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="d-efficient">D-efficient</SelectItem>
@@ -341,11 +349,11 @@ export default function ConjointQuestion({
                             <>
                                 <div>
                                     <Label htmlFor="sets">Number of Sets (Tasks)</Label>
-                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                                    <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ id: question.id, sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
                                 </div>
                                 <div>
                                     <Label htmlFor="cardsPerSet">Cards per Set</Label>
-                                    <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                                    <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ id: question.id, cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
                                 </div>
                             </>
                         )}
