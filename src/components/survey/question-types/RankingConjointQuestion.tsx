@@ -4,8 +4,9 @@
 import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -180,18 +181,18 @@ export default function RankingConjointQuestion({
         const { active, over } = event;
         if (over && active.id !== over.id) {
             setRankedItems((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                
-                if (oldIndex === -1 || newIndex === -1) return items;
-                
-                const newOrder = arrayMove(items, oldIndex, newIndex);
-                
-                onAnswerChange?.(produce(answer || {}, (draft: any) => {
-                    draft[currentTaskId] = newOrder.map(item => item.id);
-                }));
-                
-                return newOrder;
+                  const oldIndex = items.findIndex(item => item.id === active.id);
+                  const newIndex = items.findIndex(item => item.id === over.id);
+                  
+                  if (oldIndex === -1 || newIndex === -1) return items;
+                  
+                  const newOrder = arrayMove(items, oldIndex, newIndex);
+                  
+                  onAnswerChange?.(produce(answer || {}, (draft: any) => {
+                      draft[currentTaskId] = newOrder.map(item => item.id);
+                  }));
+                  
+                  return newOrder;
             });
         }
     };
@@ -291,9 +292,9 @@ export default function RankingConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: 'ranking',
-                    numTasks,
-                    profilesPerTask,
-                    allowPartialRanking,
+                    numTasks: question.sets,
+                    profilesPerTask: question.cardsPerSet,
+                    allowPartialRanking: question.allowPartialRanking
                 }),
             });
             
@@ -496,47 +497,48 @@ export default function RankingConjointQuestion({
                         </Button>
                     </div>
 
-                    {tasks.length > 0 && (
-                        <div>
-                            <h5 className="text-sm font-semibold mb-2">Generated Tasks Preview</h5>
-                            <ScrollArea className="h-64 border rounded-md p-2">
-                                <div className="space-y-4">
-                                    {tasks.map((task: any, taskIndex) => (
-                                        <Card key={task.taskId} className="p-3">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <Badge>Task {taskIndex + 1}</Badge>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {task.profiles.length} profiles
-                                                </span>
-                                            </div>
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="w-20">#</TableHead>
-                                                        {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {task.profiles.map((p: any, pIndex: number) => (
-                                                        <TableRow key={p.id}>
-                                                            <TableCell>{pIndex + 1}</TableCell>
-                                                            {attributes.map(a => (
-                                                                <TableCell key={a.id}>
-                                                                    {p.attributes?.[a.name] || '-'}
-                                                                </TableCell>
-                                                            ))}
-                                                        </TableRow>
+                    <ScrollArea className="h-48 border rounded-md p-2">
+                        <div className="space-y-4">
+                            {tasks.map((task: any, taskIndex) => (
+                                <Card key={task.taskId} className="p-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <Badge>Task {taskIndex + 1}</Badge>
+                                        <span className="text-xs text-muted-foreground">
+                                            {task.profiles.length} profiles
+                                        </span>
+                                    </div>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-20">#</TableHead>
+                                                {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {task.profiles.map((p: any, pIndex: number) => (
+                                                <TableRow key={p.id}>
+                                                    <TableCell>{pIndex + 1}</TableCell>
+                                                    {attributes.map(a => (
+                                                        <TableCell key={a.id}>
+                                                            {p.attributes?.[a.name] || '-'}
+                                                        </TableCell>
                                                     ))}
-                                                </TableBody>
-                                            </Table>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </Card>
+                            ))}
                         </div>
-                    )}
+                    </ScrollArea>
                 </div>
             </CardContent>
         </Card>
     );
 }
+
+```
+- src/components/survey/question-types/RatingConjointQuestion.tsx
+- src/components/survey/question-types/ConjointQuestion.tsx
+```
+
