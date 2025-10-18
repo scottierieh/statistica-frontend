@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -50,7 +49,12 @@ export default function RatingConjointQuestion({
     submitSurvey
 }: RatingConjointQuestionProps) {
     const { toast } = useToast();
-    const { attributes = [], profiles = [], designMethod = 'fractional-factorial' } = question;
+    const { 
+        attributes = [], 
+        profiles = [], 
+        designMethod = 'fractional-factorial',
+        numProfiles = 12 // Add a default for numProfiles
+    } = question;
     const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -129,14 +133,20 @@ export default function RatingConjointQuestion({
         }
         setIsGenerating(true);
         try {
+            const requestBody: any = {
+                attributes,
+                designType: 'rating-conjoint',
+                designMethod: designMethod,
+            };
+
+            if (designMethod === 'fractional-factorial') {
+                requestBody.target_size = numProfiles;
+            }
+
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    attributes,
-                    designType: 'rating-conjoint', // Specific type for rating
-                    designMethod: designMethod,
-                }),
+                body: JSON.stringify(requestBody),
             });
             
             if (!response.ok) {
@@ -145,9 +155,9 @@ export default function RatingConjointQuestion({
             }
             
             const result = await response.json();
-            
+
             if (result.profiles) {
-                onUpdate?.({ profiles: result.profiles, tasks: [] }); // Use profiles directly
+                onUpdate?.({ profiles: result.profiles, tasks: [] });
             }
             
             if (result.metadata) {
@@ -256,7 +266,7 @@ export default function RatingConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <Label htmlFor="designType">Design Method</Label>
                             <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
@@ -267,6 +277,12 @@ export default function RatingConjointQuestion({
                                 </SelectContent>
                             </Select>
                         </div>
+                        {designMethod === 'fractional-factorial' && (
+                            <div>
+                                <Label htmlFor="numProfiles">Number of Profiles</Label>
+                                <Input id="numProfiles" type="number" value={numProfiles} onChange={e => onUpdate?.({ numProfiles: parseInt(e.target.value) || 1 })} min="3" />
+                            </div>
+                        )}
                         <div className="p-3 bg-muted rounded-md text-center">
                             <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
