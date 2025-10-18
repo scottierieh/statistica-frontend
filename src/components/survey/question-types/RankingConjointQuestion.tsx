@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -86,7 +85,6 @@ export default function RankingConjointQuestion({
     
     const { 
         attributes = [], 
-        profiles = [], 
         sets: numTasks = 5,
         cardsPerSet: profilesPerTask = 4,
         designMethod = 'fractional-factorial',
@@ -95,42 +93,14 @@ export default function RankingConjointQuestion({
     } = question;
 
     const [currentTask, setCurrentTask] = useState(0);
-    const [designStats, setDesignStats] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     
     const tasks = useMemo(() => {
         if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
             return questionTasks;
         }
-        
-        if (profiles && profiles.length > 0) {
-            if (designMethod === 'full-factorial') {
-                return [{ taskId: 'task_0', profiles, allowPartialRanking }];
-            }
-            const groupedProfiles: { [taskId: string]: any[] } = {};
-            profiles.forEach(p => {
-                const taskId = p.taskId || 'task_0';
-                if (!groupedProfiles[taskId]) {
-                    groupedProfiles[taskId] = [];
-                }
-                groupedProfiles[taskId].push(p);
-            });
-            
-            const sortedTaskIds = Object.keys(groupedProfiles).sort((a, b) => {
-                const numA = parseInt(a.replace('task_', ''));
-                const numB = parseInt(b.replace('task_', ''));
-                return numA - numB;
-            });
-            
-            return sortedTaskIds.map(taskId => ({
-                taskId,
-                profiles: groupedProfiles[taskId],
-                allowPartialRanking
-            }));
-        }
-        
         return [];
-    }, [questionTasks, profiles, allowPartialRanking, designMethod]);
+    }, [questionTasks]);
 
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskProfiles = currentTaskData.profiles || [];
@@ -195,7 +165,7 @@ export default function RankingConjointQuestion({
         if (!isLastTask) {
             setCurrentTask(currentTask + 1);
         } else {
-            if (isLastQuestion && submitSurvey) {
+             if (isLastQuestion && submitSurvey) {
                 submitSurvey();
             } else if(onNextTask) {
                 onNextTask();
@@ -210,19 +180,20 @@ export default function RankingConjointQuestion({
     };
     
     const handleAttributeUpdate = (attrIndex: number, newName: string) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft && draft[attrIndex]) draft[attrIndex].name = newName;
         })});
     };
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft && draft[attrIndex]) draft[attrIndex].levels[levelIndex] = newLevel;
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
+            if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
     const addAttribute = () => {
         onUpdate?.({
+            id: question.id,
             attributes: [...attributes, { 
                 id: `attr-${Date.now()}`, 
                 name: `Attribute ${attributes.length + 1}`, 
@@ -232,7 +203,7 @@ export default function RankingConjointQuestion({
     };
 
     const addLevel = (attrIndex: number) => {
-        onUpdate?.({ attributes: produce(attributes, draft => {
+        onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
             if (draft && draft[attrIndex]) {
                 draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
             }
@@ -240,12 +211,12 @@ export default function RankingConjointQuestion({
     };
 
     const removeAttribute = (attrIndex: number) => {
-        onUpdate?.({ attributes: attributes.filter((_, i) => i !== attrIndex) });
+        onUpdate?.({ id: question.id, attributes: attributes.filter((_, i) => i !== attrIndex) });
     };
 
     const removeLevel = (attrIndex: number, levelIndex: number) => {
         if (attributes[attrIndex].levels.length > 1) {
-            onUpdate?.({ attributes: produce(attributes, draft => {
+            onUpdate?.({ id: question.id, attributes: produce(attributes, draft => {
                 if (draft && draft[attrIndex]) draft[attrIndex].levels.splice(levelIndex, 1);
             })});
         }
@@ -274,6 +245,7 @@ export default function RankingConjointQuestion({
                 body: JSON.stringify({
                     attributes,
                     designType: 'ranking-conjoint',
+                    designMethod,
                     numTasks: designMethod === 'fractional-factorial' ? numTasks : undefined,
                     profilesPerTask: designMethod === 'fractional-factorial' ? profilesPerTask : undefined,
                     allowPartialRanking,
@@ -288,13 +260,7 @@ export default function RankingConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                 onUpdate?.({ id: question.id, profiles: [], tasks: result.tasks });
-            } else if (result.profiles) {
-                onUpdate?.({ id: question.id, profiles: [], tasks: [{ taskId: 'task_0', profiles: result.profiles, allowPartialRanking }] });
-            }
-            
-            if (result.metadata) {
-                setDesignStats(result.metadata);
+                 onUpdate?.({ id: question.id, tasks: result.tasks });
             }
             
             setCurrentTask(0);
@@ -434,17 +400,21 @@ export default function RankingConjointQuestion({
                 <div className="mt-6 space-y-4">
                     <h4 className="font-semibold text-sm">Design & Profiles</h4>
                     
-                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                         <div>
-                            <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ id: question.id, designMethod: value })}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="full-factorial">Full Factorial</SelectItem>
-                                    <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                       <div>
+                           <Label htmlFor="designMethod">Design Method</Label>
+                            <Select 
+                                value={designMethod} 
+                                onValueChange={(value) => onUpdate?.({ id: question.id, designMethod: value as any })}
+                            >
+                               <SelectTrigger><SelectValue /></SelectTrigger>
+                               <SelectContent>
+                                   <SelectItem value="full-factorial">Full Factorial</SelectItem>
+                                   <SelectItem value="fractional-factorial">Fractional Factorial</SelectItem>
+                               </SelectContent>
+                           </Select>
+                       </div>
+                       
                         {designMethod === 'fractional-factorial' && (
                             <>
                                 <div>
@@ -498,4 +468,3 @@ export default function RankingConjointQuestion({
         </Card>
     );
 }
-
