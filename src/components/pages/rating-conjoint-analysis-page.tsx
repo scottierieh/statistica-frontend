@@ -435,100 +435,30 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
         <div className="space-y-4">
             <Tabs defaultValue="importance" className="w-full">
                 <TabsList className={`grid w-full ${results.segmentation ? 'grid-cols-6' : 'grid-cols-5'}`}>
-                    <TabsTrigger value="importance">
-                        <PieIcon className="mr-2 h-4 w-4"/>Importance
-                    </TabsTrigger>
-                    <TabsTrigger value="partworths">
-                        <BarIcon className="mr-2 h-4 w-4"/>Part-Worths
-                    </TabsTrigger>
-                    <TabsTrigger value="optimal">
-                        <Star className="mr-2 h-4 w-4"/>Optimal
-                    </TabsTrigger>
-                    <TabsTrigger value="simulation">
-                        <Activity className="mr-2 h-4 w-4"/>Simulation
-                    </TabsTrigger>
-                    <TabsTrigger value="sensitivity">
-                        <LineChartIcon className="mr-2 h-4 w-4"/>Sensitivity
-                    </TabsTrigger>
-                    {results.segmentation && (
-                        <TabsTrigger value="segmentation">
-                            <Users className="mr-2 h-4 w-4"/>Segmentation
-                        </TabsTrigger>
-                    )}
+                    <TabsTrigger value="importance"><PieIcon className="mr-2 h-4 w-4"/>Importance</TabsTrigger>
+                    <TabsTrigger value="partworths"><BarIcon className="mr-2 h-4 w-4"/>Part-Worths</TabsTrigger>
+                    <TabsTrigger value="optimal"><Star className="mr-2 h-4 w-4"/>Optimal</TabsTrigger>
+                    <TabsTrigger value="simulation"><Activity className="mr-2 h-4 w-4"/>Simulation</TabsTrigger>
+                    <TabsTrigger value="sensitivity"><LineChartIcon className="mr-2 h-4 w-4"/>Sensitivity</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="importance" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle className='flex items-center gap-2'><PieIcon/>Relative Importance of Attributes</CardTitle><CardDescription>Shows which attributes have the most influence on ratings</CardDescription></CardHeader>
-                        <CardContent>
-                            <ChartContainer config={importanceChartConfig} className="w-full h-[400px]">
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Pie data={importanceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={(entry) => `${entry.name} (${entry.value.toFixed(1)}%)`} labelLine={false}>
-                                            {importanceData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                                        </Pie>
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
+                    <Card><CardHeader><CardTitle className='flex items-center gap-2'><PieIcon/>Relative Importance of Attributes</CardTitle><CardDescription>Shows which attributes have the most influence on ratings</CardDescription></CardHeader><CardContent><ChartContainer config={importanceChartConfig} className="w-full h-[400px]"><ResponsiveContainer><PieChart><Pie data={importanceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={(entry) => `${entry.name} (${entry.value.toFixed(1)}%)`} labelLine={false}>{importanceData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} /><Legend /></PieChart></ResponsiveContainer></ChartContainer></CardContent></Card>
                 </TabsContent>
                 
                 <TabsContent value="partworths" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle><CardDescription>Utility values for each attribute level (zero-centered)</CardDescription></CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {attributeCols.map(attr => {
-                                    const attrData = partWorthsData.filter(p => p.attribute === attr);
-                                    return (
-                                        <div key={attr} className="space-y-2">
-                                            <h3 className="font-semibold text-lg">{attr}</h3>
-                                            <ChartContainer config={partWorthChartConfig} className="w-full h-[250px]">
-                                                <ResponsiveContainer>
-                                                    <BarChart data={attrData} layout="vertical" margin={{ left: 100, right: 20, top: 20, bottom: 20 }}><CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="level" type="category" width={90} tick={{ fontSize: 12 }}/><Tooltip content={<ChartTooltipContent />} /><Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30}/></BarChart>
-                                                </ResponsiveContainer>
-                                            </ChartContainer>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <Card><CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle><CardDescription>Utility values for each attribute level (zero-centered)</CardDescription></CardHeader><CardContent><div className="grid md:grid-cols-2 gap-6">{attributeCols.map(attr => { const attrData = partWorthsData.filter(p => p.attribute === attr); return (<div key={attr} className="space-y-2"><h3 className="font-semibold text-lg">{attr}</h3><ChartContainer config={partWorthChartConfig} className="w-full h-[250px]"><ResponsiveContainer><BarChart data={attrData} layout="vertical" margin={{ left: 100, right: 20, top: 20, bottom: 20 }}><CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="level" type="category" width={90} tick={{ fontSize: 12 }}/><Tooltip content={<ChartTooltipContent />} /><Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30}/></BarChart></ResponsiveContainer></ChartContainer></div>);})}</div></CardContent></Card>
                 </TabsContent>
                 
                 <TabsContent value="optimal" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle className='flex items-center gap-2'><Star className="h-5 w-5"/>Optimal Product Profile</CardTitle><CardDescription>The combination of attributes that yields the highest predicted preference rating</CardDescription></CardHeader>
-                        <CardContent>
-                            {results.optimalProduct ? (
-                                <><Table><TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader><TableBody>{Object.entries(results.optimalProduct.config).map(([attr, level]) => (<TableRow key={attr}><TableCell className="font-medium">{attr}</TableCell><TableCell>{level as string}</TableCell></TableRow>))}</TableBody></Table><div className="mt-6 p-4 bg-primary/10 rounded-lg text-center"><p className="text-lg">Predicted Rating: <span className="text-2xl font-bold text-primary ml-2">{results.optimalProduct.totalUtility.toFixed(2)}</span></p></div></>
-                            ) : (<p className="text-muted-foreground">Could not determine optimal profile.</p>)}
-                        </CardContent>
-                    </Card>
+                    <Card><CardHeader><CardTitle className='flex items-center gap-2'><Star className="h-5 w-5"/>Optimal Product Profile</CardTitle><CardDescription>The combination of attributes that yields the highest predicted preference rating</CardDescription></CardHeader><CardContent>{results.optimalProduct ? (<><Table><TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader><TableBody>{Object.entries(results.optimalProduct.config).map(([attr, level]) => (<TableRow key={attr}><TableCell className="font-medium">{attr}</TableCell><TableCell>{level as string}</TableCell></TableRow>))}</TableBody></Table><div className="mt-6 p-4 bg-primary/10 rounded-lg text-center"><p className="text-lg">Predicted Rating: <span className="text-2xl font-bold text-primary ml-2">{results.optimalProduct.totalUtility.toFixed(2)}</span></p></div></>) : (<p className="text-muted-foreground">Could not determine optimal profile.</p>)}</CardContent></Card>
                 </TabsContent>
                 
                 <TabsContent value="simulation" className="mt-4">
                     <Card>
                         <CardHeader><CardTitle className='flex items-center gap-2'><Activity className="h-5 w-5"/>Preference Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference shares</CardDescription></CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-3 gap-4 mb-6">
-                                {scenarios.map((scenario, index) => (
-                                    <Card key={index}>
-                                        <CardHeader className="pb-3"><Input value={scenario.name} onChange={(e) => handleScenarioChange(index, 'name', e.target.value)} className="font-semibold" placeholder="Scenario name"/></CardHeader>
-                                        <CardContent className="space-y-3">
-                                            {attributeCols.map((attrName) => {
-                                                const levels = allAttributes[attrName]?.levels || [];
-                                                return (
-                                                    <div key={attrName}><Label className="text-sm">{attrName}</Label><Select value={scenario[attrName]} onValueChange={(v) => handleScenarioChange(index, attrName, v)}><SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger><SelectContent>{levels.map((l: string) => (<SelectItem key={l} value={l}>{l}</SelectItem>))}</SelectContent></Select></div>
-                                                );
-                                            })}
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
+                            <div className="grid md:grid-cols-3 gap-4 mb-6">{scenarios.map((scenario, index) => (<Card key={index}><CardHeader className="pb-3"><Input value={scenario.name} onChange={(e) => handleScenarioChange(index, 'name', e.target.value)} className="font-semibold" placeholder="Scenario name"/></CardHeader><CardContent className="space-y-3">{attributeCols.map((attrName) => { const levels = allAttributes[attrName]?.levels || []; return (<div key={attrName}><Label className="text-sm">{attrName}</Label><Select value={scenario[attrName]} onValueChange={(v) => handleScenarioChange(index, attrName, v)}><SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger><SelectContent>{levels.map((l: string) => (<SelectItem key={l} value={l}>{l}</SelectItem>))}</SelectContent></Select></div>);})}</CardContent></Card>))}</div>
                             <Button onClick={runSimulation} disabled={isLoading} size="lg">{isLoading ? (<><Loader2 className="animate-spin mr-2 h-4 w-4"/>Running Simulation...</>) : (<><Activity className="mr-2 h-4 w-4"/>Run Simulation</>)}</Button>
                             {simulationResult && (
                                 <div className="mt-6"><h3 className="text-lg font-semibold mb-4">Simulation Results</h3><ChartContainer config={{preferenceShare: {label: 'Preference Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]"><ResponsiveContainer><BarChart data={simulationResult}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis unit="%" /><Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} /><Bar dataKey="preferenceShare" name="Preference Share (%)" fill="var(--color-preferenceShare)" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer></ChartContainer></div>
@@ -538,25 +468,8 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                 </TabsContent>
                 
                 <TabsContent value="sensitivity" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle className='flex items-center gap-2'><LineChartIcon className="h-5 w-5"/>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute</CardDescription></CardHeader>
-                        <CardContent>
-                            <div className="space-y-6">
-                                <div><Label>Attribute to Analyze</Label><Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}><SelectTrigger className="w-full md:w-[300px]"><SelectValue placeholder="Select attribute" /></SelectTrigger><SelectContent>{attributeCols.map(attr => (<SelectItem key={attr} value={attr}>{attr}</SelectItem>))}</SelectContent></Select></div>
-                                <ChartContainer config={{ utility: { label: 'Utility', color: 'hsl(var(--primary))' } }} className="w-full h-[400px]"><ResponsiveContainer><LineChart data={sensitivityData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="level" /><YAxis /><Tooltip content={<ChartTooltipContent />} /><Line type="monotone" dataKey="utility" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 6 }} activeDot={{ r: 8 }}/></LineChart></ResponsiveContainer></ChartContainer>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <Card><CardHeader><CardTitle className='flex items-center gap-2'><LineChartIcon className="h-5 w-5"/>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute</CardDescription></CardHeader><CardContent><div className="space-y-6"><div><Label>Attribute to Analyze</Label><Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}><SelectTrigger className="w-full md:w-[300px]"><SelectValue placeholder="Select attribute" /></SelectTrigger><SelectContent>{attributeCols.map(attr => (<SelectItem key={attr} value={attr}>{attr}</SelectItem>))}</SelectContent></Select></div><ChartContainer config={{ utility: { label: 'Utility', color: 'hsl(var(--primary))' } }} className="w-full h-[400px]"><ResponsiveContainer><LineChart data={sensitivityData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="level" /><YAxis /><Tooltip content={<ChartTooltipContent />} /><Line type="monotone" dataKey="utility" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 6 }} activeDot={{ r: 8 }}/></LineChart></ResponsiveContainer></ChartContainer></div></CardContent></Card>
                 </TabsContent>
-                
-                {results.segmentation && (
-                    <TabsContent value="segmentation" className="mt-4">
-                        <Card>
-                            <CardHeader><CardTitle className='flex items-center gap-2'><Users className="h-5 w-5"/>Segmentation Analysis</CardTitle><CardDescription>Analysis results broken down by segment</CardDescription></CardHeader>
-                            <CardContent><Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>Segmentation analysis visualization coming soon!</AlertDescription></Alert></CardContent>
-                        </Card>
-                    </TabsContent>
-                )}
             </Tabs>
             
             {results.regression && (
