@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -55,6 +54,10 @@ interface RankingConjointQuestionProps {
     question: Question;
     answer?: { [taskId: string]: string[] };
     onAnswerChange?: (value: any) => void;
+    onUpdate?: (question: Partial<Question>) => void;
+    onDelete?: (id: string) => void;
+    onImageUpload?: (id: string) => void;
+    onDuplicate?: (id: string) => void;
     styles: any;
     questionNumber: number;
     isPreview?: boolean;
@@ -87,7 +90,7 @@ export default function RankingConjointQuestion({
 
     const [currentTask, setCurrentTask] = useState(0);
     const [isGenerating, setIsGenerating] = useState(false);
-
+    
     const onUpdate = (updatedQuestion: Partial<Question>) => {
         setSurvey(produce((draft: Survey) => {
           const questionIndex = draft.questions.findIndex(q => q.id === question.id);
@@ -113,6 +116,7 @@ export default function RankingConjointQuestion({
             }));
         }
     };
+    
 
     const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
     const currentTaskProfiles = currentTaskData.profiles || [];
@@ -249,12 +253,16 @@ export default function RankingConjointQuestion({
         }
         
         setIsGenerating(true);
-        try {
-            const requestBody: any = {
-                attributes,
-                designType: 'ranking-conjoint',
-                designMethod,
-            };
+            try {
+                const requestBody: any = {
+                    attributes,
+                    designType: 'ranking-conjoint',
+                    designMethod,
+                    numTasks: designMethod === 'fractional-factorial' ? question.sets : undefined,
+                    profilesPerTask: designMethod === 'fractional-factorial' ? question.cardsPerSet : undefined,
+                    allowPartialRanking,
+                };
+
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -293,7 +301,7 @@ export default function RankingConjointQuestion({
     };
 
     if (isPreview) {
-        if (tasks.length === 0) return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate profiles first.</div>;
+        if (tasks.length === 0) return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate tasks first.</div>;
     
         const isFullFactorial = designMethod === 'full-factorial';
 
@@ -367,6 +375,13 @@ export default function RankingConjointQuestion({
                         </Button>
                     </div>
                 )}
+                 {isFullFactorial && (
+                     <div className="text-right mt-4">
+                        <Button size="sm" onClick={handleNextTask}>
+                            {isLastQuestion ? 'Submit' : 'Next'}
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     }
@@ -378,6 +393,7 @@ export default function RankingConjointQuestion({
                     question={question}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    onImageUpload={() => {}}
                     onDuplicate={onDuplicate}
                     styles={styles}
                     questionNumber={questionNumber}
@@ -413,7 +429,7 @@ export default function RankingConjointQuestion({
                            <Label htmlFor="designMethod">Design Method</Label>
                             <Select 
                                 value={designMethod} 
-                                onValueChange={(value) => onUpdate?.({ designMethod: value as 'full-factorial' | 'fractional-factorial' })}
+                                onValueChange={(value) => onUpdate({ designMethod: value as 'full-factorial' | 'fractional-factorial' })}
                             >
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
@@ -423,22 +439,29 @@ export default function RankingConjointQuestion({
                            </Select>
                        </div>
                        
-                        <div className="p-3 bg-muted rounded-md text-center">
-                            <Label>Total Combinations</Label>
-                            <p className="text-2xl font-bold">{totalCombinations}</p>
-                        </div>
+                        {designMethod === 'fractional-factorial' && (
+                           <>
+                               <div>
+                                   <Label htmlFor="sets">Number of Tasks</Label>
+                                   <Input id="sets" type="number" value={question.sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
+                               </div>
+                               <div>
+                                   <Label htmlFor="cardsPerSet">Profiles per Task</Label>
+                                   <Input id="cardsPerSet" type="number" value={question.cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                               </div>
+                           </>
+                       )}
+
+                       <div className="p-3 bg-muted rounded-md text-center">
+                           <Label>Total Combinations</Label>
+                           <p className="text-2xl font-bold">{totalCombinations}</p>
+                       </div>
+                   </div>
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="allowPartialRanking" checked={allowPartialRanking} onCheckedChange={(checked) => onUpdate({ allowPartialRanking: !!checked })}/>
+                        <Label htmlFor="allowPartialRanking">Allow partial ranking</Label>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                        <Checkbox 
-                            id="partial"
-                            checked={allowPartialRanking || false}
-                            onCheckedChange={(checked) => onUpdate?.({ allowPartialRanking: !!checked })}
-                        />
-                        <Label htmlFor="partial" className="text-sm font-normal cursor-pointer">
-                            Allow partial ranking
-                        </Label>
-                    </div>
+
                     
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">
@@ -449,7 +472,7 @@ export default function RankingConjointQuestion({
                             {isGenerating ? 'Generating...' : 'Generate Tasks'}
                         </Button>
                     </div>
-                    {(!tasks || tasks.length === 0) && (
+                     {tasks.length === 0 && (
                         <Alert>
                             <Info className="h-4 w-4" />
                             <AlertDescription>
