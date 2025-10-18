@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, ConjointAttribute } from "@/entities/Survey";
@@ -184,7 +183,7 @@ export default function ConjointQuestion({
                     attributes,
                     designType: question.type,
                     numTasks, // Changed from sets
-                    profilesPerTask, // Changed from cardsPerSet
+                    profilesPerTask: cardsPerSet, // Changed from cardsPerSet
                 }),
             });
             
@@ -196,7 +195,7 @@ export default function ConjointQuestion({
             const result = await response.json();
 
             if (result.tasks && Array.isArray(result.tasks)) {
-                 onUpdate?.({ tasks: result.tasks });
+                 onUpdate?.({ id: question.id, tasks: result.tasks });
             }
             
             if (result.metadata) {
@@ -351,6 +350,14 @@ export default function ConjointQuestion({
                             {isGenerating ? 'Generating...' : 'Generate Tasks'}
                         </Button>
                     </div>
+                     {tasks.length === 0 && (
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                You must generate tasks before you can publish the survey.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     {tasks.length > 0 && (
                         <div>
@@ -392,4 +399,4 @@ export default function ConjointQuestion({
         </Card>
     );
 }
-
+```
