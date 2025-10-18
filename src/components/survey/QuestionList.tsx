@@ -216,6 +216,21 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
         ahp: AHPQuestion,
         servqual: ServqualQuestion,
     };
+    
+    const isPublishDisabled = useMemo(() => {
+        if (!survey || survey.questions.length === 0) return true;
+        
+        return survey.questions.some(q => {
+            if (q.type === 'rating-conjoint' && (!q.profiles || q.profiles.length === 0)) {
+                return true;
+            }
+            if ((q.type === 'conjoint' || q.type === 'ranking-conjoint') && (!q.tasks || q.tasks.length === 0)) {
+                return true;
+            }
+            return false;
+        });
+
+    }, [survey]);
 
     return (
         <div className="space-y-6">
@@ -264,7 +279,7 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
             {!isSaving && survey.questions.length > 0 && (
                 <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
                     <Button variant="outline" size="lg" onClick={() => saveSurvey && saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
-                    <Button size="lg" onClick={() => saveSurvey && saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
+                    <Button size="lg" onClick={() => saveSurvey && saveSurvey("active")} disabled={isSaving || isPublishDisabled} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
                 </div>
             )}
         </div>

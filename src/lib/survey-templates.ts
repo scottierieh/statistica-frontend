@@ -1,5 +1,4 @@
 
-
 import type { Question, Criterion } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
@@ -53,11 +52,7 @@ export const ratingBasedConjointTemplate = {
                 { id: `attr-2`, name: 'Price', levels: ['$999', '$799', '$699'] },
                 { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
             ],
-            profiles: [
-                { id: 'profile_1', taskId: 'task_0', attributes: { Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' }},
-                { id: 'profile_2', taskId: 'task_0', attributes: { Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' }},
-                { id: 'profile_3', taskId: 'task_0', attributes: { Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' }},
-            ]
+            profiles: []
         }
     ],
 };

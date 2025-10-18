@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -20,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
 import type { Survey, SurveyResponse, Question } from '@/entities/Survey';
 import { Input } from '../ui/input';
-import { Alert, AlertDescription } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface CbcResults {
     partWorths: { attribute: string, level: string, value: number }[];
@@ -53,6 +52,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [debugInfo, setDebugInfo] = useState<any>(null);
     
     // Advanced features state
     const [scenarios, setScenarios] = useState<Scenario[]>([
@@ -79,51 +79,146 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     const attributeCols = useMemo(() => Object.keys(allAttributes), [allAttributes]);
 
     const handleAnalysis = useCallback(async (simulationScenarios?: Scenario[]) => {
+        // Debug information collection
+        const debug: any = {
+            hasConjointQuestion: !!conjointQuestion,
+            responseCount: responses?.length || 0,
+            conjointQuestionId: conjointQuestion?.id,
+            conjointQuestionType: conjointQuestion?.type,
+            attributeCount: Object.keys(allAttributes).length,
+            attributes: allAttributes,
+            sampleResponses: [],
+            profilesCount: conjointQuestion?.profiles?.length || 0,
+            sampleProfiles: conjointQuestion?.profiles?.slice(0, 3)
+        };
+
         if (!conjointQuestion || !responses || responses.length === 0) {
+            setDebugInfo(debug);
             setError('No conjoint question or responses found for this survey.');
             setIsLoading(false);
             return;
         }
 
         const analysisData: any[] = [];
-        responses.forEach(resp => {
-            const answerBlock = (resp.answers as any)[conjointQuestion.id];
-            if (!answerBlock || typeof answerBlock !== 'object') return;
-    
-            Object.entries(answerBlock).forEach(([taskKey, chosenProfileId]) => {
-                const presentedProfiles = (conjointQuestion.profiles || []).filter(
-                    (p: any) => p.taskId === taskKey
-                );
-                
-                if (presentedProfiles.length === 0) {
-                    console.warn(`No profiles found for task ${taskKey}`);
-                    return;
-                }
-    
-                presentedProfiles.forEach((profile: any) => {
-                    if (!profile.attributes) {
-                        console.warn(`Profile ${profile.id} missing attributes:`, profile);
-                        return;
-                    }
-    
-                    const row: any = {
-                        respondent_id: resp.id,
-                        choice_set_id: taskKey,
-                        profile_id: profile.id,
-                        ...profile.attributes,
-                        chosen: profile.id === chosenProfileId ? 1 : 0
-                    };
-                    
-                    analysisData.push(row);
-                });
+        let processedResponseCount = 0;
+        let skippedResponseCount = 0;
+
+        // Get all profiles from the conjoint question
+        const allProfiles = conjointQuestion.profiles || [];
+        
+        // Group profiles into choice sets (assuming 2-3 profiles per choice set)
+        // This is a simplified approach - adjust based on your actual choice set structure
+        const profilesPerSet = 2; // Or 3, depending on your design
+        const choiceSets: any[] = [];
+        
+        for (let i = 0; i < allProfiles.length; i += profilesPerSet) {
+            choiceSets.push({
+                setId: `set_${Math.floor(i / profilesPerSet)}`,
+                profiles: allProfiles.slice(i, Math.min(i + profilesPerSet, allProfiles.length))
             });
+        }
+
+        console.log('Choice sets created:', choiceSets);
+
+        responses.forEach((resp, respIndex) => {
+            // Collect sample response structure for debugging
+            if (respIndex < 3) {
+                debug.sampleResponses.push({
+                    responseId: resp.id,
+                    answers: resp.answers,
+                    answerKeys: Object.keys(resp.answers || {})
+                });
+            }
+
+            const chosenProfileId = (resp.answers as any)[conjointQuestion.id];
+            
+            if (!chosenProfileId || typeof chosenProfileId !== 'string') {
+                skippedResponseCount++;
+                console.warn(`Response ${resp.id} has no valid answer for question ${conjointQuestion.id}`);
+                return;
+            }
+
+            // Find which choice set contains the chosen profile
+            let chosenSet = null;
+            for (const set of choiceSets) {
+                if (set.profiles.some((p: any) => p.id === chosenProfileId)) {
+                    chosenSet = set;
+                    break;
+                }
+            }
+
+            if (!chosenSet) {
+                // If we can't find the set, create a simple pairwise comparison
+                // between the chosen profile and another random profile
+                const chosenProfile = allProfiles.find((p: any) => p.id === chosenProfileId);
+                const otherProfiles = allProfiles.filter((p: any) => p.id !== chosenProfileId);
+                
+                if (chosenProfile && otherProfiles.length > 0) {
+                    // Pick a random alternative profile
+                    const alternativeProfile = otherProfiles[Math.floor(Math.random() * otherProfiles.length)];
+                    chosenSet = {
+                        setId: `resp_${resp.id}`,
+                        profiles: [chosenProfile, alternativeProfile]
+                    };
+                }
+            }
+
+            if (!chosenSet) {
+                skippedResponseCount++;
+                console.warn(`Could not create choice set for response ${resp.id}`);
+                return;
+            }
+
+            // Create data rows for this choice set
+            let hasValidChoices = false;
+            chosenSet.profiles.forEach((profile: any) => {
+                // Build attributes object from profile
+                const profileAttributes: any = {};
+                attributeCols.forEach(attrName => {
+                    profileAttributes[attrName] = profile[attrName];
+                });
+
+                const row: any = {
+                    respondent_id: resp.id,
+                    choice_set_id: `${resp.id}_${chosenSet.setId}`,
+                    profile_id: profile.id,
+                    ...profileAttributes,
+                    chosen: profile.id === chosenProfileId ? 1 : 0
+                };
+                
+                analysisData.push(row);
+                hasValidChoices = true;
+            });
+
+            if (hasValidChoices) {
+                processedResponseCount++;
+            }
         });
         
+        debug.processedResponseCount = processedResponseCount;
+        debug.skippedResponseCount = skippedResponseCount;
+        debug.analysisDataCount = analysisData.length;
+        debug.sampleAnalysisData = analysisData.slice(0, 10);
+        setDebugInfo(debug);
+
         if (analysisData.length === 0) {
-            setError('No valid choice data found in responses.');
+            setError(`No valid choice data found in responses. 
+                Processed: ${processedResponseCount}/${responses.length} responses. 
+                Skipped: ${skippedResponseCount} responses.
+                Check console for debug information.`);
+            console.error('Debug Information:', debug);
             setIsLoading(false);
             return;
         }
+
+        console.log('Analysis Data Summary:', {
+            totalRows: analysisData.length,
+            uniqueRespondents: new Set(analysisData.map(d => d.respondent_id)).size,
+            uniqueChoiceSets: new Set(analysisData.map(d => d.choice_set_id)).size,
+            chosenCount: analysisData.filter(d => d.chosen === 1).length,
+            notChosenCount: analysisData.filter(d => d.chosen === 0).length,
+            sampleData: analysisData.slice(0, 5)
+        });
 
         setIsLoading(true);
         setError(null);
@@ -169,6 +264,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         } catch (e: any) {
             setError(e.message);
             console.error('CBC error:', e);
+            console.error('Debug info:', debug);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
@@ -206,7 +302,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             <Card>
                 <CardContent className="p-6 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    <p className="mt-4 text-muted-foreground">Running Aggregate Logit estimation for CBC... This may take a moment.</p>
+                    <p className="mt-4 text-muted-foreground">Running Multinomial Logit estimation for CBC... This may take a moment.</p>
                 </CardContent>
             </Card>
         );
@@ -214,11 +310,31 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     
     if (error) {
          return (
-            <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="space-y-4">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+                
+                {debugInfo && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Debug Information</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+                                <pre className="text-xs">
+                                    {JSON.stringify(debugInfo, null, 2)}
+                                </pre>
+                            </ScrollArea>
+                            <p className="mt-4 text-sm text-muted-foreground">
+                                Check the browser console for more detailed information.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         );
     }
 
@@ -236,6 +352,31 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     
     return (
         <div className="space-y-4">
+            {/* Debug info display in development */}
+            {debugInfo && (
+                <Card className="mb-4">
+                    <CardHeader>
+                        <CardTitle className="text-sm">Data Processing Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <p className="text-muted-foreground">Total Responses</p>
+                                <p className="font-semibold">{debugInfo.responseCount}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">Processed</p>
+                                <p className="font-semibold">{debugInfo.processedResponseCount}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">Data Rows</p>
+                                <p className="font-semibold">{debugInfo.analysisDataCount}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <Tabs defaultValue="importance" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="importance"><PieIcon className="mr-2 h-4 w-4"/>Importance</TabsTrigger>
@@ -293,6 +434,9 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                             <div className="p-4 bg-muted rounded-lg">
                                 <p>McFadden's Pseudo R-squared</p>
                                 <p className="text-3xl font-bold">{results.regression.rSquared?.toFixed(4)}</p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Model Type: {results.regression.modelType || 'Multinomial Logit'}
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
