@@ -229,15 +229,17 @@ export default function RankingConjointQuestion({
         }
         
         setIsGenerating(true);
-            try {
-                const requestBody: any = {
-                    attributes,
-                    designType: 'ranking-conjoint',
-                    designMethod,
-                    allowPartialRanking,
-                    numTasks: question.sets,
-                    profilesPerTask: question.cardsPerSet,
-                };
+        try {
+            const requestBody: any = {
+                attributes,
+                designType: 'ranking-conjoint',
+                designMethod,
+                allowPartialRanking,
+            };
+
+            if (designMethod === 'fractional-factorial') {
+                requestBody.target_size = 20; // Generate up to 20 profiles
+            }
 
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
@@ -252,8 +254,11 @@ export default function RankingConjointQuestion({
             
             const result = await response.json();
 
-            if (result.tasks && Array.isArray(result.tasks)) {
+            if (result.tasks) {
                  onUpdate?.({ id: question.id, tasks: result.tasks });
+            } else if (result.profiles) {
+                // Handle full-factorial where it might return a single task in 'profiles'
+                 onUpdate?.({ id: question.id, tasks: [{ taskId: 'task_0', profiles: result.profiles }] });
             }
             
             setCurrentTask(0);
@@ -327,7 +332,7 @@ export default function RankingConjointQuestion({
                     )}
                 </div>
                 
-                {designMethod === 'fractional-factorial' && (
+                {designMethod === 'fractional-factorial' ? (
                     <div className="flex justify-between items-center mt-4">
                         <Button 
                             variant="outline"
@@ -347,8 +352,7 @@ export default function RankingConjointQuestion({
                             {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Task'}
                         </Button>
                     </div>
-                )}
-                 {designMethod === 'full-factorial' && (
+                ) : (
                      <div className="text-right mt-4">
                         <Button size="sm" onClick={handleNextTask}>
                             {isLastQuestion ? 'Submit' : 'Next'}
@@ -366,7 +370,7 @@ export default function RankingConjointQuestion({
                     question={question}
                     onUpdate={(d) => onUpdate?.({ id: question.id, ...d})}
                     onDelete={() => onDelete?.(question.id)}
-                    onImageUpload={() => {}}
+                    onImageUpload={() => onImageUpload?.(question.id)}
                     onDuplicate={() => onDuplicate?.(question.id)}
                     styles={styles}
                     questionNumber={questionNumber}

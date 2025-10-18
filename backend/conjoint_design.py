@@ -222,7 +222,7 @@ class RankingDesign(BaseConjointDesign):
         self.profiles_per_task = profiles_per_task
         self.allow_partial_ranking = allow_partial_ranking
 
-    def create_ranking_sets(self, design_method='fractional-factorial'):
+    def create_ranking_sets(self, design_method='fractional-factorial', target_size=None):
         if design_method == 'full-factorial':
             base_profiles = self.generate_full_factorial()
             return [{
@@ -232,7 +232,7 @@ class RankingDesign(BaseConjointDesign):
             }]
         
         else:
-            target_profile_count = self.num_tasks * self.profiles_per_task
+            target_profile_count = target_size if target_size else self.num_tasks * self.profiles_per_task
             base_profiles = self.generate_fractional_factorial(target_size=target_profile_count)
             
             tasks = []
@@ -271,9 +271,11 @@ class RatingDesign(BaseConjointDesign):
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            profiles = self.generate_fractional_factorial(target_size=target_size)
-        
-        print(f"Generated {len(profiles)} profiles for rating conjoint", file=sys.stderr)
+            # If fractional, use the target_size, otherwise generate all.
+            if target_size:
+                profiles = self.generate_fractional_factorial(target_size=target_size)
+            else:
+                profiles = self.generate_full_factorial()
         
         for i, profile in enumerate(profiles):
             profile['taskId'] = f"task_{i}"
@@ -297,7 +299,7 @@ def main():
         num_tasks = int(payload.get('numTasks', 8))
         profiles_per_task = int(payload.get('profilesPerTask', 3))
         
-        # Rating specific
+        # Rating/Ranking specific
         target_size = payload.get('target_size')
         rating_scale = payload.get('ratingScale', [1, 10])
 
@@ -313,7 +315,7 @@ def main():
             
         elif design_type == 'ranking-conjoint':
             ranking_designer = RankingDesign(attributes, num_tasks, profiles_per_task, payload.get('allowPartialRanking', False))
-            tasks = ranking_designer.create_ranking_sets(design_method)
+            tasks = ranking_designer.create_ranking_sets(design_method, target_size=target_size)
             result = {"type": "ranking", "tasks": tasks, "metadata": { "numTasks": len(tasks), "profilesPerTask": profiles_per_task, "allowPartialRanking": payload.get('allowPartialRanking', False) }}
             
         elif design_type == 'rating-conjoint':
