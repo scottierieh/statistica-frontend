@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { produce } from "immer";
 import { cn } from "@/lib/utils";
-import { PlusCircle, Trash2, Zap, X, Info } from "lucide-react";
+import { PlusCircle, Trash2, Zap, X, Info, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,21 +19,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const SortableCard = ({ id, profile, index, attributes }: { id: string, profile: any, index: number, attributes: any[] }) => {
-    const { attributes: dndAttributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const { attributes: dndAttributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
+        opacity: isDragging ? 0.5 : 1,
     };
     return (
-        <div ref={setNodeRef} style={style} {...dndAttributes} {...listeners} className="p-3 bg-white border shadow-sm rounded-lg flex items-center gap-3">
-             <span className="font-bold text-lg text-primary">#{index + 1}</span>
+        <div ref={setNodeRef} style={style} className={cn(
+            "p-3 bg-white border shadow-sm rounded-lg flex items-center gap-3",
+            isDragging && "shadow-lg cursor-grabbing"
+        )}>
+            <div {...dndAttributes} {...listeners} className="cursor-grab">
+                <GripVertical className="w-4 h-4 text-gray-400" />
+            </div>
+            <span className="font-bold text-lg text-primary">#{index + 1}</span>
             <div className="flex-1 text-xs">
                 {(attributes || []).map(attr => (
                     <div key={attr.id} className="flex justify-between">
                         <span className="text-muted-foreground">{attr.name}:</span>
-                        <span>{profile.attributes[attr.name]}</span>
+                        <span className="font-medium">{profile.attributes?.[attr.name] || '-'}</span>
                     </div>
                 ))}
             </div>
@@ -73,31 +82,98 @@ export default function RankingConjointQuestion({
     submitSurvey
 }: RankingConjointQuestionProps) {
     const { toast } = useToast();
-    const { attributes = [], profiles = [], sets = 1, designMethod = 'fractional-factorial' } = question;
+    const { 
+        attributes = [], 
+        profiles = [], 
+        sets = 5, 
+        cardsPerSet = 4,
+        designMethod = 'fractional-factorial',
+        allowPartialRanking = false,
+        tasks: questionTasks = []
+    } = question;
+    
     const [currentTask, setCurrentTask] = useState(0);
     const [designStats, setDesignStats] = useState<any>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const prevTaskRef = useRef(currentTask);
 
     const tasks = useMemo(() => {
-        const groupedProfiles: { [taskId: string]: any[] } = {};
-        (profiles || []).forEach(p => {
-            if (!groupedProfiles[p.taskId]) {
-                groupedProfiles[p.taskId] = [];
-            }
-            groupedProfiles[p.taskId].push(p);
-        });
-        return Object.values(groupedProfiles);
-    }, [profiles]);
+        if (questionTasks && Array.isArray(questionTasks) && questionTasks.length > 0) {
+            return questionTasks;
+        }
+        
+        if (profiles && profiles.length > 0) {
+            const groupedProfiles: { [taskId: string]: any[] } = {};
+            profiles.forEach(p => {
+                const taskId = p.taskId || 'task_0';
+                if (!groupedProfiles[taskId]) {
+                    groupedProfiles[taskId] = [];
+                }
+                groupedProfiles[taskId].push(p);
+            });
+            
+            const sortedTaskIds = Object.keys(groupedProfiles).sort((a, b) => {
+                const numA = parseInt(a.replace('task_', ''));
+                const numB = parseInt(b.replace('task_', ''));
+                return numA - numB;
+            });
+            
+            return sortedTaskIds.map(taskId => ({
+                taskId,
+                profiles: groupedProfiles[taskId],
+                allowPartialRanking
+            }));
+        }
+        
+        return [];
+    }, [questionTasks, profiles, allowPartialRanking]);
 
-    const currentTaskProfiles = tasks[currentTask] || [];
-    const currentTaskId = currentTaskProfiles[0]?.taskId;
+    const currentTaskData = tasks[currentTask] || { taskId: `task_${currentTask}`, profiles: [] };
+    const currentTaskProfiles = currentTaskData.profiles || [];
+    const currentTaskId = currentTaskData.taskId;
 
-    const [rankedItems, setRankedItems] = useState(currentTaskProfiles);
+    const [rankedItems, setRankedItems] = useState(() => currentTaskProfiles);
     
     useEffect(() => {
-        setRankedItems(tasks[currentTask] || []);
-    }, [currentTask, tasks]);
+        if (prevTaskRef.current !== currentTask) {
+            prevTaskRef.current = currentTask;
+            
+            const newTaskProfiles = tasks[currentTask]?.profiles || [];
+            
+            if (answer && answer[currentTaskId] && answer[currentTaskId].length > 0) {
+                const savedOrder = answer[currentTaskId];
+                const reorderedProfiles = [];
+                const profileMap = new Map(newTaskProfiles.map(p => [p.id, p]));
+                
+                savedOrder.forEach(id => {
+                    const profile = profileMap.get(id);
+                    if (profile) {
+                        reorderedProfiles.push(profile);
+                        profileMap.delete(id);
+                    }
+                });
+                
+                profileMap.forEach(profile => {
+                    reorderedProfiles.push(profile);
+                });
+                
+                setRankedItems(reorderedProfiles);
+            } else {
+                setRankedItems(newTaskProfiles);
+            }
+        }
+    }, [currentTask, currentTaskId, tasks, answer]);
     
-    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }), 
+        useSensor(KeyboardSensor, { 
+            coordinateGetter: sortableKeyboardCoordinates 
+        })
+    );
 
     const handleReorder = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -105,24 +181,37 @@ export default function RankingConjointQuestion({
             setRankedItems((items) => {
                 const oldIndex = items.findIndex(item => item.id === active.id);
                 const newIndex = items.findIndex(item => item.id === over.id);
+                
+                if (oldIndex === -1 || newIndex === -1) return items;
+                
                 const newOrder = arrayMove(items, oldIndex, newIndex);
-                // Update answer state after reordering is complete
+                
                 onAnswerChange?.(produce(answer || {}, (draft: any) => {
-                    if(!draft[currentTaskId]) draft[currentTaskId] = [];
                     draft[currentTaskId] = newOrder.map(item => item.id);
                 }));
+                
                 return newOrder;
             });
         }
     };
     
     const isLastTask = currentTask === tasks.length - 1;
+    const isTaskAnswered = answer?.[currentTaskId]?.length > 0;
 
     const handleNextTask = () => {
+        if (!allowPartialRanking && !isTaskAnswered) {
+            toast({
+                variant: "destructive",
+                title: "Please rank the items",
+                description: "You must rank all items before proceeding."
+            });
+            return;
+        }
+        
         if (!isLastTask) {
             setCurrentTask(currentTask + 1);
         } else {
-             if (isLastQuestion && submitSurvey) {
+            if (isLastQuestion && submitSurvey) {
                 submitSurvey();
             } else if(onNextTask) {
                 onNextTask();
@@ -130,27 +219,39 @@ export default function RankingConjointQuestion({
         }
     };
     
+    const handlePreviousTask = () => {
+        if (currentTask > 0) {
+            setCurrentTask(currentTask - 1);
+        }
+    };
+    
     const handleAttributeUpdate = (attrIndex: number, newName: string) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].name = newName;
+            if (draft && draft[attrIndex]) draft[attrIndex].name = newName;
         })});
     };
 
     const handleLevelUpdate = (attrIndex: number, levelIndex: number, newLevel: string) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].levels[levelIndex] = newLevel;
+            if (draft && draft[attrIndex]) draft[attrIndex].levels[levelIndex] = newLevel;
         })});
     };
     
     const addAttribute = () => {
         onUpdate?.({
-            attributes: [...attributes, { id: `attr-${Date.now()}`, name: `Attribute ${attributes.length + 1}`, levels: ['Level 1'] }]
+            attributes: [...attributes, { 
+                id: `attr-${Date.now()}`, 
+                name: `Attribute ${attributes.length + 1}`, 
+                levels: ['Level 1', 'Level 2'] 
+            }]
         });
     };
 
     const addLevel = (attrIndex: number) => {
         onUpdate?.({ attributes: produce(attributes, draft => {
-            if (draft) draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
+            if (draft && draft[attrIndex]) {
+                draft[attrIndex].levels.push(`Level ${draft[attrIndex].levels.length + 1}`);
+            }
         })});
     };
 
@@ -161,7 +262,7 @@ export default function RankingConjointQuestion({
     const removeLevel = (attrIndex: number, levelIndex: number) => {
         if (attributes[attrIndex].levels.length > 1) {
             onUpdate?.({ attributes: produce(attributes, draft => {
-                if (draft) draft[attrIndex].levels.splice(levelIndex, 1);
+                if (draft && draft[attrIndex]) draft[attrIndex].levels.splice(levelIndex, 1);
             })});
         }
     };
@@ -172,15 +273,27 @@ export default function RankingConjointQuestion({
     }, [attributes]);
     
     const generateProfiles = async () => {
+        if (attributes.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: "No Attributes",
+                description: "Please add at least one attribute before generating profiles."
+            });
+            return;
+        }
+        
+        setIsGenerating(true);
         try {
             const response = await fetch('/api/analysis/conjoint-design', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    designType: question.type, // Pass the correct type
-                    sets: sets || 5,
-                    cardsPerSet: question.cardsPerSet || 4,
+                    designType: 'ranking-conjoint',
+                    designMethod,
+                    numTasks: sets,
+                    profilesPerTask: cardsPerSet,
+                    allowPartialRanking,
                 }),
             });
             
@@ -190,12 +303,23 @@ export default function RankingConjointQuestion({
             }
             
             const result = await response.json();
-            onUpdate?.({ profiles: result.profiles });
+
+            if (result.tasks && Array.isArray(result.tasks)) {
+                onUpdate?.({ tasks: result.tasks });
+            } else if (result.profiles) {
+                onUpdate?.({ profiles: result.profiles });
+            }
             
-            setDesignStats(result.statistics);
+            if (result.metadata) {
+                setDesignStats(result.metadata);
+            }
+            
+            setCurrentTask(0);
+            onAnswerChange?.({});
+            
             toast({
                 title: "Profiles Generated",
-                description: `${result.profiles.length} profiles created.`
+                description: `${result.tasks?.length || sets} ranking tasks created successfully.`
             });
 
         } catch (e: any) {
@@ -204,34 +328,88 @@ export default function RankingConjointQuestion({
                 title: "Design Generation Failed",
                 description: e.message
             });
+        } finally {
+            setIsGenerating(false);
         }
     };
 
+    // Preview mode
     if (isPreview) {
-        if (tasks.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
+        if (tasks.length === 0) {
+            return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate profiles first.</div>;
+        }
     
         return (
-            <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                 <h3 className="text-base font-semibold mb-3">{question.title} (Set {currentTask + 1} of {tasks.length}) {question.required && <span className="text-destructive">*</span>}</h3>
-                 <p className="text-xs text-muted-foreground mb-3">Drag and drop the cards to rank them from your most preferred (top) to least preferred (bottom).</p>
-                 <div className="space-y-2">
-                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
-                        <SortableContext items={rankedItems.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                            {rankedItems.map((profile, index) => (
-                                <SortableCard key={profile.id} id={profile.id} profile={profile} index={index} attributes={question.attributes || []} />
-                            ))}
-                        </SortableContext>
-                     </DndContext>
-                 </div>
-                 <div className="text-right mt-4">
-                     <Button onClick={handleNextTask}>
-                        {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Set'}
+            <div className={cn("p-3 rounded-lg", styles.questionBackground === 'transparent' ? 'bg-transparent' : 'bg-background')} 
+                 style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-semibold">
+                        {question.title || `Q${questionNumber}: Ranking Task`}
+                        {question.required && <span className="text-destructive ml-1">*</span>}
+                    </h3>
+                    <Badge variant="secondary">
+                        Task {currentTask + 1} of {tasks.length}
+                    </Badge>
+                </div>
+                
+                {question.description && (
+                    <p className="text-xs text-muted-foreground mb-3">{question.description}</p>
+                )}
+                
+                <Alert className="mb-3">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                        Drag and drop to rank from most preferred (top) to least preferred (bottom).
+                        {allowPartialRanking && " You may rank only your top choices."}
+                    </AlertDescription>
+                </Alert>
+                
+                <div className="space-y-2">
+                    {rankedItems.length > 0 ? (
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
+                            <SortableContext items={rankedItems.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                                {rankedItems.map((profile, index) => (
+                                    <SortableCard 
+                                        key={profile.id} 
+                                        id={profile.id} 
+                                        profile={profile} 
+                                        index={index} 
+                                        attributes={question.attributes || []} 
+                                    />
+                                ))}
+                            </SortableContext>
+                        </DndContext>
+                    ) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                            No profiles in this task
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex justify-between items-center mt-4">
+                    <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousTask}
+                        disabled={currentTask === 0}
+                    >
+                        Previous
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                        {Object.keys(answer || {}).length} of {tasks.length} completed
+                    </span>
+                    <Button 
+                        size="sm"
+                        onClick={handleNextTask}
+                    >
+                        {isLastTask ? (isLastQuestion ? 'Submit' : 'Next') : 'Next Task'}
                     </Button>
                 </div>
             </div>
         );
     }
     
+    // Editor mode
     return (
         <Card className="bg-white">
             <CardContent className="p-6">
@@ -244,6 +422,7 @@ export default function RankingConjointQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
+                
                 <div className="mt-4 space-y-4">
                     <h4 className="font-semibold text-sm">Conjoint Attributes</h4>
                     {attributes.map((attr, attrIndex) => (
@@ -271,7 +450,7 @@ export default function RankingConjointQuestion({
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <Label htmlFor="designMethod">Design Method</Label>
-                            <Select value={designMethod} onValueChange={(value: any) => onUpdate?.({ designMethod: value })}>
+                            <Select value={designMethod} onValueChange={(value) => onUpdate?.({ designMethod: value as any })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="full-factorial">Full Factorial</SelectItem>
@@ -280,53 +459,81 @@ export default function RankingConjointQuestion({
                             </Select>
                         </div>
                         <div>
-                            <Label htmlFor="sets">Number of Sets (Tasks)</Label>
-                            <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" />
+                            <Label htmlFor="sets">Number of Tasks</Label>
+                            <Input id="sets" type="number" value={sets} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
                         </div>
-                         <div>
-                             <Label htmlFor="cardsPerSet">Profiles per Set</Label>
-                             <Input id="cardsPerSet" type="number" value={question.cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" />
+                        <div>
+                             <Label htmlFor="cardsPerSet">Profiles per Task</Label>
+                             <Input id="cardsPerSet" type="number" value={cardsPerSet} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
                         </div>
                         <div className="p-3 bg-muted rounded-md text-center">
                             <Label>Total Combinations</Label>
                             <p className="text-2xl font-bold">{totalCombinations}</p>
                         </div>
                     </div>
-                     <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertDescription className="text-xs">
-                           {designMethod === 'full-factorial' && `Full Factorial: All ${totalCombinations} possible combinations will be generated. Best for small designs.`}
-                           {designMethod === 'fractional-factorial' && `Fractional Factorial: Optimal subset using D-optimal algorithm. Balances statistical efficiency with practicality.`}
-                        </AlertDescription>
-                    </Alert>
-
-                     {designStats && (
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                           <Card className="p-2 bg-blue-50"><CardTitle className="text-sm">Generated</CardTitle><p className="font-bold text-blue-700 text-lg">{designStats.totalProfiles}</p></Card>
-                           <Card className="p-2 bg-green-50"><CardTitle className="text-sm">Balance</CardTitle><p className="font-bold text-green-700 text-lg">{designStats.balance}%</p></Card>
-                           <Card className="p-2 bg-purple-50"><CardTitle className="text-sm">Orthogonality</CardTitle><p className="font-bold text-purple-700 text-lg">{designStats.orthogonality}%</p></Card>
-                        </div>
-                    )}
-
+                    
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="partial"
+                            checked={allowPartialRanking || false}
+                            onCheckedChange={(checked) => onUpdate?.({ allowPartialRanking: !!checked })}
+                        />
+                        <Label htmlFor="partial" className="text-sm font-normal cursor-pointer">
+                            Allow partial ranking (respondents can rank only top choices)
+                        </Label>
+                    </div>
+                    
                     <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">Generated Profiles: {profiles.length}</p>
-                        <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0}><Zap className="mr-2 h-4 w-4"/>Generate Profiles</Button>
+                        <p className="text-sm text-muted-foreground">
+                            {tasks.length > 0 ? 
+                                <span className="text-green-600">✓ Generated: {tasks.length} tasks</span> : 
+                                'No tasks generated yet'}
+                        </p>
+                        <Button variant="secondary" size="sm" onClick={generateProfiles} disabled={attributes.length === 0 || isGenerating}>
+                            <Zap className="mr-2 h-4 w-4"/>
+                            {isGenerating ? 'Generating...' : 'Generate Tasks'}
+                        </Button>
                     </div>
 
-                    <ScrollArea className="h-48 border rounded-md p-2">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Profile ID</TableHead><TableHead>Task ID</TableHead>{attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}</TableRow></TableHeader>
-                            <TableBody>
-                                {(profiles || []).map(p => (
-                                    <TableRow key={p.id}>
-                                        <TableCell>{p.id}</TableCell>
-                                        <TableCell>{p.taskId}</TableCell>
-                                        {attributes.map(a => <TableCell key={a.id}>{p.attributes[a.name]}</TableCell>)}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
+                    {tasks.length > 0 && (
+                        <div>
+                            <h5 className="text-sm font-semibold mb-2">Generated Tasks Preview</h5>
+                            <ScrollArea className="h-64 border rounded-md p-2">
+                                <div className="space-y-4">
+                                    {tasks.map((task: any, taskIndex) => (
+                                        <Card key={task.taskId} className="p-3">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <Badge>Task {taskIndex + 1}</Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {task.profiles.length} profiles
+                                                </span>
+                                            </div>
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-20">#</TableHead>
+                                                        {attributes.map(a => <TableHead key={a.id}>{a.name}</TableHead>)}
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {task.profiles.map((p: any, pIndex: number) => (
+                                                        <TableRow key={p.id}>
+                                                            <TableCell>{pIndex + 1}</TableCell>
+                                                            {attributes.map(a => (
+                                                                <TableCell key={a.id}>
+                                                                    {p.attributes?.[a.name] || '-'}
+                                                                </TableCell>
+                                                            ))}
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
