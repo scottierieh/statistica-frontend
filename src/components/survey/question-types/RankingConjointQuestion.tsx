@@ -4,7 +4,7 @@ import { Question, ConjointAttribute } from "@/entities/Survey";
 import QuestionHeader from "../QuestionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { produce } from "immer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,7 @@ export default function RankingConjointQuestion({
     submitSurvey
 }: RankingConjointQuestionProps) {
     const { toast } = useToast();
+    
     const { 
         attributes = [], 
         profiles = [], 
@@ -138,34 +139,20 @@ export default function RankingConjointQuestion({
     const [rankedItems, setRankedItems] = useState(() => currentTaskProfiles);
     
     useEffect(() => {
-        if (prevTaskRef.current !== currentTask || tasks[currentTask]?.profiles !== rankedItems) {
-            prevTaskRef.current = currentTask;
-            
-            const newTaskProfiles = tasks[currentTask]?.profiles || [];
-            
-            if (answer && answer[currentTaskId] && answer[currentTaskId].length > 0) {
-                const savedOrder = answer[currentTaskId];
-                const reorderedProfiles = [];
-                const profileMap = new Map(newTaskProfiles.map(p => [p.id, p]));
-                
-                savedOrder.forEach(id => {
-                    const profile = profileMap.get(id);
-                    if (profile) {
-                        reorderedProfiles.push(profile);
-                        profileMap.delete(id);
-                    }
-                });
-                
-                profileMap.forEach(profile => {
-                    reorderedProfiles.push(profile);
-                });
-                
-                setRankedItems(reorderedProfiles);
-            } else {
-                setRankedItems(newTaskProfiles);
-            }
+        const newProfiles = tasks[currentTask]?.profiles || [];
+        if (answer && answer[currentTaskId]) {
+            const sortedProfiles = [...newProfiles].sort((a, b) => {
+                const indexA = answer[currentTaskId].indexOf(a.id);
+                const indexB = answer[currentTaskId].indexOf(b.id);
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            });
+            setRankedItems(sortedProfiles);
+        } else {
+            setRankedItems(newProfiles);
         }
-    }, [currentTask, currentTaskId, tasks, answer, rankedItems]);
+    }, [currentTask, tasks, answer, currentTaskId]);
     
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -182,18 +169,18 @@ export default function RankingConjointQuestion({
         const { active, over } = event;
         if (over && active.id !== over.id) {
             setRankedItems((items) => {
-                  const oldIndex = items.findIndex(item => item.id === active.id);
-                  const newIndex = items.findIndex(item => item.id === over.id);
-                  
-                  if (oldIndex === -1 || newIndex === -1) return items;
-                  
-                  const newOrder = arrayMove(items, oldIndex, newIndex);
-                  
-                  onAnswerChange?.(produce(answer || {}, (draft: any) => {
-                      draft[currentTaskId] = newOrder.map(item => item.id);
-                  }));
-                  
-                  return newOrder;
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                
+                if (oldIndex === -1 || newIndex === -1) return items;
+                
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+                
+                onAnswerChange?.(produce(answer || {}, (draft: any) => {
+                    draft[currentTaskId] = newOrder.map(item => item.id);
+                }));
+                
+                return newOrder;
             });
         }
     };
@@ -292,7 +279,7 @@ export default function RankingConjointQuestion({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     attributes,
-                    designType: 'ranking',
+                    designType: 'ranking-conjoint',
                     numTasks,
                     profilesPerTask,
                     allowPartialRanking,
@@ -308,6 +295,9 @@ export default function RankingConjointQuestion({
 
             if (result.tasks && Array.isArray(result.tasks)) {
                  onUpdate?.({ tasks: result.tasks });
+            } else if (result.profiles) {
+                // Handle full factorial case
+                onUpdate?.({ tasks: [{ taskId: 'task_0', profiles: result.profiles, allowPartialRanking }] });
             }
             
             if (result.metadata) {
@@ -319,7 +309,7 @@ export default function RankingConjointQuestion({
             
             toast({
                 title: "Profiles Generated",
-                description: `${result.tasks?.length || numTasks} ranking tasks created successfully.`
+                description: `${result.tasks?.length || 1} ranking task(s) created successfully.`
             });
 
         } catch (e: any) {
@@ -333,7 +323,6 @@ export default function RankingConjointQuestion({
         }
     };
 
-    // Preview mode
     if (isPreview) {
         if (tasks.length === 0) return <div className="p-3 text-sm text-muted-foreground">No ranking tasks generated yet. Please generate profiles first.</div>;
     
@@ -470,8 +459,8 @@ export default function RankingConjointQuestion({
                                     <Input id="sets" type="number" value={numTasks} onChange={e => onUpdate?.({ sets: parseInt(e.target.value) || 1 })} min="1" max="20" />
                                 </div>
                                 <div>
-                                    <Label htmlFor="cardsPerSet">Profiles per Task</Label>
-                                    <Input id="cardsPerSet" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
+                                    <Label htmlFor="profilesPerTask">Profiles per Task</Label>
+                                    <Input id="profilesPerTask" type="number" value={profilesPerTask} onChange={e => onUpdate?.({ cardsPerSet: parseInt(e.target.value) || 1 })} min="2" max="8" />
                                 </div>
                             </>
                         )}
