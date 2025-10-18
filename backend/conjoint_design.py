@@ -39,10 +39,25 @@ class BaseConjointDesign:
         full_design_dicts = self.generate_full_factorial()
         
         if not target_size:
+            # 전체 조합 수
+            total_combinations = len(full_design_dicts)
+            
+            # 각 속성의 수준 수 합계
             total_levels = sum(len(attr['levels']) for attr in self.attributes)
+            
+            # 최소 필요 프로파일 수 (main effects 추정을 위한 최소값)
             min_profiles = total_levels - len(self.attributes) + 1
-            # Default to a reasonable number if not specified
-            target_size = min(len(full_design_dicts), max(min_profiles, 16))
+            
+            # Fractional factorial의 경우 전체의 1/2 ~ 2/3 정도를 사용
+            if total_combinations <= 9:
+                target_size = total_combinations  # 작으면 전체 사용
+            elif total_combinations <= 27:
+                target_size = max(min_profiles, total_combinations // 2)  # 절반 사용
+            else:
+                target_size = min(total_combinations, max(min_profiles, 16))
+        
+        # 디버깅을 위한 로그 (선택사항)
+        print(f"Debug: Total combinations: {len(full_design_dicts)}, Target size: {target_size}", file=sys.stderr)
 
         if len(full_design_dicts) <= target_size:
             return full_design_dicts
@@ -55,7 +70,7 @@ class BaseConjointDesign:
         
         # Return the selected profiles as dicts
         return [full_design_dicts[i] for i in selected_indices]
-    
+
     def _select_orthogonal_subset(self, design_df, target_size):
         """
         Selects a subset of profiles that maximizes orthogonality and balance.
@@ -291,19 +306,7 @@ class RatingDesign(BaseConjointDesign):
         if design_method == 'full-factorial':
             profiles = self.generate_full_factorial()
         else:
-            # For rating conjoint, we want more profiles for better analysis
-            # Use a target size that's meaningful but not full factorial
-            full_size = 1
-            for attr in self.attributes:
-                full_size *= len(attr['levels'])
-            
-            if self.target_profiles:
-                target_size = self.target_profiles
-            else:
-                # Default: Use about 1/2 to 2/3 of full factorial, with minimum of 8 and max of 20
-                target_size = max(8, min(full_size, 20)) # Changed to min(full_size, 20)
-            
-            profiles = self.generate_fractional_factorial(target_size=target_size)
+            profiles = self.generate_fractional_factorial(target_size=self.target_profiles)
         
         for i, profile in enumerate(profiles):
             profile['taskId'] = f"task_{i}"
@@ -366,6 +369,7 @@ def main():
         elif design_type == 'rating-conjoint':
             rating_designer = RatingDesign(attributes, rating_scale[0], rating_scale[1], target_profiles)
             profiles = rating_designer.create_rating_profiles(design_method)
+            print(f"Generated {len(profiles)} profiles for rating conjoint", file=sys.stderr)
             result = {
                 "type": "rating",
                 "profiles": profiles,
