@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, SkipLogic, Survey } from "@/entities/Survey";
@@ -162,7 +161,7 @@ export default function SingleSelectionQuestion({
                         styles={styles}
                         questionNumber={questionNumber}
                     />
-                    <LogicEditor question={question} survey={survey} onUpdate={onUpdate!} onCancel={() => setIsLogicEditorOpen(false)} />
+                    {isLogicEditorOpen && <LogicEditor question={question} survey={survey} onUpdate={onUpdate!} onCancel={() => setIsLogicEditorOpen(false)} />}
                 </Dialog>
                  <div className="mt-4 space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
