@@ -167,11 +167,15 @@ export default function QuestionList({ survey, setSurvey, onImageUpload, onDupli
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-    const handleUpdateQuestion = (updatedQuestion: Partial<Question>) => {
+    const handleUpdateQuestion = (updatedData: Partial<Question>) => {
+      if (!updatedData.id) return;
       setSurvey(produce((draft: Survey) => {
-        const questionIndex = draft.questions.findIndex(q => q.id === updatedQuestion.id);
+        const questionIndex = draft.questions.findIndex(q => q.id === updatedData.id);
         if (questionIndex !== -1) {
-          draft.questions[questionIndex] = { ...draft.questions[questionIndex], ...updatedQuestion };
+          draft.questions[questionIndex] = { 
+            ...draft.questions[questionIndex], 
+            ...updatedData 
+          };
         }
       }));
     };
