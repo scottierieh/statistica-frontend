@@ -132,7 +132,6 @@ import HistoryPage from './pages/history-page';
 import html2canvas from 'html2canvas';
 import PanelDataRegressionPage from './pages/panel-data-regression-page';
 import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
-import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import GeographicallyWeightedRegressionPage from './pages/geographically-weighted-regression-page';

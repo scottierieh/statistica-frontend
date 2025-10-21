@@ -15,7 +15,6 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import Image from 'next/image';
 
 interface RegressionResult {
     model: string;
@@ -33,10 +32,8 @@ interface RegressionResult {
 }
 
 interface HausmanResult {
-    test: string;
     statistic: number | null;
     p_value: number | null;
-    dof: number;
     interpretation: string;
 }
 
@@ -71,7 +68,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Panel data allows you to control for variables you cannot observe or measure, like cultural factors in countries or individual business practices. It accounts for both individual heterogeneity and changes over time, providing more robust and accurate estimates than simple cross-sectional or time-series regressions.
                         </p>
                     </div>
-                     <div className="flex justify-center">
+                    <div className="flex justify-center">
                         {panelExample && (
                              <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
                                 <panelExample.icon className="mx-auto h-8 w-8 text-primary"/>
@@ -110,7 +107,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-
 export default function PanelDataRegressionPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: { data: DataSet; allHeaders: string[]; numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (e: any) => void }) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
@@ -133,24 +129,15 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     const availableTimeCols = useMemo(() => allHeaders.filter(h => h !== entityCol), [allHeaders, entityCol]);
 
     useEffect(() => {
-        if (canRun) {
-            const potentialDmu = categoricalHeaders.find(h => new Set(data.map(row => row[h])).size > 1);
-            setEntityCol(potentialDmu || categoricalHeaders[0]);
+        const potentialDmu = categoricalHeaders.find(h => new Set(data.map(row => row[h])).size > 1);
+        setEntityCol(potentialDmu || categoricalHeaders[0]);
+        setTimeCol(allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time')) || allHeaders.find(h => h !== potentialDmu));
 
-            const potentialTime = allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time')) || allHeaders.find(h => h !== potentialDmu);
-            setTimeCol(potentialTime);
-
-            const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
-            setYCol(potentialY || numericHeaders[0]);
-            
-            const excludedForX = new Set([potentialDmu, potentialTime, potentialY]);
-            setXCols(numericHeaders.filter(h => !excludedForX.has(h)).slice(0, 3));
-            
-            setView('main');
-        } else {
-            setView('intro');
-        }
+        const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
+        setYCol(potentialY || numericHeaders[0]);
+        setXCols(numericHeaders.filter(h => h !== (potentialY || numericHeaders[0])).slice(0, 3));
         setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
     }, [data, allHeaders, numericHeaders, categoricalHeaders, canRun]);
 
 
@@ -204,9 +191,9 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                             <TableRow key={name}>
                                 <TableCell>{name}</TableCell>
                                 <TableCell>{result.coefficients[i]?.toFixed(4)}</TableCell>
-                                <TableCell>{result.std_errors?.[i]?.toFixed(4) ?? 'N/A'}</TableCell>
-                                <TableCell>{result.t_statistics?.[i]?.toFixed(3) ?? 'N/A'}</TableCell>
-                                <TableCell>{result.p_values?.[i] < 0.001 ? '<.001' : result.p_values?.[i]?.toFixed(3) ?? 'N/A'}</TableCell>
+                                <TableCell>{result.std_errors[i]?.toFixed(4)}</TableCell>
+                                <TableCell>{result.t_statistics[i]?.toFixed(3)}</TableCell>
+                                <TableCell>{result.p_values[i] < 0.001 ? '<.001' : result.p_values[i]?.toFixed(3)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -234,12 +221,12 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                         <CardTitle className="font-headline">Panel Data Regression Setup</CardTitle>
+                        <CardTitle className="font-headline">Panel Data Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid md:grid-cols-4 gap-4">
                         <div>
                             <Label>Entity</Label>
                             <Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
@@ -252,7 +239,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                             <Label>Dependent (Y)</Label>
                             <Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
                         </div>
-                         <div>
+                        <div>
                             <Label>Independent (X)</Label>
                             <ScrollArea className="h-24 border rounded-md p-2">
                                {availableFeatures.map(h => (
@@ -277,11 +264,11 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                     <Card>
                         <CardHeader><CardTitle>Hausman Test</CardTitle></CardHeader>
                         <CardContent>
-                            <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
-                                {hausman_test?.p_value !== null && hausman_test.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                            <Alert variant={hausman_test?.p_value && hausman_test.p_value < 0.05 ? 'default' : 'secondary'}>
+                                {hausman_test?.p_value && hausman_test.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                                 <AlertTitle>Model Recommendation: {hausman_test?.interpretation}</AlertTitle>
                                 <AlertDescription>
-                                    p-value: {hausman_test?.p_value !== null ? hausman_test?.p_value?.toFixed(4) : 'N/A'}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate as unobserved individual effects are likely correlated with the predictors.
+                                    p-value: {hausman_test?.p_value?.toFixed(4)}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate as unobserved individual effects are likely correlated with the predictors.
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
@@ -291,7 +278,8 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                         {fixed_effects && !fixed_effects.error && renderResultTable(fixed_effects)}
                         {random_effects && (random_effects.error ? <Card><CardHeader><CardTitle>Random Effects</CardTitle></CardHeader><CardContent><p className='text-destructive'>{random_effects.error}</p></CardContent></Card> : renderResultTable(random_effects))}
                     </div>
-                     {analysisResult.plot && (
+                    
+                    {analysisResult.plot && (
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -303,11 +291,9 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Image 
+                                <img 
                                     src={`data:image/png;base64,${analysisResult.plot}`}
                                     alt="Panel Data Regression Results Visualization"
-                                    width={1800}
-                                    height={1200}
                                     className="w-full rounded-lg shadow-md"
                                 />
                             </CardContent>
@@ -318,3 +304,4 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
         </div>
     );
 }
+

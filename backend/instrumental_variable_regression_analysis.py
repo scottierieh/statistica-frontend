@@ -115,6 +115,70 @@ class IVRegression:
                 'p_values': [np.nan] * len(self.var_names),
                 'variable_names': self.var_names,
             }
+    
+    def generate_plot(self, ols_results, tsls_results) -> str:
+        """
+        Generate comparison plot and return as base64 encoded string
+        """
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import io
+            import base64
+            
+            fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+            
+            # Plot 1: Coefficient Comparison
+            ax1 = axes[0]
+            x_pos = np.arange(len(self.var_names))
+            width = 0.35
+            
+            ols_coefs = ols_results['coefficients']
+            tsls_coefs = tsls_results['coefficients']
+            
+            ax1.bar(x_pos - width/2, ols_coefs, width, label='OLS (Naive)', alpha=0.8)
+            ax1.bar(x_pos + width/2, tsls_coefs, width, label='2SLS (IV)', alpha=0.8)
+            
+            ax1.set_xlabel('Variables', fontsize=11, fontweight='bold')
+            ax1.set_ylabel('Coefficient', fontsize=11, fontweight='bold')
+            ax1.set_title('Coefficient Comparison: OLS vs 2SLS', fontsize=12, fontweight='bold')
+            ax1.set_xticks(x_pos)
+            ax1.set_xticklabels(self.var_names, rotation=45, ha='right')
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+            ax1.axhline(y=0, color='k', linestyle='-', linewidth=0.5)
+            
+            # Plot 2: Standard Errors Comparison
+            ax2 = axes[1]
+            ols_se = ols_results['std_errors']
+            tsls_se = tsls_results['std_errors']
+            
+            ax2.bar(x_pos - width/2, ols_se, width, label='OLS', alpha=0.8)
+            ax2.bar(x_pos + width/2, tsls_se, width, label='2SLS', alpha=0.8)
+            
+            ax2.set_xlabel('Variables', fontsize=11, fontweight='bold')
+            ax2.set_ylabel('Standard Error', fontsize=11, fontweight='bold')
+            ax2.set_title('Standard Error Comparison', fontsize=12, fontweight='bold')
+            ax2.set_xticks(x_pos)
+            ax2.set_xticklabels(self.var_names, rotation=45, ha='right')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3, axis='y')
+            
+            plt.tight_layout()
+            
+            # Convert to base64
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+            plt.close()
+            
+            return image_base64
+        except Exception as e:
+            import sys
+            print(f"Plot generation failed: {str(e)}", file=sys.stderr)
+            return None
 
 def _to_native_type(obj):
     if isinstance(obj, np.ndarray): return obj.tolist()
@@ -136,9 +200,13 @@ def main():
         ols_results = iv_analyzer.ols()
         tsls_results = iv_analyzer.tsls()
         
+        # Generate plot
+        plot_base64 = iv_analyzer.generate_plot(ols_results, tsls_results)
+        
         response = {
-            "ols_results": ols_results,
-            "tsls_results": tsls_results,
+            "ols": ols_results,
+            "tsls": tsls_results,
+            "plot": plot_base64
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -149,6 +217,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
