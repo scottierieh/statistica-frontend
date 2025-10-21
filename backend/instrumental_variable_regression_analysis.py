@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import warnings
+from typing import Dict
 
 warnings.filterwarnings('ignore')
 
@@ -61,8 +62,10 @@ class IVRegression:
         
         return {
             'model': 'OLS (Naive)',
-            'coefficients': beta, 'std_errors': se,
-            't_statistics': t_stats, 'p_values': p_values,
+            'coefficients': beta.tolist() if isinstance(beta, np.ndarray) else beta,
+            'std_errors': se.tolist() if isinstance(se, np.ndarray) else se,
+            't_statistics': t_stats.tolist() if isinstance(t_stats, np.ndarray) else t_stats,
+            'p_values': p_values.tolist() if isinstance(p_values, np.ndarray) else p_values,
             'variable_names': self.var_names,
         }
 
@@ -70,31 +73,48 @@ class IVRegression:
         Z = self.Z_const
         X = self.X_const
 
-        # Stage 1: Project X onto Z
-        P_Z = Z @ np.linalg.inv(Z.T @ Z) @ Z.T
-        X_hat = P_Z @ X
-        
-        # Stage 2: Regress y on X_hat
-        beta = np.linalg.inv(X_hat.T @ X) @ X_hat.T @ self.y
-        
-        y_pred = X @ beta
-        residuals = self.y - y_pred
-        sse = np.sum(residuals ** 2)
-        dof = self.n_obs - self.k
-        sigma2 = sse / dof
-        
-        var_beta = sigma2 * np.linalg.inv(X_hat.T @ X_hat)
-        se_beta = np.sqrt(np.diag(var_beta)).reshape(-1, 1)
-        
-        t_stats = beta / se_beta
-        p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), dof))
-        
-        return {
-            'model': '2SLS',
-            'coefficients': beta.flatten(), 'std_errors': se_beta.flatten(),
-            't_statistics': t_stats.flatten(), 'p_values': p_values.flatten(),
-            'variable_names': self.var_names,
-        }
+        try:
+            # Stage 1: Project X onto Z
+            P_Z = Z @ np.linalg.inv(Z.T @ Z) @ Z.T
+            X_hat = P_Z @ X
+            
+            # Stage 2: Regress y on X_hat
+            beta = np.linalg.inv(X_hat.T @ X) @ X_hat.T @ self.y
+            
+            y_pred = X @ beta
+            residuals = self.y - y_pred
+            sse = np.sum(residuals ** 2)
+            dof = self.n_obs - self.k
+            
+            if dof <= 0:
+                raise ValueError("Insufficient degrees of freedom for 2SLS estimation.")
+            
+            sigma2 = sse / dof
+            
+            var_beta = sigma2 * np.linalg.inv(X_hat.T @ X_hat)
+            se_beta = np.sqrt(np.diag(var_beta)).reshape(-1, 1)
+            
+            t_stats = beta / se_beta
+            p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), dof))
+            
+            return {
+                'model': '2SLS',
+                'coefficients': beta.flatten().tolist(),
+                'std_errors': se_beta.flatten().tolist(),
+                't_statistics': t_stats.flatten().tolist(),
+                'p_values': p_values.flatten().tolist(),
+                'variable_names': self.var_names,
+            }
+        except (np.linalg.LinAlgError, ValueError) as e:
+            return {
+                'model': '2SLS',
+                'error': str(e),
+                'coefficients': [np.nan] * len(self.var_names),
+                'std_errors': [np.nan] * len(self.var_names),
+                't_statistics': [np.nan] * len(self.var_names),
+                'p_values': [np.nan] * len(self.var_names),
+                'variable_names': self.var_names,
+            }
 
 def _to_native_type(obj):
     if isinstance(obj, np.ndarray): return obj.tolist()
@@ -129,3 +149,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
