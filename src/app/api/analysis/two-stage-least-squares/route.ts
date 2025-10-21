@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
-    const scriptPath = path.resolve(process.cwd(), 'backend', 'two_stage_least_squares_analysis.py');
+    const scriptPath = path.resolve(process.cwd(), 'backend', 'instrumental_variable_regression_analysis.py');
 
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
     
