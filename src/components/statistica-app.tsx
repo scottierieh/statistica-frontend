@@ -271,7 +271,7 @@ const analysisCategories = [
         { id: 'instrumental-variable-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
         { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares (2SLS)', icon: Repeat, component: TwoStageLeastSquaresPage },
         { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
-        { id: 'spatial-error-model', label: 'Spatial Error Model (SEM)', icon: Map, component: SpatialErrorModelPage },
+        { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
         { id: 'geographically-weighted-regression', label: 'Geographically Weighted Regression', icon: Map, component: GeographicallyWeightedRegressionPage },
         { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
       ],
