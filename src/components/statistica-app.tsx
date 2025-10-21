@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -164,7 +163,7 @@ const analysisCategories = [
             name: 'ANOVA',
             items: [
                 { id: 'one-way-anova', label: 'One-Way ANOVA', icon: Users, component: AnovaPage },
-                { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Copy, component: TwoWayAnovaPage },
+                { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Users, component: TwoWayAnovaPage },
                 { id: 'ancova', label: 'ANCOVA', icon: Layers, component: AncovaPage },
                 { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
                 { id: 'repeated-measures-anova', label: 'Repeated Measures ANOVA', icon: Repeat, component: RepeatedMeasuresAnovaPage },
@@ -180,7 +179,7 @@ const analysisCategories = [
         { id: 'regression-simple', label: 'Simple Linear Regression', icon: TrendingUp, component: RegressionPage },
         { id: 'regression-multiple', label: 'Multiple Linear Regression', icon: TrendingUp, component: RegressionPage },
         { id: 'regression-polynomial', label: 'Polynomial Regression', icon: TrendingUp, component: RegressionPage },
-        { id: 'logistic-regression', label: 'Logistic Regression', icon: Binary, component: LogisticRegressionPage },
+        { id: 'logistic-regression', label: 'Logistic Regression', icon: TrendingUp, component: LogisticRegressionPage },
         { id: 'crosstab', label: 'Crosstab & Chi-Squared', icon: Columns, component: CrosstabPage },
       ]
     },
@@ -239,7 +238,7 @@ const analysisCategories = [
         ]
     },
     {
-      name: 'Unstructured Data',
+      name: 'Text Analysis',
       icon: FileText,
       items: [
         { id: 'sentiment', label: 'Sentiment Analysis', icon: Smile, component: SentimentAnalysisPage },
@@ -268,7 +267,7 @@ const analysisCategories = [
       icon: Sigma,
       items: [
         { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
-        { id: 'iv-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
+        { id: 'instrumental-variable-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
         { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares (2SLS)', icon: Repeat, component: TwoStageLeastSquaresPage },
         { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
         { id: 'spatial-error-model', label: 'Spatial Error Model (SEM)', icon: Map, component: SpatialErrorModelPage },
