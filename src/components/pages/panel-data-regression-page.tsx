@@ -1,5 +1,5 @@
-'use client';
 
+'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -67,17 +67,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Panel data allows you to control for variables you cannot observe or measure, like cultural factors in countries or individual business practices. It accounts for both individual heterogeneity and changes over time, providing more robust and accurate estimates than simple cross-sectional or time-series regressions.
                         </p>
                     </div>
-                     <div className="flex justify-center">
-                        {panelExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
+                    {panelExample && (
+                        <div className="flex justify-center">
+                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
                                 <panelExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{panelExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{panelExample.description}</p>
                                 </div>
                             </Card>
-                        )}
-                    </div>
+                        </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>

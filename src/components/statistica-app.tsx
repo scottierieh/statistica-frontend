@@ -215,8 +215,8 @@ const analysisCategories = [
         name: 'Clustering',
         icon: Users,
         items: [
-            { id: 'kmeans', label: 'K-Means', icon: Binary, component: KMeansPage },
-            { id: 'kmedoids', label: 'K-Medoids', icon: Binary, component: KMedoidsPage },
+            { id: 'kmeans', label: 'K-Means', icon: ScanSearch, component: KMeansPage },
+            { id: 'kmedoids', label: 'K-Medoids', icon: ScanSearch, component: KMedoidsPage },
             { id: 'hca', label: 'Hierarchical (HCA)', icon: GitBranch, component: HcaPage },
             { id: 'dbscan', label: 'DBSCAN', icon: ScanSearch, component: DbscanPage },
             { id: 'hdbscan', label: 'HDBSCAN', icon: ScanSearch, component: HdbscanPage },
