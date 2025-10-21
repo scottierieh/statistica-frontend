@@ -137,8 +137,8 @@ def main():
         tsls_results = iv_analyzer.tsls()
         
         response = {
-            "ols": ols_results,
-            "tsls": tsls_results,
+            "ols_results": ols_results,
+            "tsls_results": tsls_results,
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -149,5 +149,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
