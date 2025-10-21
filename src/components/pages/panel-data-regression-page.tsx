@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, BarChart as BarChartIcon } from 'lucide-react';
+import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -67,17 +67,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Panel data allows you to control for variables you cannot observe or measure, like cultural factors in countries or individual business practices. It accounts for both individual heterogeneity and changes over time, providing more robust and accurate estimates than simple cross-sectional or time-series regressions.
                         </p>
                     </div>
-                    {panelExample && (
-                        <div className="flex justify-center">
-                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
+                     <div className="flex justify-center">
+                        {panelExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
                                 <panelExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{panelExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{panelExample.description}</p>
                                 </div>
                             </Card>
-                        </div>
-                    )}
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -106,6 +106,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
+
 interface PanelDataRegressionPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -126,7 +127,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2 && categoricalHeaders.length >= 1, [data, numericHeaders, categoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2 && allHeaders.length - numericHeaders.length >= 1, [data, numericHeaders, allHeaders]);
     
     const availableFeatures = useMemo(() => {
         const excluded = new Set([entityCol, timeCol, yCol]);
@@ -134,8 +135,10 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     }, [numericHeaders, entityCol, timeCol, yCol]);
 
     useEffect(() => {
-        setEntityCol(categoricalHeaders.find(h => h.toLowerCase().includes('country') || h.toLowerCase().includes('id')));
-        setTimeCol(allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time')));
+        const potentialDmu = allHeaders.find(h => !numericHeaders.includes(h) && new Set(data.map(row => row[h])).size > 1);
+        setEntityCol(potentialDmu || allHeaders.find(h => !numericHeaders.includes(h)));
+        setTimeCol(allHeaders.find(h => !numericHeaders.includes(h) && h !== potentialDmu));
+
         const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
         setYCol(potentialY || numericHeaders[0]);
         setXCols(numericHeaders.filter(h => h !== (potentialY || numericHeaders[0])).slice(0, 3));
@@ -206,7 +209,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             </Card>
         )
     };
-
+    
     if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -224,8 +227,8 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-4 gap-4">
-                        <div><Label>Entity</Label><Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label>Time</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Entity</Label><Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h => !numericHeaders.includes(h)).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Time</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h => !numericHeaders.includes(h) && h !== entityCol).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div><Label>Dependent (Y)</Label><Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
                             <Label>Independent (X)</Label>
@@ -240,7 +243,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !entityCol || !timeCol || !yCol || xCols.length === 0}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
