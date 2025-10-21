@@ -1,155 +1,194 @@
 'use client';
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Loader2, DollarSign, AlertTriangle, Award, Lightbulb, Target, TrendingUp, TrendingDown, Zap, Brain } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Target, Download, Copy, Check, Info, Lightbulb } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid, Bar, BarChart, Cell, Area, ComposedChart } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ReferenceLine, Area, AreaChart } from 'recharts';
 
-interface GaborGrangerResults {
+interface Results {
     optimal_revenue_price: number;
-    optimal_profit_price?: number;
     max_revenue: number;
-    max_profit?: number;
-    demand_curve: { price: number; likelihood: number; revenue: number; profit?: number }[];
+    optimal_profit_price: number | null;
+    max_profit: number | null;
     cliff_price: number;
+    cliff_drop: number;
     acceptable_range: [number, number] | null;
-    price_elasticity: { price_from: number, price_to: number, elasticity: number }[];
+    price_elasticity: Array<{
+        price_from: number;
+        price_to: number;
+        elasticity: number;
+        interpretation: string;
+    }>;
+    confidence_intervals: Array<{
+        price: number;
+        mean: number;
+        ci_lower: number;
+        ci_upper: number;
+        sample_size: number;
+    }>;
+    chart_data: Array<{
+        price: number;
+        likelihood: number;
+        revenue: number;
+        profit?: number;
+    }>;
+    recommendations: Array<{
+        strategy: string;
+        price: number;
+        rationale: string;
+        priority: number;
+    }>;
     interpretation: string;
+    total_respondents: number;
+    price_range: {
+        min: number;
+        max: number;
+        mean: number;
+    };
+    price_points_tested: number;
+    unit_cost?: number;
 }
 
-interface FullAnalysisResponse {
-    results: GaborGrangerResults;
-    error?: string;
-}
-
-interface GaborGrangerPageProps {
+interface Props {
     survey: Survey;
     responses: SurveyResponse[];
 }
 
-export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGrangerPageProps) {
+export default function GaborGrangerPage({ survey, responses }: Props) {
     const { toast } = useToast();
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [results, setResults] = useState<Results | null>(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [unitCost, setUnitCost] = useState<number | undefined>();
+    const [copied, setCopied] = useState(false);
 
-    const handleAnalysis = useCallback(async (cost?: number) => {
-        if (!survey || !responses || responses.length === 0) {
-            setError("No response data available for this survey.");
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
+    const handleAnalysis = useCallback(async () => {
+        setLoading(true);
         setError(null);
-        if (cost === undefined) {
-            setAnalysisResult(null);
-        }
-
-        const gaborGrangerQuestions = survey.questions.filter(q => 
-            q.type === 'single' && 
-            q.title.toLowerCase().includes('if this product was sold for')
-        );
-
-        if (gaborGrangerQuestions.length === 0) {
-            setError("No Gabor-Granger style questions found in the survey. Questions should include 'if this product was sold for' in the title.");
-            setIsLoading(false);
-            return;
-        }
-
-        const analysisData: { respondent_id: string; price: number; purchase_intent: number }[] = [];
-        
-        responses.forEach(resp => {
-            gaborGrangerQuestions.forEach(q => {
-                const answer = (resp.answers as any)[q.id];
-                const priceMatch = q.title.match(/\$?([\d,]+)/);
-                
-                if (answer && priceMatch) {
-                    const priceValue = Number(priceMatch[1].replace(/,/g, ''));
-                    const intentValue = answer === 'Yes, I would buy' ? 1 : 0;
-                    
-                    analysisData.push({
-                        respondent_id: resp.id,
-                        price: priceValue,
-                        purchase_intent: intentValue,
-                    });
-                }
-            });
-        });
-
-        if (analysisData.length === 0) {
-            setError("Could not extract valid data for Gabor-Granger analysis from responses. Please ensure questions have prices in format '$XXX' and answers include 'Yes, I would buy'.");
-            setIsLoading(false);
-            return;
-        }
-
         try {
+            if (!survey || !responses || responses.length === 0) {
+                throw new Error("No survey data or responses");
+            }
+
+            const priceQuestion = survey.questions.find(q => 
+                q.title.toLowerCase().includes('price') || q.title.toLowerCase().includes('cost')
+            );
+            const intentQuestion = survey.questions.find(q => 
+                q.title.toLowerCase().includes('purchase') || q.title.toLowerCase().includes('buy')
+            );
+
+            if (!priceQuestion || !intentQuestion) {
+                throw new Error("Missing required questions (price and purchase intent).");
+            }
+
+            const data = responses.map(resp => {
+                const answers = resp.answers as any;
+                return {
+                    [priceQuestion.id]: answers[priceQuestion.id],
+                    [intentQuestion.id]: answers[intentQuestion.id]
+                };
+            });
+
+            // Get unit cost if available (from survey metadata or a specific question)
+            const unitCost = survey.metadata?.unit_cost || null;
+
             const response = await fetch('/api/analysis/gabor-granger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    data: analysisData,
-                    price_col: 'price',
-                    purchase_intent_col: 'purchase_intent',
-                    unit_cost: cost
+                    data,
+                    price_col: priceQuestion.id,
+                    purchase_intent_col: intentQuestion.id,
+                    unit_cost: unitCost
                 })
             });
 
             if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                const errData = await response.json();
+                throw new Error(errData.error || 'API error');
             }
 
-            const result: FullAnalysisResponse = await response.json();
-            if (result.error) throw new Error(result.error);
-
-            setAnalysisResult(result);
-            if (cost !== undefined) {
-                toast({ title: 'Analysis Updated', description: 'Profit calculations have been added.' });
-            } else {
-                toast({ title: 'Analysis Complete', description: 'Gabor-Granger analysis finished.' });
-            }
-        } catch (e: any) {
-            setError(e.message);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+            const apiData = await response.json();
+            if (apiData.error) throw new Error(apiData.error);
+            setResults(apiData.results);
+        } catch (err: any) {
+            setError(err.message);
+            toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     }, [survey, responses, toast]);
-    
+
     useEffect(() => {
         handleAnalysis();
     }, [handleAnalysis]);
-    
-    const handleUnitCostAnalysis = () => {
-        handleAnalysis(unitCost);
-    };
 
-    const chartData = useMemo(() => {
-        if (!analysisResult?.results.demand_curve) return [];
-        return analysisResult.results.demand_curve.map(d => ({
-            ...d,
-            likelihood_pct: d.likelihood * 100
-        }));
-    }, [analysisResult]);
+    const exportToCSV = useCallback(() => {
+        if (!results) return;
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Gabor-Granger Analysis Results\\n\\n";
+        
+        csvContent += "Key Metrics\\n";
+        csvContent += "Metric,Value\\n";
+        csvContent += `Optimal Revenue Price,$${results.optimal_revenue_price.toFixed(2)}\\n`;
+        csvContent += `Max Revenue,$${results.max_revenue.toFixed(2)}\\n`;
+        if (results.optimal_profit_price) {
+            csvContent += `Optimal Profit Price,$${results.optimal_profit_price.toFixed(2)}\\n`;
+            csvContent += `Max Profit,$${results.max_profit?.toFixed(2)}\\n`;
+        }
+        csvContent += `Demand Cliff Price,$${results.cliff_price.toFixed(2)}\\n`;
+        csvContent += `Total Respondents,${results.total_respondents}\\n\\n`;
+        
+        csvContent += "Demand Curve\\n";
+        csvContent += "Price,Likelihood (%),Revenue" + (results.chart_data[0]?.profit !== undefined ? ",Profit" : "") + "\\n";
+        results.chart_data.forEach(point => {
+            csvContent += `$${point.price.toFixed(2)},${point.likelihood.toFixed(2)},${point.revenue.toFixed(2)}`;
+            if (point.profit !== undefined) {
+                csvContent += `,${point.profit.toFixed(2)}`;
+            }
+            csvContent += "\\n";
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `gabor_granger_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({ title: "Success", description: "CSV file downloaded successfully" });
+    }, [results, toast]);
 
-    const elasticityData = useMemo(() => {
-        if (!analysisResult?.results.price_elasticity) return [];
-        return analysisResult.results.price_elasticity.map(e => ({
-            ...e,
-            range: `$${e.price_from}-${e.price_to}`
-        }));
-    }, [analysisResult]);
+    const copyToClipboard = useCallback(() => {
+        if (!results) return;
+        
+        const text = `GABOR-GRANGER ANALYSIS RESULTS
 
-    if (isLoading && !analysisResult) {
+OPTIMAL PRICING:
+- Revenue-Optimal Price: $${results.optimal_revenue_price.toFixed(2)}
+${results.optimal_profit_price ? `- Profit-Optimal Price: $${results.optimal_profit_price.toFixed(2)}` : ''}
+- Demand Cliff: $${results.cliff_price.toFixed(2)}
+${results.acceptable_range ? `- Acceptable Range: $${results.acceptable_range[0].toFixed(2)} - $${results.acceptable_range[1].toFixed(2)}` : ''}
+
+SAMPLE INFO:
+- Total Respondents: ${results.total_respondents}
+- Price Points Tested: ${results.price_points_tested}
+- Price Range: $${results.price_range.min.toFixed(2)} - $${results.price_range.max.toFixed(2)}
+`;
+        
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast({ title: "Copied!", description: "Results copied to clipboard" });
+    }, [results, toast]);
+
+    if (loading) {
         return (
             <Card>
                 <CardContent className="p-6 text-center">
@@ -170,426 +209,390 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         );
     }
 
-    if (!analysisResult) {
+    if (!results) {
         return (
-            <Card className="shadow-lg">
-                <CardContent className="p-12 text-center text-muted-foreground">
-                    <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">No analysis results to display.</p>
-                </CardContent>
-            </Card>
+            <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>No Data</AlertTitle>
+                <AlertDescription>No analysis results available.</AlertDescription>
+            </Alert>
         );
     }
-
-    const { results } = analysisResult;
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <Card className="shadow-lg border-2 border-indigo-200">
                 <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
-                    <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                        <DollarSign className="h-8 w-8 text-indigo-600" />
-                        Gabor-Granger Price Sensitivity Analysis
-                    </CardTitle>
-                    <CardDescription className="text-base mt-2">
-                        Demand Curve & Optimal Pricing Strategy • {responses.length} Respondents
-                    </CardDescription>
-                </CardHeader>
-            </Card>
-
-            {/* Unit Cost Configuration */}
-            <Card className="shadow-lg border-2 border-blue-200">
-                <CardHeader className="bg-gradient-to-br from-blue-50 to-blue-100">
-                    <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5 text-blue-600" />
-                        Analysis Configuration
-                    </CardTitle>
-                    <CardDescription>Add unit cost to calculate profit-optimal pricing</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    <div className="flex items-end gap-4">
-                        <div className="flex-1 max-w-xs">
-                            <Label htmlFor="unit-cost" className="text-sm font-semibold">Unit Cost (Optional)</Label>
-                            <Input 
-                                id="unit-cost"
-                                type="number"
-                                placeholder="Enter cost per unit"
-                                value={unitCost === undefined ? '' : unitCost}
-                                onChange={e => setUnitCost(e.target.value === '' ? undefined : Number(e.target.value))}
-                                className="mt-1"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Provide unit cost to see profit maximization analysis
-                            </p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                                <DollarSign className="h-8 w-8 text-indigo-600" />
+                                Gabor-Granger Price Analysis
+                            </CardTitle>
+                            <CardDescription className="text-base mt-2">
+                                Optimal Pricing Strategy • {results.total_respondents} Respondents • {results.price_points_tested} Price Points
+                            </CardDescription>
                         </div>
-                        <Button 
-                            onClick={handleUnitCostAnalysis} 
-                            disabled={isLoading}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                    Recalculating...
-                                </>
-                            ) : (
-                                <>Recalculate with Cost</>
-                            )}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                <span className="ml-2">Copy</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={exportToCSV}>
+                                <Download className="h-4 w-4" />
+                                <span className="ml-2">Export CSV</span>
+                            </Button>
+                        </div>
                     </div>
-                </CardContent>
+                </CardHeader>
             </Card>
 
-            {/* Key Metrics */}
+            {/* Summary Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="border-2 border-green-200 shadow-lg">
+                <Card className="border-2 border-green-200 hover:shadow-xl transition-all duration-300">
                     <CardContent className="pt-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Award className="h-5 w-5 text-green-600" />
-                            <span className="text-sm font-semibold text-gray-600">Optimal Price</span>
-                        </div>
-                        <p className="text-4xl font-bold text-green-600">
-                            ${results.optimal_revenue_price.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Revenue Maximization</p>
-                    </CardContent>
-                </Card>
-                
-                <Card className="border-2 border-blue-200 shadow-lg">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <TrendingUp className="h-5 w-5 text-blue-600" />
-                            <span className="text-sm font-semibold text-gray-600">Max Revenue</span>
-                        </div>
-                        <p className="text-4xl font-bold text-blue-600">
-                            {results.max_revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Revenue Index</p>
-                    </CardContent>
-                </Card>
-                
-                {results.optimal_profit_price && (
-                    <Card className="border-2 border-purple-200 shadow-lg">
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Award className="h-5 w-5 text-purple-600" />
-                                <span className="text-sm font-semibold text-gray-600">Optimal Price (Profit)</span>
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                                <TrendingUp className="h-6 w-6 text-green-600" />
+                                <Badge variant="default" className="bg-green-600">Revenue</Badge>
                             </div>
-                            <p className="text-4xl font-bold text-purple-600">
-                                ${results.optimal_profit_price.toLocaleString()}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Profit Maximization</p>
-                        </CardContent>
-                    </Card>
-                )}
-                
-                {results.max_profit !== undefined && (
-                    <Card className="border-2 border-amber-200 shadow-lg">
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3 mb-2">
-                                <TrendingUp className="h-5 w-5 text-amber-600" />
-                                <span className="text-sm font-semibold text-gray-600">Max Profit</span>
-                            </div>
-                            <p className="text-4xl font-bold text-amber-600">
-                                {results.max_profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Profit Index</p>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-
-            {/* Optimal Price Strategies */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="shadow-lg border-2 border-green-200">
-                    <CardHeader className="bg-gradient-to-br from-green-50 to-green-100">
-                        <CardTitle className="flex items-center gap-2 text-green-700">
-                            <Award className="h-5 w-5" />
-                            Revenue Maximization
-                        </CardTitle>
-                        <CardDescription>Maximizes total revenue</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <p className="text-3xl font-bold text-green-600">
-                            ${results.optimal_revenue_price.toLocaleString()}
-                        </p>
-                        <div className="mt-3 p-2 bg-muted rounded">
-                            <p className="text-xs text-gray-600">Revenue Index</p>
-                            <p className="text-lg font-bold">
-                                {results.max_revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </p>
+                            <p className="text-sm text-gray-600 mb-1">Optimal Price</p>
+                            <p className="text-3xl font-bold text-green-700">${results.optimal_revenue_price.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 mt-1">Max Revenue: ${results.max_revenue.toFixed(2)}</p>
                         </div>
                     </CardContent>
                 </Card>
 
                 {results.optimal_profit_price && (
-                    <Card className="shadow-lg border-2 border-purple-200">
-                        <CardHeader className="bg-gradient-to-br from-purple-50 to-purple-100">
-                            <CardTitle className="flex items-center gap-2 text-purple-700">
-                                <Award className="h-5 w-5" />
-                                Profit Maximization
-                            </CardTitle>
-                            <CardDescription>Maximizes profit margin</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <p className="text-3xl font-bold text-purple-600">
-                                ${results.optimal_profit_price.toLocaleString()}
-                            </p>
-                            <div className="mt-3 p-2 bg-muted rounded">
-                                <p className="text-xs text-gray-600">Profit Index</p>
-                                <p className="text-lg font-bold">
-                                    {results.max_profit?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || 'N/A'}
-                                </p>
+                    <Card className="border-2 border-blue-200 hover:shadow-xl transition-all duration-300">
+                        <CardContent className="pt-6">
+                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Target className="h-6 w-6 text-blue-600" />
+                                    <Badge className="bg-blue-600">Profit</Badge>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-1">Optimal Price</p>
+                                <p className="text-3xl font-bold text-blue-700">${results.optimal_profit_price.toFixed(2)}</p>
+                                <p className="text-xs text-gray-500 mt-1">Max Profit: ${results.max_profit?.toFixed(2)}</p>
                             </div>
                         </CardContent>
                     </Card>
                 )}
 
-                {results.acceptable_range && (
-                    <Card className="shadow-lg border-2 border-blue-200">
-                        <CardHeader className="bg-gradient-to-br from-blue-50 to-blue-100">
-                            <CardTitle className="flex items-center gap-2 text-blue-700">
-                                <Target className="h-5 w-5" />
-                                Acceptable Range
-                            </CardTitle>
-                            <CardDescription>Price range with good demand</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <p className="text-2xl font-bold text-blue-600">
-                                ${results.acceptable_range[0]} - ${results.acceptable_range[1]}
-                            </p>
-                            <div className="mt-3 p-2 bg-muted rounded">
-                                <p className="text-xs text-gray-600">Price Sensitivity Zone</p>
-                                <p className="text-sm font-medium">Balanced acceptance</p>
+                <Card className="border-2 border-red-200 hover:shadow-xl transition-all duration-300">
+                    <CardContent className="pt-6">
+                        <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                                <TrendingDown className="h-6 w-6 text-red-600" />
+                                <Badge variant="destructive">Cliff</Badge>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-
-            {/* AI Interpretation */}
-            {results.interpretation && (
-                <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Brain className="h-5 w-5 text-indigo-600" />
-                            AI-Generated Strategic Insights
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Alert className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-                            <Lightbulb className="h-4 w-4 text-indigo-600" />
-                            <AlertTitle className="text-indigo-900 text-lg">Strategic Pricing Insights</AlertTitle>
-                            <AlertDescription className="text-indigo-700 mt-2">
-                                <div 
-                                    className="whitespace-pre-wrap"
-                                    dangerouslySetInnerHTML={{ 
-                                        __html: results.interpretation
-                                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                            .replace(/\n\n/g, '<br/><br/>')
-                                            .replace(/\n/g, '<br/>')
-                                    }}
-                                />
-                            </AlertDescription>
-                        </Alert>
+                            <p className="text-sm text-gray-600 mb-1">Demand Cliff</p>
+                            <p className="text-3xl font-bold text-red-700">${results.cliff_price.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 mt-1">Drop: {(results.cliff_drop * 100).toFixed(1)}%</p>
+                        </div>
                     </CardContent>
                 </Card>
-            )}
+
+                <Card className="border-2 border-purple-200 hover:shadow-xl transition-all duration-300">
+                    <CardContent className="pt-6">
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                                <Info className="h-6 w-6 text-purple-600" />
+                                <Badge className="bg-purple-600">Range</Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-1">Price Range</p>
+                            <p className="text-2xl font-bold text-purple-700">
+                                ${results.price_range.min.toFixed(2)} - ${results.price_range.max.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">Mean: ${results.price_range.mean.toFixed(2)}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Key Insights */}
+            <Alert className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+                <Lightbulb className="h-4 w-4 text-indigo-600" />
+                <AlertTitle className="text-indigo-900 text-lg">Strategic Insights</AlertTitle>
+                <AlertDescription className="text-indigo-700 mt-2 whitespace-pre-line">
+                    {results.interpretation}
+                </AlertDescription>
+            </Alert>
 
             {/* Demand Curve Chart */}
             <Card className="shadow-lg">
-                <CardHeader>
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
                     <CardTitle className="flex items-center gap-2">
-                        <TrendingDown className="h-5 w-5 text-indigo-600" />
-                        Demand, Revenue & Profit Curves
+                        <TrendingDown className="h-5 w-5 text-purple-600" />
+                        Demand Curve
                     </CardTitle>
-                    <CardDescription>
-                        Relationship between price and purchase likelihood
-                    </CardDescription>
+                    <CardDescription>Purchase likelihood across different price points</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     <ResponsiveContainer width="100%" height={400}>
-                        <ComposedChart data={chartData}>
+                        <LineChart data={results.chart_data}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis 
                                 dataKey="price" 
-                                tickFormatter={(value) => `$${value}`}
-                                label={{ value: 'Price Point', position: 'bottom', offset: -5 }}
+                                tickFormatter={(value) => `$${value.toFixed(2)}`}
+                                label={{ value: 'Price', position: 'insideBottom', offset: -5 }}
                             />
                             <YAxis 
-                                yAxisId="left"
                                 label={{ value: 'Purchase Likelihood (%)', angle: -90, position: 'insideLeft' }}
                             />
-                            <YAxis 
-                                yAxisId="right" 
-                                orientation="right"
-                                label={{ value: 'Revenue / Profit Index', angle: 90, position: 'insideRight' }}
+                            <Tooltip 
+                                formatter={(value: any, name: string) => {
+                                    if (name === 'likelihood') return `${value.toFixed(2)}%`;
+                                    return value.toFixed(2);
+                                }}
+                                labelFormatter={(label) => `Price: $${label.toFixed(2)}`}
                             />
-                            <Tooltip />
                             <Legend />
-                            <Area
-                                yAxisId="right"
-                                type="monotone"
-                                dataKey="revenue"
-                                fill="#8b5cf6"
-                                fillOpacity={0.2}
-                                stroke="none"
-                                name="Revenue"
-                            />
-                            <Line
-                                yAxisId="left"
-                                type="monotone"
-                                dataKey="likelihood_pct"
-                                stroke="#3b82f6"
+                            <Line 
+                                type="monotone" 
+                                dataKey="likelihood" 
+                                stroke="#8b5cf6" 
                                 strokeWidth={3}
                                 name="Purchase Likelihood (%)"
-                                dot={{ r: 6 }}
+                                dot={{ r: 4 }}
+                                activeDot={{ r: 6 }}
                             />
-                            <Line
-                                yAxisId="right"
-                                type="monotone"
-                                dataKey="revenue"
-                                stroke="#ef4444"
-                                strokeWidth={3}
-                                name="Revenue Index"
-                                dot={{ r: 6 }}
+                            <ReferenceLine 
+                                x={results.optimal_revenue_price} 
+                                stroke="#10b981" 
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                label={{ value: `Revenue Optimal $${results.optimal_revenue_price.toFixed(2)}`, fill: '#10b981', position: 'top' }}
                             />
-                            {chartData.some(d => d.profit !== undefined) && (
-                                <Line
-                                    yAxisId="right"
-                                    type="monotone"
-                                    dataKey="profit"
-                                    stroke="#8b5cf6"
-                                    strokeWidth={3}
-                                    name="Profit Index"
-                                    dot={{ r: 6 }}
+                            {results.optimal_profit_price && (
+                                <ReferenceLine 
+                                    x={results.optimal_profit_price} 
+                                    stroke="#3b82f6" 
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    label={{ value: `Profit Optimal $${results.optimal_profit_price.toFixed(2)}`, fill: '#3b82f6', position: 'top' }}
                                 />
                             )}
-                        </ComposedChart>
+                            <ReferenceLine 
+                                x={results.cliff_price} 
+                                stroke="#ef4444" 
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                label={{ value: `Cliff $${results.cliff_price.toFixed(2)}`, fill: '#ef4444', position: 'bottom' }}
+                            />
+                        </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
 
-            {/* Data Tables */}
+            {/* Revenue & Profit Curves */}
             <div className="grid md:grid-cols-2 gap-6">
-                {/* Demand Curve Table */}
+                {/* Revenue Chart */}
                 <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle>Detailed Price Point Analysis</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <table className="w-full">
-                            <thead>
-                                <tr className="bg-muted/50 border-b">
-                                    <th className="text-left p-3 font-bold">Price</th>
-                                    <th className="text-right p-3 font-bold">Likelihood</th>
-                                    <th className="text-right p-3 font-bold">Revenue</th>
-                                    {chartData.some(r => r.profit !== undefined) && (
-                                        <th className="text-right p-3 font-bold">Profit</th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {results.demand_curve.map((row) => (
-                                    <tr key={row.price} className="border-b hover:bg-muted/30">
-                                        <td className="p-3 font-bold">${row.price.toLocaleString()}</td>
-                                        <td className="text-right p-3 font-mono text-blue-600">
-                                            {(row.likelihood * 100).toFixed(1)}%
-                                        </td>
-                                        <td className="text-right p-3 font-mono text-red-600">
-                                            {row.revenue.toFixed(2)}
-                                        </td>
-                                        {row.profit !== undefined && (
-                                            <td className="text-right p-3 font-mono text-purple-600">
-                                                {row.profit.toFixed(2)}
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </CardContent>
-                </Card>
-
-                {/* Elasticity */}
-                <Card className="shadow-lg">
-                    <CardHeader>
+                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
                         <CardTitle className="flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-amber-600" />
-                            Price Elasticity by Range
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                            Revenue Curve
                         </CardTitle>
-                        <CardDescription>Sensitivity to price changes</CardDescription>
+                        <CardDescription>Expected revenue at each price point</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={elasticityData} layout="vertical">
+                            <AreaChart data={results.chart_data}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis dataKey="range" type="category" width={100} />
-                                <Tooltip />
-                                <Bar dataKey="elasticity">
-                                    {elasticityData.map((entry, index) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={
-                                                Math.abs(entry.elasticity) > 2
-                                                    ? '#ef4444'
-                                                    : Math.abs(entry.elasticity) > 1
-                                                    ? '#f59e0b'
-                                                    : '#10b981'
-                                            }
-                                        />
-                                    ))}
-                                </Bar>
-                            </BarChart>
+                                <XAxis 
+                                    dataKey="price" 
+                                    tickFormatter={(value) => `$${value.toFixed(2)}`}
+                                />
+                                <YAxis />
+                                <Tooltip 
+                                    formatter={(value: any) => value.toFixed(2)}
+                                    labelFormatter={(label) => `Price: $${label.toFixed(2)}`}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="revenue" 
+                                    stroke="#10b981" 
+                                    fill="#10b981"
+                                    fillOpacity={0.3}
+                                    strokeWidth={2}
+                                />
+                                <ReferenceLine 
+                                    x={results.optimal_revenue_price} 
+                                    stroke="#10b981" 
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    label={{ value: `Max $${results.optimal_revenue_price.toFixed(2)}`, fill: '#10b981' }}
+                                />
+                            </AreaChart>
                         </ResponsiveContainer>
-
-                        <div className="mt-4">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="bg-muted/50 border-b">
-                                        <th className="text-left p-2 font-bold text-sm">Price Range</th>
-                                        <th className="text-right p-2 font-bold text-sm">Elasticity</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {elasticityData.map((item, index) => (
-                                        <tr key={index} className="border-b hover:bg-muted/30">
-                                            <td className="p-2 text-sm">{item.range}</td>
-                                            <td className="text-right p-2 font-mono text-sm font-bold">
-                                                {item.elasticity.toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
                     </CardContent>
                 </Card>
+
+                {/* Profit Chart */}
+                {results.chart_data[0]?.profit !== undefined && (
+                    <Card className="shadow-lg">
+                        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
+                            <CardTitle className="flex items-center gap-2">
+                                <Target className="h-5 w-5 text-blue-600" />
+                                Profit Curve
+                            </CardTitle>
+                            <CardDescription>Expected profit at each price point</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <AreaChart data={results.chart_data}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis 
+                                        dataKey="price" 
+                                        tickFormatter={(value) => `$${value.toFixed(2)}`}
+                                    />
+                                    <YAxis />
+                                    <Tooltip 
+                                        formatter={(value: any) => value.toFixed(2)}
+                                        labelFormatter={(label) => `Price: $${label.toFixed(2)}`}
+                                    />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="profit" 
+                                        stroke="#3b82f6" 
+                                        fill="#3b82f6"
+                                        fillOpacity={0.3}
+                                        strokeWidth={2}
+                                    />
+                                    {results.optimal_profit_price && (
+                                        <ReferenceLine 
+                                            x={results.optimal_profit_price} 
+                                            stroke="#3b82f6" 
+                                            strokeWidth={2}
+                                            strokeDasharray="5 5"
+                                            label={{ value: `Max $${results.optimal_profit_price.toFixed(2)}`, fill: '#3b82f6' }}
+                                        />
+                                    )}
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
-            {/* Final Recommendation */}
-            <Alert className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg">
-                <Award className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-900 text-xl">Recommended Pricing Strategy</AlertTitle>
-                <AlertDescription className="text-green-700 mt-3 space-y-2">
-                    <p>
-                        <strong>Optimal Price Point:</strong> ${results.optimal_revenue_price.toLocaleString()} 
-                        for revenue maximization
-                        {results.optimal_profit_price && ` or $${results.optimal_profit_price.toLocaleString()} for profit maximization`}
-                    </p>
-                    {results.acceptable_range && (
-                        <p>
-                            <strong>Acceptable Range:</strong> ${results.acceptable_range[0]} - ${results.acceptable_range[1]} 
-                            maintains good purchase intent
-                        </p>
-                    )}
-                    <p>
-                        <strong>Action:</strong> Test pricing within the recommended range and monitor customer response closely
-                    </p>
-                </AlertDescription>
-            </Alert>
+            {/* Price Elasticity */}
+            <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingDown className="h-5 w-5 text-amber-600" />
+                        Price Elasticity
+                    </CardTitle>
+                    <CardDescription>How demand responds to price changes</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Price Range</TableHead>
+                                    <TableHead className="text-right">Elasticity</TableHead>
+                                    <TableHead>Interpretation</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.price_elasticity.map((item, idx) => (
+                                    <TableRow key={idx}>
+                                        <TableCell className="font-medium">
+                                            ${item.price_from.toFixed(2)} → ${item.price_to.toFixed(2)}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {item.elasticity.toFixed(2)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge 
+                                                variant={item.interpretation === 'Elastic' ? 'destructive' : 'default'}
+                                            >
+                                                {item.interpretation}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Price Recommendations */}
+            <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50">
+                    <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="h-5 w-5 text-violet-600" />
+                        Price Recommendations
+                    </CardTitle>
+                    <CardDescription>Strategic pricing options ranked by priority</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="space-y-3">
+                        {results.recommendations.sort((a, b) => a.priority - b.priority).map((rec, idx) => (
+                            <Card key={idx} className="border-2 border-violet-200 bg-violet-50">
+                                <CardContent className="pt-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Badge variant="default" className="bg-violet-600">
+                                                    Priority {rec.priority}
+                                                </Badge>
+                                                <span className="font-bold text-lg">{rec.strategy}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-700">{rec.rationale}</p>
+                                        </div>
+                                        <div className="text-right ml-4">
+                                            <p className="text-3xl font-bold text-violet-700">${rec.price.toFixed(2)}</p>
+                                            <p className="text-xs text-gray-500">Recommended Price</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Demand Data Table */}
+            <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
+                    <CardTitle>Detailed Demand Data</CardTitle>
+                    <CardDescription>Complete data for all tested price points</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Price</TableHead>
+                                    <TableHead className="text-right">Likelihood (%)</TableHead>
+                                    <TableHead className="text-right">Revenue</TableHead>
+                                    {results.chart_data[0]?.profit !== undefined && (
+                                        <TableHead className="text-right">Profit</TableHead>
+                                    )}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.chart_data.map((point, idx) => (
+                                    <TableRow key={idx}>
+                                        <TableCell className="font-medium">${point.price.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{point.likelihood.toFixed(2)}%</TableCell>
+                                        <TableCell className="text-right">${point.revenue.toFixed(2)}</TableCell>
+                                        {point.profit !== undefined && (
+                                            <TableCell className="text-right">${point.profit.toFixed(2)}</TableCell>
+                                        )}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
+
+

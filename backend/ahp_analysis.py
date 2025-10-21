@@ -3,8 +3,6 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 class NumpyEncoder(json.JSONEncoder):
     """Custom JSON encoder for NumPy types"""
@@ -183,6 +181,35 @@ def geometric_mean_of_matrices(matrices):
                 
     return geo_mean_matrix
 
+def generate_interpretation(results, criteria_names, alternatives):
+    """Generate interpretation text for AHP results."""
+    interp = "The AHP analysis provides insights into decision-making priorities.\n\n"
+    
+    if 'weights' in results:
+        weights = results['weights']
+        sorted_criteria = sorted(weights.items(), key=lambda x: x[1], reverse=True)
+        top_criterion = sorted_criteria[0]
+        
+        interp += f"**Criteria Priorities:**\n"
+        interp += f"The most important criterion is **{top_criterion[0]}** with a weight of **{top_criterion[1]*100:.1f}%**.\n"
+        
+        if len(sorted_criteria) > 1:
+            second_criterion = sorted_criteria[1]
+            interp += f"The second most important is **{second_criterion[0]}** ({second_criterion[1]*100:.1f}%).\n"
+    
+    if 'consistency' in results and results['consistency']:
+        consistency = results['consistency']
+        interp += f"\n**Consistency:**\n"
+        interp += f"The Consistency Ratio is **{consistency['CR']*100:.1f}%**, which is "
+        interp += "acceptable (below 10%).\n" if consistency['is_consistent'] else "too high (above 10%), suggesting inconsistent judgments.\n"
+    
+    if alternatives and 'final_scores' in results and results['final_scores']:
+        top_alt = results['final_scores'][0]
+        interp += f"\n**Recommended Alternative:**\n"
+        interp += f"Based on the analysis, **{top_alt['name']}** is the best choice with a score of **{top_alt['score']*100:.1f}%**.\n"
+    
+    return interp.strip()
+
 def process_hierarchy_level(level_nodes, matrices_by_respondent, alternatives, all_criteria_names):
     """
     Recursively process a level of the hierarchy.
@@ -274,6 +301,21 @@ def main():
         # Perform hierarchical analysis
         full_results = process_hierarchy_level(criteria_nodes, matrices_by_respondent, alternatives, all_criteria_names)
 
+        # Add metadata
+        total_respondents = 0
+        if matrices_by_respondent:
+            total_respondents = max(len(matrices) for matrices in matrices_by_respondent.values() if matrices)
+        
+        full_results['metadata'] = {
+            'total_respondents': total_respondents,
+            'criteria_count': len(all_criteria_names),
+            'alternatives_count': len(alternatives) if alternatives else 0,
+            'has_alternatives': has_alternatives
+        }
+        
+        # Add interpretation
+        full_results['interpretation'] = generate_interpretation(full_results, all_criteria_names, alternatives)
+
         response = {"results": full_results}
         
         # Output JSON with custom encoder
@@ -306,3 +348,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

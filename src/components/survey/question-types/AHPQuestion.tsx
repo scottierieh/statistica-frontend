@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Question, Criterion } from "@/entities/Survey";
@@ -8,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { produce } from "immer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Trash2, PlusCircle } from "lucide-react";
 
 interface AHPQuestionProps {
     question: Question;
@@ -101,6 +105,27 @@ export default function AHPQuestion({
             draft[matrixKey][pairKey] = value;
         }));
     };
+    
+    // --- Editor-specific handlers ---
+    const handleCriterionChange = (index: number, value: string) => {
+        onUpdate?.({ criteria: produce(question.criteria, draft => { if(draft) draft[index].name = value; }) });
+    }
+    const addCriterion = () => {
+        onUpdate?.({ criteria: [...(question.criteria || []), { id: `c-${Date.now()}`, name: `Criterion ${question.criteria?.length || 0 + 1}` }] });
+    }
+    const removeCriterion = (index: number) => {
+        onUpdate?.({ criteria: (question.criteria || []).filter((_, i) => i !== index) });
+    }
+
+    const handleAlternativeChange = (index: number, value: string) => {
+        onUpdate?.({ alternatives: produce(question.alternatives, draft => { if(draft) draft[index] = value; }) });
+    }
+    const addAlternative = () => {
+        onUpdate?.({ alternatives: [...(question.alternatives || []), `Alternative ${(question.alternatives?.length || 0) + 1}`] });
+    }
+    const removeAlternative = (index: number) => {
+        onUpdate?.({ alternatives: (question.alternatives || []).filter((_, i) => i !== index) });
+    }
 
     if (isPreview) {
         return (
@@ -174,7 +199,30 @@ export default function AHPQuestion({
                     styles={styles}
                     questionNumber={questionNumber}
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div className="space-y-2">
+                        <Label>Criteria</Label>
+                        {(question.criteria || []).map((criterion, index) => (
+                            <div key={criterion.id} className="flex items-center gap-2">
+                                <Input value={criterion.name} onChange={e => handleCriterionChange(index, e.target.value)} />
+                                <Button variant="ghost" size="icon" onClick={() => removeCriterion(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                            </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addCriterion}><PlusCircle className="mr-2"/>Add Criterion</Button>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Alternatives</Label>
+                        {(question.alternatives || []).map((alt, index) => (
+                             <div key={index} className="flex items-center gap-2">
+                                <Input value={alt} onChange={e => handleAlternativeChange(index, e.target.value)} />
+                                <Button variant="ghost" size="icon" onClick={() => removeAlternative(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                            </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addAlternative}><PlusCircle className="mr-2"/>Add Alternative</Button>
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
 }
+

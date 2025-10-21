@@ -133,8 +133,8 @@ import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
 import HistoryPage from './pages/history-page';
-import BrandFunnelPage from './pages/brand-funnel-page';
 import html2canvas from 'html2canvas';
+import PanelDataRegressionPage from './pages/panel-data-regression-page';
 
 const analysisCategories = [
     {
@@ -258,8 +258,14 @@ const analysisCategories = [
         items: [
             { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
             { id: 'turf', label: 'TURF Analysis', icon: ThumbsUp, component: TurfPage },
-            { id: 'brand-funnel', label: 'Brand Funnel', icon: Filter, component: BrandFunnelPage },
         ],
+    },
+    {
+      name: 'Applied Econometric Models',
+      icon: Sigma,
+      items: [
+        { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
+      ],
     },
 ];
 
