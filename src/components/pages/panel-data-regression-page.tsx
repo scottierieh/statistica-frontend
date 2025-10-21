@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -7,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers } from 'lucide-react';
+import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -32,8 +33,10 @@ interface RegressionResult {
 }
 
 interface HausmanResult {
+    test: string;
     statistic: number | null;
     p_value: number | null;
+    dof: number;
     interpretation: string;
 }
 
@@ -42,7 +45,7 @@ interface FullAnalysisResponse {
     fixed_effects: RegressionResult;
     random_effects: RegressionResult;
     hausman_test: HausmanResult;
-    plot: string;
+    plot?: string;
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
@@ -53,7 +56,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Layers size={36} />
+                            <Users size={36} />
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Panel Data Regression</CardTitle>
@@ -68,7 +71,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Panel data allows you to control for variables you cannot observe or measure, like cultural factors in countries or individual business practices. It accounts for both individual heterogeneity and changes over time, providing more robust and accurate estimates than simple cross-sectional or time-series regressions.
                         </p>
                     </div>
-                    <div className="flex justify-center">
+                     <div className="flex justify-center">
                         {panelExample && (
                              <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
                                 <panelExample.icon className="mx-auto h-8 w-8 text-primary"/>
@@ -131,14 +134,18 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
 
     useEffect(() => {
         if (canRun) {
-            const potentialDmu = allHeaders.find(h => !numericHeaders.includes(h) && new Set(data.map(row => row[h])).size > 1);
-            const potentialTime = allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time'))
-            const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
-
+            const potentialDmu = categoricalHeaders.find(h => new Set(data.map(row => row[h])).size > 1);
             setEntityCol(potentialDmu || categoricalHeaders[0]);
-            setTimeCol(potentialTime || allHeaders.find(h => h !== potentialDmu));
+
+            const potentialTime = allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time')) || allHeaders.find(h => h !== potentialDmu);
+            setTimeCol(potentialTime);
+
+            const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
             setYCol(potentialY || numericHeaders[0]);
-            setXCols(numericHeaders.filter(h => h !== (potentialY || numericHeaders[0])).slice(0, 3));
+            
+            const excludedForX = new Set([potentialDmu, potentialTime, potentialY]);
+            setXCols(numericHeaders.filter(h => !excludedForX.has(h)).slice(0, 3));
+            
             setView('main');
         } else {
             setView('intro');
@@ -197,9 +204,9 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                             <TableRow key={name}>
                                 <TableCell>{name}</TableCell>
                                 <TableCell>{result.coefficients[i]?.toFixed(4)}</TableCell>
-                                <TableCell>{result.std_errors[i]?.toFixed(4)}</TableCell>
-                                <TableCell>{result.t_statistics[i]?.toFixed(3)}</TableCell>
-                                <TableCell>{result.p_values[i] < 0.001 ? '<.001' : result.p_values[i]?.toFixed(3)}</TableCell>
+                                <TableCell>{result.std_errors?.[i]?.toFixed(4) ?? 'N/A'}</TableCell>
+                                <TableCell>{result.t_statistics?.[i]?.toFixed(3) ?? 'N/A'}</TableCell>
+                                <TableCell>{result.p_values?.[i] < 0.001 ? '<.001' : result.p_values?.[i]?.toFixed(3) ?? 'N/A'}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -220,40 +227,42 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
         return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
 
-    const { pooled_ols, fixed_effects, random_effects, hausman_test, plot } = analysisResult || {};
+    const { pooled_ols, fixed_effects, random_effects, hausman_test } = analysisResult || {};
 
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Panel Data Regression Setup</CardTitle>
+                         <CardTitle className="font-headline">Panel Data Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <Label>Entity</Label>
-                        <Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div>
-                        <Label>Time</Label>
-                        <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableTimeCols.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div>
-                        <Label>Dependent (Y)</Label>
-                        <Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div>
-                        <Label>Independent (X)</Label>
-                        <ScrollArea className="h-24 border rounded-md p-2">
-                           {availableFeatures.map(h => (
-                                <div key={h} className="flex items-center space-x-2">
-                                    <Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
-                                    <Label htmlFor={`x-${h}`}>{h}</Label>
-                                </div>
-                            ))}
-                        </ScrollArea>
+                <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <Label>Entity</Label>
+                            <Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                        <div>
+                            <Label>Time</Label>
+                            <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableTimeCols.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                        <div>
+                            <Label>Dependent (Y)</Label>
+                            <Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                         <div>
+                            <Label>Independent (X)</Label>
+                            <ScrollArea className="h-24 border rounded-md p-2">
+                               {availableFeatures.map(h => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
+                                        <Label htmlFor={`x-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </ScrollArea>
+                        </div>
                     </div>
                 </CardContent>
                  <CardFooter className="flex justify-end">
@@ -266,30 +275,44 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             {analysisResult && (
                 <div className="space-y-4">
                     <Card>
-                        <CardHeader><CardTitle>Model Selection (Hausman Test)</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Hausman Test</CardTitle></CardHeader>
                         <CardContent>
-                            <Alert variant={hausman_test?.p_value && hausman_test.p_value < 0.05 ? 'default' : 'secondary'}>
-                                {hausman_test?.p_value && hausman_test.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                            <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
+                                {hausman_test?.p_value !== null && hausman_test.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                                 <AlertTitle>Model Recommendation: {hausman_test?.interpretation}</AlertTitle>
                                 <AlertDescription>
-                                    p-value: {hausman_test?.p_value?.toFixed(4) ?? 'N/A'}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate.
+                                    p-value: {hausman_test?.p_value !== null ? hausman_test?.p_value?.toFixed(4) : 'N/A'}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate as unobserved individual effects are likely correlated with the predictors.
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
                     </Card>
-                     {plot && (
-                        <Card>
-                            <CardHeader><CardTitle>Visual Summary</CardTitle></CardHeader>
-                            <CardContent>
-                                <Image src={`data:image/png;base64,${plot}`} alt="Panel Data Regression Plots" width={1500} height={600} className="w-full rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    )}
                     <div className="grid lg:grid-cols-3 gap-4">
                         {pooled_ols && !pooled_ols.error && renderResultTable(pooled_ols)}
                         {fixed_effects && !fixed_effects.error && renderResultTable(fixed_effects)}
                         {random_effects && (random_effects.error ? <Card><CardHeader><CardTitle>Random Effects</CardTitle></CardHeader><CardContent><p className='text-destructive'>{random_effects.error}</p></CardContent></Card> : renderResultTable(random_effects))}
                     </div>
+                     {analysisResult.plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5" />
+                                    Model Comparison
+                                </CardTitle>
+                                <CardDescription>
+                                    Coefficient comparison and R-squared values across models
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Image 
+                                    src={`data:image/png;base64,${analysisResult.plot}`}
+                                    alt="Panel Data Regression Results Visualization"
+                                    width={1800}
+                                    height={1200}
+                                    className="w-full rounded-lg shadow-md"
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>

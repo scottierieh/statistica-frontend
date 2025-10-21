@@ -25,6 +25,7 @@ interface RegressionResult {
 interface FullAnalysisResponse {
     ols: RegressionResult;
     tsls: RegressionResult;
+    plot?: string;
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
@@ -204,9 +205,32 @@ export default function InstrumentalVariableRegressionPage({ data, numericHeader
 
             {isLoading && <Skeleton className="h-64 w-full" />}
             {analysisResult && (
-                <div className="grid lg:grid-cols-2 gap-4">
-                    {analysisResult.ols && renderResultsTable(analysisResult.ols)}
-                    {analysisResult.tsls && renderResultsTable(analysisResult.tsls)}
+                <div className="space-y-4">
+                    <div className="grid lg:grid-cols-2 gap-4">
+                        {analysisResult.ols && renderResultsTable(analysisResult.ols)}
+                        {analysisResult.tsls && renderResultsTable(analysisResult.tsls)}
+                    </div>
+                    
+                    {analysisResult.plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5" />
+                                    Visualization
+                                </CardTitle>
+                                <CardDescription>
+                                    Comparison of OLS and 2SLS coefficients and standard errors
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <img 
+                                    src={`data:image/png;base64,${analysisResult.plot}`}
+                                    alt="IV Regression Results Visualization"
+                                    className="w-full rounded-lg shadow-md"
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>
