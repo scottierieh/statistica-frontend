@@ -46,11 +46,7 @@ import {
   Handshake,
   Replace,
   Activity,
-  ZoomIn,
-  HeartPulse as HeartPulseIcon,
-  FlaskConical,
-  Binary,
-  Copy,
+  Palette,
   Feather,
   Smile,
   Scaling,
@@ -135,6 +131,13 @@ import TurfPage from './pages/turf-page';
 import HistoryPage from './pages/history-page';
 import html2canvas from 'html2canvas';
 import PanelDataRegressionPage from './pages/panel-data-regression-page';
+import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
+import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
+import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
+import SpatialErrorModelPage from './pages/spatial-error-model-page';
+import GeographicallyWeightedRegressionPage from './pages/geographically-weighted-regression-page';
+import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
+
 
 const analysisCategories = [
     {
@@ -265,6 +268,12 @@ const analysisCategories = [
       icon: Sigma,
       items: [
         { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
+        { id: 'iv-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
+        { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares (2SLS)', icon: Repeat, component: TwoStageLeastSquaresPage },
+        { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
+        { id: 'spatial-error-model', label: 'Spatial Error Model (SEM)', icon: Map, component: SpatialErrorModelPage },
+        { id: 'geographically-weighted-regression', label: 'Geographically Weighted Regression', icon: Map, component: GeographicallyWeightedRegressionPage },
+        { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
       ],
     },
 ];
