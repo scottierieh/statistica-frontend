@@ -280,7 +280,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('descriptive-stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(analysisCategories.map(c => c.name));
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
   const analysisPageRef = useRef<HTMLDivElement>(null);
 
 
