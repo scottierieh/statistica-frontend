@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -49,11 +48,13 @@ def create_spatial_weights_from_coords(lat, lon, method='knn', k=5, threshold=50
     elif method == 'threshold':
         W = (dist_matrix < threshold).astype(float)
         np.fill_diagonal(W, 0)
-    else: # inverse distance
+    elif method == 'distance':  # 명시적으로 체크
         for i in range(n):
             for j in range(n):
                 if i != j and dist_matrix[i, j] > 0:
                     W[i, j] = 1 / (dist_matrix[i, j] ** alpha)
+    else:
+        raise ValueError(f"Unknown method: {method}. Must be 'knn', 'distance', or 'threshold'")
 
     row_sums = W.sum(axis=1)
     row_sums[row_sums == 0] = 1
@@ -198,3 +199,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
