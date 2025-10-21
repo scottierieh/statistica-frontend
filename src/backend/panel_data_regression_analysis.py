@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
+import seaborn as sns
 import io
 import base64
 import math
@@ -74,6 +75,7 @@ class PanelDataRegression:
             'n_obs': self.n_obs,
             'dof': dof,
             'variable_names': ['const'] + self.x_cols,
+            'y_pred': y_pred.flatten()
         }
 
     def fixed_effects(self) -> Dict:
@@ -148,10 +150,9 @@ class PanelDataRegression:
         sigma2_between = np.sum(residuals_be**2) / dof_be
         sigma2_u = max(0, sigma2_between - (sigma2_e / self.n_times_per_entity.iloc[0]))
         
-        # theta 계산 시 0으로 나누기 방지
         denominator = sigma2_e + self.n_times_per_entity.iloc[0] * sigma2_u
         if denominator <= 0 or sigma2_e <= 0:
-            theta = 0.0  # fallback to pooled OLS
+            theta = 0.0
         else:
             theta = 1 - np.sqrt(sigma2_e / denominator)
         
@@ -188,7 +189,6 @@ class PanelDataRegression:
         beta_re = np.array(re_results['coefficients'][1:])
         diff = beta_fe - beta_re
 
-        # Recalculate var_beta for FE and RE with consistent assumptions for Hausman
         X_demeaned = self.X - self.data.groupby(self.entity_col)[self.x_cols].transform('mean').values
         y_demeaned_h = self.y - self.data.groupby(self.entity_col)[self.y_col].transform('mean').values.reshape(-1,1)
         residuals_fe_h = y_demeaned_h - X_demeaned @ beta_fe.reshape(-1, 1)
@@ -203,7 +203,7 @@ class PanelDataRegression:
         theta = re_results['theta']
         X_transformed = self.X - theta * self.data.groupby(self.entity_col)[self.x_cols].transform('mean').values
         X_transformed_const = np.column_stack([np.ones(self.n_obs) * (1-theta), X_transformed])
-        var_beta_re = sigma2_e_fe * np.linalg.inv(X_transformed_const.T @ X_transformed_const)[1:, 1:] # Exclude intercept
+        var_beta_re = sigma2_e_fe * np.linalg.inv(X_transformed_const.T @ X_transformed_const)[1:, 1:]
 
         var_diff = var_beta_fe - var_beta_re
         
@@ -218,6 +218,52 @@ class PanelDataRegression:
             'test': 'Hausman Test', 'statistic': H, 'p_value': p_value, 'dof': self.k,
             'interpretation': 'Fixed Effects preferred' if p_value < 0.05 else 'Random Effects preferred' if not np.isnan(p_value) else 'Test failed'
         }
+
+    def plot_results(self, pooled_results, fe_results, re_results):
+        fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+        fig.suptitle('Panel Data Regression Comparison', fontsize=16)
+
+        # Coefficient Plot
+        x_vars = self.x_cols
+        x_pos = np.arange(len(x_vars))
+        width = 0.25
+
+        pooled_coefs = pooled_results['coefficients'][1:]
+        fe_coefs = fe_results['coefficients']
+        re_coefs = re_results.get('coefficients', [0]*(len(x_vars)+1))[1:]
+
+        axes[0].bar(x_pos - width, pooled_coefs, width, label='Pooled OLS', alpha=0.8)
+        axes[0].bar(x_pos, fe_coefs, width, label='Fixed Effects', alpha=0.8)
+        if not re_results.get('error'):
+            axes[0].bar(x_pos + width, re_coefs, width, label='Random Effects', alpha=0.8)
+        
+        axes[0].set_ylabel('Coefficient Value')
+        axes[0].set_title('Coefficient Comparison')
+        axes[0].set_xticks(x_pos)
+        axes[0].set_xticklabels(x_vars, rotation=45, ha="right")
+        axes[0].legend()
+        axes[0].grid(True, linestyle='--', alpha=0.5)
+
+        # Actual vs Predicted Plot
+        y_true = self.y.flatten()
+        y_pred_ols = pooled_results.get('y_pred')
+        
+        if y_pred_ols is not None:
+            sns.scatterplot(x=y_true, y=y_pred_ols, ax=axes[1], label='Pooled OLS', alpha=0.6)
+        
+        axes[1].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect Fit')
+        axes[1].set_xlabel('Actual Values')
+        axes[1].set_ylabel('Predicted Values')
+        axes[1].set_title('Model Fit (Pooled OLS)')
+        axes[1].legend()
+        axes[1].grid(True, linestyle='--', alpha=0.5)
+
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode('utf-8')
         
 def main():
     try:
@@ -240,11 +286,14 @@ def main():
         random_effects = analyzer.random_effects()
         hausman_test = analyzer.hausman_test(fixed_effects, random_effects)
         
+        plot_image = analyzer.plot_results(pooled_ols, fixed_effects, random_effects)
+
         response = {
             'pooled_ols': pooled_ols,
             'fixed_effects': fixed_effects,
             'random_effects': random_effects,
-            'hausman_test': hausman_test
+            'hausman_test': hausman_test,
+            'plot': plot_image,
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -255,5 +304,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
