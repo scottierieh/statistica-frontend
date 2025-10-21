@@ -136,6 +136,7 @@ import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import GeographicallyWeightedRegressionPage from './pages/geographically-weighted-regression-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
+import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 
 
 const analysisCategories = [

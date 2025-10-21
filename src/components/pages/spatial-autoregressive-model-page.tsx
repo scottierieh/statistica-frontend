@@ -1,5 +1,6 @@
 
 'use client';
+
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -38,7 +39,27 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <p className="text-center text-muted-foreground">SAR models, also known as spatial lag models, extend linear regression by including a spatially lagged dependent variable. This helps to avoid biased estimates when observations are not independent across space.</p>
+                    <p className="text-center text-muted-foreground">
+                        SAR models, also known as spatial lag models, extend linear regression by including a spatially lagged dependent variable. This helps to avoid biased estimates when observations are not independent across space.
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" /> Setup Guide</h3>
+                             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                                <li><strong>Dependent Variable (Y):</strong> The outcome variable.</li>
+                                <li><strong>Independent Variables (X):</strong> Your predictors.</li>
+                                <li><strong>Latitude & Longitude:</strong> Columns containing the coordinates for each observation. These are used to automatically generate the spatial weights matrix (W).</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><FileSearch className="mr-2 h-5 w-5 text-primary" /> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>rho (ρ):</strong> The spatial autoregressive coefficient. A significant positive rho indicates that high values in one location are associated with high values in neighboring locations (positive spatial autocorrelation).</li>
+                                <li><strong>beta (β):</strong> Interpreted similarly to OLS coefficients, but after accounting for spatial effects.</li>
+                                <li><strong>AIC/BIC:</strong> Model fit criteria, useful for comparing different spatial models.</li>
+                            </ul>
+                        </div>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
@@ -48,31 +69,45 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
+
 export default function SpatialAutoregressiveModelPage({ data, numericHeaders, onLoadExample }: { data: DataSet; numericHeaders: string[]; onLoadExample: (e: any) => void }) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [yCol, setYCol] = useState<string | undefined>();
     const [xCols, setXCols] = useState<string[]>([]);
+    const [latCol, setLatCol] = useState<string | undefined>();
+    const [lonCol, setLonCol] = useState<string | undefined>();
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 4, [data, numericHeaders]);
+
+    const availableFeatures = useMemo(() => {
+        const excluded = new Set([yCol, latCol, lonCol]);
+        return numericHeaders.filter(h => !excluded.has(h));
+    }, [numericHeaders, yCol, latCol, lonCol]);
 
     useEffect(() => {
-        setYCol(numericHeaders[0]);
-        setXCols(numericHeaders.slice(1, 3));
+        if (canRun) {
+            setYCol(numericHeaders.find(h => h.toLowerCase().includes('y')));
+            setLatCol(numericHeaders.find(h => h.toLowerCase().includes('lat')));
+            setLonCol(numericHeaders.find(h => h.toLowerCase().includes('lon')));
+            setXCols(numericHeaders.filter(h => !['y','lat','lon'].some(k => h.toLowerCase().includes(k))));
+            setView('main');
+        } else {
+            setView('intro');
+        }
         setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
-    }, [numericHeaders, data, canRun]);
+    }, [canRun, numericHeaders]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         setXCols(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!yCol || xCols.length === 0) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a dependent variable and at least one independent variable.' });
+        if (!yCol || xCols.length === 0 || !latCol || !lonCol) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required variables.' });
             return;
         }
         setIsLoading(true);
@@ -82,7 +117,7 @@ export default function SpatialAutoregressiveModelPage({ data, numericHeaders, o
             const response = await fetch('/api/analysis/spatial-autoregressive-model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, y_col: yCol, x_cols: xCols })
+                body: JSON.stringify({ data, y_col: yCol, x_cols: xCols, lat_col: latCol, lon_col: lonCol })
             });
 
             if (!response.ok) {
@@ -97,8 +132,8 @@ export default function SpatialAutoregressiveModelPage({ data, numericHeaders, o
         } finally {
             setIsLoading(false);
         }
-    }, [data, yCol, xCols, toast]);
-    
+    }, [data, yCol, xCols, latCol, lonCol, toast]);
+
     if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -114,15 +149,23 @@ export default function SpatialAutoregressiveModelPage({ data, numericHeaders, o
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4">
+                <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                         <Label>Dependent (Y)</Label>
                         <Select value={yCol} onValueChange={v => setYCol(v)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
                     </div>
                     <div>
+                        <Label>Latitude</Label>
+                         <Select value={latCol} onValueChange={v => setLatCol(v)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                    <div>
+                        <Label>Longitude</Label>
+                         <Select value={lonCol} onValueChange={v => setLonCol(v)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
                         <Label>Independent (X)</Label>
                         <ScrollArea className="h-24 border rounded-md p-2">
-                            {numericHeaders.filter(h => h !== yCol).map(h => (
+                            {availableFeatures.map(h => (
                                 <div key={h} className="flex items-center space-x-2">
                                     <Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                     <Label htmlFor={`x-${h}`}>{h}</Label>
@@ -160,3 +203,4 @@ export default function SpatialAutoregressiveModelPage({ data, numericHeaders, o
         </div>
     );
 }
+
