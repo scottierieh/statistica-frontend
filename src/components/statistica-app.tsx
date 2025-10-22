@@ -180,6 +180,16 @@ const analysisCategories = [
                 { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
                 { id: 'repeated-measures-anova', label: 'Repeated Measures ANOVA', icon: Repeat, component: RepeatedMeasuresAnovaPage },
             ]
+          },
+          {
+            name: 'Non-Parametric',
+            items: [
+                { id: 'nonparametric-mann-whitney', label: 'Mann-Whitney U Test', icon: Users, component: NonParametricPage },
+                { id: 'nonparametric-wilcoxon', label: 'Wilcoxon Signed-Rank', icon: Repeat, component: NonParametricPage },
+                { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: NonParametricPage },
+                { id: 'nonparametric-friedman', label: 'Friedman Test', icon: Repeat, component: NonParametricPage },
+                { id: 'nonparametric-mcnemar', label: 'McNemar\'s Test', icon: CheckSquare, component: NonParametricPage },
+            ]
           }
       ]
     },
@@ -622,3 +632,4 @@ export default function StatisticaApp() {
 }
 
     
+
