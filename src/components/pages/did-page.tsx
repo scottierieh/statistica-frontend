@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -9,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight } from 'lucide-react';
+import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
@@ -30,7 +29,7 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const didExample = exampleDatasets.find(d => d.id === 'did-data');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -46,26 +45,48 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         A quasi-experimental technique to estimate the causal effect of a specific intervention by comparing the change in outcomes over time between a treatment group and a control group.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
-                     <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">How it Works</h3>
-                        <p className="text-muted-foreground">
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use DiD?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
                             DiD mimics an experimental design using observational data. It assumes that, in the absence of the treatment, the treatment and control groups would have followed parallel trends. The effect of the treatment is then calculated as the difference in the average outcome change over time between the two groups.
                         </p>
                     </div>
-                     <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">Key Concepts</h3>
-                        <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                            <li><strong>Treatment Group:</strong> The group that receives the intervention.</li>
-                            <li><strong>Control Group:</strong> The group that does not receive the intervention.</li>
-                            <li><strong>Pre-Period:</strong> The time period before the intervention.</li>
-                            <li><strong>Post-Period:</strong> The time period after the intervention.</li>
-                            <li><strong>Interaction Term:</strong> The key coefficient in the regression model that represents the DiD effect.</li>
-                        </ul>
+                     <div className="flex justify-center">
+                        {didExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(didExample)}>
+                                <didExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{didExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{didExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Group Variable:</strong> The variable that distinguishes the treatment group from the control group (should be binary, e.g., 0 or 1).</li>
+                                <li><strong>Time Variable:</strong> The variable that indicates the pre-intervention and post-intervention periods (should be binary, e.g., 0 or 1).</li>
+                                <li><strong>Outcome Variable:</strong> The continuous variable whose change you want to measure.</li>
+                                <li><strong>Run Analysis:</strong> The tool will run a regression with an interaction term to estimate the DiD effect.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Interaction Term:</strong> The coefficient for the 'group:time' interaction term is the core DiD estimator. A significant p-value for this term suggests the intervention had a real effect.
+                                </li>
+                                <li>
+                                    <strong>Interaction Plot:</strong> This plot is essential. The "parallel trends" assumption means the lines for the control and treatment groups should be roughly parallel *before* the intervention. The DiD effect is the vertical difference between the treatment group's actual outcome and its projected outcome based on the control group's trend.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {didExample && <Button variant="outline" onClick={() => onLoadExample(didExample)}>Load Sample Data</Button>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -146,32 +167,16 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
         }
     }, [data, groupVar, timeVar, outcomeVar, toast]);
 
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
+    const handleLoadExampleData = () => {
+        const didExample = exampleDatasets.find(ex => ex.id === 'did-data');
+        if (didExample) {
+            onLoadExample(didExample);
+            setView('main');
+        }
+    };
 
-    if (!canRun) {
-        const didExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('did'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Difference-in-Differences (DiD)</CardTitle>
-                        <CardDescription>
-                           To perform DiD, you need data with an outcome variable, a binary time variable (pre/post), and a binary group variable (treatment/control).
-                        </CardDescription>
-                    </CardHeader>
-                     {didExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(didExamples[0])} className="w-full">
-                                <GitCommit className="mr-2 h-4 w-4" />
-                                Load {didExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
     
     const results = analysisResult?.results;
