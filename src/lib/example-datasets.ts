@@ -208,7 +208,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'A/B Test Conversion',
         description: 'Time on site for two different website designs. Ideal for A/B testing.',
         icon: FlaskConical,
-        analysisTypes: ['t-test', 'stats', 'mann-whitney', 'homogeneity'],
+        analysisTypes: ['t-test', 'stats', 'mann-whitney', 'homogeneity','psm'],
         data: abTestData,
     },
     {

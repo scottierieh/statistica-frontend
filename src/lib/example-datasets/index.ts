@@ -204,7 +204,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         recommendedAnalysis: 'panel-data-regression',
         data: panelData,
     },
-    {
+     {
         id: 'sar-data',
         name: 'Regional Crime Data',
         description: 'Crime rates and socioeconomic data with geographic coordinates.',
@@ -218,7 +218,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'A/B Test Conversion',
         description: 'Time on site for two different website designs. Ideal for A/B testing.',
         icon: FlaskConical,
-        analysisTypes: ['t-test', 'stats', 'mann-whitney', 'homogeneity'],
+        analysisTypes: ['t-test', 'stats', 'mann-whitney', 'homogeneity', 'psm'],
         data: abTestData,
     },
     {
@@ -354,15 +354,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: brandFunnelData,
     },
     {
-        id: 'did-data',
-        name: 'Intervention Impact',
-        description: 'Outcome data for treatment and control groups before and after an intervention.',
-        icon: GitCommit,
-        analysisTypes: ['did'],
-        recommendedAnalysis: 'did',
-        data: didData,
-    },
-    {
         id: 'iris',
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
@@ -377,6 +368,15 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: Coffee,
         analysisTypes: ['stats', 'one-way-anova', 'two-way-anova', 'visuals', 'frequency', 'normality', 'homogeneity', 't-test'],
         data: tipsData
+    },
+    {
+        id: 'did-data',
+        name: 'Intervention Impact',
+        description: 'Outcome data for treatment and control groups before and after an intervention.',
+        icon: GitCommit,
+        analysisTypes: ['did'],
+        recommendedAnalysis: 'did',
+        data: didData,
     },
     {
         id: 'student-performance',
