@@ -137,6 +137,7 @@ import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import GeographicallyWeightedRegressionPage from './pages/geographically-weighted-regression-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
+import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
 
 
@@ -276,6 +277,7 @@ const analysisCategories = [
         { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
         { id: 'geographically-weighted-regression', label: 'Geographically Weighted Regression', icon: Map, component: GeographicallyWeightedRegressionPage },
         { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
+        { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
       ],
     },
 ];
