@@ -64,7 +64,8 @@ import {
   Clock,
   Filter,
   Download,
-  Bot
+  Bot,
+  BookOpen, // Import BookOpen icon
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -139,9 +140,17 @@ import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
 import RddPage from './pages/rdd-page';
+import GuidePage from './pages/guide-page';
 
 
 const analysisCategories = [
+    {
+      name: 'Guide',
+      icon: BookOpen,
+      items: [
+        { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
+      ]
+    },
     {
       name: 'Descriptive',
       icon: BarChart,
@@ -305,8 +314,8 @@ export default function StatisticaApp() {
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState('descriptive-stats');
-  const [openCategories, setOpenCategories] = useState<string[]>([]);
+  const [activeAnalysis, setActiveAnalysis] = useState('guide');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Guide']);
   const analysisPageRef = useRef<HTMLDivElement>(null);
 
 
@@ -387,7 +396,7 @@ export default function StatisticaApp() {
     setNumericHeaders([]);
     setCategoricalHeaders([]);
     setFileName('');
-    setActiveAnalysis('descriptive-stats');
+    setActiveAnalysis('guide');
   };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
@@ -480,7 +489,6 @@ export default function StatisticaApp() {
   const hasData = data.length > 0;
   
   const ActivePageComponent = useMemo(() => {
-    if (activeAnalysis === 'history') return HistoryPage;
     for (const category of analysisCategories) {
         if ('items' in category) {
             const found = category.items.find(item => item.id === activeAnalysis);
@@ -492,7 +500,7 @@ export default function StatisticaApp() {
             }
         }
     }
-    return DescriptiveStatisticsPage;
+    return GuidePage; // Fallback to guide page
 }, [activeAnalysis]);
 
   return (
