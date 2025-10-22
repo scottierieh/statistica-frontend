@@ -526,7 +526,7 @@ export default function StatisticaApp() {
               {analysisCategories.map(category => (
                 <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start text-base px-2 bg-muted">
+                    <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold text-foreground">
                        <category.icon className="mr-2 h-5 w-5"/>
                        <span>{category.name}</span>
                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')}/>
@@ -640,6 +640,7 @@ export default function StatisticaApp() {
 }
 
     
+
 
 
 
