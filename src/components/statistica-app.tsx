@@ -134,7 +134,6 @@ import PanelDataRegressionPage from './pages/panel-data-regression-page';
 import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
 import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
-import GeographicallyWeightedRegressionPage from './pages/geographically-weighted-regression-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 import PsmPage from './pages/psm-page';
@@ -151,6 +150,15 @@ const analysisCategories = [
         { id: 'frequency-analysis', label: 'Frequency Analysis', icon: Users, component: FrequencyAnalysisPage },
       ],
     },
+    {
+      name: 'Assumptions',
+      icon: CheckSquare,
+      items: [
+          { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
+          { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
+      ],
+  },
+  
     {
       name: 'Comparison',
       icon: Users,
@@ -193,6 +201,7 @@ const analysisCategories = [
       items: [
           { id: 'glm', label: 'Generalized Linear Model (GLM)', icon: Scaling, component: GlmPage },
           { id: 'discriminant', label: 'Discriminant Analysis', icon: Users, component: DiscriminantPage },
+          { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
       ]
     },
      {
@@ -250,14 +259,7 @@ const analysisCategories = [
         { id: 'wordcloud', label: 'Word Cloud', icon: Feather, component: WordCloudPage },
       ]
     },
-    {
-        name: 'Assumptions',
-        icon: CheckSquare,
-        items: [
-            { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
-            { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
-        ],
-    },
+
      {
         name: 'Marketing',
         icon: Target,
@@ -267,7 +269,7 @@ const analysisCategories = [
         ],
     },
     {
-      name: 'Applied Econometric Models',
+      name: 'Panel & Econometrics',
       icon: Sigma,
       items: [
         { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
@@ -277,7 +279,6 @@ const analysisCategories = [
         { id: 'rdd', label: 'Regression Discontinuity', icon: GitCommit, component: RddPage },
         { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
         { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
-        { id: 'geographically-weighted-regression', label: 'Geographically Weighted Regression', icon: Map, component: GeographicallyWeightedRegressionPage },
         { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
         { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
       ],
