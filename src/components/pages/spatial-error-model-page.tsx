@@ -147,6 +147,7 @@ export default function SpatialErrorModelPage({
         return numericHeaders.filter(h => !excluded.has(h));
     }, [numericHeaders, yCol, latCol, lonCol]);
 
+    // Auto-detect columns on data change
     useEffect(() => {
         if (canRun) {
             setYCol(
@@ -258,13 +259,14 @@ export default function SpatialErrorModelPage({
                 </CardFooter>
             </Card>
 
+            {/* Loading State */}
             {isLoading && <Skeleton className="h-96 w-full" />}
             
             {results && (
                 <>
                     {!results.converged && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Convergence Warning</AlertTitle><AlertDescription>The model did not converge. Results may be unreliable.</AlertDescription></Alert>}
                     
-                    <Card><CardHeader><CardTitle>Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I on OLS Residuals:</span><Badge variant={Math.abs(results.diagnostics.morans_i_ols_residuals) > 0.1 ? 'default' : 'secondary'}>{results.diagnostics.morans_i_ols_residuals.toFixed(4)}</Badge></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle>Spatial Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I on OLS Residuals:</span><Badge variant={Math.abs(results.diagnostics.morans_i_ols_residuals) > 0.1 ? 'default' : 'secondary'}>{results.diagnostics.morans_i_ols_residuals.toFixed(4)}</Badge></div></CardContent></Card>
                     
                     <Card>
                         <CardHeader><CardTitle>Model Coefficients</CardTitle><CardDescription>Spatial error (λ) and regression coefficients (β)</CardDescription></CardHeader>
@@ -279,11 +281,21 @@ export default function SpatialErrorModelPage({
                                 </TableHeader>
                                 <TableBody>
                                     {Object.entries(results.coefficients).map(([param, value]) => (
-                                        <TableRow key={param === 'lambda' ? 'lambda_' : param}>
-                                            <TableCell className="font-medium">{param === 'lambda' ? 'λ (lambda)' : param}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.toFixed(6)}</TableCell>
+                                        <TableRow key={param}>
+                                            <TableCell className="font-medium">
+                                                {param === 'lambda' ? 'λ (lambda)' : param}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {value.toFixed(6)}
+                                            </TableCell>
                                             <TableCell className="text-right text-sm text-muted-foreground">
-                                                {param === 'lambda' ? (value > 0 ? 'Positive spatial error correlation' : 'Negative spatial error correlation') : (value > 0 ? 'Positive effect' : 'Negative effect')}
+                                                {param === 'lambda' 
+                                                    ? value > 0 
+                                                        ? 'Positive spatial error correlation' 
+                                                        : 'Negative spatial error correlation'
+                                                    : value > 0 
+                                                        ? 'Positive effect' 
+                                                        : 'Negative effect'}
                                             </TableCell>
                                         </TableRow>
                                     ))}
