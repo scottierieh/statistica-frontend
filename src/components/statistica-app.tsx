@@ -147,6 +147,7 @@ const analysisCategories = [
     {
       name: 'Guide',
       icon: BookOpen,
+      isSingle: true,
       items: [
         { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
       ]
@@ -523,7 +524,19 @@ export default function StatisticaApp() {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-              {analysisCategories.map(category => (
+              {analysisCategories.map(category => 
+                category.isSingle ? (
+                  <SidebarMenuItem key={category.name}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveAnalysis(category.items[0].id)}
+                      isActive={activeAnalysis === category.items[0].id}
+                      className="text-base font-semibold"
+                    >
+                      <category.icon className="mr-2 h-5 w-5"/>
+                      {category.name}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
                 <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold text-foreground">
@@ -594,7 +607,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && (
+            {hasData && activeAnalysis !== 'guide' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
@@ -640,6 +653,7 @@ export default function StatisticaApp() {
 }
 
     
+
 
 
 
