@@ -83,6 +83,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
     const [eventCol, setEventCol] = useState<string | undefined>();
     const [groupCol, setGroupCol] = useState<string | undefined>();
     const [covariates, setCovariates] = useState<string[]>([]);
+    const [modelType, setModelType] = useState('km');
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -134,7 +135,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
             const response = await fetch('/api/analysis/survival', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates: filteredCovariates })
+                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates: filteredCovariates, modelType })
             });
 
             if (!response.ok) {
@@ -153,7 +154,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
         } finally {
             setIsLoading(false);
         }
-    }, [data, durationCol, eventCol, groupCol, covariates, toast]);
+    }, [data, durationCol, eventCol, groupCol, covariates, modelType, toast]);
 
     if (!canRun) {
         const survivalExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('survival'));
