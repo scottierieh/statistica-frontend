@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
-개선된 SAR (Spatial Autoregressive) Model 백엔드
-- 실제 위도/경도 좌표 사용
-- 다양한 공간 가중 행렬 생성 방식 지원
-- 공간 자기상관 진단 포함
+완전히 작동하는 SAR (Spatial Autoregressive) Model 백엔드
+이 파일을 spatial_autoregressive_model.py에 전체 복사하세요
 """
 
 import sys
@@ -28,7 +26,7 @@ def _to_native_type(obj):
         return float(obj)
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    if isinstance(obj, bool) or isinstance(obj, np.bool_):
+    if isinstance(obj, (bool, np.bool_)):
         return bool(obj)
     return obj
 
@@ -53,7 +51,7 @@ def haversine_distance_matrix(coords):
         dlat = lat - lat[i]
         dlon = lon - lon[i]
         a = np.sin(dlat/2)**2 + np.cos(lat[i]) * np.cos(lat) * np.sin(dlon/2)**2
-        c = 2 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))  # clip for numerical stability
+        c = 2 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
         dist[i] = 6371 * c  # Earth radius in km
     
     return dist
@@ -65,10 +63,10 @@ def create_spatial_weights_from_coords(lat, lon, method='knn', k=5, threshold=50
     
     Parameters:
     - lat, lon: 위도/경도 배열
-    - method: 'knn' (k-nearest neighbors), 'distance' (역거리), 'threshold' (임계값)
-    - k: KNN 방식에서 이웃 개수 (기본값: 5)
-    - threshold: 거리 임계값 (km, 기본값: 50)
-    - alpha: 역거리 가중치의 지수 (기본값: 1.0)
+    - method: 'knn', 'distance', 'threshold'
+    - k: KNN 방식에서 이웃 개수
+    - threshold: 거리 임계값 (km)
+    - alpha: 역거리 가중치의 지수
     
     Returns:
     - W: (n, n) row-normalized 공간 가중 행렬
@@ -84,12 +82,11 @@ def create_spatial_weights_from_coords(lat, lon, method='knn', k=5, threshold=50
     if method == 'knn':
         # K-nearest neighbors
         for i in range(n):
-            # 자기 자신 제외하고 가장 가까운 k개 선택
             neighbors = np.argsort(dist_matrix[i])[1:k+1]
             W[i, neighbors] = 1
             
     elif method == 'distance':
-        # 역거리 가중치 (Inverse Distance Weighting)
+        # 역거리 가중치
         for i in range(n):
             for j in range(n):
                 if i != j and dist_matrix[i, j] > 0:
@@ -103,9 +100,9 @@ def create_spatial_weights_from_coords(lat, lon, method='knn', k=5, threshold=50
     else:
         raise ValueError(f"Unknown method: {method}")
     
-    # Row-normalize (각 행의 합이 1이 되도록)
+    # Row-normalize
     row_sums = W.sum(axis=1)
-    row_sums[row_sums == 0] = 1  # 이웃이 없는 경우 방지
+    row_sums[row_sums == 0] = 1
     W = W / row_sums[:, np.newaxis]
     
     return W
@@ -114,13 +111,9 @@ def create_spatial_weights_from_coords(lat, lon, method='knn', k=5, threshold=50
 def morans_i(y, W):
     """
     Global Moran's I 통계량 계산
-    공간 자기상관의 존재 여부를 측정
     
     Returns:
     - I: Moran's I 값 (-1 ~ 1)
-      - I > 0: 양의 공간 자기상관 (유사한 값끼리 군집)
-      - I ≈ 0: 공간 자기상관 없음
-      - I < 0: 음의 공간 자기상관 (상이한 값끼리 인접)
     """
     n = len(y)
     y_mean = np.mean(y)
@@ -158,13 +151,6 @@ class SARModel:
         SAR 모델 추정
         
         Model: y = ρWy + Xβ + ε
-        
-        Parameters:
-        - y: 종속변수 (n,)
-        - X: 독립변수 행렬 (n, k) - intercept 포함
-        - W: 공간 가중 행렬 (n, n) - row-normalized
-        - method: 'ml' (Maximum Likelihood)
-        - rho_bounds: ρ의 범위
         """
         y = np.asarray(y).flatten()
         X = np.asarray(X)
@@ -191,31 +177,26 @@ class SARModel:
         def neg_loglik(rho):
             """음의 로그우도 함수"""
             try:
-                # log|I - ρW| 계산
                 log_det = np.log(np.linalg.det(np.eye(self.n) - rho * W))
                 if not np.isfinite(log_det):
                     return np.inf
             except:
                 return np.inf
             
-            # Spatial filtering: y* = y - ρWy
             y_star = y - rho * (W @ y)
             
-            # OLS on filtered data: β = (X'X)^-1 X'y*
             try:
                 XtX_inv = np.linalg.inv(X.T @ X)
                 beta = XtX_inv @ X.T @ y_star
             except np.linalg.LinAlgError:
                 return np.inf
             
-            # Residuals
             e = y_star - X @ beta
             sigma2 = (e.T @ e) / self.n
             
             if sigma2 <= 0:
                 return np.inf
             
-            # Log-likelihood
             loglik = (-0.5 * self.n * np.log(2 * np.pi) 
                       - 0.5 * self.n * np.log(sigma2) 
                       + log_det 
@@ -223,7 +204,6 @@ class SARModel:
             
             return -loglik
         
-        # Optimization
         result = minimize(
             neg_loglik, 
             x0=0.0, 
@@ -232,35 +212,13 @@ class SARModel:
         )
         
         self.converged = result.success
-        if not self.converged:
-            warnings.warn("Optimization did not converge.")
         
-        # Store results
         self.rho = result.x[0]
         y_star = y - self.rho * (W @ y)
         self.beta = np.linalg.inv(X.T @ X) @ X.T @ y_star
         e = y_star - (X @ self.beta)
         self.sigma2 = (e.T @ e) / self.n
         self.loglik = -result.fun
-        
-    def predict(self, X, W=None):
-        """예측값 계산"""
-        if self.beta is None:
-            raise ValueError("Model not fitted yet")
-        
-        X = np.asarray(X)
-        
-        if W is None:
-            # 공간 효과 없이 예측
-            return X @ self.beta
-        else:
-            # 공간 효과 포함 예측 (반복법 필요)
-            # y = ρWy + Xβ + ε
-            # (I - ρW)y = Xβ + ε
-            # y = (I - ρW)^-1 Xβ
-            W = np.asarray(W) if not issparse(W) else W.toarray()
-            I_rhoW_inv = np.linalg.inv(np.eye(len(X)) - self.rho * W)
-            return I_rhoW_inv @ (X @ self.beta)
 
 
 def main():
@@ -295,7 +253,8 @@ def main():
         
         # Extract data
         y = data[y_col].values
-        X = data[x_cols].values
+        X_df = data[x_cols]
+        X = X_df.values
         lat = data[lat_col].values
         lon = data[lon_col].values
         
@@ -310,21 +269,21 @@ def main():
             threshold=distance_threshold
         )
         
-        # Calculate Moran's I for diagnostics
-        moran_i = morans_i(y, W)
+        # Calculate Moran's I
+        moran_i_value = morans_i(y, W)
         
         # Fit SAR model
         model = SARModel()
         model.fit(y, X, W)
         
         # Model diagnostics
-        aic = -2 * model.loglik + 2 * (model.k + 2)  # k parameters + rho + sigma2
+        aic = -2 * model.loglik + 2 * (model.k + 2)
         bic = -2 * model.loglik + np.log(model.n) * (model.k + 2)
         
         # Prepare results
         coef_names = ['intercept'] + x_cols
         coefficients = {
-            'rho': model.rho,
+            'rho_': model.rho,
             **{name: val for name, val in zip(coef_names, model.beta)}
         }
         
@@ -337,7 +296,7 @@ def main():
             "n_obs": model.n,
             "converged": model.converged,
             "diagnostics": {
-                "morans_i": moran_i,
+                "morans_i": moran_i_value,
                 "spatial_weights_method": w_method,
                 "k_neighbors": k_neighbors if w_method == 'knn' else None,
                 "distance_threshold": distance_threshold if w_method == 'threshold' else None
@@ -354,5 +313,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 

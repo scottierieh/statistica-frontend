@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -171,7 +172,7 @@ def main():
         
         coef_names = ['intercept'] + x_cols
         coefficients = {
-            'lambda': model.lambda_,
+            'lambda_': model.lambda_,
             **{name: val for name, val in zip(coef_names, model.beta)}
         }
         

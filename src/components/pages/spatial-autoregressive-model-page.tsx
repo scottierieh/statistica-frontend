@@ -58,9 +58,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use SAR Models?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Standard regression models assume observations are independent, but spatial data often violates this assumption. 
-                            The SAR model, or <strong>spatial lag model</strong>, explicitly includes a spatially lagged dependent variable 
-                            to account for this interdependence, preventing biased and inefficient estimates.
+                            Standard regression models assume observations are independent, but spatial data often violates this. The SAR model, or <strong>spatial lag model</strong>, explicitly includes a spatially lagged dependent variable to account for this interdependence, preventing biased and inefficient estimates.
                         </p>
                     </div>
                     
@@ -188,6 +186,10 @@ export default function SpatialAutoregressiveModelPage({
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required variables.' });
             return;
         }
+        if (data.length < 10) {
+            toast({ variant: 'destructive', title: 'Insufficient Data', description: 'SAR models require at least 10 observations.' });
+            return;
+        }
         
         // Validate coordinate ranges
         const latValues = data.map(row => row[latCol]);
@@ -308,7 +310,7 @@ export default function SpatialAutoregressiveModelPage({
                 <>
                     {!results.converged && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Convergence Warning</AlertTitle><AlertDescription>The model did not converge. Results may be unreliable.</AlertDescription></Alert>}
                     
-                    <Card><CardHeader><CardTitle>Spatial Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I:</span><Badge variant={Math.abs(results.diagnostics.morans_i) > 0.3 ? 'default' : 'secondary'}>{results.diagnostics.morans_i.toFixed(4)}</Badge></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle>Spatial Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I:</span><Badge variant={Math.abs(results.diagnostics.morans_i) > 0.1 ? 'default' : 'secondary'}>{results.diagnostics.morans_i.toFixed(4)}</Badge></div></CardContent></Card>
                     
                     <Card>
                         <CardHeader><CardTitle>Model Coefficients</CardTitle><CardDescription>Spatial autoregressive parameter (ρ) and regression coefficients (β)</CardDescription></CardHeader>
@@ -325,13 +327,13 @@ export default function SpatialAutoregressiveModelPage({
                                     {Object.entries(results.coefficients).map(([param, value]) => (
                                         <TableRow key={param}>
                                             <TableCell className="font-medium">
-                                                {param === 'rho' ? 'ρ (rho)' : param}
+                                                {param === 'rho_' ? 'ρ (rho)' : param}
                                             </TableCell>
                                             <TableCell className="text-right font-mono">
                                                 {value.toFixed(6)}
                                             </TableCell>
                                             <TableCell className="text-right text-sm text-muted-foreground">
-                                                {param === 'rho' 
+                                                {param === 'rho_' 
                                                     ? value > 0 
                                                         ? 'Positive spatial dependence' 
                                                         : 'Negative spatial dependence'
@@ -352,3 +354,4 @@ export default function SpatialAutoregressiveModelPage({
         </div>
     );
 }
+
