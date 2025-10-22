@@ -139,6 +139,7 @@ import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-pa
 import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
+import RddPage from './pages/rdd-page';
 
 
 const analysisCategories = [
@@ -273,6 +274,7 @@ const analysisCategories = [
         { id: 'instrumental-variable-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
         { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares (2SLS)', icon: Repeat, component: TwoStageLeastSquaresPage },
         { id: 'did', label: 'Difference-in-Differences', icon: GitCommit, component: DidPage },
+        { id: 'rdd', label: 'Regression Discontinuity', icon: GitCommit, component: RddPage },
         { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
         { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
         { id: 'geographically-weighted-regression', label: 'Geographically Weighted Regression', icon: Map, component: GeographicallyWeightedRegressionPage },
@@ -617,3 +619,5 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+    
