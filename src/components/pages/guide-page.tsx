@@ -73,8 +73,8 @@ export default function GuidePage() {
 
       <Tabs defaultValue="byCategory">
         <TabsList>
-          <TabsTrigger value="byCategory">분야별 (By Field)</TabsTrigger>
-          <TabsTrigger value="byAnalysis">분석별 (By Analysis)</TabsTrigger>
+          <TabsTrigger value="byCategory">By Field</TabsTrigger>
+          <TabsTrigger value="byAnalysis">By Analysis</TabsTrigger>
         </TabsList>
         <TabsContent value="byCategory">
           <Card>
