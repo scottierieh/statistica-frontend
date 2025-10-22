@@ -147,7 +147,7 @@ const Mindmap: React.FC = () => {
         
         d3.select(svgRef.current).selectAll("*").remove();
 
-        const margin = {top: 20, right: 120, bottom: 20, left: 120};
+        const margin = {top: 20, right: 120, bottom: 20, left: 240};
         const width = 1200 - margin.left - margin.right;
         const height = 800 - margin.top - margin.bottom;
         
@@ -320,4 +320,3 @@ const Mindmap: React.FC = () => {
 }
 
 export default Mindmap;
-
