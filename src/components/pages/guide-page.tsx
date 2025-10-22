@@ -4,6 +4,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube
 } from "lucide-react";
@@ -60,53 +61,88 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
     return acc;
 }, {} as Record<string, typeof analysisMethods>);
 
-
 export default function GuidePage() {
-    return (
-        <div className="space-y-6">
-             <Card className="bg-gradient-to-br from-primary/10 to-background">
-                <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Statistica Guide</CardTitle>
-                    <CardDescription>A comprehensive reference for all available statistical analysis methods.</CardDescription>
-                </CardHeader>
-            </Card>
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-br from-primary/10 to-background">
+        <CardHeader>
+          <CardTitle className="font-headline text-3xl">Statistica Guide</CardTitle>
+          <CardDescription>A comprehensive reference for all available statistical analysis methods.</CardDescription>
+        </CardHeader>
+      </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Available Analysis Methods</CardTitle>
-                    <CardDescription>A comprehensive suite of tools for any research question.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-1/6">Category</TableHead>
-                                <TableHead className="w-1/6">Analysis Method</TableHead>
-                                <TableHead className="w-1/3">Purpose / Description</TableHead>
-                                <TableHead className="w-1/3">Typical Use Case</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {Object.entries(groupedMethods).map(([category, methods]) => (
-                                <React.Fragment key={category}>
-                                    {methods.map((method, index) => (
-                                        <TableRow key={method.method}>
-                                            {index === 0 && (
-                                                <TableCell rowSpan={methods.length} className="align-top font-semibold">
-                                                    {category}
-                                                </TableCell>
-                                            )}
-                                            <TableCell>{method.method}</TableCell>
-                                            <TableCell>{method.purpose}</TableCell>
-                                            <TableCell>{method.useCase}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </React.Fragment>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
-    );
+      <Tabs defaultValue="byCategory">
+        <TabsList>
+          <TabsTrigger value="byCategory">분야별 (By Field)</TabsTrigger>
+          <TabsTrigger value="byAnalysis">분석별 (By Analysis)</TabsTrigger>
+        </TabsList>
+        <TabsContent value="byCategory">
+          <Card>
+            <CardHeader>
+              <CardTitle>Analysis Methods by Field</CardTitle>
+              <CardDescription>Find the right tool for your research question, grouped by statistical area.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-1/6">Category</TableHead>
+                    <TableHead className="w-1/6">Analysis Method</TableHead>
+                    <TableHead className="w-1/3">Purpose / Description</TableHead>
+                    <TableHead className="w-1/3">Typical Use Case</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(groupedMethods).map(([category, methods]) => (
+                    <React.Fragment key={category}>
+                      {methods.map((method, index) => (
+                        <TableRow key={method.method}>
+                          {index === 0 && (
+                            <TableCell rowSpan={methods.length} className="align-top font-semibold">
+                              {category}
+                            </TableCell>
+                          )}
+                          <TableCell>{method.method}</TableCell>
+                          <TableCell>{method.purpose}</TableCell>
+                          <TableCell>{method.useCase}</TableCell>
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="byAnalysis">
+           <Card>
+            <CardHeader>
+              <CardTitle>All Analysis Methods</CardTitle>
+              <CardDescription>A complete list of all available statistical analyses.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Analysis Method</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Purpose</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analysisMethods.sort((a,b) => a.method.localeCompare(b.method)).map((method) => (
+                      <TableRow key={method.method}>
+                        <TableCell className="font-semibold">{method.method}</TableCell>
+                        <TableCell>{method.category}</TableCell>
+                        <TableCell>{method.purpose}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
