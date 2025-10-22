@@ -185,6 +185,24 @@ export default function SpatialErrorModelPage({
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required variables.' });
             return;
         }
+        if (data.length < 10) {
+            toast({ variant: 'destructive', title: 'Insufficient Data', description: 'SAR models require at least 10 observations.' });
+            return;
+        }
+        
+        // Validate coordinate ranges
+        const latValues = data.map(row => row[latCol]);
+        const lonValues = data.map(row => row[lonCol]);
+        
+        if (latValues.some(v => typeof v !== 'number' || v < -90 || v > 90)) {
+            toast({ variant: 'destructive', title: 'Invalid Latitude', description: 'Latitude must be between -90 and 90.' });
+            return;
+        }
+        if (lonValues.some(v => typeof v !== 'number' || v < -180 || v > 180)) {
+            toast({ variant: 'destructive', title: 'Invalid Longitude', description: 'Longitude must be between -180 and 180.' });
+            return;
+        }
+        
         setIsLoading(true);
         setAnalysisResult(null);
 
@@ -192,15 +210,29 @@ export default function SpatialErrorModelPage({
             const response = await fetch('/api/analysis/spatial-error-model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, y_col: yCol, x_cols: xCols, lat_col: latCol, lon_col: lonCol, w_method: wMethod, k_neighbors: kNeighbors, distance_threshold: distanceThreshold })
+                body: JSON.stringify({ 
+                    data, 
+                    y_col: yCol, 
+                    x_cols: xCols, 
+                    lat_col: latCol, 
+                    lon_col: lonCol,
+                    w_method: wMethod,
+                    k_neighbors: kNeighbors,
+                    distance_threshold: distanceThreshold
+                })
             });
 
-            if (!response.ok) throw new Error((await response.json()).error || 'API error');
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || 'API error');
+            }
+            
             const result = await response.json();
             if (result.error) throw new Error(result.error);
             
             setAnalysisResult(result);
             toast({ title: 'Analysis Complete', description: 'SEM model has been fitted successfully.' });
+            
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
@@ -233,16 +265,18 @@ export default function SpatialErrorModelPage({
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    {/* Variable Selection */}
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div><Label>Dependent (Y)</Label><Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue placeholder="Select Y"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label>Latitude</Label><Select value={latCol} onValueChange={setLatCol}><SelectTrigger><SelectValue placeholder="Select Latitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label>Longitude</Label><Select value={lonCol} onValueChange={setLonCol}><SelectTrigger><SelectValue placeholder="Select Longitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Dependent (Y)</Label><Select value={yCol} onValueChange={v => setYCol(v)}><SelectTrigger><SelectValue placeholder="Select Y"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Latitude</Label><Select value={latCol} onValueChange={v => setLatCol(v)}><SelectTrigger><SelectValue placeholder="Select Latitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Longitude</Label><Select value={lonCol} onValueChange={v => setLonCol(v)}><SelectTrigger><SelectValue placeholder="Select Longitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
                             <Label>Independent (X)</Label>
                             <ScrollArea className="h-24 border rounded-md p-2 bg-background"><div className="space-y-1">{availableFeatures.map(h => (<div key={h} className="flex items-center space-x-2"><Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} /><Label htmlFor={`x-${h}`} className="text-sm cursor-pointer">{h}</Label></div>))}</div></ScrollArea>
                         </div>
                     </div>
                     
+                    {/* Spatial Weights Configuration */}
                     <div className="border-t pt-4">
                         <h4 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary"/>Spatial Weights Matrix</h4>
                         <div className="grid md:grid-cols-3 gap-4">

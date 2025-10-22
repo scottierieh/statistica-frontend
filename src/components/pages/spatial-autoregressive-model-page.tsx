@@ -1,6 +1,6 @@
-'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+'use client';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -140,7 +140,6 @@ export default function SpatialAutoregressiveModelPage({
     const [kNeighbors, setKNeighbors] = useState(5);
     const [distanceThreshold, setDistanceThreshold] = useState(50);
     
-    // Analysis state
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
@@ -172,8 +171,7 @@ export default function SpatialAutoregressiveModelPage({
                     h.toLowerCase().includes(k)
                 )
             );
-            setXCols(autoXCols.slice(0, 3)); // Auto-select first 3 features
-            
+            setXCols(autoXCols.slice(0, 3));
             setView('main');
         } else {
             setView('intro');
@@ -185,22 +183,10 @@ export default function SpatialAutoregressiveModelPage({
         setXCols(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
-    const validateInputs = useCallback(() => {
-        if (!yCol) {
-            toast({ variant: 'destructive', title: 'Missing Dependent Variable', description: 'Please select a Y variable.' });
-            return false;
-        }
-        if (xCols.length === 0) {
-            toast({ variant: 'destructive', title: 'Missing Independent Variables', description: 'Please select at least one X variable.' });
-            return false;
-        }
-        if (!latCol || !lonCol) {
-            toast({ variant: 'destructive', title: 'Missing Coordinates', description: 'Please select both latitude and longitude columns.' });
-            return false;
-        }
-        if (data.length < 10) {
-            toast({ variant: 'destructive', title: 'Insufficient Data', description: 'SAR models require at least 10 observations.' });
-            return false;
+    const handleAnalysis = useCallback(async () => {
+        if (!yCol || xCols.length === 0 || !latCol || !lonCol) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required variables.' });
+            return;
         }
         
         // Validate coordinate ranges
@@ -209,18 +195,12 @@ export default function SpatialAutoregressiveModelPage({
         
         if (latValues.some(v => typeof v !== 'number' || v < -90 || v > 90)) {
             toast({ variant: 'destructive', title: 'Invalid Latitude', description: 'Latitude must be between -90 and 90.' });
-            return false;
+            return;
         }
         if (lonValues.some(v => typeof v !== 'number' || v < -180 || v > 180)) {
             toast({ variant: 'destructive', title: 'Invalid Longitude', description: 'Longitude must be between -180 and 180.' });
-            return false;
+            return;
         }
-        
-        return true;
-    }, [data, yCol, xCols, latCol, lonCol, toast]);
-
-    const handleAnalysis = useCallback(async () => {
-        if (!validateInputs()) return;
         
         setIsLoading(true);
         setAnalysisResult(null);
@@ -257,10 +237,18 @@ export default function SpatialAutoregressiveModelPage({
         } finally {
             setIsLoading(false);
         }
-    }, [data, yCol, xCols, latCol, lonCol, wMethod, kNeighbors, distanceThreshold, validateInputs, toast]);
+    }, [data, yCol, xCols, latCol, lonCol, wMethod, kNeighbors, distanceThreshold, toast]);
+
+    const handleLoadExampleData = () => {
+        const sarExample = exampleDatasets.find(ex => ex.id === 'spatial-autoregressive-data');
+        if (sarExample) {
+            onLoadExample(sarExample);
+            setView('main');
+        }
+    };
 
     if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
     
     const results = analysisResult?.results;
@@ -271,12 +259,7 @@ export default function SpatialAutoregressiveModelPage({
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle className="font-headline">SAR Model Configuration</CardTitle>
-                            <CardDescription className="mt-1">
-                                Configure variables and spatial weights matrix
-                            </CardDescription>
-                        </div>
+                        <CardTitle className="font-headline">SAR Model Configuration</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}>
                             <HelpCircle className="w-5 h-5"/>
                         </Button>
@@ -285,51 +268,12 @@ export default function SpatialAutoregressiveModelPage({
                 <CardContent className="space-y-6">
                     {/* Variable Selection */}
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div><Label>Dependent (Y)</Label><Select value={yCol} onValueChange={v => setYCol(v)}><SelectTrigger><SelectValue placeholder="Select Y"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Latitude</Label><Select value={latCol} onValueChange={v => setLatCol(v)}><SelectTrigger><SelectValue placeholder="Select Latitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Longitude</Label><Select value={lonCol} onValueChange={v => setLonCol(v)}><SelectTrigger><SelectValue placeholder="Select Longitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
-                            <Label>Dependent Variable (Y)</Label>
-                            <Select value={yCol} onValueChange={v => setYCol(v)}>
-                                <SelectTrigger><SelectValue placeholder="Select Y"/></SelectTrigger>
-                                <SelectContent>
-                                    {numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Latitude</Label>
-                            <Select value={latCol} onValueChange={v => setLatCol(v)}>
-                                <SelectTrigger><SelectValue placeholder="Select Latitude"/></SelectTrigger>
-                                <SelectContent>
-                                    {numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Longitude</Label>
-                            <Select value={lonCol} onValueChange={v => setLonCol(v)}>
-                                <SelectTrigger><SelectValue placeholder="Select Longitude"/></SelectTrigger>
-                                <SelectContent>
-                                    {numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Independent Variables (X)</Label>
-                            <ScrollArea className="h-24 border rounded-md p-2 bg-background">
-                                {availableFeatures.length > 0 ? (
-                                    availableFeatures.map(h => (
-                                        <div key={h} className="flex items-center space-x-2 py-1">
-                                            <Checkbox 
-                                                id={`x-${h}`} 
-                                                checked={xCols.includes(h)} 
-                                                onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} 
-                                            />
-                                            <Label htmlFor={`x-${h}`} className="text-sm cursor-pointer">{h}</Label>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-xs text-muted-foreground">No features available</p>
-                                )}
-                            </ScrollArea>
+                            <Label>Independent (X)</Label>
+                            <ScrollArea className="h-24 border rounded-md p-2 bg-background"><div className="space-y-1">{availableFeatures.map(h => (<div key={h} className="flex items-center space-x-2"><Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} /><Label htmlFor={`x-${h}`} className="text-sm cursor-pointer">{h}</Label></div>))}</div></ScrollArea>
                         </div>
                     </div>
                     
@@ -340,44 +284,9 @@ export default function SpatialAutoregressiveModelPage({
                             Spatial Weights Matrix Configuration
                         </h4>
                         <div className="grid md:grid-cols-3 gap-4">
-                            <div>
-                                <Label>Method</Label>
-                                <Select value={wMethod} onValueChange={(v) => setWMethod(v as any)}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="knn">K-Nearest Neighbors</SelectItem>
-                                        <SelectItem value="distance">Inverse Distance</SelectItem>
-                                        <SelectItem value="threshold">Distance Threshold</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            
-                            {wMethod === 'knn' && (
-                                <div>
-                                    <Label>Number of Neighbors (k)</Label>
-                                    <Input 
-                                        type="number" 
-                                        value={kNeighbors} 
-                                        onChange={(e) => setKNeighbors(Math.max(1, Math.min(20, +e.target.value)))} 
-                                        min={1} 
-                                        max={20}
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1">Typical: 4-8 neighbors</p>
-                                </div>
-                            )}
-                            
-                            {wMethod === 'threshold' && (
-                                <div>
-                                    <Label>Distance Threshold (km)</Label>
-                                    <Input 
-                                        type="number" 
-                                        value={distanceThreshold} 
-                                        onChange={(e) => setDistanceThreshold(Math.max(1, +e.target.value))} 
-                                        min={1}
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1">Points within this distance are neighbors</p>
-                                </div>
-                            )}
+                            <div><Label>Method</Label><Select value={wMethod} onValueChange={(v) => setWMethod(v as any)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="knn">K-Nearest Neighbors</SelectItem><SelectItem value="distance">Inverse Distance</SelectItem><SelectItem value="threshold">Distance Threshold</SelectItem></SelectContent></Select></div>
+                            {wMethod === 'knn' && <div><Label>Neighbors (k)</Label><Input type="number" value={kNeighbors} onChange={(e) => setKNeighbors(Math.max(1, Math.min(20, +e.target.value)))} min={1} max={20}/></div>}
+                            {wMethod === 'threshold' && <div><Label>Threshold (km)</Label><Input type="number" value={distanceThreshold} onChange={(e) => setDistanceThreshold(Math.max(1, +e.target.value))} min={1}/></div>}
                         </div>
                     </div>
                 </CardContent>
@@ -395,75 +304,14 @@ export default function SpatialAutoregressiveModelPage({
             {/* Loading State */}
             {isLoading && <Skeleton className="h-96 w-full" />}
             
-            {/* Results */}
             {results && (
                 <>
-                    {/* Convergence Alert */}
-                    {!results.converged && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Convergence Warning</AlertTitle>
-                            <AlertDescription>
-                                The optimization algorithm did not converge. Results may be unreliable. 
-                                Try adjusting the spatial weights method or check your data for issues.
-                            </AlertDescription>
-                        </Alert>
-                    )}
+                    {!results.converged && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Convergence Warning</AlertTitle><AlertDescription>The model did not converge. Results may be unreliable.</AlertDescription></Alert>}
                     
-                    {results.converged && (
-                        <Alert>
-                            <CheckCircle2 className="h-4 w-4" />
-                            <AlertTitle>Model Converged Successfully</AlertTitle>
-                            <AlertDescription>
-                                The SAR model has been fitted successfully with {results.n_obs} observations.
-                            </AlertDescription>
-                        </Alert>
-                    )}
+                    <Card><CardHeader><CardTitle>Spatial Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I:</span><Badge variant={Math.abs(results.diagnostics.morans_i) > 0.3 ? 'default' : 'secondary'}>{results.diagnostics.morans_i.toFixed(4)}</Badge></div></CardContent></Card>
                     
-                    {/* Diagnostics Card */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Spatial Diagnostics</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium">Moran's I:</span>
-                                        <Badge variant={Math.abs(results.diagnostics.morans_i) > 0.3 ? 'default' : 'secondary'}>
-                                            {results.diagnostics.morans_i.toFixed(4)}
-                                        </Badge>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        {results.diagnostics.morans_i > 0.3 
-                                            ? 'Strong positive spatial autocorrelation detected'
-                                            : results.diagnostics.morans_i < -0.3
-                                            ? 'Strong negative spatial autocorrelation detected'
-                                            : 'Weak or no spatial autocorrelation'}
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium">Spatial Weights:</span>
-                                        <Badge variant="outline">
-                                            {results.diagnostics.spatial_weights_method.toUpperCase()}
-                                            {results.diagnostics.k_neighbors && ` (k=${results.diagnostics.k_neighbors})`}
-                                            {results.diagnostics.distance_threshold && ` (${results.diagnostics.distance_threshold}km)`}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    {/* Coefficients Table */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Model Coefficients</CardTitle>
-                            <CardDescription>
-                                Spatial autoregressive parameter (ρ) and regression coefficients (β)
-                            </CardDescription>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Model Coefficients</CardTitle><CardDescription>Spatial autoregressive parameter (ρ) and regression coefficients (β)</CardDescription></CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
@@ -498,36 +346,9 @@ export default function SpatialAutoregressiveModelPage({
                         </CardContent>
                     </Card>
                     
-                    {/* Model Fit Statistics */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Model Fit Statistics</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-4 gap-4">
-                                <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">Log-Likelihood</p>
-                                    <p className="text-2xl font-bold">{results.log_likelihood.toFixed(2)}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">AIC</p>
-                                    <p className="text-2xl font-bold">{results.aic.toFixed(2)}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">BIC</p>
-                                    <p className="text-2xl font-bold">{results.bic.toFixed(2)}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">σ² (Residual Variance)</p>
-                                    <p className="text-2xl font-bold">{results.sigma2.toFixed(4)}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <Card><CardHeader><CardTitle>Model Fit Statistics</CardTitle></CardHeader><CardContent><div className="grid md:grid-cols-4 gap-4 text-center"><div><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{results.aic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{results.bic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{results.log_likelihood.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">σ²</p><p className="text-2xl font-bold">{results.sigma2.toFixed(4)}</p></div></div></CardContent></Card>
                 </>
             )}
         </div>
     );
 }
-
-
