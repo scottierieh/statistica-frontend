@@ -185,6 +185,48 @@ class SurvivalAnalyzer:
         self.results['cox_ph'] = summary_df.to_dict('records')
         self.results['cox_concordance'] = cph.concordance_index_
 
+    def weibull_aft(self):
+        """
+        Perform Weibull Accelerated Failure Time (AFT) model analysis
+        """
+        if not LIFELINES_AVAILABLE:
+            raise ImportError("Weibull AFT requires lifelines library")
+
+        if not self.covariates:
+            return self
+
+        aft_data = self.data[[self.duration_col, self.event_col] + self.covariates].dropna()
+        categorical_covariates = [c for c in self.covariates if aft_data[c].dtype == 'object' or aft_data[c].dtype == 'category']
+        if categorical_covariates:
+            aft_data = pd.get_dummies(aft_data, columns=categorical_covariates, drop_first=True)
+
+        wf = WeibullAFTFitter()
+        wf.fit(aft_data, duration_col=self.duration_col, event_col=self.event_col)
+
+        self.results['aft_weibull'] = wf.summary.reset_index().to_dict('records')
+        return self
+
+    def lognormal_aft(self):
+        """
+        Perform Log-normal Accelerated Failure Time (AFT) model analysis
+        """
+        if not LIFELINES_AVAILABLE:
+            raise ImportError("Log-normal AFT requires lifelines library")
+
+        if not self.covariates:
+            return self
+
+        aft_data = self.data[[self.duration_col, self.event_col] + self.covariates].dropna()
+        categorical_covariates = [c for c in self.covariates if aft_data[c].dtype == 'object' or aft_data[c].dtype == 'category']
+        if categorical_covariates:
+            aft_data = pd.get_dummies(aft_data, columns=categorical_covariates, drop_first=True)
+
+        lnf = LogNormalAFTFitter()
+        lnf.fit(aft_data, duration_col=self.duration_col, event_col=self.event_col)
+
+        self.results['aft_lognormal'] = lnf.summary.reset_index().to_dict('records')
+        return self
+
         return self
 
     def plot_all(self):
@@ -277,6 +319,8 @@ def main():
         
         if covariates:
             analyzer.cox_regression()
+            analyzer.weibull_aft()
+            analyzer.lognormal_aft()
 
         plot_image = analyzer.plot_all()
 

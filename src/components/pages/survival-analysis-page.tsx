@@ -32,7 +32,7 @@ interface LogRankResult {
 
 interface CoxSummaryRow {
     covariate: string;
-    exp_coef: number; // Hazard Ratio
+    'exp(coef)': number; // Hazard Ratio
     'exp(coef) lower 95%': number;
     'exp(coef) upper 95%': number;
     p: number;
@@ -207,13 +207,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
                 </CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Covariate</TableHead>
-                                <TableHead className="text-right">exp(coef)</TableHead>
-                                <TableHead className="text-right">p-value</TableHead>
-                            </TableRow>
-                        </TableHeader>
+                        <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead className="text-right">exp(coef)</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {aftResults.map(row => (
                                 <TableRow key={row.param}>
@@ -360,7 +354,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
                                                 {results.cox_ph.map(row => (
                                                     <TableRow key={row.covariate}>
                                                         <TableCell>{row.covariate}</TableCell>
-                                                        <TableCell className="font-mono text-right">{row.exp_coef?.toFixed(3)}</TableCell>
+                                                        <TableCell className="font-mono text-right">{row['exp(coef)']?.toFixed(3)}</TableCell>
                                                         <TableCell className="font-mono text-right">[{row['exp(coef) lower 95%']?.toFixed(3)}, {row['exp(coef) upper 95%']?.toFixed(3)}]</TableCell>
                                                         <TableCell className="font-mono text-right">{row.p < 0.001 ? '<.001' : row.p?.toFixed(3)}</TableCell>
                                                     </TableRow>
