@@ -72,12 +72,23 @@ export default function GuidePage() {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="byCategory">
+      <Tabs defaultValue="mindmap">
         <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
           <TabsTrigger value="byCategory">By Field</TabsTrigger>
           <TabsTrigger value="byAnalysis">By Analysis</TabsTrigger>
-          <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
         </TabsList>
+        <TabsContent value="mindmap">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Statistical Analysis Techniques Mindmap</CardTitle>
+                    <CardDescription>An interactive visualization of the available analysis methods.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Mindmap />
+                </CardContent>
+            </Card>
+        </TabsContent>
         <TabsContent value="byCategory">
           <Card>
             <CardHeader>
@@ -143,17 +154,6 @@ export default function GuidePage() {
                 </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="mindmap">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Statistical Analysis Techniques Mindmap</CardTitle>
-                    <CardDescription>An interactive visualization of the available analysis methods.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Mindmap />
-                </CardContent>
-            </Card>
         </TabsContent>
       </Tabs>
     </div>
