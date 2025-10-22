@@ -308,14 +308,18 @@ export default function SpatialAutoregressiveModelPage({
             
             {results && (
                 <>
+                    {!results.converged && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Convergence Warning</AlertTitle><AlertDescription>The model did not converge. Results may be unreliable.</AlertDescription></Alert>}
+                    
                     <Card>
                         <CardHeader>
                             <CardTitle>AI Interpretation</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Alert variant={Math.abs(results.diagnostics.morans_i) > 0.1 ? 'default' : 'secondary'}>
+                             <Alert variant={Math.abs(results.diagnostics.morans_i) > 0.1 ? 'default' : 'secondary'}>
                                 <AlertTitle>Model Summary</AlertTitle>
-                                <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                {results.interpretation &&
+                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                }
                             </Alert>
                         </CardContent>
                     </Card>
