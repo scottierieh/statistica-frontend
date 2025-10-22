@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube
 } from "lucide-react";
+import Mindmap from '@/components/mindmap';
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview' },
@@ -72,9 +73,10 @@ export default function GuidePage() {
       </Card>
 
       <Tabs defaultValue="byCategory">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="byCategory">By Field</TabsTrigger>
           <TabsTrigger value="byAnalysis">By Analysis</TabsTrigger>
+          <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
         </TabsList>
         <TabsContent value="byCategory">
           <Card>
@@ -141,6 +143,17 @@ export default function GuidePage() {
                 </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="mindmap">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Statistical Analysis Techniques Mindmap</CardTitle>
+                    <CardDescription>An interactive visualization of the available analysis methods.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Mindmap />
+                </CardContent>
+            </Card>
         </TabsContent>
       </Tabs>
     </div>
