@@ -137,6 +137,7 @@ import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import GeographicallyWeightedRegressionPage from './pages/geographically-weighted-regression-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
+import DidPage from './pages/did-page';
 
 
 const analysisCategories = [
@@ -270,6 +271,7 @@ const analysisCategories = [
         { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
         { id: 'instrumental-variable-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
         { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares (2SLS)', icon: Repeat, component: TwoStageLeastSquaresPage },
+        { id: 'did', label: 'Difference-in-Differences', icon: GitCommit, component: DidPage },
         { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
         { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
         { id: 'geographically-weighted-regression', label: 'Geographically Weighted Regression', icon: Map, component: GeographicallyWeightedRegressionPage },
