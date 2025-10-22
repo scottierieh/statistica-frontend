@@ -25,10 +25,7 @@ except ImportError:
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
-            return None
-        return float(obj)
+    if isinstance(obj, np.floating): return float(obj) if np.isfinite(obj) else None
     elif isinstance(obj, np.ndarray): return obj.tolist()
     elif isinstance(obj, np.bool_): return bool(obj)
     elif isinstance(obj, pd.Timestamp): return obj.isoformat()
@@ -43,25 +40,10 @@ class SurvivalAnalyzer:
         self.data = None
         self.kmf = None
         self.cox_model = None
+        self.aft_model = None
         self.results = {}
     
     def load_data(self, data, duration_col, event_col, group_col=None, covariates=None):
-        """
-        Load survival data
-        
-        Parameters:
-        -----------
-        data : pd.DataFrame
-            Survival data
-        duration_col : str
-            Column name for survival time/duration
-        event_col : str
-            Column name for event indicator (1=event, 0=censored)
-        group_col : str, optional
-            Column name for grouping variable
-        covariates : list, optional
-            List of covariate column names
-        """
         self.data = data.copy()
         self.duration_col = duration_col
         self.event_col = event_col
@@ -84,17 +66,10 @@ class SurvivalAnalyzer:
         return self
     
     def kaplan_meier(self, confidence_interval=0.95):
-        """
-        Perform Kaplan-Meier survival analysis
-        """
-        if not LIFELINES_AVAILABLE:
-            raise ImportError("lifelines library not found. Please install it.")
+        if not LIFELINES_AVAILABLE: raise ImportError("lifelines library not found.")
         
-        # Overall survival curve
         kmf = KaplanMeierFitter()
-        kmf.fit(self.data[self.duration_col], 
-                self.data[self.event_col], 
-                alpha=1-confidence_interval)
+        kmf.fit(self.data[self.duration_col], self.data[self.event_col], alpha=1-confidence_interval)
         
         self.kmf = kmf
         self.results['kaplan_meier'] = {
@@ -104,27 +79,19 @@ class SurvivalAnalyzer:
             'timeline': kmf.timeline.tolist()
         }
         
-        # Group analysis if specified
         if self.group_col:
             self._kaplan_meier_by_group(confidence_interval)
         
         return self
     
-    
     def _kaplan_meier_by_group(self, confidence_interval=0.95):
-        """Kaplan-Meier analysis by groups"""
         groups = self.data[self.group_col].unique()
         group_results = {}
         
         for i, group in enumerate(groups):
             group_data = self.data[self.data[self.group_col] == group]
-            
             kmf_group = KaplanMeierFitter()
-            kmf_group.fit(group_data[self.duration_col], 
-                         group_data[self.event_col], 
-                         alpha=1-confidence_interval,
-                         label=f"{self.group_col}={group}")
-            
+            kmf_group.fit(group_data[self.duration_col], group_data[self.event_col], alpha=1-confidence_interval, label=f"{self.group_col}={group}")
             group_results[str(group)] = {
                 'survival_function': kmf_group.survival_function_.reset_index().to_dict('records'),
                 'confidence_interval': kmf_group.confidence_interval_.reset_index().to_dict('records'),
@@ -132,69 +99,64 @@ class SurvivalAnalyzer:
                 'n_events': int(group_data[self.event_col].sum()),
                 'n_subjects': len(group_data)
             }
-            
         self.results['kaplan_meier_grouped'] = group_results
         
-        # Perform log-rank test
         if len(groups) >= 2:
             self.log_rank_test()
     
     def log_rank_test(self):
-        """
-        Perform log-rank test to compare survival curves
-        """
-        if not self.group_col:
-            return self
-        
-        if not LIFELINES_AVAILABLE:
-            raise ImportError("lifelines library not found for log-rank test.")
+        if not self.group_col or not LIFELINES_AVAILABLE: return self
         
         groups = self.data[self.group_col].unique()
         
         if len(groups) >= 2:
-            results = multivariate_logrank_test(
-                self.data[self.duration_col],
-                self.data[self.group_col],
-                self.data[self.event_col]
-            )
-            
-            self.results['log_rank_test'] = {
-                'test_statistic': results.test_statistic,
-                'p_value': results.p_value,
-                'is_significant': results.p_value < 0.05
-            }
+            results = multivariate_logrank_test(self.data[self.duration_col], self.data[self.group_col], self.data[self.event_col])
+            self.results['log_rank_test'] = { 'test_statistic': results.test_statistic, 'p_value': results.p_value, 'is_significant': results.p_value < 0.05 }
         
         return self
     
-    def cox_regression(self, show_summary=True):
-        """
-        Perform Cox proportional hazards regression
-        """
-        if not LIFELINES_AVAILABLE:
-            raise ImportError("Cox regression requires lifelines library")
+    def cox_regression(self):
+        if not LIFELINES_AVAILABLE or not self.covariates: return self
         
-        
-        if not self.covariates:
-            return self
-        
-        # Prepare data - one-hot encode categorical covariates
         cox_data = self.data[[self.duration_col, self.event_col] + self.covariates].dropna()
-
-        categorical_covariates = [c for c in self.covariates if self.data[c].dtype == 'object' or self.data[c].dtype == 'category']
+        categorical_covariates = [c for c in self.covariates if cox_data[c].dtype == 'object' or cox_data[c].dtype == 'category']
+        
         if categorical_covariates:
             cox_data = pd.get_dummies(cox_data, columns=categorical_covariates, drop_first=True)
 
         self.used_covariates_cox = [c for c in cox_data.columns if c not in [self.duration_col, self.event_col]]
         
-        # Fit Cox model
         cph = CoxPHFitter()
         cph.fit(cox_data, duration_col=self.duration_col, event_col=self.event_col)
         
         self.cox_model = cph
         summary_df = cph.summary.reset_index()
-
         self.results['cox_ph'] = summary_df.to_dict('records')
         self.results['cox_concordance'] = cph.concordance_index_
+        return self
+
+    def aft_regression(self, model_type='weibull'):
+        if not LIFELINES_AVAILABLE or not self.covariates: return self
+        
+        aft_data = self.data[[self.duration_col, self.event_col] + self.covariates].dropna()
+        categorical_covariates = [c for c in self.covariates if aft_data[c].dtype == 'object' or aft_data[c].dtype == 'category']
+        
+        if categorical_covariates:
+            aft_data = pd.get_dummies(aft_data, columns=categorical_covariates, drop_first=True)
+            
+        self.used_covariates_aft = [c for c in aft_data.columns if c not in [self.duration_col, self.event_col]]
+
+        if model_type == 'weibull':
+            aft = WeibullAFTFitter()
+        elif model_type == 'lognormal':
+            aft = LogNormalAFTFitter()
+        else:
+            raise ValueError("Unsupported AFT model type. Use 'weibull' or 'lognormal'.")
+            
+        aft.fit(aft_data, duration_col=self.duration_col, event_col=self.event_col)
+        self.aft_model = aft
+        summary_df = aft.summary.reset_index()
+        self.results[f'aft_{model_type}'] = summary_df.to_dict('records')
 
         return self
 
@@ -202,61 +164,55 @@ class SurvivalAnalyzer:
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         fig.suptitle('Survival Analysis Overview', fontsize=16, fontweight='bold')
         
-        # 1. Overall Survival Curve
         if self.kmf:
             self.kmf.plot_survival_function(ax=axes[0, 0], ci_show=True)
             axes[0, 0].set_title('Kaplan-Meier Survival Curve')
-            axes[0, 0].grid(True, alpha=0.3)
             median_survival = self.kmf.median_survival_time_
             if not np.isnan(median_survival):
                 axes[0, 0].axvline(median_survival, color='red', linestyle='--', alpha=0.7, label=f'Median: {median_survival:.2f}')
             axes[0,0].legend()
-
-
-        # 2. Cumulative Hazard
+        
         naf = NelsonAalenFitter()
         naf.fit(self.data[self.duration_col], event_observed=self.data[self.event_col])
         naf.plot_cumulative_hazard(ax=axes[0, 1], ci_show=True)
         axes[0, 1].set_title('Cumulative Hazard Function')
-        axes[0, 1].grid(True, alpha=0.3)
 
-        # 3. Grouped Survival Curves
         if self.group_col and 'kaplan_meier_grouped' in self.results:
-            groups = self.data[self.group_col].unique()
-            for group in groups:
+            for group in self.data[self.group_col].unique():
                 group_data = self.data[self.data[self.group_col] == group]
                 kmf_group = KaplanMeierFitter()
                 kmf_group.fit(group_data[self.duration_col], event_observed=group_data[self.event_col], label=str(group))
                 kmf_group.plot_survival_function(ax=axes[1, 0])
             axes[1, 0].set_title(f'Survival Curves by {self.group_col}')
             axes[1, 0].legend()
-            axes[1, 0].grid(True, alpha=0.3)
         else:
-             axes[1, 0].text(0.5, 0.5, 'No group variable selected', ha='center', va='center', fontsize=12, color='gray')
+             axes[1, 0].text(0.5, 0.5, 'No group variable', ha='center')
              axes[1, 0].set_title('Grouped Survival Curves')
 
-        # 4. Risk Groups from Cox Model
         if self.cox_model and hasattr(self, 'used_covariates_cox'):
-            cox_data_for_pred = self.data[[self.duration_col, self.event_col] + self.covariates].dropna()
-            cox_data_for_pred = pd.get_dummies(cox_data_for_pred, columns=[c for c in self.covariates if self.data[c].dtype == 'object'], drop_first=True)
+            cox_data = self.data[[self.duration_col, self.event_col] + self.covariates].dropna()
+            categorical_covariates = [c for c in self.covariates if self.data[c].dtype == 'object']
+            if categorical_covariates:
+                cox_data = pd.get_dummies(cox_data, columns=categorical_covariates, drop_first=True)
             
-            risk_scores = self.cox_model.predict_partial_hazard(cox_data_for_pred[self.used_covariates_cox])
-            risk_groups = pd.qcut(risk_scores, q=[0, .33, .66, 1], labels=['Low Risk', 'Medium Risk', 'High Risk'])
-            cox_data_for_pred['risk_group'] = risk_groups
+            risk_scores = self.cox_model.predict_partial_hazard(cox_data[self.used_covariates_cox])
+            risk_groups = pd.qcut(risk_scores, q=[0, .33, .66, 1], labels=['Low', 'Medium', 'High'])
+            cox_data['risk_group'] = risk_groups
             
-            for group in ['Low Risk', 'Medium Risk', 'High Risk']:
-                group_df = cox_data_for_pred[cox_data_for_pred['risk_group'] == group]
+            for group in ['Low', 'Medium', 'High']:
+                group_df = cox_data[cox_data['risk_group'] == group]
                 if not group_df.empty:
-                    kmf_risk = KaplanMeierFitter()
-                    kmf_risk.fit(group_df[self.duration_col], group_df[self.event_col], label=group)
+                    kmf_risk = KaplanMeierFitter().fit(group_df[self.duration_col], group_df[self.event_col], label=group)
                     kmf_risk.plot_survival_function(ax=axes[1, 1])
             axes[1, 1].set_title('Survival by Risk Group (Cox Model)')
             axes[1, 1].legend()
-            axes[1, 1].grid(True, alpha=0.3)
         else:
-            axes[1, 1].text(0.5, 0.5, 'No covariates for Cox model', ha='center', va='center', fontsize=12, color='gray')
+            axes[1, 1].text(0.5, 0.5, 'No covariates for Cox model', ha='center')
             axes[1, 1].set_title('Survival by Risk Group')
 
+        for ax in axes.flatten():
+            ax.grid(True, alpha=0.3)
+            
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
         buf = io.BytesIO()
@@ -273,14 +229,26 @@ def main():
         event_col = payload.get('eventCol')
         group_col = payload.get('groupCol')
         covariates = payload.get('covariates', [])
+        model_type = payload.get('modelType', 'km')
 
         analyzer = SurvivalAnalyzer()
         analyzer.load_data(data, duration_col, event_col, group_col, covariates)
-        analyzer.kaplan_meier()
-        
-        if covariates:
-            analyzer.cox_regression()
 
+        if model_type == 'km':
+            analyzer.kaplan_meier()
+        elif model_type == 'cox':
+            analyzer.cox_regression()
+        elif model_type.startswith('aft_'):
+            aft_model = model_type.split('_')[1]
+            analyzer.aft_regression(model_type=aft_model)
+        else:
+            # Default to running all for general overview
+            analyzer.kaplan_meier()
+            if covariates:
+                analyzer.cox_regression()
+                analyzer.aft_regression('weibull')
+                analyzer.aft_regression('lognormal')
+        
         plot_image = analyzer.plot_all()
 
         response = {

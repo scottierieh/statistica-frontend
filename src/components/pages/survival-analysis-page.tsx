@@ -9,13 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, HeartPulse, CheckCircle, XCircle } from 'lucide-react';
+import { Sigma, Loader2, HeartPulse, CheckCircle, XCircle, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 
 interface SurvivalTableItem {
     Time: number;
@@ -36,6 +38,17 @@ interface CoxSummaryRow {
     p: number;
 }
 
+interface AftSummaryRow {
+    param: string;
+    coef: number;
+    'exp(coef)': number;
+    se_coef: number;
+    'coef lower 95%': number;
+    'coef upper 95%': number;
+    z: number;
+    p: number;
+}
+
 interface SurvivalResults {
     kaplan_meier: {
         survival_table: SurvivalTableItem[];
@@ -47,6 +60,8 @@ interface SurvivalResults {
     log_rank_test?: LogRankResult;
     cox_ph?: CoxSummaryRow[];
     cox_concordance?: number;
+    aft_weibull?: AftSummaryRow[];
+    aft_lognormal?: AftSummaryRow[];
 }
 
 interface FullAnalysisResponse {
@@ -84,12 +99,12 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
     }, [data, numericHeaders, binaryCategoricalHeaders]);
 
     useEffect(() => {
-        setDurationCol(undefined);
-        setEventCol(undefined);
+        setDurationCol(numericHeaders.find(h => h.toLowerCase().includes('tenure')));
+        setEventCol(binaryCategoricalHeaders.find(h => h.toLowerCase().includes('churn')));
         setGroupCol(undefined);
         setCovariates([]);
         setAnalysisResult(null);
-    }, [data]);
+    }, [data, numericHeaders, binaryCategoricalHeaders]);
 
     const availableGroupCols = useMemo(() => {
         return categoricalHeaders.filter(h => h !== eventCol);
@@ -182,12 +197,43 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
     
     const results = analysisResult?.results;
 
+    const renderAftTable = (modelName: string, aftResults: AftSummaryRow[] | undefined) => {
+        if (!aftResults) return null;
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">{modelName} AFT Model</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Covariate</TableHead>
+                                <TableHead className="text-right">exp(coef)</TableHead>
+                                <TableHead className="text-right">p-value</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {aftResults.map(row => (
+                                <TableRow key={row.param}>
+                                    <TableCell>{row.param}</TableCell>
+                                    <TableCell className="font-mono text-right">{row['exp(coef)'] !== undefined ? row['exp(coef)'].toFixed(3) : 'N/A'}</TableCell>
+                                    <TableCell className="font-mono text-right">{row.p !== undefined ? (row.p < 0.001 ? '<.001' : row.p.toFixed(3)) : 'N/A'}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        )
+    };
+
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Survival Analysis Setup</CardTitle>
-                    <CardDescription>Select variables for Kaplan-Meier and optional Cox regression analysis. The event column should have 1 for event observed, 0 for censored.</CardDescription>
+                    <CardDescription>Select variables for Kaplan-Meier, Cox regression, and AFT models.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -216,7 +262,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
                             </Select>
                         </div>
                          <div>
-                            <Label>Covariates (for Cox PH)</Label>
+                            <Label>Covariates (for Cox/AFT)</Label>
                             <ScrollArea className="h-24 border rounded-md p-2">
                                 <div className="space-y-1">
                                     {availableCovariates.map(h => (
@@ -250,102 +296,83 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders,
                         </CardContent>
                     </Card>
 
-                    <div className="grid md:grid-cols-3 gap-4">
-                         <Card>
-                            <CardHeader><CardTitle>Overall Median Survival</CardTitle></CardHeader>
-                            <CardContent>
-                                <p className="text-4xl font-bold font-mono">
-                                    {isFinite(results.kaplan_meier.median_survival_time) ? results.kaplan_meier.median_survival_time.toFixed(1) : 'Not Reached'}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    The time at which 50% of subjects are expected to have survived.
-                                </p>
-                            </CardContent>
-                        </Card>
-                        {results.log_rank_test && (
-                             <Card>
-                                <CardHeader><CardTitle>Log-Rank Test</CardTitle><CardDescription>Compares group survival curves</CardDescription></CardHeader>
-                                <CardContent>
-                                    {results.log_rank_test.is_significant ? (
-                                        <div className="flex items-center text-green-600"><CheckCircle className="mr-2"/> Significant difference found.</div>
-                                    ) : (
-                                         <div className="flex items-center text-orange-600"><XCircle className="mr-2"/> No significant difference.</div>
-                                    )}
-                                     <p className="font-mono text-sm mt-2">p = {results.log_rank_test.p_value.toFixed(4)}</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                        {results.kaplan_meier_grouped && (
-                            <Card>
-                                <CardHeader><CardTitle>Median Survival by Group</CardTitle></CardHeader>
-                                <CardContent>
-                                    <dl className="space-y-2">
-                                        {Object.entries(results.kaplan_meier_grouped).map(([group, res]) => (
-                                            <div key={group} className="flex justify-between text-sm">
-                                                <dt>{group}</dt>
-                                                <dd className="font-mono">{isFinite(res.median_survival) ? res.median_survival.toFixed(1) : 'Not Reached'}</dd>
-                                            </div>
-                                        ))}
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-                    
-                    <div className="grid lg:grid-cols-2 gap-4">
-                        <Card>
-                             <CardHeader><CardTitle>Survival Function Table</CardTitle></CardHeader>
-                             <CardContent>
-                                <ScrollArea className="h-80">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead className="text-right">Survival Probability</TableHead>
-                                            <TableHead className="text-right">95% CI Lower</TableHead>
-                                            <TableHead className="text-right">95% CI Upper</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {results.kaplan_meier.survival_table.map((row, i) => {
-                                            const ciRow = (results.kaplan_meier as any).confidence_interval.find((ci: any) => ci.timeline === row.Time);
-                                            return (
-                                                <TableRow key={i}>
-                                                    <TableCell>{row.Time}</TableCell>
-                                                    <TableCell className="text-right font-mono">{Object.values(row)[1].toFixed(3)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{ciRow ? Object.values(ciRow)[1].toFixed(3) : 'N/A'}</TableCell>
-                                                    <TableCell className="text-right font-mono">{ciRow ? Object.values(ciRow)[2].toFixed(3) : 'N/A'}</TableCell>
-                                                </TableRow>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
-                                </ScrollArea>
-                             </CardContent>
-                        </Card>
-                        {results.cox_ph && (
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Cox Proportional Hazards Model</CardTitle>
-                                    <CardDescription>Concordance: {results.cox_concordance?.toFixed(3)}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead className="text-right">Hazard Ratio</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {results.cox_ph.map(row => (
-                                                <TableRow key={row.covariate}>
-                                                    <TableCell>{row.covariate}</TableCell>
-                                                    <TableCell className="font-mono text-right">{row.exp_coef !== undefined ? row.exp_coef.toFixed(3) : 'N/A'}</TableCell>
-                                                    <TableCell className="font-mono text-right">{row.p !== undefined ? (row.p < 0.001 ? '<.001' : row.p.toFixed(3)) : 'N/A'}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
+                     <Tabs defaultValue="km" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="km">Kaplan-Meier</TabsTrigger>
+                            <TabsTrigger value="cox" disabled={!results.cox_ph}>Cox PH</TabsTrigger>
+                            <TabsTrigger value="aft_weibull" disabled={!results.aft_weibull}>Weibull AFT</TabsTrigger>
+                            <TabsTrigger value="aft_lognormal" disabled={!results.aft_lognormal}>Log-Normal AFT</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="km" className="mt-4 space-y-4">
+                             <div className="grid md:grid-cols-3 gap-4">
+                                <Card>
+                                    <CardHeader><CardTitle>Overall Median Survival</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <p className="text-4xl font-bold font-mono">
+                                            {isFinite(results.kaplan_meier.median_survival_time) ? results.kaplan_meier.median_survival_time.toFixed(1) : 'Not Reached'}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                                {results.log_rank_test && (
+                                    <Card>
+                                        <CardHeader><CardTitle>Log-Rank Test</CardTitle></CardHeader>
+                                        <CardContent>
+                                            {results.log_rank_test.is_significant ? (
+                                                <div className="flex items-center text-green-600"><CheckCircle className="mr-2"/> Significant</div>
+                                            ) : (
+                                                <div className="flex items-center text-orange-600"><XCircle className="mr-2"/> Not Significant</div>
+                                            )}
+                                            <p className="font-mono text-sm mt-2">p = {results.log_rank_test.p_value.toFixed(4)}</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                                {results.kaplan_meier_grouped && (
+                                    <Card>
+                                        <CardHeader><CardTitle>Median Survival by Group</CardTitle></CardHeader>
+                                        <CardContent>
+                                            <dl className="space-y-2 text-sm">
+                                                {Object.entries(results.kaplan_meier_grouped).map(([group, res]) => (
+                                                    <div key={group} className="flex justify-between">
+                                                        <dt>{group}</dt>
+                                                        <dd className="font-mono">{isFinite(res.median_survival) ? res.median_survival.toFixed(1) : 'Not Reached'}</dd>
+                                                    </div>
+                                                ))}
+                                            </dl>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="cox" className="mt-4">
+                            {results.cox_ph && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Cox Proportional Hazards Model</CardTitle>
+                                        <CardDescription>Concordance: {results.cox_concordance?.toFixed(3)}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead className="text-right">Hazard Ratio</TableHead><TableHead className="text-right">95% CI</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {results.cox_ph.map(row => (
+                                                    <TableRow key={row.covariate}>
+                                                        <TableCell>{row.covariate}</TableCell>
+                                                        <TableCell className="font-mono text-right">{row.exp_coef?.toFixed(3)}</TableCell>
+                                                        <TableCell className="font-mono text-right">[{row['exp(coef) lower 95%']?.toFixed(3)}, {row['exp(coef) upper 95%']?.toFixed(3)}]</TableCell>
+                                                        <TableCell className="font-mono text-right">{row.p < 0.001 ? '<.001' : row.p?.toFixed(3)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+                        <TabsContent value="aft_weibull" className="mt-4">{renderAftTable("Weibull", results.aft_weibull)}</TabsContent>
+                        <TabsContent value="aft_lognormal" className="mt-4">{renderAftTable("Log-Normal", results.aft_lognormal)}</TabsContent>
+                    </Tabs>
                 </div>
             )}
         </div>
