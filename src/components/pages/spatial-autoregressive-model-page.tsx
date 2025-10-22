@@ -31,6 +31,7 @@ interface SarResults {
         k_neighbors?: number;
         distance_threshold?: number;
     };
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -39,7 +40,6 @@ interface FullAnalysisResponse {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const sarExample = exampleDatasets.find(d => d.id === 'spatial-autoregressive-data');
-    
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -308,50 +308,27 @@ export default function SpatialAutoregressiveModelPage({
             
             {results && (
                 <>
-                    {!results.converged && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Convergence Warning</AlertTitle><AlertDescription>The model did not converge. Results may be unreliable.</AlertDescription></Alert>}
-                    
-                    <Card><CardHeader><CardTitle>Spatial Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I:</span><Badge variant={Math.abs(results.diagnostics.morans_i) > 0.1 ? 'default' : 'secondary'}>{results.diagnostics.morans_i.toFixed(4)}</Badge></div></CardContent></Card>
-                    
                     <Card>
-                        <CardHeader><CardTitle>Model Coefficients</CardTitle><CardDescription>Spatial autoregressive parameter (ρ) and regression coefficients (β)</CardDescription></CardHeader>
+                        <CardHeader>
+                            <CardTitle>AI Interpretation</CardTitle>
+                        </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Parameter</TableHead>
-                                        <TableHead className="text-right">Estimate</TableHead>
-                                        <TableHead className="text-right">Interpretation</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.coefficients).map(([param, value]) => (
-                                        <TableRow key={param}>
-                                            <TableCell className="font-medium">
-                                                {param === 'rho_' ? 'ρ (rho)' : param}
-                                            </TableCell>
-                                            <TableCell className="text-right font-mono">
-                                                {value.toFixed(6)}
-                                            </TableCell>
-                                            <TableCell className="text-right text-sm text-muted-foreground">
-                                                {param === 'rho_' 
-                                                    ? value > 0 
-                                                        ? 'Positive spatial dependence' 
-                                                        : 'Negative spatial dependence'
-                                                    : value > 0 
-                                                        ? 'Positive effect' 
-                                                        : 'Negative effect'}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <Alert variant={Math.abs(results.diagnostics.morans_i) > 0.1 ? 'default' : 'secondary'}>
+                                <AlertTitle>Model Summary</AlertTitle>
+                                <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                            </Alert>
                         </CardContent>
                     </Card>
                     
-                    <Card><CardHeader><CardTitle>Model Fit Statistics</CardTitle></CardHeader><CardContent><div className="grid md:grid-cols-4 gap-4 text-center"><div><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{results.aic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{results.bic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{results.log_likelihood.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">σ²</p><p className="text-2xl font-bold">{results.sigma2.toFixed(4)}</p></div></div></CardContent></Card>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card><CardHeader><CardTitle>Model Coefficients</CardTitle><CardDescription>Spatial lag (ρ) and regression coefficients (β)</CardDescription></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Parameter</TableHead><TableHead className="text-right">Estimate</TableHead></TableRow></TableHeader><TableBody>{Object.entries(results.coefficients).map(([param, value]) => (<TableRow key={param}><TableCell className="font-medium">{param === 'rho_' ? 'ρ (rho)' : param}</TableCell><TableCell className="text-right font-mono">{value.toFixed(6)}</TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
+                        <div className="space-y-4">
+                            <Card><CardHeader><CardTitle>Spatial Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I:</span><Badge variant={Math.abs(results.diagnostics.morans_i) > 0.1 ? 'default' : 'secondary'}>{results.diagnostics.morans_i.toFixed(4)}</Badge></div></CardContent></Card>
+                             <Card><CardHeader><CardTitle>Model Fit Statistics</CardTitle></CardHeader><CardContent><div className="grid grid-cols-2 gap-4 text-center"><div><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{results.aic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{results.bic.toFixed(2)}</p></div></div></CardContent></Card>
+                        </div>
+                    </div>
                 </>
             )}
         </div>
     );
 }
-

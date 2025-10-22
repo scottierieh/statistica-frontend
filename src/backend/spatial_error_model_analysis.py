@@ -73,6 +73,35 @@ def morans_i(y, W):
     if S0 == 0: return 0.0
     return (n / S0) * (numerator / denominator)
 
+def generate_interpretation(results):
+    lambda_ = results['coefficients'].get('lambda_', 0)
+    moran_i = results['diagnostics'].get('morans_i_ols_residuals', 0)
+    
+    interpretation = "### SEM Model Interpretation\n\n"
+    
+    # Lambda Interpretation
+    if abs(lambda_) > 0.1:
+        direction = "positive" if lambda_ > 0 else "negative"
+        strength = "strong" if abs(lambda_) > 0.5 else "moderate"
+        interpretation += f"- The spatial error coefficient (λ) is **{lambda_:.4f}**, indicating a **{strength} {direction} spatial autocorrelation** in the residuals. This confirms that unobserved factors influencing the outcome are spatially clustered.\n"
+    else:
+        interpretation += f"- The spatial error coefficient (λ) of **{lambda_:.4f}** is weak, suggesting that spatial autocorrelation in the error term is minimal.\n"
+        
+    # Moran's I Interpretation
+    if abs(moran_i) > 0.1:
+        direction = "positive" if moran_i > 0 else "negative"
+        interpretation += f"- Moran's I on the OLS residuals was **{moran_i:.4f}**, which initially suggested the presence of spatial autocorrelation and justified using a spatial error model.\n"
+    else:
+        interpretation += f"- Moran's I on the OLS residuals was low (**{moran_i:.4f}**), indicating that spatial error correlation was weak to begin with. The SEM results confirm this.\n"
+        
+    # Overall Model Fit
+    interpretation += f"- The model's fit statistics are AIC (**{results['aic']:.2f}**) and BIC (**{results['bic']:.2f}**). These are useful for comparing against other models like OLS or SAR to determine the best fit.\n"
+
+    # Conclusion
+    interpretation += "\n**Conclusion:** The SEM model explicitly accounts for the spatial patterns in the unobserved variables. The value of lambda indicates how strongly the errors of neighboring locations are related. This leads to more reliable estimates of the coefficients (β) compared to a standard OLS regression."
+    
+    return interpretation
+
 class SEMModel:
     def __init__(self):
         self.lambda_ = None
@@ -192,6 +221,8 @@ def main():
             }
         }
         
+        results['interpretation'] = generate_interpretation(results)
+
         print(json.dumps({'results': results}, default=_to_native_type))
         
     except Exception as e:

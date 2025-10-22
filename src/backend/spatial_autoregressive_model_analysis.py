@@ -20,7 +20,7 @@ def _to_native_type(obj):
     """NumPy 타입을 JSON 직렬화 가능한 타입으로 변환"""
     if isinstance(obj, np.integer):
         return int(obj)
-    if isinstance(obj, (np.floating, float)):
+    elif isinstance(obj, (np.floating, float)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
@@ -133,6 +133,34 @@ def morans_i(y, W):
     
     return I
 
+def generate_interpretation(results):
+    rho = results['coefficients'].get('rho_', 0)
+    moran_i = results['diagnostics'].get('morans_i', 0)
+    
+    interpretation = "### SAR Model Interpretation\n\n"
+    
+    # Rho Interpretation
+    if abs(rho) > 0.1:
+        direction = "positive" if rho > 0 else "negative"
+        strength = "strong" if abs(rho) > 0.5 else "moderate"
+        interpretation += f"- The spatial autoregressive coefficient (ρ) is **{rho:.4f}**, indicating a **{strength} {direction} spatial dependence**. This means that the value of the dependent variable in one location is significantly influenced by the values in its neighboring locations.\n"
+    else:
+        interpretation += f"- The spatial autoregressive coefficient (ρ) of **{rho:.4f}** is close to zero, suggesting weak or no spatial dependence in the dependent variable itself.\n"
+        
+    # Moran's I Interpretation
+    if abs(moran_i) > 0.1:
+        direction = "positive" if moran_i > 0 else "negative"
+        interpretation += f"- Moran's I of **{moran_i:.4f}** confirms the presence of **{direction} spatial autocorrelation** in the dependent variable, justifying the use of a spatial model over standard OLS.\n"
+    else:
+        interpretation += f"- Moran's I of **{moran_i:.4f}** is low, indicating little spatial autocorrelation. While the SAR model was run, a standard OLS regression might also be appropriate.\n"
+        
+    # Overall Model Fit
+    interpretation += f"- The model's fit is evaluated by AIC (**{results['aic']:.2f}**) and BIC (**{results['bic']:.2f}**). These values are useful for comparing this model to others (like SEM or OLS); lower values generally indicate a better fit.\n"
+
+    # Conclusion
+    interpretation += "\n**Conclusion:** The results suggest that spatial effects are an important component of the model. Standard regression that ignores these spatial relationships could lead to biased conclusions."
+    
+    return interpretation
 
 class SARModel:
     """Spatial Autoregressive (Lag) Model"""
@@ -303,6 +331,8 @@ def main():
             }
         }
         
+        results['interpretation'] = generate_interpretation(results)
+        
         print(json.dumps({'results': results}, default=_to_native_type))
         
     except Exception as e:
@@ -313,6 +343,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
