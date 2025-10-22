@@ -360,6 +360,15 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: tipsData
     },
     {
+        id: 'did-data',
+        name: 'Intervention Impact',
+        description: 'Outcome data for treatment and control groups before and after an intervention.',
+        icon: GitCommit,
+        analysisTypes: ['did'],
+        recommendedAnalysis: 'did',
+        data: didData,
+    },
+    {
         id: 'student-performance',
         name: 'Student Performance',
         description: 'Study hours, attendance, and previous scores vs. final exam scores.',

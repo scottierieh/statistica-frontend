@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
+import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight, Settings, FileSearch, CheckCircle, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface DidResults {
     model_summary_data: {
@@ -22,6 +23,7 @@ interface DidResults {
     pvalues: { [key: string]: number };
     rsquared: number;
     rsquared_adj: number;
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -180,6 +182,8 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
     }
     
     const results = analysisResult?.results;
+    const didPValue = results?.pvalues ? Object.entries(results.pvalues).find(([key]) => key.includes('DiD_Effect'))?.[1] : undefined;
+
 
     return (
         <div className="space-y-4">
@@ -216,6 +220,18 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
 
             {results && (
                 <div className="space-y-4">
+                     {results.interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                                <Alert variant={didPValue !== undefined && didPValue < 0.05 ? 'default' : 'secondary'}>
+                                    {didPValue !== undefined && didPValue < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                                    <AlertTitle>{didPValue !== undefined && didPValue < 0.05 ? "Significant Intervention Effect" : "No Significant Intervention Effect"}</AlertTitle>
+                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{__html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}}/>
+                                </Alert>
+                            </CardContent>
+                        </Card>
+                    )}
                     {analysisResult.plot && (
                         <Card>
                             <CardHeader><CardTitle className="font-headline">Interaction Plot</CardTitle></CardHeader>
@@ -250,3 +266,5 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
         </div>
     );
 }
+
+    
