@@ -149,9 +149,18 @@ export default function SpatialErrorModelPage({
 
     useEffect(() => {
         if (canRun) {
-            setYCol(numericHeaders.find(h => h.toLowerCase().includes('crime') || h.toLowerCase().includes('rate')) || numericHeaders[0]);
-            setLatCol(numericHeaders.find(h => h.toLowerCase().includes('lat')) || numericHeaders.find(h => h.toLowerCase().includes('y') && !h.toLowerCase().includes('year')));
-            setLonCol(numericHeaders.find(h => h.toLowerCase().includes('lon') || h.toLowerCase().includes('lng')) || numericHeaders.find(h => h.toLowerCase().includes('x') && !h.toLowerCase().includes('max')));
+            setYCol(
+                numericHeaders.find(h => h.toLowerCase().includes('crime') || h.toLowerCase().includes('rate')) ||
+                numericHeaders[0]
+            );
+            setLatCol(
+                numericHeaders.find(h => h.toLowerCase().includes('lat')) ||
+                numericHeaders.find(h => h.toLowerCase().includes('y') && !h.toLowerCase().includes('year'))
+            );
+            setLonCol(
+                numericHeaders.find(h => h.toLowerCase().includes('lon') || h.toLowerCase().includes('lng')) ||
+                numericHeaders.find(h => h.toLowerCase().includes('x') && !h.toLowerCase().includes('max'))
+            );
             
             const autoXCols = numericHeaders.filter(h => 
                 !['crime', 'rate', 'lat', 'lon', 'lng', 'latitude', 'longitude'].some(k => 
@@ -214,6 +223,7 @@ export default function SpatialErrorModelPage({
 
     return (
         <div className="space-y-4">
+            {/* Configuration Card */}
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
@@ -228,11 +238,12 @@ export default function SpatialErrorModelPage({
                         <div><Label>Longitude</Label><Select value={lonCol} onValueChange={setLonCol}><SelectTrigger><SelectValue placeholder="Select Longitude"/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
                             <Label>Independent (X)</Label>
-                            <ScrollArea className="h-24 border rounded-md p-2"><div className="space-y-1">{availableFeatures.map(h => (<div key={h} className="flex items-center space-x-2"><Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} /><Label htmlFor={`x-${h}`} className="text-sm cursor-pointer">{h}</Label></div>))}</div></ScrollArea>
+                            <ScrollArea className="h-24 border rounded-md p-2 bg-background"><div className="space-y-1">{availableFeatures.map(h => (<div key={h} className="flex items-center space-x-2"><Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} /><Label htmlFor={`x-${h}`} className="text-sm cursor-pointer">{h}</Label></div>))}</div></ScrollArea>
                         </div>
                     </div>
+                    
                     <div className="border-t pt-4">
-                        <h4 className="font-semibold mb-3">Spatial Weights</h4>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary"/>Spatial Weights Matrix</h4>
                         <div className="grid md:grid-cols-3 gap-4">
                             <div><Label>Method</Label><Select value={wMethod} onValueChange={(v) => setWMethod(v as any)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="knn">K-Nearest Neighbors</SelectItem><SelectItem value="distance">Inverse Distance</SelectItem><SelectItem value="threshold">Distance Threshold</SelectItem></SelectContent></Select></div>
                             {wMethod === 'knn' && <div><Label>Neighbors (k)</Label><Input type="number" value={kNeighbors} onChange={(e) => setKNeighbors(Math.max(1, Math.min(20, +e.target.value)))} min={1} max={20}/></div>}
@@ -247,21 +258,42 @@ export default function SpatialErrorModelPage({
                 </CardFooter>
             </Card>
 
-            {isLoading && <Skeleton className="h-96 w-full"/>}
+            {isLoading && <Skeleton className="h-96 w-full" />}
             
             {results && (
-                <div className="space-y-4">
+                <>
                     {!results.converged && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Convergence Warning</AlertTitle><AlertDescription>The model did not converge. Results may be unreliable.</AlertDescription></Alert>}
                     
                     <Card><CardHeader><CardTitle>Diagnostics</CardTitle></CardHeader><CardContent><div className="flex justify-between items-center"><span className="text-sm font-medium">Moran's I on OLS Residuals:</span><Badge variant={Math.abs(results.diagnostics.morans_i_ols_residuals) > 0.1 ? 'default' : 'secondary'}>{results.diagnostics.morans_i_ols_residuals.toFixed(4)}</Badge></div></CardContent></Card>
                     
                     <Card>
                         <CardHeader><CardTitle>Model Coefficients</CardTitle><CardDescription>Spatial error (λ) and regression coefficients (β)</CardDescription></CardHeader>
-                        <CardContent><Table><TableHeader><TableRow><TableHead>Parameter</TableHead><TableHead className="text-right">Estimate</TableHead></TableRow></TableHeader><TableBody>{Object.entries(results.coefficients).map(([param, value]) => (<TableRow key={param}><TableCell className="font-medium">{param === 'lambda' ? 'λ (lambda)' : param}</TableCell><TableCell className="text-right font-mono">{value.toFixed(6)}</TableCell></TableRow>))}</TableBody></Table></CardContent>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Parameter</TableHead>
+                                        <TableHead className="text-right">Estimate</TableHead>
+                                        <TableHead className="text-right">Interpretation</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(results.coefficients).map(([param, value]) => (
+                                        <TableRow key={param === 'lambda' ? 'lambda_' : param}>
+                                            <TableCell className="font-medium">{param === 'lambda' ? 'λ (lambda)' : param}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.toFixed(6)}</TableCell>
+                                            <TableCell className="text-right text-sm text-muted-foreground">
+                                                {param === 'lambda' ? (value > 0 ? 'Positive spatial error correlation' : 'Negative spatial error correlation') : (value > 0 ? 'Positive effect' : 'Negative effect')}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
                     
-                    <Card><CardHeader><CardTitle>Model Fit</CardTitle></CardHeader><CardContent><div className="grid md:grid-cols-4 gap-4 text-center"><div><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{results.aic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{results.bic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{results.log_likelihood.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">σ²</p><p className="text-2xl font-bold">{results.sigma2.toFixed(4)}</p></div></div></CardContent></Card>
-                </div>
+                    <Card><CardHeader><CardTitle>Model Fit Statistics</CardTitle></CardHeader><CardContent><div className="grid md:grid-cols-4 gap-4 text-center"><div><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{results.aic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{results.bic.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{results.log_likelihood.toFixed(2)}</p></div><div><p className="text-sm text-muted-foreground">σ²</p><p className="text-2xl font-bold">{results.sigma2.toFixed(4)}</p></div></div></CardContent></Card>
+                </>
             )}
         </div>
     );
