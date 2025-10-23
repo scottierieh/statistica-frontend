@@ -14,6 +14,7 @@ import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 
 interface AdfResult {
     adf_statistic: number;
