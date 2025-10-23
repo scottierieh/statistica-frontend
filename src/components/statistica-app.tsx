@@ -66,6 +66,9 @@ import {
   Download,
   Bot,
   BookOpen, // Import BookOpen icon
+  Building,
+  Award,
+  Truck
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -145,6 +148,10 @@ import VariabilityAnalysisPage from './pages/variability-analysis-page';
 import NpsPage from './pages/nps-page';
 import RoiAnalysisPage from './pages/roi-analysis-page';
 import RfmPage from './pages/rfm-page';
+import LinearProgrammingPage from './pages/linear-programming-page';
+import GoalProgrammingPage from './pages/goal-programming-page';
+import TransportationProblemPage from './pages/transportation-problem-page';
+import DeaPage from './pages/dea-page';
 
 
 const analysisCategories = [
@@ -310,6 +317,17 @@ const analysisCategories = [
         { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
         { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
       ],
+    },
+     {
+      name: 'Optimization',
+      icon: Target,
+      isSingle: true,
+      items: [
+        { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp, component: LinearProgrammingPage },
+        { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
+        { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
+        { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
+      ]
     },
 ];
 

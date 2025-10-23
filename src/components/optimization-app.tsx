@@ -11,18 +11,18 @@ import {
   SidebarTrigger,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenu,
-  SidebarGroupLabel
+  SidebarMenu
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   FileText,
   Loader2,
   TrendingUp,
-  Target,
+  Landmark,
+  Building,
   Truck,
-  Award,
-  Building
+  Award
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -31,6 +31,7 @@ import {
   unparseData,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
+import { getSummaryReport } from '@/app/actions';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
