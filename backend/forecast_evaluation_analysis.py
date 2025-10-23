@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.api import SimpleExpSmoothing, Holt, ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -19,25 +19,64 @@ def _to_native_type(obj):
         return float(obj)
     return obj
 
+def mean_absolute_percentage_error(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    # Avoid division by zero
+    non_zero_mask = y_true != 0
+    if not np.any(non_zero_mask):
+        return 0.0
+    return np.mean(np.abs((y_true[non_zero_mask] - y_pred[non_zero_mask]) / y_true[non_zero_mask])) * 100
+
+def mean_absolute_scaled_error(y_true, y_pred, y_train, seasonality=1):
+    mae_pred = mean_absolute_error(y_true, y_pred)
+    
+    # Naive seasonal forecast on training data
+    if len(y_train) <= seasonality:
+        return np.inf # Not enough data for naive forecast
+    
+    naive_forecast = y_train[:-seasonality]
+    actual_train = y_train[seasonality:]
+    mae_naive = mean_absolute_error(actual_train, naive_forecast)
+
+    if mae_naive == 0:
+        return np.inf
+    return mae_pred / mae_naive
+
+
 def fit_and_evaluate(model_name, model_func, train, test):
     try:
         model_fit = model_func(train).fit(disp=False)
-        forecast = model_fit.forecast(steps=len(test))
+        forecast_result = model_fit.get_forecast(steps=len(test))
+        forecast = forecast_result.predicted_mean
+        
+        conf_int = forecast_result.conf_int()
+        
         rmse = np.sqrt(mean_squared_error(test, forecast))
-        aic = getattr(model_fit, 'aic', None)
-        bic = getattr(model_fit, 'bic', None)
+        mae = mean_absolute_error(test, forecast)
+        mape = mean_absolute_percentage_error(test, forecast)
+        
+        seasonality = 1
+        if 'Holt-Winters' in model_name:
+            seasonality = 12 # Assume monthly seasonality for this model
+        elif 'SARIMA' in model_name:
+            seasonality = 12
+
+        mase = mean_absolute_scaled_error(test, forecast, train, seasonality=seasonality)
+
+        coverage = np.mean((test >= conf_int.iloc[:, 0]) & (test <= conf_int.iloc[:, 1])) * 100
+
         return {
-            "Model": model_name,
-            "AIC": _to_native_type(aic),
-            "BIC": _to_native_type(bic),
-            "RMSE": _to_native_type(rmse)
+            "Method": model_name,
+            "RMSE": _to_native_type(rmse),
+            "MAE": _to_native_type(mae),
+            "MAPE (%)": _to_native_type(mape),
+            "MASE": _to_native_type(mase),
+            "Coverage (95% PI)": _to_native_type(coverage)
         }
     except Exception as e:
         return {
-            "Model": model_name,
-            "AIC": None,
-            "BIC": None,
-            "RMSE": None,
+            "Method": model_name,
+            "RMSE": None, "MAE": None, "MAPE (%)": None, "MASE": None, "Coverage (95% PI)": None,
             "error": str(e)
         }
 
@@ -61,18 +100,36 @@ def main():
         # Split data into training and testing sets
         train, test = series[:-12], series[-12:]
 
+        # Define models to run
         models_to_run = {
-            "SES": lambda d: SimpleExpSmoothing(d, initialization_method="estimated"),
-            "Holt's Linear": lambda d: Holt(d, initialization_method="estimated"),
+            "SARIMA": lambda d: SARIMAX(d, order=(1,1,1), seasonal_order=(1,1,1,12), enforce_stationarity=False, enforce_invertibility=False),
             "Holt-Winters Add": lambda d: ExponentialSmoothing(d, seasonal_periods=12, trend='add', seasonal='add', initialization_method="estimated"),
-            "ARIMA(1,1,1)": lambda d: SARIMAX(d, order=(1,1,1)),
-            "SARIMA(1,1,1)(1,1,1)12": lambda d: SARIMAX(d, order=(1,1,1), seasonal_order=(1,1,1,12)),
+            "Simple Exp Smoothing": lambda d: SimpleExpSmoothing(d, initialization_method="estimated"),
+            "Holt's Linear": lambda d: Holt(d, initialization_method="estimated"),
         }
         
         results = []
         for name, func in models_to_run.items():
             result = fit_and_evaluate(name, func, train, test)
             results.append(result)
+
+        # Handle Naive Seasonal separately
+        try:
+            if len(train) >= 12:
+                naive_forecast = train.iloc[-12:].values
+                naive_rmse = np.sqrt(mean_squared_error(test, naive_forecast))
+                naive_mae = mean_absolute_error(test, naive_forecast)
+                naive_mape = mean_absolute_percentage_error(test, naive_forecast)
+                naive_mase = mean_absolute_scaled_error(test, naive_forecast, train, seasonality=12)
+                results.append({
+                    "Method": "Naive Seasonal", "RMSE": naive_rmse, "MAE": naive_mae, "MAPE (%)": naive_mape, "MASE": naive_mase, "Coverage (95% PI)": None
+                })
+            else:
+                 results.append({ "Method": "Naive Seasonal", "error": "Not enough data for 12-period seasonal naive forecast.", "RMSE": None, "MAE": None, "MAPE (%)": None, "MASE": None, "Coverage (95% PI)": None })
+
+        except Exception as e:
+             results.append({ "Method": "Naive Seasonal", "error": str(e), "RMSE": None, "MAE": None, "MAPE (%)": None, "MASE": None, "Coverage (95% PI)": None })
+
 
         response = {
             "results": results
@@ -85,3 +142,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
