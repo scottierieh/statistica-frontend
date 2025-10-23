@@ -7,16 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, LineChart as LineChartIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, LineChart as LineChartIcon } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Input } from '../ui/input';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
 
-interface AdfResult {
+interface TestResult {
     adf_statistic: number;
     adf_p_value: number;
     kpss_statistic: number;
@@ -24,7 +24,7 @@ interface AdfResult {
 }
 
 interface AnalysisSection {
-    test_results: AdfResult;
+    test_results: TestResult;
     plot: string;
 }
 
@@ -46,7 +46,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Stationarity Tests (ADF & KPSS)</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
                         Check if a time series has statistical properties (like mean and variance) that are constant over time.
                     </CardDescription>
                 </CardHeader>
@@ -80,8 +80,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>ADF Test:</strong> Checks for a unit root. A p-value &lt; 0.05 suggests the series is **stationary**.</li>
-                                <li><strong>KPSS Test:</strong> Checks for a trend or level stationarity. A p-value &lt; 0.05 suggests the series is **non-stationary**.</li>
+                                <li><strong>ADF Test:</strong> Checks for a unit root. A p-value &lt; 0.05 suggests the series is <strong>stationary</strong>.</li>
+                                <li><strong>KPSS Test:</strong> Checks for a trend or level stationarity. A p-value &lt; 0.05 suggests the series is <strong>non-stationary</strong>.</li>
                                 <li><strong>Decision:</strong> Combine both tests. If ADF is non-significant AND KPSS is significant, the series is likely non-stationary. If differencing makes the series stationary, this informs your modeling approach (e.g., the 'd' in ARIMA).</li>
                             </ul>
                         </div>
@@ -101,7 +101,7 @@ interface StationarityPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-const ResultRow = ({ title, results }: { title: string, results: AdfResult | null | undefined }) => {
+const ResultRow = ({ title, results }: { title: string, results: TestResult | null | undefined }) => {
     if (!results) return null;
     const adfStationary = results.adf_p_value <= 0.05;
     const kpssStationary = results.kpss_p_value > 0.05;
@@ -111,14 +111,14 @@ const ResultRow = ({ title, results }: { title: string, results: AdfResult | nul
     if (adfStationary && kpssStationary) {
         finalDecision = "Stationary";
         decisionColor = "bg-green-100 text-green-800";
-    } else if (!adfStationary && kpssStationary) {
-        finalDecision = "Non-Stationary (Unit Root)";
+    } else if (!adfStationary && !kpssStationary) {
+        finalDecision = "Non-Stationary";
         decisionColor = "bg-red-100 text-red-800";
     } else if (adfStationary && !kpssStationary) {
-        finalDecision = "Trend-Stationary (Differencing may be needed)";
+        finalDecision = "Trend-Stationary (Diff-Stat)";
         decisionColor = "bg-yellow-100 text-yellow-800";
-    } else { // !adfStationary && !kpssStationary
-        finalDecision = "Non-Stationary (Conflicting Results)";
+    } else { // !adfStationary && kpssStationary
+        finalDecision = "Non-Stationary (Unit Root)";
         decisionColor = "bg-orange-100 text-orange-800";
     }
     
@@ -126,9 +126,9 @@ const ResultRow = ({ title, results }: { title: string, results: AdfResult | nul
         <TableRow>
             <TableCell className="font-semibold">{title}</TableCell>
             <TableCell className="text-right font-mono">{results.adf_statistic.toFixed(3)}</TableCell>
-            <TableCell className={`text-right font-mono ${!adfStationary ? 'text-destructive' : 'text-green-600'}`}>{results.adf_p_value < 0.001 ? '<0.001' : results.adf_p_value.toFixed(3)}</TableCell>
+            <TableCell className={`text-right font-mono ${adfStationary ? 'text-green-600' : 'text-red-600'}`}>{results.adf_p_value < 0.001 ? '<0.001' : results.adf_p_value.toFixed(3)}</TableCell>
             <TableCell className="text-right font-mono">{results.kpss_statistic.toFixed(3)}</TableCell>
-            <TableCell className={`text-right font-mono ${kpssStationary ? 'text-green-600' : 'text-destructive'}`}>{results.kpss_p_value < 0.001 ? '<0.001' : results.kpss_p_value.toFixed(3)}</TableCell>
+            <TableCell className={`text-right font-mono ${kpssStationary ? 'text-green-600' : 'text-red-600'}`}>{results.kpss_p_value < 0.001 ? '<0.001' : results.kpss_p_value.toFixed(3)}</TableCell>
             <TableCell className="text-center"><Badge className={decisionColor}>{finalDecision}</Badge></TableCell>
         </TableRow>
     );
@@ -241,6 +241,11 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
                                 </TableBody>
                             </Table>
                         </CardContent>
+                         <CardFooter>
+                            <p className="text-xs text-muted-foreground">
+                                ADF Test: Lower p-value (&lt;0.05) suggests stationarity. | KPSS Test: Higher p-value (&gt;0.05) suggests stationarity.
+                            </p>
+                        </CardFooter>
                     </Card>
 
                     <div className="grid lg:grid-cols-3 gap-4">
@@ -262,4 +267,3 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
         </div>
     );
 }
-
