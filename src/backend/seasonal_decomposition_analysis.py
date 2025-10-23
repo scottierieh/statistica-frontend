@@ -68,9 +68,9 @@ def main():
         
         total_var = np.var(df[value_col])
         var_explained = {
-            'trend': np.var(trend) / total_var * 100 if total_var > 0 else 0,
-            'seasonal': np.var(seasonal) / total_var * 100 if total_var > 0 else 0,
-            'irregular': np.var(resid) / total_var * 100 if total_var > 0 else 0,
+            'trend': (np.var(trend) / total_var) * 100 if total_var > 0 else 0,
+            'seasonal': (np.var(seasonal) / total_var) * 100 if total_var > 0 else 0,
+            'irregular': (np.var(resid) / total_var) * 100 if total_var > 0 else 0,
         }
 
         decomposition_summary = [
@@ -140,3 +140,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
