@@ -123,7 +123,7 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
         setAnalysisResult(null);
 
         try {
-            const response = await fetch('/api/analysis/variability', {
+            const response = await fetch('src/app/api/variability/route.ts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ data, variables: selectedVars })

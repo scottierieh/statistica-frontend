@@ -1,59 +1,29 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
-    const scriptPath = path.resolve(process.cwd(), 'backend', 'variability_analysis.py');
-
-    const pythonProcess = spawn(pythonExecutable, [scriptPath]);
     
-    let result = '';
-    let error = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      result += data.toString();
+    // The Python backend is running as a separate FastAPI server
+    const response = await fetch('http://127.0.0.1:8000/api/variability', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
     });
 
-    pythonProcess.stderr.on('data', (data) => {
-      error += data.toString();
-    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `FastAPI server error: ${response.statusText}`);
+    }
 
-    pythonProcess.stdin.write(JSON.stringify(body));
-    pythonProcess.stdin.end();
-
-    return new Promise<NextResponse>((resolve) => {
-      pythonProcess.on('close', (code) => {
-        if (code !== 0) {
-          console.error(`Script exited with code ${code}`);
-          console.error(error);
-          try {
-            const errorJson = JSON.parse(error);
-            resolve(NextResponse.json({ error: errorJson.error || 'Unknown error occurred in Python script.' }, { status: 500 }));
-          } catch {
-             resolve(NextResponse.json({ error: `Script failed with non-JSON error: ${error}` }, { status: 500 }));
-          }
-        } else {
-          try {
-            const jsonResult = JSON.parse(result);
-            if (jsonResult.error) {
-              resolve(NextResponse.json({ error: jsonResult.error }, { status: 400 }));
-            } else {
-              resolve(NextResponse.json(jsonResult));
-            }
-          } catch(e) {
-            console.error('Failed to parse python script output for variability analysis');
-            console.error(result);
-            resolve(NextResponse.json({ error: `Failed to parse script output: ${result}` }, { status: 500 }));
-          }
-        }
-      });
-    });
+    const result = await response.json();
+    return NextResponse.json(result);
 
   } catch (e: any) {
+    console.error('Variability API route error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
