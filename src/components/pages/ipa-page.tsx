@@ -1,10 +1,11 @@
+
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, Flame, Star, Target as TargetIcon, TrendingDown, Sparkles, BarChart3, TrendingUp, Award, Info, HelpCircle, MoveRight, Settings, FileSearch, Users, Activity } from 'lucide-react';
+import { Loader2, AlertTriangle, Flame, Star, Target as TargetIcon, TrendingDown, Sparkles, Sigma } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -25,11 +26,8 @@ interface IpaMatrixItem {
     quadrant: string;
     priority_score: number;
     gap: number;
-    r_squared: number;
-    relative_importance: number;
-    performance_gap?: number;
-    improvement_priority_index?: number; 
-    beta?: number;
+    r_squared?: number;
+    relative_importance?: number;
 }
 
 interface RegressionSummary {
@@ -59,90 +57,23 @@ interface IpaPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-const quadrantConfig = {
-    'Q2: Concentrate Here': { icon: Flame, color: "text-red-600", bg: "bg-red-50", border: "border-red-200", action: "🎯 Urgent Action" },
-    'Q1: Keep Up Good Work': { icon: Star, color: "text-green-600", bg: "bg-green-50", border: "border-green-200", action: "✨ Maintain Excellence" },
-    'Q3: Low Priority': { icon: TargetIcon, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", action: "📊 Monitor" },
-    'Q4: Possible Overkill': { icon: TrendingDown, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", action: "⚖️ Re-allocate Resources" },
-};
-
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const ipaExample = exampleDatasets.find(d => d.id === 'ipa-restaurant');
-    return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-4xl shadow-lg">
-                <CardHeader className="text-center p-8">
-                    <CardTitle className="font-headline text-4xl font-bold flex items-center justify-center gap-3">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"><TargetIcon size={36} /></div>
-                        Importance-Performance Analysis (IPA)
-                    </CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground">A strategic tool to prioritize improvement areas by mapping attributes based on their perceived importance and performance.</CardDescription>
-                </CardHeader>
-                <CardContent className="px-8 py-10 space-y-8">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use IPA?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">IPA helps you identify which features or service aspects to focus on. By plotting attributes on a two-dimensional grid, you can quickly see what's working well, what needs urgent attention, what might be over-resourced, and what is a low priority.</p>
-                    </div>
-                    {ipaExample && (
-                        <div className="flex justify-center">
-                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ipaExample)}>
-                                <ipaExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div><h4 className="font-semibold">{ipaExample.name}</h4><p className="text-xs text-muted-foreground">{ipaExample.description}</p></div>
-                            </Card>
-                        </div>
-                    )}
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="font-semibold text-xl mb-4 flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ul className="list-decimal pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Dependent Variable:</strong> The overall outcome measure (e.g., 'Overall Satisfaction').</li>
-                                <li><strong>Independent Variables:</strong> The attributes whose performance you measured (e.g., 'Food Quality', 'Service').</li>
-                                <li><strong>Run Analysis:</strong> The tool calculates importance (via regression) and performance (mean score) to generate the IPA matrix.</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-xl mb-4 flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Keep Up the Good Work:</strong> High importance, high performance. Your strengths.</li>
-                                <li><strong>Concentrate Here:</strong> High importance, low performance. Critical weaknesses to fix now.</li>
-                                <li><strong>Low Priority:</strong> Low importance, low performance. Don't worry about these for now.</li>
-                                <li><strong>Possible Overkill:</strong> Low importance, high performance. You may be investing too many resources here.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="p-6 bg-muted/20 flex justify-end">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5" /></Button>
-                </CardFooter>
-            </Card>
-        </div>
-    );
-};
-
-
 export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPageProps) {
     const { toast } = useToast();
-    const [view, setView] = useState('intro');
     const [dependentVar, setDependentVar] = useState<string | undefined>();
     const [independentVars, setIndependentVars] = useState<string[]>([]);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-
-    useEffect(() => {
-        const overallSat = numericHeaders.find(h => h.toLowerCase().includes('overall'));
-        setDependentVar(overallSat || numericHeaders[numericHeaders.length - 1]);
-        setIndependentVars(numericHeaders.filter(h => h !== (overallSat || numericHeaders[numericHeaders.length - 1])));
-        setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
-    }, [data, numericHeaders, canRun]);
-    
     const availableIVs = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
     
     useEffect(() => {
-        setIndependentVars(prev => prev.filter(v => availableIVs.includes(v)));
-    }, [dependentVar, availableIVs]);
+        const overallSat = numericHeaders.find(h => h.toLowerCase().includes('overall'));
+        setDependentVar(overallSat || numericHeaders[numericHeaders.length - 1]);
+    }, [numericHeaders]);
+
+    useEffect(() => {
+        setIndependentVars(availableIVs);
+    }, [availableIVs]);
 
     const handleIVChange = (header: string, checked: boolean) => {
         setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -170,7 +101,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
             }
 
             const result: FullAnalysisResponse = await response.json();
-            if (result.error) throw new Error(result.error);
+            if ((result as any).error) throw new Error((result as any).error);
             setAnalysisResult(result);
             toast({ title: "Analysis Complete", description: "IPA results are ready." });
 
@@ -182,24 +113,13 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
         }
     }, [data, dependentVar, independentVars, toast]);
 
-    if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-    
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-
     const { results, main_plot, dashboard_plot } = analysisResult || {};
 
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">IPA Setup</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
-                    </div>
+                    <CardTitle className="font-headline">IPA Setup</CardTitle>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -241,3 +161,4 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
         </div>
     );
 }
+
