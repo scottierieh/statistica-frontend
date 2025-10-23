@@ -11,6 +11,7 @@ import { Sigma, Loader2, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface RfmResult {
     rfm_data: any[];
@@ -28,22 +29,24 @@ export default function RfmPage({ data, allHeaders, onLoadExample }: RfmPageProp
     const { toast } = useToast();
     const [customerIdCol, setCustomerIdCol] = useState<string | undefined>();
     const [invoiceDateCol, setInvoiceDateCol] = useState<string | undefined>();
-    const [monetaryCol, setMonetaryCol] = useState<string | undefined>();
+    const [unitPriceCol, setUnitPriceCol] = useState<string | undefined>();
+    const [quantityCol, setQuantityCol] = useState<string | undefined>();
     
     const [analysisResult, setAnalysisResult] = useState<RfmResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 3, [data, allHeaders]);
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
     
     useEffect(() => {
         setCustomerIdCol(allHeaders.find(h => h.toLowerCase().includes('customer')));
         setInvoiceDateCol(allHeaders.find(h => h.toLowerCase().includes('date')));
-        setMonetaryCol(allHeaders.find(h => ['price', 'revenue', 'amount'].some(k => h.toLowerCase().includes(k))));
+        setUnitPriceCol(allHeaders.find(h => ['price', 'unit_price'].some(k => h.toLowerCase().includes(k))));
+        setQuantityCol(allHeaders.find(h => h.toLowerCase().includes('quantity')));
         setAnalysisResult(null);
     }, [data, allHeaders]);
 
     const handleAnalysis = useCallback(async () => {
-        if (!customerIdCol || !invoiceDateCol || !monetaryCol) {
+        if (!customerIdCol || !invoiceDateCol || !unitPriceCol || !quantityCol) {
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required columns.' });
             return;
         }
@@ -66,7 +69,8 @@ export default function RfmPage({ data, allHeaders, onLoadExample }: RfmPageProp
                     data: analysisData, 
                     customer_id_col: customerIdCol, 
                     invoice_date_col: invoiceDateCol, 
-                    monetary_col: monetaryCol 
+                    unit_price_col: unitPriceCol,
+                    quantity_col: quantityCol
                 })
             });
 
@@ -86,7 +90,7 @@ export default function RfmPage({ data, allHeaders, onLoadExample }: RfmPageProp
         } finally {
             setIsLoading(false);
         }
-    }, [data, customerIdCol, invoiceDateCol, monetaryCol, toast]);
+    }, [data, customerIdCol, invoiceDateCol, unitPriceCol, quantityCol, toast]);
     
     const rfmExample = exampleDatasets.find(ex => ex.id === 'rfm-data');
 
@@ -97,7 +101,7 @@ export default function RfmPage({ data, allHeaders, onLoadExample }: RfmPageProp
                     <CardHeader>
                         <CardTitle className="font-headline">RFM Analysis</CardTitle>
                         <CardDescription>
-                           To perform RFM analysis, please upload transactional data with customer IDs, purchase dates, and monetary values.
+                           To perform RFM analysis, please upload transactional data with customer IDs, purchase dates, unit prices, and quantities.
                         </CardDescription>
                     </CardHeader>
                      {rfmExample && (
@@ -119,26 +123,50 @@ export default function RfmPage({ data, allHeaders, onLoadExample }: RfmPageProp
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">RFM Analysis Setup</CardTitle>
-                    <CardDescription>Map the columns for Recency, Frequency, and Monetary analysis.</CardDescription>
+                    <CardDescription>Map the columns for Recency, Frequency, and Monetary analysis. Total amount will be calculated as unit_price × quantity.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <Label>Customer ID Column</Label>
-                            <Select value={customerIdCol} onValueChange={setCustomerIdCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                            <Select value={customerIdCol} onValueChange={setCustomerIdCol}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div>
                             <Label>Invoice Date Column</Label>
-                            <Select value={invoiceDateCol} onValueChange={setInvoiceDateCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                            <Select value={invoiceDateCol} onValueChange={setInvoiceDateCol}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div>
-                            <Label>Monetary Value Column</Label>
-                            <Select value={monetaryCol} onValueChange={setMonetaryCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                            <Label>Unit Price Column</Label>
+                            <Select value={unitPriceCol} onValueChange={setUnitPriceCol}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Quantity Column</Label>
+                            <Select value={quantityCol} onValueChange={setQuantityCol}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || !customerIdCol || !invoiceDateCol || !monetaryCol}>
+                    <Button onClick={handleAnalysis} disabled={isLoading || !customerIdCol || !invoiceDateCol || !unitPriceCol || !quantityCol}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
                 </CardFooter>
@@ -192,3 +220,5 @@ export default function RfmPage({ data, allHeaders, onLoadExample }: RfmPageProp
         </div>
     );
 }
+
+

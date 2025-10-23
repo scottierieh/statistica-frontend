@@ -53,18 +53,24 @@ def main():
         data = payload.get('data')
         customer_id_col = payload.get('customer_id_col')
         invoice_date_col = payload.get('invoice_date_col')
-        monetary_col = payload.get('monetary_col')
+        unit_price_col = payload.get('unit_price_col')
+        quantity_col = payload.get('quantity_col')
 
-        if not all([data, customer_id_col, invoice_date_col, monetary_col]):
+        if not all([data, customer_id_col, invoice_date_col, unit_price_col, quantity_col]):
             raise ValueError("Missing data or required column names.")
 
         df = pd.DataFrame(data)
 
         # --- Data Cleaning and Preparation ---
         df[invoice_date_col] = pd.to_datetime(df[invoice_date_col])
-        df[monetary_col] = pd.to_numeric(df[monetary_col], errors='coerce')
-        df.dropna(subset=[customer_id_col, invoice_date_col, monetary_col], inplace=True)
-        df = df[df[monetary_col] > 0]
+        df[unit_price_col] = pd.to_numeric(df[unit_price_col], errors='coerce')
+        df[quantity_col] = pd.to_numeric(df[quantity_col], errors='coerce')
+        
+        # Calculate total amount (unit_price * quantity)
+        df['total_amount'] = df[unit_price_col] * df[quantity_col]
+        
+        df.dropna(subset=[customer_id_col, invoice_date_col, 'total_amount'], inplace=True)
+        df = df[df['total_amount'] > 0]
 
         if df.empty:
             raise ValueError("No valid data for RFM analysis after cleaning.")
@@ -75,13 +81,13 @@ def main():
         rfm = df.groupby(customer_id_col).agg({
             invoice_date_col: lambda date: (snapshot_date - date.max()).days,
             'invoice_no': 'nunique', # Assuming invoice_no exists for frequency
-            monetary_col: 'sum'
+            'total_amount': 'sum'
         })
         
         # Rename columns for clarity
         rfm.rename(columns={invoice_date_col: 'Recency', 
                              'invoice_no': 'Frequency', 
-                             monetary_col: 'Monetary'}, inplace=True)
+                             'total_amount': 'Monetary'}, inplace=True)
         
         # --- RFM Scoring (Quintiles) - FIXED VERSION ---
         # Use qcut with duplicates='drop' and then map to 1-5 scale dynamically

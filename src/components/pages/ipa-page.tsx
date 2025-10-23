@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, Flame, Star, Target as TargetIcon, TrendingDown, Sparkles, Sigma } from 'lucide-react';
+import { Loader2, Flame, Star, Target as TargetIcon, TrendingDown, Sparkles, Sigma } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
 import Image from 'next/image';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -132,6 +132,20 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
     const { results, main_plot, dashboard_plot } = analysisResult || {};
 
+    const quadrantColors = {
+        'Q1: Keep Up Good Work': 'bg-green-100 text-green-800',
+        'Q2: Concentrate Here': 'bg-red-100 text-red-800',
+        'Q3: Low Priority': 'bg-slate-100 text-slate-800',
+        'Q4: Possible Overkill': 'bg-amber-100 text-amber-800',
+    };
+    
+    const quadrantIcons = {
+        'Q1: Keep Up Good Work': <Star className="w-4 h-4 text-green-600" />,
+        'Q2: Concentrate Here': <Flame className="w-4 h-4 text-red-600" />,
+        'Q3: Low Priority': <TrendingDown className="w-4 h-4 text-slate-600" />,
+        'Q4: Possible Overkill': <Sparkles className="w-4 h-4 text-amber-600" />,
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -174,13 +188,47 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                 <Tabs defaultValue="dashboard">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                        <TabsTrigger value="matrix">IPA Matrix</TabsTrigger>
+                        <TabsTrigger value="matrix">IPA Matrix & Data</TabsTrigger>
                     </TabsList>
                     <TabsContent value="dashboard" className="mt-4">
-                        {dashboard_plot && <Card><CardHeader><CardTitle>Analysis Dashboard</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${dashboard_plot}`} alt="IPA Dashboard" width={1800} height={1200} className="w-full h-auto rounded-md border" /></CardContent></Card>}
+                        {dashboard_plot && <Card><CardHeader><CardTitle>Analysis Dashboard</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${dashboard_plot}`} alt="IPA Dashboard" width={1200} height={1200} className="w-full h-auto rounded-md border" /></CardContent></Card>}
                     </TabsContent>
                     <TabsContent value="matrix" className="mt-4">
-                        {main_plot && <Card><CardHeader><CardTitle>IPA Matrix</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${main_plot}`} alt="IPA Matrix" width={1000} height={800} className="w-full h-auto rounded-md border" /></CardContent></Card>}
+                         <div className="grid lg:grid-cols-2 gap-6">
+                            {main_plot && <Card><CardHeader><CardTitle>IPA Matrix</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${main_plot}`} alt="IPA Matrix" width={1000} height={800} className="w-full h-auto rounded-md border" /></CardContent></Card>}
+                             <Card>
+                                <CardHeader><CardTitle>IPA Data Table</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-[500px]">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Attribute</TableHead>
+                                                    <TableHead>Quadrant</TableHead>
+                                                    <TableHead className="text-right">Performance</TableHead>
+                                                    <TableHead className="text-right">Importance</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {results.ipa_matrix.map(item => (
+                                                    <TableRow key={item.attribute}>
+                                                        <TableCell className="font-medium">{item.attribute}</TableCell>
+                                                        <TableCell>
+                                                            <Badge className={quadrantColors[item.quadrant as keyof typeof quadrantColors]}>
+                                                                {quadrantIcons[item.quadrant as keyof typeof quadrantIcons]}
+                                                                <span className="ml-2">{item.quadrant}</span>
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-mono">{item.performance.toFixed(3)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{item.importance.toFixed(3)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </TabsContent>
                 </Tabs>
             )}
