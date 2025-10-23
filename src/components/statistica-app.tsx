@@ -141,6 +141,7 @@ import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
 import RddPage from './pages/rdd-page';
 import GuidePage from './pages/guide-page';
+import VariabilityAnalysisPage from './pages/variability-analysis-page';
 
 
 const analysisCategories = [
@@ -158,6 +159,7 @@ const analysisCategories = [
       items: [
         { id: 'descriptive-stats', label: 'Descriptive Statistics', icon: BarChart, component: DescriptiveStatisticsPage },
         { id: 'frequency-analysis', label: 'Frequency Analysis', icon: Users, component: FrequencyAnalysisPage },
+         { id: 'variability-analysis', label: 'Variability Analysis', icon: TrendingUp, component: VariabilityAnalysisPage },
       ],
     },
     {
@@ -539,7 +541,7 @@ export default function StatisticaApp() {
                 ) : (
                 <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                   <CollapsibleTrigger asChild>
-                     <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold text-foreground bg-muted/50">
+                     <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold text-foreground bg-muted">
                        <category.icon className="mr-2 h-5 w-5"/>
                        <span>{category.name}</span>
                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')}/>
