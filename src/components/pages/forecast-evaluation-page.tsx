@@ -152,9 +152,9 @@ export default function ForecastEvaluationPage({ data, allHeaders, onLoadExample
                                     {results.map((row) => (
                                         <TableRow key={row.Model}>
                                             <TableCell className="font-medium">{row.Model}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.AIC?.toFixed(2) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.BIC?.toFixed(2) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.RMSE?.toFixed(2) ?? 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.AIC != null ? row.AIC.toFixed(2) : 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.BIC != null ? row.BIC.toFixed(2) : 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.RMSE != null ? row.RMSE.toFixed(2) : 'N/A'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
