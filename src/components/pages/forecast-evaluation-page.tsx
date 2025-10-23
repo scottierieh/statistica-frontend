@@ -11,15 +11,16 @@ import { Sigma, Loader2, AreaChart, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, Bar as RechartsBar, CartesianGrid, Cell } from 'recharts';
-
+import { Badge } from '../ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface ModelResult {
-    Model: string;
-    AIC: number | null;
-    BIC: number | null;
+    Method: string;
     RMSE: number | null;
+    MAE: number | null;
+    "MAPE (%)": number | null;
+    MASE: number | null;
+    "Coverage (95% PI)": number | null;
     error?: string;
 }
 
@@ -86,6 +87,20 @@ export default function ForecastEvaluationPage({ data, allHeaders, onLoadExample
         }
     }, [data, timeCol, valueCol, toast]);
 
+    const findBestModel = (results: ModelResult[], metric: keyof ModelResult, lowerIsBetter: boolean) => {
+        const validResults = results.filter(r => r[metric] !== null && r[metric] !== undefined && !isNaN(r[metric] as number));
+        if (validResults.length === 0) return null;
+
+        const best = validResults.reduce((best, current) => {
+            if (lowerIsBetter) {
+                return (current[metric] as number) < (best[metric] as number) ? current : best;
+            } else {
+                return (current[metric] as number) > (best[metric] as number) ? current : best;
+            }
+        });
+        return best.Method;
+    };
+
     if (!canRun) {
         const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('arima'));
         return (
@@ -108,6 +123,18 @@ export default function ForecastEvaluationPage({ data, allHeaders, onLoadExample
     }
     
     const results = analysisResult?.results;
+    const bestRMSE = results ? findBestModel(results, 'RMSE', true) : null;
+    const bestMAE = results ? findBestModel(results, 'MAE', true) : null;
+    const bestMAPE = results ? findBestModel(results, 'MAPE (%)', true) : null;
+    const bestMASE = results ? findBestModel(results, 'MASE', true) : null;
+
+    const metricTooltips: Record<string, string> = {
+        RMSE: "Root Mean Squared Error. Lower is better. Sensitive to large errors.",
+        MAE: "Mean Absolute Error. Lower is better. Less sensitive to outliers than RMSE.",
+        "MAPE (%)": "Mean Absolute Percentage Error. Lower is better. Relative error measure.",
+        MASE: "Mean Absolute Scaled Error. Lower is better. Compares forecast to a naive seasonal forecast.",
+        "Coverage (95% PI)": "Coverage of 95% Prediction Interval. Closer to 95% is better."
+    };
 
     return (
         <div className="space-y-4">
@@ -132,69 +159,42 @@ export default function ForecastEvaluationPage({ data, allHeaders, onLoadExample
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {results && (
-                 <div className="grid lg:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 gap-4">
                     <Card className="lg:col-span-2">
                         <CardHeader>
-                            <CardTitle className="font-headline">Model Comparison</CardTitle>
-                            <CardDescription>Lower AIC, BIC, and RMSE generally indicate a better model fit.</CardDescription>
+                            <CardTitle className="font-headline">Forecast Accuracy Comparison</CardTitle>
+                            <CardDescription>Key metrics for evaluating model performance on the test set (last 12 periods).</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Model</TableHead>
-                                        <TableHead className="text-right">AIC</TableHead>
-                                        <TableHead className="text-right">BIC</TableHead>
-                                        <TableHead className="text-right">RMSE (Test Set)</TableHead>
+                                        <TableHead>Method</TableHead>
+                                        {Object.keys(results[0]).filter(k => k !== 'Method' && k !== 'error').map(metric => (
+                                            <TooltipProvider key={metric}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <TableHead className="text-right cursor-help">{metric}</TableHead>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent><p>{metricTooltips[metric] || metric}</p></TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ))}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {results.map((row) => (
-                                        <TableRow key={row.Model}>
-                                            <TableCell className="font-medium">{row.Model}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.AIC != null ? row.AIC.toFixed(2) : 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.BIC != null ? row.BIC.toFixed(2) : 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.RMSE != null ? row.RMSE.toFixed(2) : 'N/A'}</TableCell>
+                                        <TableRow key={row.Method}>
+                                            <TableCell className="font-medium">{row.Method}</TableCell>
+                                            <TableCell className={`text-right font-mono ${row.Method === bestRMSE ? 'font-bold text-green-600' : ''}`}>{row.RMSE != null ? row.RMSE.toFixed(2) : 'N/A'}</TableCell>
+                                            <TableCell className={`text-right font-mono ${row.Method === bestMAE ? 'font-bold text-green-600' : ''}`}>{row.MAE != null ? row.MAE.toFixed(2) : 'N/A'}</TableCell>
+                                            <TableCell className={`text-right font-mono ${row.Method === bestMAPE ? 'font-bold text-green-600' : ''}`}>{row['MAPE (%)'] != null ? row['MAPE (%)'].toFixed(1) : 'N/A'}</TableCell>
+                                            <TableCell className={`text-right font-mono ${row.Method === bestMASE ? 'font-bold text-green-600' : ''}`}>{row.MASE != null ? row.MASE.toFixed(2) : 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row['Coverage (95% PI)'] != null ? `${row['Coverage (95% PI)'].toFixed(1)}%` : 'N/A'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader><CardTitle className="text-base">RMSE Comparison</CardTitle></CardHeader>
-                        <CardContent>
-                            <ChartContainer config={{}} className="w-full h-80">
-                                <ResponsiveContainer>
-                                    <RechartsBarChart data={results.filter(r => r.RMSE !== null)} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" />
-                                        <YAxis type="category" dataKey="Model" width={100} />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <RechartsBar dataKey="RMSE" name="RMSE" fill="hsl(var(--chart-1))" />
-                                    </RechartsBarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader><CardTitle className="text-base">AIC/BIC Comparison</CardTitle></CardHeader>
-                        <CardContent>
-                             <ChartContainer config={{}} className="w-full h-80">
-                                <ResponsiveContainer>
-                                    <RechartsBarChart data={results.filter(r => r.AIC !== null)}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="Model" tick={{fontSize: 10}} />
-                                        <YAxis />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Legend />
-                                        <RechartsBar dataKey="AIC" fill="hsl(var(--chart-2))" />
-                                        <RechartsBar dataKey="BIC" fill="hsl(var(--chart-3))" />
-                                    </RechartsBarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
                         </CardContent>
                     </Card>
                 </div>
