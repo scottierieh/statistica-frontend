@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -201,4 +202,3 @@ export default function ForecastEvaluationPage({ data, allHeaders, onLoadExample
         </div>
     );
 }
-
