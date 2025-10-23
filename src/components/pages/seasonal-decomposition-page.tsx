@@ -7,13 +7,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, TableIcon } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+
+interface DecompositionSummary {
+    component: string;
+    strength: number | null;
+    variance_explained: number;
+}
+
+interface SeasonalPattern {
+    month: string;
+    seasonal_index: number;
+    deviation: number;
+}
 
 interface TrendResults {
+    decomposition_summary: DecompositionSummary[];
+    seasonal_pattern: SeasonalPattern[];
     trend: { [key: string]: number | string }[];
     seasonal: { [key: string]: number | string }[];
     resid: { [key: string]: number | string }[];
@@ -35,7 +50,7 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
     const [model, setModel] = useState('additive');
-    const [period, setPeriod] = useState<number>(7);
+    const [period, setPeriod] = useState<number>(12);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -136,6 +151,16 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
         );
     }
     
+    const results = analysisResult?.results;
+
+    const getInterpretation = (deviation: number): string => {
+        if (deviation > 10) return "Significant peak";
+        if (deviation > 5) return "Notable increase";
+        if (deviation < -10) return "Significant decline";
+        if (deviation < -5) return "Notable decline";
+        return "Near average";
+    };
+
     return (
         <div className="space-y-4">
             <Card>
@@ -172,16 +197,81 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult?.plot && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Time Series Decomposition</CardTitle>
-                        <CardDescription>The original series decomposed into trend, seasonal, and residual components.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Image src={analysisResult.plot} alt="Time Series Decomposition Plot" width={1200} height={1000} className="w-full rounded-md border"/>
-                    </CardContent>
-                </Card>
+            {results && analysisResult?.plot && (
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Time Series Decomposition Plot</CardTitle>
+                            <CardDescription>The original series decomposed into trend, seasonal, and residual components.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Image src={analysisResult.plot} alt="Time Series Decomposition Plot" width={1200} height={1000} className="w-full rounded-md border"/>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Seasonal Decomposition Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Component</TableHead>
+                                        <TableHead className="text-right">Strength</TableHead>
+                                        <TableHead className="text-right">Variance Explained</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {results.decomposition_summary?.map(item => (
+                                        <TableRow key={item.component}>
+                                            <TableCell className="font-medium">{item.component}</TableCell>
+                                            <TableCell className="text-right font-mono">{item.strength !== null ? item.strength.toFixed(2) : "-"}</TableCell>
+                                            <TableCell className="text-right font-mono">{item.variance_explained.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                             <div className="mt-4 p-4 bg-muted/50 rounded-md text-sm text-muted-foreground">
+                                <p><strong>Strength of Trend:</strong> Indicates how much of the variation is explained by the trend. Values close to 1 mean a strong trend.</p>
+                                <p><strong>Strength of Seasonality:</strong> Indicates how much of the variation is due to the seasonal component. Values close to 1 mean strong seasonality.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {results.seasonal_pattern && results.seasonal_pattern.length > 0 && (
+                        <Card>
+                             <CardHeader>
+                                <CardTitle>Seasonal Pattern Analysis</CardTitle>
+                             </CardHeader>
+                             <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Month</TableHead>
+                                            <TableHead className="text-right">Seasonal Index</TableHead>
+                                            <TableHead className="text-right">% Deviation</TableHead>
+                                            <TableHead>Interpretation</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.seasonal_pattern.map(item => (
+                                            <TableRow key={item.month}>
+                                                <TableCell>{item.month}</TableCell>
+                                                <TableCell className="text-right font-mono">{item.seasonal_index.toFixed(2)}</TableCell>
+                                                <TableCell className={`text-right font-mono ${item.deviation > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {item.deviation > 0 ? '+' : ''}{item.deviation.toFixed(1)}%
+                                                </TableCell>
+                                                <TableCell>{getInterpretation(item.deviation)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </CardContent>
+                        </Card>
+                    )}
+
+                </div>
             )}
         </div>
     );
