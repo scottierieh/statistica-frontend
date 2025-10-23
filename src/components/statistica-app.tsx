@@ -142,6 +142,7 @@ import DidPage from './pages/did-page';
 import RddPage from './pages/rdd-page';
 import GuidePage from './pages/guide-page';
 import VariabilityAnalysisPage from './pages/variability-analysis-page';
+import NpsPage from './pages/nps-page';
 
 
 const analysisCategories = [
@@ -288,6 +289,7 @@ const analysisCategories = [
         items: [
             { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
             { id: 'turf', label: 'TURF Analysis', icon: ThumbsUp, component: TurfPage },
+            { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
         ],
     },
     {
@@ -541,7 +543,7 @@ export default function StatisticaApp() {
                 ) : (
                 <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                   <CollapsibleTrigger asChild>
-                     <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold text-foreground bg-muted">
+                     <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold bg-muted text-foreground">
                        <category.icon className="mr-2 h-5 w-5"/>
                        <span>{category.name}</span>
                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')}/>
