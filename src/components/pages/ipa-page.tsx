@@ -12,7 +12,6 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label as RechartsLabel } from 'recharts';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -38,10 +37,6 @@ interface RegressionSummary {
 
 interface IpaResults {
     ipa_matrix: IpaMatrixItem[];
-    means: {
-        performance: number;
-        importance: number;
-    };
     regression_summary: RegressionSummary;
 }
 
@@ -74,6 +69,8 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     useEffect(() => {
         setIndependentVars(availableIVs);
     }, [availableIVs]);
+    
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
     const handleIVChange = (header: string, checked: boolean) => {
         setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -106,12 +103,32 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
             toast({ title: "Analysis Complete", description: "IPA results are ready." });
 
         } catch (e: any) {
-            setError(e.message);
-            toast({ title: "Analysis Error", description: e.message, variant: "destructive" });
+            toast({ title: "Analysis Error", description: (e as Error).message, variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
     }, [data, dependentVar, independentVars, toast]);
+    
+    if (!canRun) {
+        const ipaExample = exampleDatasets.find(d => d.id === 'ipa-restaurant');
+        return (
+            <div className="flex flex-1 items-center justify-center">
+                <Card className="w-full max-w-lg text-center">
+                    <CardHeader>
+                        <CardTitle>Importance-Performance Analysis (IPA)</CardTitle>
+                        <CardDescription>
+                            To perform IPA, please upload data with at least two numeric variables.
+                        </CardDescription>
+                    </CardHeader>
+                    {ipaExample && (
+                        <CardContent>
+                            <Button onClick={() => onLoadExample(ipaExample)}>Load Restaurant Satisfaction Data</Button>
+                        </CardContent>
+                    )}
+                </Card>
+            </div>
+        )
+    }
 
     const { results, main_plot, dashboard_plot } = analysisResult || {};
 
@@ -120,6 +137,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">IPA Setup</CardTitle>
+                    <CardDescription>Select the dependent and independent variables for the analysis.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -153,12 +171,19 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
             {isLoading && <Skeleton className="w-full h-96" />}
 
             {results && (
-                <div className="space-y-6">
-                    {main_plot && <Card><CardHeader><CardTitle>IPA Matrix</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${main_plot}`} alt="IPA Matrix" width={1000} height={800} className="w-full h-auto rounded-md border" /></CardContent></Card>}
-                    {dashboard_plot && <Card><CardHeader><CardTitle>Analysis Dashboard</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${dashboard_plot}`} alt="IPA Dashboard" width={1800} height={1200} className="w-full h-auto rounded-md border" /></CardContent></Card>}
-                </div>
+                <Tabs defaultValue="dashboard">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                        <TabsTrigger value="matrix">IPA Matrix</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="dashboard" className="mt-4">
+                        {dashboard_plot && <Card><CardHeader><CardTitle>Analysis Dashboard</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${dashboard_plot}`} alt="IPA Dashboard" width={1800} height={1200} className="w-full h-auto rounded-md border" /></CardContent></Card>}
+                    </TabsContent>
+                    <TabsContent value="matrix" className="mt-4">
+                        {main_plot && <Card><CardHeader><CardTitle>IPA Matrix</CardTitle></CardHeader><CardContent><Image src={`data:image/png;base64,${main_plot}`} alt="IPA Matrix" width={1000} height={800} className="w-full h-auto rounded-md border" /></CardContent></Card>}
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
 }
-
