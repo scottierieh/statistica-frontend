@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface DecompositionSummary {
     component: string;
@@ -276,3 +277,4 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
         </div>
     );
 }
+
