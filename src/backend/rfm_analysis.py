@@ -83,10 +83,48 @@ def main():
                              'invoice_no': 'Frequency', 
                              monetary_col: 'Monetary'}, inplace=True)
         
-        # --- RFM Scoring (Quintiles) ---
-        rfm['R_Score'] = pd.qcut(rfm['Recency'], 5, labels=[5, 4, 3, 2, 1], duplicates='drop').astype(int)
-        rfm['F_Score'] = pd.qcut(rfm['Frequency'].rank(method='first'), 5, labels=[1, 2, 3, 4, 5]).astype(int)
-        rfm['M_Score'] = pd.qcut(rfm['Monetary'], 5, labels=[1, 2, 3, 4, 5]).astype(int)
+        # --- RFM Scoring (Quintiles) - FIXED VERSION ---
+        # Use qcut with duplicates='drop' and then map to 1-5 scale dynamically
+        try:
+            r_bins = pd.qcut(rfm['Recency'], 5, duplicates='drop')
+            r_labels = sorted(r_bins.cat.categories, reverse=True)
+            r_score_map = {label: score for score, label in enumerate(r_labels, 1)}
+            rfm['R_Score'] = r_bins.map(r_score_map)
+            # Reverse for Recency (lower is better)
+            rfm['R_Score'] = 6 - rfm['R_Score']
+        except ValueError:
+            # If qcut fails, use simple ranking
+            rfm['R_Score'] = pd.cut(rfm['Recency'], bins=5, labels=[5, 4, 3, 2, 1], duplicates='drop')
+            if rfm['R_Score'].isna().any():
+                rfm['R_Score'] = rfm['Recency'].rank(method='first', ascending=True)
+                rfm['R_Score'] = pd.qcut(rfm['R_Score'], 5, labels=[5, 4, 3, 2, 1], duplicates='drop')
+        
+        try:
+            f_bins = pd.qcut(rfm['Frequency'].rank(method='first'), 5, duplicates='drop')
+            f_labels = sorted(f_bins.cat.categories)
+            f_score_map = {label: score for score, label in enumerate(f_labels, 1)}
+            rfm['F_Score'] = f_bins.map(f_score_map)
+        except ValueError:
+            rfm['F_Score'] = pd.cut(rfm['Frequency'], bins=5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+            if rfm['F_Score'].isna().any():
+                rfm['F_Score'] = rfm['Frequency'].rank(method='first')
+                rfm['F_Score'] = pd.qcut(rfm['F_Score'], 5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+        
+        try:
+            m_bins = pd.qcut(rfm['Monetary'], 5, duplicates='drop')
+            m_labels = sorted(m_bins.cat.categories)
+            m_score_map = {label: score for score, label in enumerate(m_labels, 1)}
+            rfm['M_Score'] = m_bins.map(m_score_map)
+        except ValueError:
+            rfm['M_Score'] = pd.cut(rfm['Monetary'], bins=5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+            if rfm['M_Score'].isna().any():
+                rfm['M_Score'] = rfm['Monetary'].rank(method='first')
+                rfm['M_Score'] = pd.qcut(rfm['M_Score'], 5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+        
+        # Ensure scores are integers
+        rfm['R_Score'] = rfm['R_Score'].astype(int)
+        rfm['F_Score'] = rfm['F_Score'].astype(int)
+        rfm['M_Score'] = rfm['M_Score'].astype(int)
         
         rfm['RFM_Score'] = rfm['R_Score'].astype(str) + rfm['F_Score'].astype(str) + rfm['M_Score'].astype(str)
         
@@ -146,4 +184,5 @@ if __name__ == '__main__':
         subprocess.check_call([sys.executable, "-m", "pip", "install", "squarify"])
 
     main()
+
 
