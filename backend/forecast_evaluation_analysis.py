@@ -21,7 +21,7 @@ def _to_native_type(obj):
 
 def fit_and_evaluate(model_name, model_func, train, test):
     try:
-        model_fit = model_func(train).fit()
+        model_fit = model_func(train).fit(disp=False)
         forecast = model_fit.forecast(steps=len(test))
         rmse = np.sqrt(mean_squared_error(test, forecast))
         aic = getattr(model_fit, 'aic', None)
@@ -85,4 +85,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
