@@ -1,13 +1,13 @@
 
 'use client';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, ArrowUpDown, Percent } from 'lucide-react';
+import { Sigma, Loader2, Percent } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -40,8 +40,9 @@ export default function RelativeImportancePage({ data, numericHeaders }: Relativ
     const availableIVs = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
 
     useEffect(() => {
-        setDependentVar(numericHeaders[numericHeaders.length - 1]);
-        setIndependentVars(numericHeaders.slice(0, numericHeaders.length - 1));
+        const defaultTarget = numericHeaders[numericHeaders.length - 1];
+        setDependentVar(defaultTarget);
+        setIndependentVars(numericHeaders.filter(h => h !== defaultTarget));
         setAnalysisResult(null);
     }, [data, numericHeaders]);
 
