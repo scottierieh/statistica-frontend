@@ -68,7 +68,8 @@ import {
   BookOpen, // Import BookOpen icon
   Building,
   Award,
-  Truck
+  Truck,
+  Percent
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -152,7 +153,7 @@ import LinearProgrammingPage from './pages/linear-programming-page';
 import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import DeaPage from './pages/dea-page';
-
+import RelativeImportancePage from './pages/relative-importance-page';
 
 const analysisCategories = [
     {
@@ -227,13 +228,14 @@ const analysisCategories = [
         { id: 'crosstab', label: 'Crosstab & Chi-Squared', icon: Columns, component: CrosstabPage },
       ]
     },
-    {
+     {
       name: 'Predictive',
       icon: Brain,
       items: [
           { id: 'glm', label: 'Generalized Linear Model (GLM)', icon: Scaling, component: GlmPage },
           { id: 'discriminant', label: 'Discriminant Analysis', icon: Users, component: DiscriminantPage },
           { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
+          { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
       ]
     },
      {
@@ -245,6 +247,7 @@ const analysisCategories = [
             items: [
               { id: 'reliability', label: 'Reliability (Cronbach)', icon: ShieldCheck, component: ReliabilityPage },
               { id: 'efa', label: 'Exploratory (EFA)', icon: FileSearch, component: EfaPage },
+              { id: 'pca', label: 'Principal Component (PCA)', icon: Component, component: PcaPage },
             ]
           },
           {
@@ -301,7 +304,7 @@ const analysisCategories = [
             { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
             { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
             { id: 'rfm-analysis', label: 'RFM Analysis', icon: Users, component: RfmPage },
-            { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
+            { id: 'relative-importance', label: 'Relative Importance', icon: Percent, component: RelativeImportancePage },
         ],
     },
     {
@@ -322,11 +325,11 @@ const analysisCategories = [
      {
       name: 'Optimization',
       icon: Target,
-      isSingle: true,
       items: [
         { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp, component: LinearProgrammingPage },
         { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
         { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
+        { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
       ]
     },
 ];
