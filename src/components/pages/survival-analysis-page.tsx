@@ -22,10 +22,11 @@ interface SurvivalAnalysisPageProps {
     data: DataSet;
     numericHeaders: string[];
     categoricalHeaders: string[];
+    allHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function SurvivalAnalysisPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: SurvivalAnalysisPageProps) {
+export default function SurvivalAnalysisPage({ data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample }: SurvivalAnalysisPageProps) {
     const { toast } = useToast();
     const [durationCol, setDurationCol] = useState<string | undefined>();
     const [eventCol, setEventCol] = useState<string | undefined>();
@@ -34,8 +35,6 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
     
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    
-    const allHeaders = useMemo(() => [...numericHeaders, ...categoricalHeaders], [numericHeaders, categoricalHeaders]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && allHeaders.length > 1, [data, numericHeaders, allHeaders]);
     
@@ -48,6 +47,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
         setDurationCol(numericHeaders.find(h => h.toLowerCase().includes('tenure') || h.toLowerCase().includes('time')));
         setEventCol(allHeaders.find(h => h.toLowerCase().includes('churn') || h.toLowerCase().includes('event')));
         setGroupCol(categoricalHeaders[0]);
+        setCovariates([]);
         setAnalysisResult(null);
     }, [data, numericHeaders, categoricalHeaders, allHeaders]);
 
@@ -199,12 +199,14 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                                             ))}
                                         </TableBody>
                                     </Table>
-                                     <Alert className="mt-4" variant={results.cox_ph.proportional_hazard_assumption.passed ? 'default' : 'destructive'}>
-                                         <AlertTitle>Proportional Hazard Assumption</AlertTitle>
-                                         <AlertDescription>
-                                             Test {results.cox_ph.proportional_hazard_assumption.passed ? 'passed' : 'failed'}. The model assumptions appear to be {results.cox_ph.proportional_hazard_assumption.passed ? 'met' : 'violated'}.
-                                         </AlertDescription>
-                                     </Alert>
+                                     {results.cox_ph.proportional_hazard_assumption && (
+                                        <Alert className="mt-4" variant={results.cox_ph.proportional_hazard_assumption.passed ? 'default' : 'destructive'}>
+                                            <AlertTitle>Proportional Hazard Assumption</AlertTitle>
+                                            <AlertDescription>
+                                                Test {results.cox_ph.proportional_hazard_assumption.passed ? 'passed' : 'failed'}. The model assumptions appear to be {results.cox_ph.proportional_hazard_assumption.passed ? 'met' : 'violated'}.
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
                                 </CardContent>
                             </Card>
                             )}
