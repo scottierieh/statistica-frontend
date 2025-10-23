@@ -30,16 +30,15 @@ def get_rfm_segments(df):
     # Standard segmentation based on quintiles of R, F, and M scores
     # This can be customized based on business needs
     segment_map = {
-        r'555': 'Champions',
-        r'[4-5][4-5][1-5]': 'Loyal Customers',
-        r'[3-5]3[1-5]': 'Potential Loyalists',
+        r'[4-5][4-5][4-5]': 'Champions',
+        r'[3-4][4-5][3-5]': 'Loyal Customers',
+        r'[4-5][2-3][3-5]': 'Potential Loyalists',
         r'5[1-2][1-5]': 'New Customers',
-        r'4[1-2][1-5]': 'Promising',
-        r'3[1-2][1-5]': 'Needs Attention',
-        r'2[1-5][1-5]': 'At Risk',
-        r'1[3-5][1-5]': "Can't Lose Them",
-        r'1[1-2][1-5]': 'Hibernating',
-        r'111': 'Lost'
+        r'4[1][1-5]': 'Promising',
+        r'3[1-3][1-3]': 'Needs Attention',
+        r'[1-2][3-5][3-5]': "Can't Lose Them",
+        r'[1-2][1-2][1-5]': 'At Risk',
+        r'1[1-5][1-5]': 'Hibernating',
     }
     
     df['Segment'] = 'Others' # Default
@@ -79,8 +78,7 @@ def main():
             if 'invoice' in df.columns:
                 invoice_no_col = 'invoice'
             else:
-                 # If no invoice number, we can use the number of transactions per customer as frequency
-                 # Here, we'll just count occurrences as a fallback
+                 # If no invoice number, count occurrences as a fallback
                  df['invoice_no'] = df.index
 
         rfm = df.groupby(customer_id_col).agg({
@@ -94,10 +92,24 @@ def main():
                              invoice_no_col: 'Frequency', 
                              monetary_col: 'Monetary'}, inplace=True)
         
-        # --- RFM Scoring (Quintiles) ---
-        rfm['R_Score'] = pd.qcut(rfm['Recency'], 5, labels=[5, 4, 3, 2, 1], duplicates='drop').astype(int)
-        rfm['F_Score'] = pd.qcut(rfm['Frequency'].rank(method='first'), 5, labels=[1, 2, 3, 4, 5]).astype(int)
-        rfm['M_Score'] = pd.qcut(rfm['Monetary'], 5, labels=[1, 2, 3, 4, 5]).astype(int)
+        # --- RFM Scoring (Quintiles using pd.cut for robustness) ---
+        r_labels = range(5, 0, -1)
+        f_labels = range(1, 6)
+        m_labels = range(1, 6)
+        
+        try:
+            rfm['R_Score'] = pd.qcut(rfm['Recency'], 5, labels=r_labels, duplicates='drop').astype(int)
+            rfm['F_Score'] = pd.qcut(rfm['Frequency'].rank(method='first'), 5, labels=f_labels, duplicates='drop').astype(int)
+            rfm['M_Score'] = pd.qcut(rfm['Monetary'], 5, labels=m_labels, duplicates='drop').astype(int)
+        except ValueError:
+            # Fallback to quartiles if quintiles fail due to insufficient distinct values
+            r_labels_q = range(4, 0, -1)
+            f_labels_q = range(1, 5)
+            m_labels_q = range(1, 5)
+            rfm['R_Score'] = pd.qcut(rfm['Recency'], 4, labels=r_labels_q, duplicates='drop').astype(int)
+            rfm['F_Score'] = pd.qcut(rfm['Frequency'].rank(method='first'), 4, labels=f_labels_q, duplicates='drop').astype(int)
+            rfm['M_Score'] = pd.qcut(rfm['Monetary'], 4, labels=m_labels_q, duplicates='drop').astype(int)
+
         
         rfm['RFM_Score'] = rfm['R_Score'].astype(str) + rfm['F_Score'].astype(str) + rfm['M_Score'].astype(str)
         
