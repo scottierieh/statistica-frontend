@@ -28,17 +28,16 @@ def _to_native_type(obj):
 
 def get_rfm_segments(df):
     # Standard segmentation based on quintiles of R, F, and M scores
-    # This can be customized based on business needs
     segment_map = {
         r'[4-5][4-5][4-5]': 'Champions',
-        r'[3-4][4-5][3-5]': 'Loyal Customers',
-        r'[4-5][2-3][3-5]': 'Potential Loyalists',
+        r'[3-5][3-5][3-5]': 'Loyal Customers',
+        r'[4-5][1-2][3-5]': 'Potential Loyalists',
         r'5[1-2][1-5]': 'New Customers',
-        r'4[1][1-5]': 'Promising',
+        r'4[1-2][1-5]': 'Promising',
         r'3[1-3][1-3]': 'Needs Attention',
-        r'[1-2][3-5][3-5]': "Can't Lose Them",
-        r'[1-2][1-2][1-5]': 'At Risk',
-        r'1[1-5][1-5]': 'Hibernating',
+        r'[1-2][3-5][1-5]': "Can't Lose Them",
+        r'[1-2][1-3][1-5]': 'At Risk',
+        r'[1-2]..': 'Hibernating',
     }
     
     df['Segment'] = 'Others' # Default
@@ -72,13 +71,11 @@ def main():
         # --- RFM Calculation ---
         snapshot_date = df[invoice_date_col].max() + pd.DateOffset(days=1)
         
-        # Ensure 'invoice_no' exists for frequency calculation
         invoice_no_col = 'invoice_no'
         if 'invoice_no' not in df.columns:
             if 'invoice' in df.columns:
                 invoice_no_col = 'invoice'
             else:
-                 # If no invoice number, count occurrences as a fallback
                  df['invoice_no'] = df.index
 
         rfm = df.groupby(customer_id_col).agg({
@@ -87,29 +84,23 @@ def main():
             monetary_col: 'sum'
         })
         
-        # Rename columns for clarity
         rfm.rename(columns={invoice_date_col: 'Recency', 
                              invoice_no_col: 'Frequency', 
                              monetary_col: 'Monetary'}, inplace=True)
         
-        # --- RFM Scoring (Quintiles using pd.cut for robustness) ---
+        # --- RFM Scoring ---
+        # Using pd.cut based on quantiles for robustness against non-unique bin edges
         r_labels = range(5, 0, -1)
         f_labels = range(1, 6)
         m_labels = range(1, 6)
-        
-        try:
-            rfm['R_Score'] = pd.qcut(rfm['Recency'], 5, labels=r_labels, duplicates='drop').astype(int)
-            rfm['F_Score'] = pd.qcut(rfm['Frequency'].rank(method='first'), 5, labels=f_labels, duplicates='drop').astype(int)
-            rfm['M_Score'] = pd.qcut(rfm['Monetary'], 5, labels=m_labels, duplicates='drop').astype(int)
-        except ValueError:
-            # Fallback to quartiles if quintiles fail due to insufficient distinct values
-            r_labels_q = range(4, 0, -1)
-            f_labels_q = range(1, 5)
-            m_labels_q = range(1, 5)
-            rfm['R_Score'] = pd.qcut(rfm['Recency'], 4, labels=r_labels_q, duplicates='drop').astype(int)
-            rfm['F_Score'] = pd.qcut(rfm['Frequency'].rank(method='first'), 4, labels=f_labels_q, duplicates='drop').astype(int)
-            rfm['M_Score'] = pd.qcut(rfm['Monetary'], 4, labels=m_labels_q, duplicates='drop').astype(int)
 
+        r_bins = pd.qcut(rfm['Recency'], 5, retbins=True, duplicates='drop')[1]
+        f_bins = pd.qcut(rfm['Frequency'].rank(method='first'), 5, retbins=True, duplicates='drop')[1]
+        m_bins = pd.qcut(rfm['Monetary'], 5, retbins=True, duplicates='drop')[1]
+
+        rfm['R_Score'] = pd.cut(rfm['Recency'], bins=r_bins, labels=r_labels, include_lowest=True).astype(int)
+        rfm['F_Score'] = pd.cut(rfm['Frequency'], bins=f_bins, labels=f_labels, include_lowest=True).astype(int)
+        rfm['M_Score'] = pd.cut(rfm['Monetary'], bins=m_bins, labels=m_labels, include_lowest=True).astype(int)
         
         rfm['RFM_Score'] = rfm['R_Score'].astype(str) + rfm['F_Score'].astype(str) + rfm['M_Score'].astype(str)
         
@@ -122,12 +113,10 @@ def main():
         # --- Plotting ---
         fig, axes = plt.subplots(1, 2, figsize=(15, 6))
         
-        # Segment Distribution Bar Chart
         sns.barplot(data=segment_counts, y='Segment', x='Count', ax=axes[0], palette='viridis')
         axes[0].set_title('Customer Segment Distribution')
         axes[0].set_xlabel('Number of Customers')
 
-        # RFM Treemap
         squarify_df = rfm.groupby('Segment')['Monetary'].sum().reset_index()
         
         sizes = squarify_df['Monetary']
