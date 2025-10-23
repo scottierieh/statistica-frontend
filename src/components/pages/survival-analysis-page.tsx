@@ -35,27 +35,27 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && categoricalHeaders.length > 0, [data, numericHeaders, categoricalHeaders]);
+    const allHeaders = useMemo(() => [...numericHeaders, ...categoricalHeaders], [numericHeaders, categoricalHeaders]);
+    
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && allHeaders.length > 1, [data, numericHeaders, allHeaders]);
     
     const availableCovariates = useMemo(() => {
         const excluded = new Set([durationCol, eventCol, groupCol]);
-        return [...numericHeaders, ...categoricalHeaders].filter(h => !excluded.has(h));
-    }, [numericHeaders, categoricalHeaders, durationCol, eventCol, groupCol]);
+        return allHeaders.filter(h => !excluded.has(h));
+    }, [allHeaders, durationCol, eventCol, groupCol]);
 
     useEffect(() => {
         setDurationCol(numericHeaders.find(h => h.toLowerCase().includes('tenure') || h.toLowerCase().includes('time')));
         setEventCol(allHeaders.find(h => h.toLowerCase().includes('churn') || h.toLowerCase().includes('event')));
         setGroupCol(categoricalHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, categoricalHeaders]);
-    
-    const allHeaders = useMemo(() => [...numericHeaders, ...categoricalHeaders], [numericHeaders, categoricalHeaders]);
+    }, [data, numericHeaders, categoricalHeaders, allHeaders]);
 
     const handleCovariateChange = (header: string, checked: boolean) => {
         setCovariates(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
-    const handleAnalysis = useCallback(async () => {
+    const handleAnalysis = useCallback(async (modelType: string = 'all') => {
         if (!durationCol || !eventCol) {
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select both duration and event columns.' });
             return;
@@ -68,7 +68,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
             const response = await fetch('/api/analysis/survival', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates })
+                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates, modelType })
             });
 
             if (!response.ok) {
@@ -116,14 +116,14 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Survival Analysis Setup</CardTitle>
-                    <CardDescription>Configure the variables for Kaplan-Meier and Cox regression analysis.</CardDescription>
+                    <CardDescription>Configure the variables for Kaplan-Meier, Cox regression, and AFT models.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div><Label>Duration</Label><Select value={durationCol} onValueChange={setDurationCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     <div><Label>Event</Label><Select value={eventCol} onValueChange={setEventCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     <div><Label>Group (Optional)</Label><Select value={groupCol} onValueChange={v => setGroupCol(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="None"/></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     <div>
-                        <Label>Covariates (for Cox PH)</Label>
+                        <Label>Covariates (for Cox/AFT)</Label>
                         <ScrollArea className="h-24 border rounded-md p-2">
                            {availableCovariates.map(h => (
                                 <div key={h} className="flex items-center space-x-2">
@@ -135,7 +135,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || !durationCol || !eventCol}>
+                    <Button onClick={() => handleAnalysis('all')} disabled={isLoading || !durationCol || !eventCol}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
                 </CardFooter>
@@ -154,10 +154,11 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                         </Card>
                     )}
                      <Tabs defaultValue="kaplan_meier" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
+                        <TabsList className="grid w-full grid-cols-4">
                             <TabsTrigger value="kaplan_meier">Kaplan-Meier</TabsTrigger>
-                            <TabsTrigger value="cox_ph" disabled={!results.cox_ph}>Cox Regression</TabsTrigger>
-                            <TabsTrigger value="aft" disabled={!results.aft_weibull}>AFT Model</TabsTrigger>
+                            <TabsTrigger value="cox_ph" disabled={!results.cox_ph}>Cox PH</TabsTrigger>
+                            <TabsTrigger value="aft_weibull" disabled={!results.aft_weibull}>Weibull AFT</TabsTrigger>
+                            <TabsTrigger value="aft_lognormal" disabled={!results.aft_lognormal}>Log-Normal AFT</TabsTrigger>
                         </TabsList>
                         <TabsContent value="kaplan_meier" className="mt-4">
                              <div className="grid lg:grid-cols-2 gap-4">
@@ -174,7 +175,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                                             <Alert variant={results.log_rank_test.is_significant ? 'default' : 'secondary'}>
                                                 <AlertTitle>{results.log_rank_test.is_significant ? 'Significant Difference Found' : 'No Significant Difference'}</AlertTitle>
                                                 <AlertDescription>
-                                                    p-value: {results.log_rank_test.p_value.toFixed(4)}. There is a significant difference in survival curves between groups.
+                                                    p-value: {results.log_rank_test.p_value.toFixed(4)}. {results.log_rank_test.is_significant ? 'There is a significant difference in survival curves between groups.' : 'There is no significant difference between group survival curves.'}
                                                 </AlertDescription>
                                             </Alert>
                                         </CardContent>
@@ -185,26 +186,59 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                         <TabsContent value="cox_ph" className="mt-4">
                             {results.cox_ph && (
                                 <Card>
-                                <CardHeader><CardTitle>Cox Proportional Hazards Model</CardTitle><CardDescription>Concordance: {results.cox_concordance.toFixed(4)}</CardDescription></CardHeader>
+                                <CardHeader>
+                                    <CardTitle>Cox Proportional Hazards Model</CardTitle>
+                                    <CardDescription>Concordance: {results.cox_ph.concordance?.toFixed(4)}</CardDescription>
+                                </CardHeader>
                                 <CardContent>
                                      <Table>
                                         <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead>coef</TableHead><TableHead>exp(coef)</TableHead><TableHead>p</TableHead></TableRow></TableHeader>
                                         <TableBody>
-                                            {results.cox_ph.map((row: any, i: number) => (
+                                            {results.cox_ph.summary.map((row: any, i: number) => (
                                                 <TableRow key={i}><TableCell>{row.covariate}</TableCell><TableCell>{row.coef.toFixed(3)}</TableCell><TableCell>{row['exp(coef)'].toFixed(3)}</TableCell><TableCell>{row.p < 0.001 ? '<.001' : row.p.toFixed(4)}</TableCell></TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
+                                     <Alert className="mt-4" variant={results.cox_ph.proportional_hazard_assumption.passed ? 'default' : 'destructive'}>
+                                         <AlertTitle>Proportional Hazard Assumption</AlertTitle>
+                                         <AlertDescription>
+                                             Test {results.cox_ph.proportional_hazard_assumption.passed ? 'passed' : 'failed'}. The model assumptions appear to be {results.cox_ph.proportional_hazard_assumption.passed ? 'met' : 'violated'}.
+                                         </AlertDescription>
+                                     </Alert>
                                 </CardContent>
                             </Card>
                             )}
                         </TabsContent>
-                         <TabsContent value="aft" className="mt-4">
+                         <TabsContent value="aft_weibull" className="mt-4">
                             {results.aft_weibull && (
                                 <Card>
                                     <CardHeader><CardTitle>Weibull AFT Model</CardTitle></CardHeader>
                                     <CardContent>
-                                        {/* AFT results table */}
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead>coef</TableHead><TableHead>exp(coef)</TableHead><TableHead>p</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {results.aft_weibull.map((row: any, i: number) => (
+                                                    <TableRow key={i}><TableCell>{row.covariate}</TableCell><TableCell>{row.coef.toFixed(3)}</TableCell><TableCell>{row['exp(coef)'].toFixed(3)}</TableCell><TableCell>{row.p < 0.001 ? '<.001' : row.p.toFixed(4)}</TableCell></TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            )}
+                         </TabsContent>
+                          <TabsContent value="aft_lognormal" className="mt-4">
+                            {results.aft_lognormal && (
+                                <Card>
+                                    <CardHeader><CardTitle>Log-Normal AFT Model</CardTitle></CardHeader>
+                                    <CardContent>
+                                         <Table>
+                                            <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead>coef</TableHead><TableHead>exp(coef)</TableHead><TableHead>p</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {results.aft_lognormal.map((row: any, i: number) => (
+                                                    <TableRow key={i}><TableCell>{row.covariate}</TableCell><TableCell>{row.coef.toFixed(3)}</TableCell><TableCell>{row['exp(coef)'].toFixed(3)}</TableCell><TableCell>{row.p < 0.001 ? '<.001' : row.p.toFixed(4)}</TableCell></TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </CardContent>
                                 </Card>
                             )}

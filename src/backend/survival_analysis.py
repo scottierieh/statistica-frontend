@@ -44,15 +44,15 @@ class SurvivalAnalyzer:
         self.results = {}
     
     def load_data(self, data, duration_col, event_col, group_col=None, covariates=None):
-        self.data = data.copy()
+        self.data = pd.DataFrame(data).copy()
         self.duration_col = duration_col
         self.event_col = event_col
         self.group_col = group_col
         self.covariates = covariates or []
         
         # Basic data validation
-        assert duration_col in data.columns, f"Duration column '{duration_col}' not found"
-        assert event_col in data.columns, f"Event column '{event_col}' not found"
+        assert duration_col in self.data.columns, f"Duration column '{duration_col}' not found"
+        assert event_col in self.data.columns, f"Event column '{event_col}' not found"
         if not self.data[duration_col].apply(lambda x: isinstance(x, (int, float)) and x > 0).all():
              self.data[duration_col] = pd.to_numeric(self.data[duration_col], errors='coerce')
              self.data = self.data.dropna(subset=[duration_col])
@@ -131,8 +131,21 @@ class SurvivalAnalyzer:
         
         self.cox_model = cph
         summary_df = cph.summary.reset_index()
-        self.results['cox_ph'] = summary_df.to_dict('records')
-        self.results['cox_concordance'] = cph.concordance_index_
+        
+        proportional_hazard_test = cph.check_assumptions(cox_data, show_plots=False, p_value_threshold=0.05)
+        
+        self.results['cox_ph'] = {
+            'summary': summary_df.to_dict('records'),
+            'concordance': cph.concordance_index_,
+            'log_likelihood_ratio_test': {
+                'test_statistic': cph.log_likelihood_ratio_test.test_statistic,
+                'p_value': cph.log_likelihood_ratio_test.p_value
+            },
+            'proportional_hazard_assumption': {
+                'passed': all(p > 0.05 for p in proportional_hazard_test.p),
+                'details': proportional_hazard_test.to_dict('index')
+            }
+        }
         return self
 
     def aft_regression(self, model_type='weibull'):
