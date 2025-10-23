@@ -123,7 +123,7 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
         setAnalysisResult(null);
 
         try {
-            const response = await fetch('src/app/api/variability/route.ts', {
+            const response = await fetch('/api/analysis/variability', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ data, variables: selectedVars })
@@ -217,7 +217,7 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
                             </TableBody>
                         </Table>
                          <div className="mt-4 text-center text-sm text-muted-foreground p-4 border-t">
-                            <p><strong>Coefficient of Variation (CV)</strong> = (Standard Deviation / Mean) × 100%</p>
+                            <p><strong>Coefficient of Variation (CV)</strong> = (Standard Deviation / Mean) × 100%. A lower CV indicates more consistency relative to the mean.</p>
                         </div>
                         {analysisResult?.interpretation && (
                             <Alert className="mt-4">
@@ -232,4 +232,3 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
         </div>
     );
 }
-
