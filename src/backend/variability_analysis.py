@@ -5,19 +5,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import iqr
 import warnings
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List, Dict, Any
 
 warnings.filterwarnings("ignore")
 
-app = FastAPI()
-
-class DataPayload(BaseModel):
-    data: List[Dict[str, Any]]
-    variables: List[str]
-
-def _to_native_type(obj): # Helper function to convert numpy types to native Python types
+def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
@@ -35,25 +26,31 @@ def get_interpretation(results):
     try:
         lowest_cv_item = min(results, key=lambda x: x.get("cv", float("inf")))
         highest_cv_item = max(results, key=lambda x: x.get("cv", float("-inf")))
-    except ValueError:
-        return "Could not determine variability interpretation."
+    except (ValueError, TypeError):
+        return "Could not determine variability interpretation due to invalid data."
 
     interpretation = (
-        f"**Interpretation:** {lowest_cv_item["variable"]} shows the lowest variability (CV={lowest_cv_item["cv"]:.1f}%), "
+        f"**Interpretation:** {lowest_cv_item['variable']} shows the lowest variability (CV={lowest_cv_item['cv']:.1f}%), "
         f"indicating consistent perception or measurement. "
-        f"On the other hand, {highest_cv_item["variable"]} has the highest variability (CV={highest_cv_item["cv"]:.1f}%), "
+        f"On the other hand, {highest_cv_item['variable']} has the highest variability (CV={highest_cv_item['cv']:.1f}%), "
         f"suggesting diverse opinions or data points. This could indicate potential for targeted strategies or further investigation into the causes of this variation."
     )
     return interpretation
 
-@app.post("/api/variability")
-async def analyze_variability(payload: DataPayload):
+def main():
     try:
-        df = pd.DataFrame(payload.data)
+        payload = json.load(sys.stdin)
+        data = payload.get('data')
+        variables = payload.get('variables')
+
+        if not data or not variables:
+            raise ValueError("Missing 'data' or 'variables'")
+
+        df = pd.DataFrame(data)
         
         analysis_results = []
 
-        for var in payload.variables:
+        for var in variables:
             if var not in df.columns:
                 continue
 
@@ -85,9 +82,11 @@ async def analyze_variability(payload: DataPayload):
             "interpretation": interpretation
         }
 
-        return json.loads(json.dumps(response, default=_to_native_type))
+        print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        sys.exit(1)
 
-
+if __name__ == '__main__':
+    main()
