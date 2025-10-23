@@ -184,7 +184,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                              </div>
                         </TabsContent>
                         <TabsContent value="cox_ph" className="mt-4">
-                            {results.cox_ph && (
+                            {results.cox_ph && results.cox_ph.summary && (
                                 <Card>
                                 <CardHeader>
                                     <CardTitle>Cox Proportional Hazards Model</CardTitle>
