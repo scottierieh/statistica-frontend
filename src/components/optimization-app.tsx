@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -40,13 +40,12 @@ import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import DeaPage from './pages/dea-page';
 
-type AnalysisType = 'linear-programming' | 'goal-programming' | 'transportation-problem' | 'dea';
+type AnalysisType = 'linear-programming' | 'goal-programming' | 'transportation-problem';
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
   'goal-programming': GoalProgrammingPage,
   'transportation-problem': TransportationProblemPage,
-  'dea': DeaPage,
 };
 
 export default function OptimizationApp() {
@@ -181,15 +180,6 @@ export default function OptimizationApp() {
                 >
                   <Truck />
                   <span>Transportation Problem</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveAnalysis('dea')}
-                  isActive={activeAnalysis === 'dea'}
-                >
-                  <Building />
-                  <span>DEA</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

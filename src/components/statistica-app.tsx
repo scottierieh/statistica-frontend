@@ -301,6 +301,7 @@ const analysisCategories = [
             { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
             { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
             { id: 'rfm-analysis', label: 'RFM Analysis', icon: Users, component: RfmPage },
+            { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
         ],
     },
     {
@@ -326,7 +327,6 @@ const analysisCategories = [
         { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp, component: LinearProgrammingPage },
         { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
         { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
-        { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
       ]
     },
 ];
@@ -460,7 +460,7 @@ export default function StatisticaApp() {
     toast({ title: "Generating PDF...", description: "Please wait while the report is being captured." });
 
     try {
-        const canvas = await html2canvas(analysisPageRef.current, {
+        const canvas = await html2canvas(analysisPageRef.current, { 
             scale: 2, 
             useCORS: true,
             backgroundColor: window.getComputedStyle(document.body).backgroundColor,
