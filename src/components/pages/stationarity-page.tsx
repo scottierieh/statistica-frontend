@@ -7,18 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, LineChart as LineChartIcon } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, LineChart as LineChartIcon, TrendingUp, TrendingDown } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Input } from '../ui/input';
 
 interface AdfResult {
     adf_statistic: number;
-    p_value: number;
-    critical_values: { [key: string]: number };
-    is_stationary: boolean;
+    adf_p_value: number;
+    kpss_statistic: number;
+    kpss_p_value: number;
 }
 
 interface AnalysisSection {
@@ -28,13 +29,8 @@ interface AnalysisSection {
 
 interface FullAnalysisResponse {
     original: AnalysisSection;
-    differenced: AnalysisSection;
-}
-
-interface StationarityPageProps {
-    data: DataSet;
-    allHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
+    first_difference: AnalysisSection | null;
+    seasonal_difference: AnalysisSection | null;
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
@@ -48,7 +44,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <LineChartIcon size={36} />
                         </div>
                     </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Stationarity Tests (ADF)</CardTitle>
+                    <CardTitle className="font-headline text-4xl font-bold">Stationarity Tests (ADF & KPSS)</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
                         Check if a time series has statistical properties (like mean and variance) that are constant over time.
                     </CardDescription>
@@ -57,7 +53,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Test for Stationarity?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Many time series forecasting models, such as ARIMA, assume that the data is stationary. If a model is built on non-stationary data, the results can be spurious and unreliable. The Augmented Dickey-Fuller (ADF) test is a formal statistical test to determine if a time series has a unit root, which is a common cause of non-stationarity.
+                            Many time series forecasting models, such as ARIMA, assume that the data is stationary. If a model is built on non-stationary data, the results can be spurious and unreliable. This tool uses both the Augmented Dickey-Fuller (ADF) test and the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test to provide a comprehensive assessment of stationarity.
                         </p>
                     </div>
                      <div className="flex justify-center">
@@ -75,26 +71,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Select Time & Value Columns:</strong> Choose the column that represents time and the numeric column whose stationarity you want to test.
-                                </li>
-                                <li>
-                                    <strong>Run Test:</strong> The tool performs the ADF test on both the original series and the first-differenced series to see if differencing makes it stationary.
-                                </li>
+                                <li><strong>Select Time & Value Columns:</strong> Choose the time series data to test.</li>
+                                <li><strong>Seasonal Period:</strong> Enter the period for seasonal differencing (e.g., 12 for monthly data).</li>
+                                <li><strong>Run Test:</strong> The tool performs ADF and KPSS tests on the original, first-differenced, and seasonal-differenced series.</li>
                             </ol>
                         </div>
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>ADF Statistic:</strong> A more negative value indicates stronger evidence against the null hypothesis (that a unit root is present).
-                                </li>
-                                <li>
-                                    <strong>p-value:</strong> If the p-value is less than 0.05, you can reject the null hypothesis and conclude that the series is stationary.
-                                </li>
-                                 <li>
-                                    <strong>Original vs. Differenced:</strong> If the original series is non-stationary, check the results for the differenced series. If the differenced series is stationary, you would use a differencing term (d=1) in your ARIMA model.
-                                </li>
+                                <li><strong>ADF Test:</strong> Checks for a unit root. A p-value &lt; 0.05 suggests the series is **stationary**.</li>
+                                <li><strong>KPSS Test:</strong> Checks for a trend or level stationarity. A p-value &lt; 0.05 suggests the series is **non-stationary**.</li>
+                                <li><strong>Decision:</strong> Combine both tests. If ADF is non-significant AND KPSS is significant, the series is likely non-stationary. If differencing makes the series stationary, this informs your modeling approach (e.g., the 'd' in ARIMA).</li>
                             </ul>
                         </div>
                     </div>
@@ -107,44 +94,51 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-const ResultCard = ({ title, results }: { title: string, results: AdfResult }) => (
-    <Card>
-        <CardHeader>
-            <CardTitle className="font-headline">{title}</CardTitle>
-            <CardDescription>Augmented Dickey-Fuller Test Results</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Alert variant={results.is_stationary ? 'default' : 'destructive'}>
-                {results.is_stationary ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                <AlertTitle>{results.is_stationary ? 'Stationary' : 'Non-Stationary'}</AlertTitle>
-                <AlertDescription>
-                    The p-value is {results.p_value.toFixed(4)}. Since it is {results.is_stationary ? 'less than or equal to' : 'greater than'} 0.05, we {results.is_stationary ? 'reject' : 'fail to reject'} the null hypothesis. The series is likely stationary.
-                </AlertDescription>
-            </Alert>
-            <Table className="mt-4">
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Metric</TableHead>
-                        <TableHead className="text-right">Value</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow><TableCell>ADF Statistic</TableCell><TableCell className="font-mono text-right">{results.adf_statistic.toFixed(4)}</TableCell></TableRow>
-                    <TableRow><TableCell>p-value</TableCell><TableCell className="font-mono text-right">{results.p_value.toFixed(4)}</TableCell></TableRow>
-                    {Object.entries(results.critical_values).map(([key, value]) => (
-                         <TableRow key={key}><TableCell>Critical Value ({key})</TableCell><TableCell className="font-mono text-right">{value.toFixed(4)}</TableCell></TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </CardContent>
-    </Card>
-);
+interface StationarityPageProps {
+    data: DataSet;
+    allHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
+}
+
+const ResultRow = ({ title, results }: { title: string, results: AdfResult | null | undefined }) => {
+    if (!results) return null;
+    const adfStationary = results.adf_p_value <= 0.05;
+    const kpssStationary = results.kpss_p_value > 0.05;
+
+    let finalDecision = "Undetermined";
+    let decisionColor = "bg-gray-200 text-gray-800";
+    if (adfStationary && kpssStationary) {
+        finalDecision = "Stationary";
+        decisionColor = "bg-green-100 text-green-800";
+    } else if (!adfStationary && kpssStationary) {
+        finalDecision = "Non-Stationary (Unit Root)";
+        decisionColor = "bg-red-100 text-red-800";
+    } else if (adfStationary && !kpssStationary) {
+        finalDecision = "Trend-Stationary (Differencing may be needed)";
+        decisionColor = "bg-yellow-100 text-yellow-800";
+    } else { // !adfStationary && !kpssStationary
+        finalDecision = "Non-Stationary (Conflicting Results)";
+        decisionColor = "bg-orange-100 text-orange-800";
+    }
+    
+    return (
+        <TableRow>
+            <TableCell className="font-semibold">{title}</TableCell>
+            <TableCell className="text-right font-mono">{results.adf_statistic.toFixed(3)}</TableCell>
+            <TableCell className={`text-right font-mono ${!adfStationary ? 'text-destructive' : 'text-green-600'}`}>{results.adf_p_value < 0.001 ? '<0.001' : results.adf_p_value.toFixed(3)}</TableCell>
+            <TableCell className="text-right font-mono">{results.kpss_statistic.toFixed(3)}</TableCell>
+            <TableCell className={`text-right font-mono ${kpssStationary ? 'text-green-600' : 'text-destructive'}`}>{results.kpss_p_value < 0.001 ? '<0.001' : results.kpss_p_value.toFixed(3)}</TableCell>
+            <TableCell className="text-center"><Badge className={decisionColor}>{finalDecision}</Badge></TableCell>
+        </TableRow>
+    );
+}
 
 export default function StationarityPage({ data, allHeaders, onLoadExample }: StationarityPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
+    const [period, setPeriod] = useState(12);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -163,23 +157,18 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
 
     const handleAnalysis = useCallback(async () => {
         if (!timeCol || !valueCol) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select both a time column and a value column.' });
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select both a time and a value column.' });
             return;
         }
 
         setIsLoading(true);
         setAnalysisResult(null);
 
-        const analysisData = data.map(row => ({
-            [timeCol]: row[timeCol],
-            [valueCol]: row[valueCol],
-        }));
-
         try {
             const response = await fetch('/api/analysis/stationarity', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: analysisData, timeCol, valueCol })
+                body: JSON.stringify({ data, timeCol, valueCol, period })
             });
 
             if (!response.ok) {
@@ -198,13 +187,9 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
         } finally {
             setIsLoading(false);
         }
-    }, [data, timeCol, valueCol, toast]);
-
-    if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
+    }, [data, timeCol, valueCol, period, toast]);
     
-    if (view === 'intro') {
+    if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -213,20 +198,15 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Stationarity Test Setup (ADF)</CardTitle>
+                        <CardTitle className="font-headline">Stationarity Test Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>Select the time and value columns to test for stationarity.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <Label>Time Column</Label>
-                        <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div>
-                        <Label>Value Column</Label>
-                        <Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
+                <CardContent className="grid md:grid-cols-3 gap-4">
+                    <div><Label>Time Column</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Value Column</Label><Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Seasonal Period</Label><Input type="number" value={period} onChange={e => setPeriod(Number(e.target.value))} min={1} /></div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !timeCol || !valueCol}>
@@ -234,30 +214,51 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
                     </Button>
                 </CardFooter>
             </Card>
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[600px] w-full"/></CardContent></Card>}
+
+            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {analysisResult && (
                 <div className="space-y-4">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Original Series Analysis</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4">
-                            <Image src={analysisResult.original.plot} alt="Original Series Plot" width={600} height={400} className="w-full rounded-md border"/>
-                            <ResultCard title="Original Series ADF Test" results={analysisResult.original.test_results} />
+                    <Card>
+                        <CardHeader><CardTitle>Stationarity Test Summary</CardTitle></CardHeader>
+                        <CardContent>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Series</TableHead>
+                                        <TableHead className="text-right">ADF Statistic</TableHead>
+                                        <TableHead className="text-right">ADF p-value</TableHead>
+                                        <TableHead className="text-right">KPSS Statistic</TableHead>
+                                        <TableHead className="text-right">KPSS p-value</TableHead>
+                                        <TableHead className="text-center">Decision</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <ResultRow title="Original" results={analysisResult.original.test_results} />
+                                    {analysisResult.first_difference && <ResultRow title="First Difference" results={analysisResult.first_difference.test_results} />}
+                                    {analysisResult.seasonal_difference && <ResultRow title="Seasonal Difference" results={analysisResult.seasonal_difference.test_results} />}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
-                      <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">1st Difference Analysis</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4">
-                            <Image src={analysisResult.differenced.plot} alt="Differenced Series Plot" width={600} height={400} className="w-full rounded-md border"/>
-                            <ResultCard title="Differenced Series ADF Test" results={analysisResult.differenced.test_results} />
-                        </CardContent>
-                    </Card>
+
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle>Original Series</CardTitle></CardHeader>
+                            <CardContent><Image src={analysisResult.original.plot} alt="Original Series Plot" width={600} height={400} className="w-full rounded-md border"/></CardContent>
+                        </Card>
+                        {analysisResult.first_difference && <Card>
+                            <CardHeader><CardTitle>First Difference</CardTitle></CardHeader>
+                            <CardContent><Image src={analysisResult.first_difference.plot} alt="First Difference Plot" width={600} height={400} className="w-full rounded-md border"/></CardContent>
+                        </Card>}
+                        {analysisResult.seasonal_difference && <Card>
+                            <CardHeader><CardTitle>Seasonal Difference (p={period})</CardTitle></CardHeader>
+                            <CardContent><Image src={analysisResult.seasonal_difference.plot} alt="Seasonal Difference Plot" width={600} height={400} className="w-full rounded-md border"/></CardContent>
+                        </Card>}
+                    </div>
                 </div>
             )}
         </div>
     );
 }
+
