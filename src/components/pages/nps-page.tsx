@@ -109,9 +109,9 @@ export default function NpsPage({ data, numericHeaders, onLoadExample }: NpsPage
     const results = analysisResult?.results;
     
     const chartData = results ? [
-        { name: 'Promoters', count: results.promoters, fill: 'hsl(var(--chart-2))' },
-        { name: 'Passives', count: results.passives, fill: 'hsl(var(--chart-4))' },
-        { name: 'Detractors', count: results.detractors, fill: 'hsl(var(--chart-5))' }
+        { name: 'Promoters', count: results.promoters, fill: '#16a34a' }, // green
+        { name: 'Passives', count: results.passives, fill: '#facc15' }, // yellow
+        { name: 'Detractors', count: results.detractors, fill: '#ef4444' } // red
     ] : [];
 
     return (
