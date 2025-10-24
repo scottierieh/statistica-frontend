@@ -129,7 +129,7 @@ import LjungBoxPage from './pages/ljung-box-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import TTestPage from './pages/t-test-page';
 import { cn } from '@/lib/utils';
-import OneSampleTTestPage from './pages/one-sample-t-test-page';
+import OneSampleTTestPage from './pages/one-sample-ttest-page';
 import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
@@ -156,6 +156,7 @@ import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import VisualizationPage from './pages/visualization-page';
+import RandomForestPage from './pages/random-forest-page';
 
 const analysisCategories = [
     {
@@ -246,6 +247,7 @@ const analysisCategories = [
           { id: 'discriminant', label: 'Discriminant Analysis', icon: Users, component: DiscriminantPage },
           { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
           { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
+          { id: 'random-forest', label: 'Random Forest', icon: GitBranch, component: RandomForestPage },
       ]
     },
      {
