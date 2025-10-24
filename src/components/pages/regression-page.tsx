@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot, MoveRight, HelpCircle, Settings, FileSearch, BarChart } from 'lucide-react';
+import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot, MoveRight, HelpCircle, Settings, FileSearch, BarChart, FlaskConical } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -232,7 +232,7 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
     const formattedInterpretation = useMemo(() => {
         if (!interpretation) return null;
         return interpretation
-            .replace(/\n/g, '<br />')
+            .replace(/\\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>')
             .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
@@ -330,43 +330,33 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
                         </Table>
                     </CardContent>
                 </Card>
-            </div>
-            {diagnostics?.vif && Object.keys(diagnostics.vif).length > 1 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Multicollinearity (VIF)</CardTitle>
-                        <CardDescription>Variance Inflation Factor measures how much the variance of a coefficient is inflated due to correlation with other predictors. VIF &gt; 5 is often a cause for concern.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Variable</TableHead>
-                                    <TableHead className="text-right">VIF</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {Object.entries(diagnostics.vif).filter(([key]) => key !== 'const').map(([variable, vif]) => (
-                                    <TableRow key={variable}>
-                                        <TableCell>{variable}</TableCell>
-                                        <TableCell className={`text-right font-mono ${vif > 5 ? 'text-destructive font-bold' : ''}`}>{vif.toFixed(3)}</TableCell>
+                {results.model_type === 'multiple' && diagnostics?.vif && Object.keys(diagnostics.vif).length > 1 && (
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle>Multicollinearity (VIF)</CardTitle>
+                            <CardDescription>Variance Inflation Factor. Values &gt; 5 suggest potential multicollinearity.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        <TableHead className="text-right">VIF</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            )}
-             {results.stepwise_log && results.stepwise_log.length > 0 && (
-                <Card>
-                    <CardHeader><CardTitle>Stepwise Selection Log</CardTitle></CardHeader>
-                    <CardContent>
-                        <ScrollArea className="h-40">
-                            <pre className="text-xs p-4 bg-muted rounded-md">{results.stepwise_log.join('\n')}</pre>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            )}
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(diagnostics.vif).filter(([key]) => key !== 'const').map(([variable, vif]) => (
+                                        <TableRow key={variable}>
+                                            <TableCell>{variable}</TableCell>
+                                            <TableCell className={`text-right font-mono ${vif > 5 ? 'text-destructive font-bold' : ''}`}>{typeof vif === 'number' ? vif.toFixed(3) : 'N/A'}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     )
 }
@@ -380,19 +370,15 @@ interface RegressionPageProps {
 
 export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
     const { toast } = useToast();
-    const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
     const [view, setView] = useState('intro');
 
     const modelType = useMemo(() => activeAnalysis.replace('regression-', ''), [activeAnalysis]);
     const [selectionMethod, setSelectionMethod] = useState('none');
 
     // States for different models
+    const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
     const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
-    
-    // Simple regression prediction state
-    const [predictXValue, setPredictXValue] = useState<number | ''>('');
-    const [predictedYValue, setPredictedYValue] = useState<number | null>(null);
     
     // Model specific params
     const [polyDegree, setPolyDegree] = useState(2);
@@ -415,49 +401,42 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         setAnalysisResult(null);
         setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
+    
+    useEffect(() => {
+        // Reset when model type changes
+        setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
+    }, [modelType, data]);
 
     const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
         setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
 
-    const handleAnalysis = useCallback(async (predictValue?: number) => {
+    const handleAnalysis = useCallback(async () => {
         if (!targetVar) {
             toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable.'});
             return;
         }
 
         let features: string[] = [];
-        let params: any = { data, targetVar, modelType, selectionMethod, test_size: 0 };
+        let params: any = { data, targetVar, modelType, selectionMethod };
 
         switch (modelType) {
             case 'simple':
-                if (!simpleFeatureVar) {
-                    toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a feature variable.'});
-                    return;
-                }
+                if (!simpleFeatureVar) { toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a feature variable.'}); return; }
                 features = [simpleFeatureVar];
-                if (typeof predictValue === 'number') {
-                    params.predict_x = predictValue;
-                }
                 break;
             case 'multiple':
             case 'polynomial':
-                if (multipleFeatureVars.length < 1) {
-                    toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'});
-                    return;
-                }
+                if (multipleFeatureVars.length < 1) { toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'}); return; }
                 features = multipleFeatureVars;
                 if (modelType === 'polynomial') params.degree = polyDegree;
                 break;
         }
-
         params.features = features;
 
         setIsLoading(true);
-        if (typeof predictValue !== 'number') {
-             setAnalysisResult(null);
-             setPredictedYValue(null);
-        }
+        setAnalysisResult(null);
         
         try {
             const response = await fetch('/api/analysis/regression', {
@@ -475,9 +454,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
-            if(result.results.prediction) {
-                setPredictedYValue(result.results.prediction.y_value);
-            }
+            toast({title: 'Analysis Complete'});
 
         } catch (e: any) {
             console.error('Analysis error:', e);
