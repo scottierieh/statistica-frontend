@@ -299,7 +299,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                 <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <ScrollArea className="h-72">
+                                <div className="overflow-x-auto">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -325,7 +325,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                             ))}
                                         </TableBody>
                                     </Table>
-                                </ScrollArea>
+                                </div>
                             </CardContent>
                         </Card>
                         <Card>
