@@ -2,12 +2,12 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sigma, BrainCircuit, X, PlusCircle, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, X, PlusCircle, HelpCircle, Trash2 } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
 
 interface LatentVariable {
