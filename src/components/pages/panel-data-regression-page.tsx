@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
@@ -70,18 +71,23 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <div className="flex justify-center">
                         {panelExample && (
-                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(panelExample)}>
-                                <panelExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                             <Card className="p-6 bg-muted/50 rounded-lg space-y-3 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-lg hover:bg-muted/70 transition-all w-full max-w-md" onClick={() => onLoadExample(panelExample)}>
+                                <panelExample.icon className="mx-auto h-10 w-10 text-primary"/>
                                 <div>
-                                    <h4 className="font-semibold">{panelExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{panelExample.description}</p>
+                                    <h4 className="font-semibold text-lg">{panelExample.name}</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">{panelExample.description}</p>
                                 </div>
+                                <Button variant="outline" size="sm" className="mt-2">
+                                    Load Example Dataset
+                                </Button>
                             </Card>
                         )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2">
+                                <Settings className="text-primary"/> Setup Guide
+                            </h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li><strong>Entity & Time Variables:</strong> Select the columns that identify your unique entities (e.g., 'Country') and time periods (e.g., 'Year').</li>
                                 <li><strong>Dependent & Independent Variables:</strong> Choose your outcome variable and one or more predictors.</li>
@@ -89,7 +95,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ol>
                         </div>
                          <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2">
+                                <FileSearch className="text-primary"/> Results Interpretation
+                            </h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li><strong>Pooled OLS:</strong> A basic regression that ignores the panel structure. It's a useful baseline but often biased.</li>
                                 <li><strong>Fixed Effects (FE):</strong> Controls for all time-invariant differences between entities. Use this when you believe unobserved factors are correlated with your predictors.</li>
@@ -100,7 +108,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                    <Button size="lg" onClick={onStart}>
+                        Start New Analysis <MoveRight className="ml-2 w-5 h-5"/>
+                    </Button>
                 </CardFooter>
             </Card>
         </div>
@@ -118,8 +128,8 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2 && allHeaders.length - numericHeaders.length >= 1, [data, numericHeaders, allHeaders]);
+    
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2 && allHeaders.length >= 3, [data, numericHeaders, allHeaders]);
     
     const availableFeatures = useMemo(() => {
         const excluded = new Set([entityCol, timeCol, yCol]);
@@ -129,16 +139,24 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     const availableTimeCols = useMemo(() => allHeaders.filter(h => h !== entityCol), [allHeaders, entityCol]);
 
     useEffect(() => {
-        const potentialDmu = categoricalHeaders.find(h => new Set(data.map(row => row[h])).size > 1);
-        setEntityCol(potentialDmu || categoricalHeaders[0]);
-        setTimeCol(allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time')) || allHeaders.find(h => h !== potentialDmu));
+        if (canRun) {
+            const potentialEntity = allHeaders.find(h => !numericHeaders.includes(h) || new Set(data.map(row => row[h])).size > 1);
+            setEntityCol(potentialEntity);
+            
+            const potentialTime = allHeaders.find(h => h.toLowerCase().includes('year') || h.toLowerCase().includes('time')) || allHeaders.find(h => h !== potentialEntity);
+            setTimeCol(potentialTime);
 
-        const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
-        setYCol(potentialY || numericHeaders[0]);
-        setXCols(numericHeaders.filter(h => h !== (potentialY || numericHeaders[0])).slice(0, 3));
+            const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
+            setYCol(potentialY || numericHeaders[0]);
+            
+            const initialXCols = numericHeaders.filter(h => h !== (potentialY || numericHeaders[0]) && h !== potentialTime && h !== potentialEntity).slice(0, 3);
+            setXCols(initialXCols);
+            setView('main');
+        } else {
+            setView('intro');
+        }
         setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
-    }, [data, allHeaders, numericHeaders, categoricalHeaders, canRun]);
+    }, [canRun, allHeaders, numericHeaders, categoricalHeaders, data]);
 
 
     const handleFeatureChange = (header: string, checked: boolean) => {
@@ -173,35 +191,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             setIsLoading(false);
         }
     }, [data, entityCol, timeCol, yCol, xCols, toast]);
-
-    const renderResultTable = (result: RegressionResult) => (
-        <Card>
-            <CardHeader>
-                <CardTitle>{result.model}</CardTitle>
-                <CardDescription>
-                     {result.r_squared !== undefined && `R²: ${result.r_squared.toFixed(3)} `}
-                     {result.r_squared_within !== undefined && `R² (within): ${result.r_squared_within.toFixed(3)}`}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coef.</TableHead><TableHead>Std.Err.</TableHead><TableHead>t</TableHead><TableHead>p</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {result.variable_names.map((name, i) => (
-                            <TableRow key={name}>
-                                <TableCell>{name}</TableCell>
-                                <TableCell>{result.coefficients[i]?.toFixed(4)}</TableCell>
-                                <TableCell>{result.std_errors[i]?.toFixed(4)}</TableCell>
-                                <TableCell>{result.t_statistics[i]?.toFixed(3)}</TableCell>
-                                <TableCell>{result.p_values[i] < 0.001 ? '<.001' : result.p_values[i]?.toFixed(3)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    );
-
+    
     const handleLoadExampleData = () => {
         const panelExample = exampleDatasets.find(ex => ex.id === 'panel-data');
         if (panelExample) {
@@ -216,6 +206,39 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
 
     const { pooled_ols, fixed_effects, random_effects, hausman_test } = analysisResult || {};
 
+    const renderResultTable = (result: RegressionResult) => {
+        if (result.error) {
+            return <Card><CardHeader><CardTitle>{result.model}</CardTitle></CardHeader><CardContent><p className='text-destructive'>{result.error}</p></CardContent></Card>
+        }
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>{result.model}</CardTitle>
+                    <CardDescription>
+                         {result.r_squared !== undefined && `R²: ${result.r_squared.toFixed(3)} `}
+                         {result.r_squared_within !== undefined && `R² (within): ${result.r_squared_within.toFixed(3)}`}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coef.</TableHead><TableHead>Std.Err.</TableHead><TableHead>t</TableHead><TableHead>p</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {result.variable_names.map((name, i) => (
+                                <TableRow key={name}>
+                                    <TableCell>{name}</TableCell>
+                                    <TableCell>{result.coefficients[i]?.toFixed(4)}</TableCell>
+                                    <TableCell>{result.std_errors[i]?.toFixed(4)}</TableCell>
+                                    <TableCell>{result.t_statistics[i]?.toFixed(3)}</TableCell>
+                                    <TableCell>{result.p_values[i] < 0.001 ? '<.001' : result.p_values[i]?.toFixed(3)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        );
+    };
+
     return (
         <div className="space-y-4">
             <Card>
@@ -226,19 +249,10 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-4 gap-4">
-                        <div>
-                            <Label>Entity</Label>
-                            <Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Time</Label>
-                            <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableTimeCols.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Dependent (Y)</Label>
-                            <Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div><Label>Entity</Label><Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Time</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableTimeCols.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Dependent (Y)</Label><Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
                             <Label>Independent (X)</Label>
                             <ScrollArea className="h-24 border rounded-md p-2">
@@ -253,7 +267,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                     </div>
                 </CardContent>
                  <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || !entityCol || !timeCol || !yCol || xCols.length === 0}>
+                    <Button onClick={handleAnalysis} disabled={isLoading}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
                 </CardFooter>
@@ -274,34 +288,12 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                         </CardContent>
                     </Card>
                     <div className="grid lg:grid-cols-3 gap-4">
-                        {pooled_ols && !pooled_ols.error && renderResultTable(pooled_ols)}
-                        {fixed_effects && !fixed_effects.error && renderResultTable(fixed_effects)}
-                        {random_effects && (random_effects.error ? <Card><CardHeader><CardTitle>Random Effects</CardTitle></CardHeader><CardContent><p className='text-destructive'>{random_effects.error}</p></CardContent></Card> : renderResultTable(random_effects))}
+                        {pooled_ols && renderResultTable(pooled_ols)}
+                        {fixed_effects && renderResultTable(fixed_effects)}
+                        {random_effects && renderResultTable(random_effects)}
                     </div>
-                    
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5" />
-                                    Model Comparison
-                                </CardTitle>
-                                <CardDescription>
-                                    Coefficient comparison and R-squared values across models
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <img 
-                                    src={`data:image/png;base64,${analysisResult.plot}`}
-                                    alt="Panel Data Regression Results Visualization"
-                                    className="w-full rounded-lg shadow-md"
-                                />
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             )}
         </div>
     );
 }
-
