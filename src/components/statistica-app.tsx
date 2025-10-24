@@ -155,6 +155,7 @@ import SemPage from './pages/sem-page';
 import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
+import VisualizationPage from './pages/visualization-page';
 
 const analysisCategories = [
     {
@@ -163,6 +164,14 @@ const analysisCategories = [
       isSingle: true,
       items: [
         { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
+      ]
+    },
+     {
+      name: 'Visualization',
+      icon: Palette,
+      isSingle: true,
+      items: [
+        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
       ]
     },
     {
@@ -347,7 +356,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('guide');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Guide']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Guide', 'Visualization']);
   const analysisPageRef = useRef<HTMLDivElement>(null);
 
 
