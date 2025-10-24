@@ -265,7 +265,6 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
     return (
          <div className="space-y-4">
             <InterpretationDisplay interpretation={results.interpretation} f_pvalue={diagnostics?.f_pvalue} />
-
             <div className="grid lg:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader><CardTitle>Model Performance</CardTitle></CardHeader>
@@ -319,7 +318,7 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
                                         <TableCell>{diagnostics.specification_tests.reset.p_value > 0.05 ? <Badge>No specification error ✓</Badge> : <Badge variant="destructive">Mis-specified ✗</Badge>}</TableCell>
                                     </TableRow>
                                 )}
-                                 {diagnostics?.influence_tests && diagnostics.influence_tests.max_cooks_d !== undefined && (
+                                {diagnostics?.influence_tests && diagnostics.influence_tests.max_cooks_d !== undefined && (
                                     <TableRow>
                                         <TableCell>Cook's Distance (max)</TableCell>
                                         <TableCell className="font-mono text-right">{diagnostics.influence_tests.max_cooks_d.toFixed(3)}</TableCell>
@@ -332,12 +331,38 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
                     </CardContent>
                 </Card>
             </div>
-             {diagnostics?.stepwise_log && diagnostics.stepwise_log.length > 0 && (
+            {diagnostics?.vif && Object.keys(diagnostics.vif).length > 1 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Multicollinearity (VIF)</CardTitle>
+                        <CardDescription>Variance Inflation Factor measures how much the variance of a coefficient is inflated due to correlation with other predictors. VIF &gt; 5 is often a cause for concern.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Variable</TableHead>
+                                    <TableHead className="text-right">VIF</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {Object.entries(diagnostics.vif).filter(([key]) => key !== 'const').map(([variable, vif]) => (
+                                    <TableRow key={variable}>
+                                        <TableCell>{variable}</TableCell>
+                                        <TableCell className={`text-right font-mono ${vif > 5 ? 'text-destructive font-bold' : ''}`}>{vif.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            )}
+             {results.stepwise_log && results.stepwise_log.length > 0 && (
                 <Card>
                     <CardHeader><CardTitle>Stepwise Selection Log</CardTitle></CardHeader>
                     <CardContent>
                         <ScrollArea className="h-40">
-                            <pre className="text-xs p-4 bg-muted rounded-md">{diagnostics.stepwise_log.join('\n')}</pre>
+                            <pre className="text-xs p-4 bg-muted rounded-md">{results.stepwise_log.join('\n')}</pre>
                         </ScrollArea>
                     </CardContent>
                 </Card>
@@ -573,12 +598,16 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && <ResultDisplay results={analysisResult.results} />}
-            {analysisResult?.plot && (
-                <Card>
-                    <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
-                    <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
-                </Card>
+            {analysisResult && (
+                <>
+                    <ResultDisplay results={analysisResult.results} />
+                    {analysisResult.plot && (
+                         <Card>
+                            <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
+                            <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
+                        </Card>
+                    )}
+                </>
             )}
 
             {!analysisResult && !isLoading && (
