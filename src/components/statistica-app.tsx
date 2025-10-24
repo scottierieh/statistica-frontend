@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -158,7 +159,6 @@ import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import VisualizationPage from './pages/visualization-page';
 import RandomForestPage from './pages/random-forest-page';
-import HtePage from './pages/hte-page';
 
 const analysisCategories = [
     {
@@ -336,7 +336,6 @@ const analysisCategories = [
         { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
         { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
         { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
-        { id: 'hte', label: 'Heterogeneous Treatment Effects', icon: Intersection, component: HtePage },
       ],
     },
      {

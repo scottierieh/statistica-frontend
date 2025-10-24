@@ -63,6 +63,7 @@ interface PostHocResult {
 
 interface TwoWayAnovaResults {
     anova_table: AnovaRow[];
+    descriptive_stats_table: { [key: string]: { [key: string]: number } };
     marginal_means: {
         factor_a: MarginalMeansRow[];
         factor_b: MarginalMeansRow[];
@@ -112,7 +113,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
-                     <div className="text-center">
+                    <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use Two-Way ANOVA?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
                             Two-Way ANOVA extends One-Way ANOVA by allowing you to test the effects of two independent factors simultaneously. This is powerful because it not only reveals the main effect of each factor but also uncovers if there is an **interaction effect** between them. An interaction means the effect of one factor depends on the level of the other, providing deeper insights than running separate one-way tests.
@@ -170,7 +171,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
         </div>
     );
 };
-
 
 interface TwoWayAnovaPageProps {
     data: DataSet;
@@ -243,6 +243,21 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
 
     const availableFactorB = useMemo(() => categoricalHeaders.filter(h => h !== factorA), [categoricalHeaders, factorA]);
     
+    const results = analysisResponse?.results;
+    const interactionPValue = results?.anova_table.find(row => row.Source.includes('*'))?.['p-value'];
+
+    const descriptiveTable = useMemo(() => {
+        if (!results?.descriptive_stats_table) return null;
+        const data = results.descriptive_stats_table;
+        const rowLabels = Object.keys(data.mean);
+        const colLabels = Object.keys(data.mean[rowLabels[0]]);
+        return {
+            rowLabels,
+            colLabels,
+            data
+        };
+    }, [results]);
+
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -250,9 +265,6 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
-
-    const results = analysisResponse?.results;
-    const interactionPValue = results?.anova_table.find(row => row.Source.includes('*'))?.['p-value'];
 
     return (
         <div className="flex flex-col gap-4">
@@ -281,12 +293,12 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                             <Select value={factorB} onValueChange={setFactorB} disabled={availableFactorB.length === 0}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableFactorB.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
                         </div>
                     </div>
-                    <div className="flex justify-end">
-                        <Button onClick={handleAnalysis} disabled={!dependentVar || !factorA || !factorB || isLoading}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                        </Button>
-                    </div>
                 </CardContent>
+                 <CardFooter className="flex justify-end">
+                    <Button onClick={handleAnalysis} disabled={!dependentVar || !factorA || !factorB || isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
+                    </Button>
+                </CardFooter>
             </Card>
 
             {isLoading && (
@@ -332,6 +344,50 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                             </Alert>
                         </CardContent>
                     </Card>
+
+                    {descriptiveTable && (
+                        <Card>
+                             <CardHeader><CardTitle>Descriptive Statistics</CardTitle></CardHeader>
+                             <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>{factorA}</TableHead>
+                                            {descriptiveTable.colLabels.filter(c => c !== 'Row Mean').map(col => <TableHead key={col} className="text-center">{col}</TableHead>)}
+                                            <TableHead className="text-right bg-muted/50">Row Mean</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {descriptiveTable.rowLabels.filter(r => r !== 'Column Mean').map(rowLabel => (
+                                            <TableRow key={rowLabel}>
+                                                <TableCell className="font-medium">{rowLabel}</TableCell>
+                                                {descriptiveTable.colLabels.filter(c => c !== 'Row Mean').map(colLabel => (
+                                                    <TableCell key={colLabel} className="text-center font-mono">
+                                                        {descriptiveTable.data.mean[rowLabel][colLabel]?.toFixed(2)} (±{descriptiveTable.data.std[rowLabel][colLabel]?.toFixed(2)})
+                                                    </TableCell>
+                                                ))}
+                                                <TableCell className="text-right font-mono font-bold bg-muted/50">
+                                                    {descriptiveTable.data.mean[rowLabel]['Row Mean']?.toFixed(2)}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                         <TableRow className="bg-muted/50 font-bold">
+                                            <TableCell>Column Mean</TableCell>
+                                            {descriptiveTable.colLabels.filter(c => c !== 'Row Mean').map(colLabel => (
+                                                <TableCell key={colLabel} className="text-center font-mono">
+                                                    {descriptiveTable.data.mean['Column Mean'][colLabel]?.toFixed(2)}
+                                                </TableCell>
+                                            ))}
+                                            <TableCell className="text-right font-mono">
+                                                {descriptiveTable.data.mean['Column Mean']['Row Mean']?.toFixed(2)}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">ANOVA Table</CardTitle>
@@ -368,83 +424,6 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                             <p className='text-sm text-muted-foreground'>η²p: Partial Eta-Squared (Effect Size)</p>
                         </CardFooter>
                     </Card>
-
-                    <div className="grid lg:grid-cols-2 gap-4">
-                         <Card>
-                            <CardHeader><CardTitle className="font-headline">Assumption Checks</CardTitle></CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                <div className="flex justify-between items-center">
-                                    <dt className="text-muted-foreground">Normality of Residuals ({results.assumptions.normality ? 'Shapiro-Wilk per group' : 'N/A'})</dt>
-                                    <dd>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="link" size="sm" className="h-auto p-0">Details</Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-80">
-                                                 <div className="grid gap-4">
-                                                    <div className="space-y-2">
-                                                        <h4 className="font-medium leading-none">Normality Test (Shapiro-Wilk)</h4>
-                                                        <p className="text-xs text-muted-foreground">Tests if each group's data is normal. p > 0.05 suggests normality.</p>
-                                                    </div>
-                                                    <div className="grid gap-2 text-xs">
-                                                        {Object.entries(results.assumptions.normality).map(([group, result]) => (
-                                                            <div className="grid grid-cols-3 items-center gap-4" key={group}>
-                                                                <span className="font-semibold truncate" title={group}>{group}</span>
-                                                                <span className="font-mono">p = {result.p_value?.toFixed(3) ?? 'N/A'}</span>
-                                                                {result.normal === null ? <Badge variant="outline">N/A</Badge> : result.normal ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </PopoverContent>
-                                        </Popover>
-                                    </dd>
-                                </div>
-                                <div className="flex justify-between items-start">
-                                    <dt className="text-muted-foreground">Homogeneity of Variances ({results.assumptions.homogeneity.test})</dt>
-                                    <dd className="text-right">
-                                        {results.assumptions.homogeneity.assumption_met ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
-                                        <p className="font-mono text-xs">(p = {results.assumptions.homogeneity.p_value.toFixed(3)})</p>
-                                    </dd>
-                                </div>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader><CardTitle className="font-headline">Effect Sizes</CardTitle></CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                {results.anova_table.slice(0,3).map(row => (
-                                    <div className="flex justify-between items-center" key={row.Source}>
-                                        <dt className="text-muted-foreground">{row.Source}</dt>
-                                        <dd><Badge variant="secondary">{getEffectSizeInterpretation(row['η²p'])}</Badge></dd>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                     {results.posthoc_results && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Post-Hoc Tests (Tukey's HSD)</CardTitle>
-                                <CardDescription>Pairwise comparisons performed because the interaction effect was significant.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Group 1</TableHead><TableHead>Group 2</TableHead><TableHead className="text-right">Mean Difference</TableHead><TableHead className="text-right">p-adj</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {results.posthoc_results.map((res, i) => (
-                                            <TableRow key={i}>
-                                                <TableCell>{res.group1}</TableCell>
-                                                <TableCell>{res.group2}</TableCell>
-                                                <TableCell className="text-right font-mono">{res.meandiff.toFixed(3)}</TableCell>
-                                                <TableCell className="text-right font-mono">{res.p_adj < 0.001 ? "<.001" : res.p_adj.toFixed(4)} {getSignificanceStars(res.p_adj)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    )}
                 </>
             ) : (
                  !isLoading && <div className="text-center text-muted-foreground py-10">
@@ -454,3 +433,4 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         </div>
     );
 }
+
