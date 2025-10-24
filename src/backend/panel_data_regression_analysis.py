@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -44,7 +45,10 @@ class PanelDataRegression:
         try:
             beta = np.linalg.inv(X_with_const.T @ X_with_const) @ X_with_const.T @ self.y
         except np.linalg.LinAlgError:
-            raise ValueError("Pooled OLS failed due to singular matrix. Check for perfect multicollinearity.")
+            return {
+                'model': 'Pooled OLS',
+                'error': "Singular matrix. Check for perfect multicollinearity among predictors."
+            }
             
         y_pred = X_with_const @ beta
         residuals = self.y - y_pred
@@ -86,7 +90,10 @@ class PanelDataRegression:
         try:
              beta = np.linalg.inv(X_demeaned.T @ X_demeaned) @ X_demeaned.T @ y_demeaned
         except np.linalg.LinAlgError:
-            raise ValueError("Fixed Effects failed due to singular matrix. Check for time-invariant variables.")
+            return {
+                'model': 'Fixed Effects',
+                'error': "Singular matrix. This often occurs if one or more predictors are time-invariant (e.g., gender, country) and perfectly collinear after demeaning. Please remove time-invariant variables from your model."
+            }
             
         residuals = y_demeaned - (X_demeaned @ beta)
         sse = np.sum(residuals ** 2)
@@ -123,6 +130,12 @@ class PanelDataRegression:
             }
 
         fe_results = self.fixed_effects()
+        if 'error' in fe_results:
+             return {
+                'model': 'Random Effects',
+                'error': f'Cannot compute RE because FE failed: {fe_results["error"]}'
+            }
+
         
         entity_means_y = self.data.groupby(self.entity_col)[self.y_col].mean().values.reshape(-1, 1)
         entity_means_X = self.data.groupby(self.entity_col)[self.x_cols].mean().values
@@ -182,7 +195,9 @@ class PanelDataRegression:
 
     def hausman_test(self, fe_results, re_results):
         if not self.is_balanced or 'error' in re_results:
-             return { 'test': 'Hausman Test', 'statistic': None, 'p_value': None, 'dof': self.k, 'interpretation': 'Test not performed (unbalanced panel).' }
+             return { 'test': 'Hausman Test', 'statistic': None, 'p_value': None, 'dof': self.k, 'interpretation': 'Test not performed (unbalanced panel or RE model failed).' }
+        if 'error' in fe_results:
+            return { 'test': 'Hausman Test', 'statistic': None, 'p_value': None, 'dof': self.k, 'interpretation': 'Test not performed (FE model failed).' }
 
         beta_fe = np.array(fe_results['coefficients'])
         beta_re = np.array(re_results['coefficients'][1:])
@@ -255,4 +270,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

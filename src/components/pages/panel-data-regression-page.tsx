@@ -8,8 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -20,15 +19,15 @@ import { Badge } from '../ui/badge';
 interface RegressionResult {
     model: string;
     coefficients: number[];
-    std_errors: number[];
-    t_statistics: number[];
-    p_values: number[];
+    std_errors?: number[];
+    t_statistics?: number[];
+    p_values?: number[];
     variable_names: string[];
     r_squared?: number;
     adj_r_squared?: number;
     r_squared_within?: number;
-    n_obs: number;
-    dof: number;
+    n_obs?: number;
+    dof?: number;
     error?: string;
 }
 
@@ -43,7 +42,6 @@ interface FullAnalysisResponse {
     fixed_effects: RegressionResult;
     random_effects: RegressionResult;
     hausman_test: HausmanResult;
-    plot?: string;
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
@@ -117,7 +115,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-export default function PanelDataRegressionPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: { data: DataSet; allHeaders: string[]; numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (e: any) => void }) {
+export default function PanelDataRegressionPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: { data: DataSet; allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (e: any) => void }) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     
@@ -133,8 +131,8 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     
     const availableFeatures = useMemo(() => {
         const excluded = new Set([entityCol, timeCol, yCol]);
-        return numericHeaders.filter(h => !excluded.has(h));
-    }, [numericHeaders, entityCol, timeCol, yCol]);
+        return allHeaders.filter(h => !excluded.has(h));
+    }, [allHeaders, entityCol, timeCol, yCol]);
     
     const availableTimeCols = useMemo(() => allHeaders.filter(h => h !== entityCol), [allHeaders, entityCol]);
 
@@ -208,7 +206,20 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
 
     const renderResultTable = (result: RegressionResult) => {
         if (result.error) {
-            return <Card><CardHeader><CardTitle>{result.model}</CardTitle></CardHeader><CardContent><p className='text-destructive'>{result.error}</p></CardContent></Card>
+            return (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{result.model}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Analysis Error</AlertTitle>
+                            <AlertDescription>{result.error}</AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            );
         }
         return (
             <Card>
@@ -221,15 +232,21 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                 </CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coef.</TableHead><TableHead>Std.Err.</TableHead><TableHead>t</TableHead><TableHead>p</TableHead></TableRow></TableHeader>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Variable</TableHead>
+                                <TableHead className="text-right">Coef.</TableHead>
+                                <TableHead className="text-right">p-value</TableHead>
+                            </TableRow>
+                        </TableHeader>
                         <TableBody>
                             {result.variable_names.map((name, i) => (
                                 <TableRow key={name}>
                                     <TableCell>{name}</TableCell>
-                                    <TableCell>{result.coefficients[i]?.toFixed(4)}</TableCell>
-                                    <TableCell>{result.std_errors[i]?.toFixed(4)}</TableCell>
-                                    <TableCell>{result.t_statistics[i]?.toFixed(3)}</TableCell>
-                                    <TableCell>{result.p_values[i] < 0.001 ? '<.001' : result.p_values[i]?.toFixed(3)}</TableCell>
+                                    <TableCell className="text-right font-mono">{result.coefficients[i]?.toFixed(4)}</TableCell>
+                                    <TableCell className="text-right font-mono">
+                                        {result.p_values?.[i] < 0.001 ? '<.001' : result.p_values?.[i]?.toFixed(3) ?? 'N/A'}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -278,11 +295,11 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                     <Card>
                         <CardHeader><CardTitle>Hausman Test</CardTitle></CardHeader>
                         <CardContent>
-                            <Alert variant={hausman_test?.p_value && hausman_test.p_value < 0.05 ? 'default' : 'secondary'}>
-                                {hausman_test?.p_value && hausman_test.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                            <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
+                                {hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                                 <AlertTitle>Model Recommendation: {hausman_test?.interpretation}</AlertTitle>
                                 <AlertDescription>
-                                    p-value: {hausman_test?.p_value?.toFixed(4)}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate as unobserved individual effects are likely correlated with the predictors.
+                                    p-value: {hausman_test?.p_value?.toFixed(4) ?? 'N/A'}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate.
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
