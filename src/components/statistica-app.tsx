@@ -279,6 +279,7 @@ const analysisCategories = [
             { id: 'hca', label: 'Hierarchical (HCA)', icon: GitBranch, component: HcaPage },
             { id: 'dbscan', label: 'DBSCAN', icon: ScanSearch, component: DbscanPage },
             { id: 'hdbscan', label: 'HDBSCAN', icon: ScanSearch, component: HdbscanPage },
+            { id: 'optimal-cluster', label: 'Optimal Cluster Determination', icon: Target, component: KMeansPage },
         ]
     },
     {
