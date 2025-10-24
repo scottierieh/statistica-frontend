@@ -69,7 +69,8 @@ import {
   Building,
   Award,
   Truck,
-  Percent
+  Percent,
+  Intersection
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -157,6 +158,7 @@ import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import VisualizationPage from './pages/visualization-page';
 import RandomForestPage from './pages/random-forest-page';
+import HtePage from './pages/hte-page';
 
 const analysisCategories = [
     {
@@ -237,6 +239,7 @@ const analysisCategories = [
         { id: 'regression-polynomial', label: 'Polynomial Regression', icon: TrendingUp, component: RegressionPage },
         { id: 'logistic-regression', label: 'Logistic Regression', icon: TrendingUp, component: LogisticRegressionPage },
         { id: 'crosstab', label: 'Crosstab & Chi-Squared', icon: Columns, component: CrosstabPage },
+        { id: 'relative-importance', label: 'Relative Importance', icon: Percent, component: RelativeImportancePage },
       ]
     },
      {
@@ -318,7 +321,6 @@ const analysisCategories = [
             { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
             { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
             { id: 'rfm-analysis', label: 'RFM Analysis', icon: Users, component: RfmPage },
-            { id: 'relative-importance', label: 'Relative Importance', icon: Percent, component: RelativeImportancePage },
         ],
     },
     {
@@ -334,6 +336,7 @@ const analysisCategories = [
         { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
         { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
         { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
+        { id: 'hte', label: 'Heterogeneous Treatment Effects', icon: Intersection, component: HtePage },
       ],
     },
      {
