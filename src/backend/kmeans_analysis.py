@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -32,13 +33,13 @@ class KMeansAnalysis:
     def __init__(self, data, feature_cols, standardize=True):
         self.data = pd.DataFrame(data)
         self.feature_cols = feature_cols
-        self.cluster_data = self.data[self.feature_cols].copy().dropna()
+        self.cluster_data_raw = self.data[self.feature_cols].copy().dropna()
         
         if standardize:
             scaler = StandardScaler()
-            self.cluster_data_scaled = pd.DataFrame(scaler.fit_transform(self.cluster_data), columns=self.feature_cols, index=self.cluster_data.index)
+            self.cluster_data_scaled = pd.DataFrame(scaler.fit_transform(self.cluster_data_raw), columns=self.feature_cols, index=self.cluster_data_raw.index)
         else:
-            self.cluster_data_scaled = self.cluster_data.copy()
+            self.cluster_data_scaled = self.cluster_data_raw.copy()
             
         self.n_samples, self.n_features = self.cluster_data_scaled.shape
         self.results = {}
@@ -92,7 +93,7 @@ class KMeansAnalysis:
         
         for i, label in enumerate(unique_labels):
             mask = (self.cluster_labels == label)
-            cluster_data = self.cluster_data[mask]
+            cluster_data = self.cluster_data_raw[mask]
             profiles[f'Cluster {label + 1}'] = {
                 'size': int(counts[i]),
                 'percentage': float(counts[i] / self.n_samples * 100),
@@ -107,8 +108,69 @@ class KMeansAnalysis:
                 'calinski_harabasz': calinski_harabasz_score(self.cluster_data_scaled, self.cluster_labels),
             }
 
+        self.results['interpretations'] = self.generate_interpretations()
+
+    def generate_interpretations(self):
+        if 'profiles' not in self.results or 'final_metrics' not in self.results:
+            return {}
+
+        interpretations = {
+            'overall_quality': '',
+            'cluster_profiles': [],
+            'cluster_distribution': ''
+        }
+
+        # 1. Overall Quality Interpretation
+        metrics = self.results['final_metrics']
+        silhouette = metrics['silhouette']
+        calinski = metrics['calinski_harabasz']
+        davies = metrics['davies_bouldin']
+        inertia = self.results['clustering_summary']['inertia']
+
+        if silhouette >= 0.7:
+            quality_desc = "strong and well-defined."
+        elif silhouette >= 0.5:
+            quality_desc = "reasonable and distinct."
+        elif silhouette >= 0.25:
+            quality_desc = "weak and could have some overlap."
+        else:
+            quality_desc = "not well-defined; results should be interpreted with caution."
+        
+        interpretations['overall_quality'] = (
+            f"The <strong>Silhouette Score of {silhouette:.3f}</strong> indicates the clustering structure is {quality_desc}\n"
+            f"Higher is better for the <strong>Calinski-Harabasz Score ({calinski:.2f})</strong>, which measures the ratio of between-cluster to within-cluster variance.\n"
+            f"Lower is better for the <strong>Davies-Bouldin Score ({davies:.3f})</strong>, which measures the average similarity between clusters.\n"
+            f"The <strong>Inertia (WCSS) of {inertia:.2f}</strong> represents the sum of squared distances of samples to their closest cluster center; lower is generally better."
+        )
+
+        # 2. Cluster Profile Interpretation
+        overall_means = self.cluster_data_raw.mean()
+        
+        for name, profile in self.results['profiles'].items():
+            centroid = pd.Series(profile['centroid'])
+            deviations = (centroid - overall_means) / overall_means.std()
+            
+            top_features = deviations.nlargest(2).index.tolist()
+            bottom_features = deviations.nsmallest(2).index.tolist()
+            
+            profile_desc = f"<strong>{name} ({profile['percentage']:.1f}% of data):</strong> This cluster is characterized by high values in <strong>{', '.join(top_features)}</strong> and low values in <strong>{', '.join(bottom_features)}</strong>."
+            interpretations['cluster_profiles'].append(profile_desc)
+
+        # 3. Cluster Distribution Interpretation
+        percentages = [p['percentage'] for p in self.results['profiles'].values()]
+        if len(percentages) > 1:
+            max_p = max(percentages)
+            min_p = min(percentages)
+            if max_p / min_p > 3:
+                dist_desc = "The cluster sizes are imbalanced, with some clusters being significantly larger than others."
+            else:
+                dist_desc = "The clusters are relatively balanced in size."
+            interpretations['cluster_distribution'] = dist_desc
+
+        return interpretations
+        
     def plot_results(self):
-        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
         fig.suptitle('K-Means Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Elbow Plot
@@ -204,3 +266,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

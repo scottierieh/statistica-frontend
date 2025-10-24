@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, Bot, Settings, FileSearch, MoveRight, HelpCircle, Users } from 'lucide-react';
+import { Sigma, Loader2, Binary, Bot, Settings, FileSearch, MoveRight, HelpCircle, Users, Download } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -46,6 +47,7 @@ interface KMeansResults {
         cluster_profiles: string[];
         cluster_distribution: string;
     };
+    clustered_data?: DataSet;
 }
 
 interface FullKMeansResponse {
@@ -120,6 +122,7 @@ interface KMeansPageProps {
     data: DataSet;
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    onGenerateReport: (stats: any, viz: string | null) => void;
 }
 
 const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansResults['interpretations'] | undefined }) => {
@@ -153,7 +156,7 @@ const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansRes
 };
 
 
-export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMeansPageProps) {
+export default function KMeansPage({ data, numericHeaders, onLoadExample, onGenerateReport }: KMeansPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
@@ -207,7 +210,14 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
             const result: FullKMeansResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
             
-            setAnalysisResult(result);
+            // Add cluster labels to the original data for export
+            const cleanData = data.filter(row => selectedItems.every(item => typeof row[item] === 'number'));
+            const dataWithClusters = cleanData.map((row, index) => ({
+                ...row,
+                'Cluster': `Cluster ${result.results.clustering_summary.labels[index] + 1}`
+            }));
+            
+            setAnalysisResult({ ...result, results: { ...result.results, clustered_data: dataWithClusters } });
 
         } catch (e: any) {
             console.error('K-Means error:', e);
@@ -217,6 +227,32 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
         }
     }, [data, selectedItems, nClusters, toast]);
     
+    const handleDownloadClusteredData = useCallback(() => {
+        if (!analysisResult?.results.clustered_data) {
+            toast({ title: "No Data to Download", description: "Clustered data is not available." });
+            return;
+        }
+        
+        // Convert to CSV
+        const dataToExport = analysisResult.results.clustered_data;
+        const headers = Object.keys(dataToExport[0]);
+        const csvRows = [
+            headers.join(','),
+            ...dataToExport.map(row => 
+                headers.map(header => JSON.stringify(row[header], (_, value) => value === undefined ? '' : value)).join(',')
+            )
+        ];
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'clustered_data.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Download Started", description: "Clustered data is being downloaded." });
+    }, [analysisResult, toast]);
+
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -247,7 +283,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                 <Checkbox
                                   id={`kmeans-${header}`}
                                   checked={selectedItems.includes(header)}
-                                  onCheckedChange={(checked) => handleItemSelectionChange(header, checked as boolean)}
+                                  onCheckedChange={(checked) => handleItemSelectionChange(header, !!checked)}
                                 />
                                 <label htmlFor={`kmeans-${header}`} className="text-sm font-medium leading-none">{header}</label>
                               </div>
@@ -272,6 +308,17 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                         </Button>
                     </div>
                 </CardContent>
+                 {results && (
+                    <CardFooter className="flex justify-end gap-2">
+                        <Button variant="ghost" onClick={() => onGenerateReport(results, analysisResult?.plot || null)}>
+                            <Bot className="mr-2"/>AI Report
+                        </Button>
+                        <Button variant="outline" onClick={handleDownloadClusteredData}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Export Clustered Data
+                        </Button>
+                    </CardFooter>
+                 )}
             </Card>
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[600px] w-full"/></CardContent></Card>}
