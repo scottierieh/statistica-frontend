@@ -259,6 +259,93 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
     );
 }
 
+const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
+    const diagnostics = results.diagnostics;
+    
+    return (
+         <div className="space-y-4">
+            <InterpretationDisplay interpretation={results.interpretation} f_pvalue={diagnostics?.f_pvalue} />
+
+            <div className="grid lg:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader><CardTitle>Model Performance</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableBody>
+                                <TableRow><TableCell>R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell></TableRow>
+                                <TableRow><TableCell>Adj. R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell></TableRow>
+                                <TableRow><TableCell>F-statistic</TableCell><TableCell className="text-right font-mono">{diagnostics?.f_statistic?.toFixed(2)}</TableCell></TableRow>
+                                <TableRow><TableCell>p-value (F-test)</TableCell><TableCell className="text-right font-mono">{diagnostics?.f_pvalue && diagnostics.f_pvalue < 0.001 ? '<.001' : diagnostics?.f_pvalue?.toFixed(4)}</TableCell></TableRow>
+                                <TableRow><TableCell>RMSE</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(3)}</TableCell></TableRow>
+                                <TableRow><TableCell>MAE</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.mae.toFixed(3)}</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader><CardTitle>Diagnostic Tests</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                             <TableHeader>
+                                <TableRow>
+                                    <TableHead>Test</TableHead>
+                                    <TableHead className="text-right">Statistic</TableHead>
+                                    <TableHead className="text-right">p-value</TableHead>
+                                    <TableHead>Result</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                             <TableBody>
+                                {diagnostics?.heteroscedasticity_tests?.breusch_pagan && (
+                                    <TableRow>
+                                        <TableCell>Breusch-Pagan Test</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.heteroscedasticity_tests.breusch_pagan.statistic.toFixed(2)}</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.heteroscedasticity_tests.breusch_pagan.p_value.toFixed(4)}</TableCell>
+                                        <TableCell>{diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? <Badge>Homoscedasticity ✓</Badge> : <Badge variant="destructive">Heteroscedasticity ✗</Badge>}</TableCell>
+                                    </TableRow>
+                                )}
+                                {diagnostics?.normality_tests?.shapiro_wilk && (
+                                    <TableRow>
+                                        <TableCell>Shapiro-Wilk (residuals)</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.normality_tests.shapiro_wilk.statistic.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.normality_tests.shapiro_wilk.p_value.toFixed(4)}</TableCell>
+                                        <TableCell>{diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? <Badge>Normality ✓</Badge> : <Badge variant="destructive">Non-normal ✗</Badge>}</TableCell>
+                                    </TableRow>
+                                )}
+                                {diagnostics?.specification_tests?.reset && (
+                                    <TableRow>
+                                        <TableCell>RESET Test</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.specification_tests.reset.statistic.toFixed(2)}</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.specification_tests.reset.p_value.toFixed(4)}</TableCell>
+                                        <TableCell>{diagnostics.specification_tests.reset.p_value > 0.05 ? <Badge>No specification error ✓</Badge> : <Badge variant="destructive">Mis-specified ✗</Badge>}</TableCell>
+                                    </TableRow>
+                                )}
+                                 {diagnostics?.influence_tests && diagnostics.influence_tests.max_cooks_d !== undefined && (
+                                    <TableRow>
+                                        <TableCell>Cook's Distance (max)</TableCell>
+                                        <TableCell className="font-mono text-right">{diagnostics.influence_tests.max_cooks_d.toFixed(3)}</TableCell>
+                                        <TableCell>-</TableCell>
+                                        <TableCell>{diagnostics.influence_tests.max_cooks_d < 0.5 ? <Badge>No influential outliers ✓</Badge> : <Badge variant="destructive">Influential outlier(s) ✗</Badge>}</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
+             {diagnostics?.stepwise_log && diagnostics.stepwise_log.length > 0 && (
+                <Card>
+                    <CardHeader><CardTitle>Stepwise Selection Log</CardTitle></CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-40">
+                            <pre className="text-xs p-4 bg-muted rounded-md">{diagnostics.stepwise_log.join('\n')}</pre>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    )
+}
+
 interface RegressionPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -382,8 +469,19 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         setView(canRun ? 'main' : 'intro');
     }, [canRun]);
 
+    const introPages: { [key: string]: React.FC<any> } = {
+        simple: SimpleLinearIntroPage,
+        multiple: MultipleLinearIntroPage,
+        polynomial: PolynomialIntroPage
+    };
+    const IntroComponent = introPages[modelType];
+
+    if (view === 'intro') {
+        return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
     const renderSetupUI = () => {
-        switch(modelType) {
+        switch (modelType) {
             case 'simple':
                 return (
                     <div className="grid md:grid-cols-2 gap-4">
@@ -395,8 +493,8 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </Select>
                         </div>
                         <div>
-                             <Label>Feature Variable (X)</Label>
-                             <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
+                            <Label>Feature Variable (X)</Label>
+                            <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{availableFeatures.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
@@ -407,18 +505,18 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
             case 'polynomial':
                  return (
                     <div className="space-y-4">
-                         <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid md:grid-cols-2 gap-4">
                             <div>
                                 <Label>Target Variable (Y)</Label>
                                 <Select value={targetVar} onValueChange={setTargetVar}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                                 </Select>
                             </div>
-                             <div>
+                            <div>
                                 <Label>Feature Variables (X)</Label>
                                 <ScrollArea className="h-24 border rounded-md p-2">
-                                    {availableFeatures.map(h => (
+                                    {availableFeatures.map((h: string) => (
                                         <div key={h} className="flex items-center space-x-2">
                                             <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
                                             <Label htmlFor={`feat-${h}`}>{h}</Label>
@@ -428,13 +526,13 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </div>
                         </div>
                         {modelType === 'polynomial' && (
-                             <div>
+                            <div>
                                 <Label>Polynomial Degree</Label>
                                 <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2"/>
-                             </div>
+                            </div>
                         )}
                         {modelType === 'multiple' && (
-                             <div>
+                            <div>
                                 <Label>Variable Selection Method</Label>
                                 <Select value={selectionMethod} onValueChange={setSelectionMethod}>
                                     <SelectTrigger><SelectValue/></SelectTrigger>
@@ -450,24 +548,10 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     </div>
                 );
             default:
-                return <p>Select a model type.</p>
+                return null;
         }
-    }
-
-    const introPages: { [key: string]: React.FC<any> } = {
-        simple: SimpleLinearIntroPage,
-        multiple: MultipleLinearIntroPage,
-        polynomial: PolynomialIntroPage
     };
-    const IntroComponent = introPages[modelType];
-
-    if (view === 'intro') {
-        return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
     
-    const results = analysisResult?.results;
-    const diagnostics = results?.diagnostics;
-
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -477,93 +561,30 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                     {renderSetupUI()}
-                    <div className="flex justify-end mt-4">
-                        <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar || (modelType === 'simple' ? !simpleFeatureVar : multipleFeatureVars.length === 0)}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                        </Button>
-                    </div>
                 </CardContent>
+              <CardFooter className="flex justify-end">
+                    <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar || (modelType === 'simple' ? !simpleFeatureVar : multipleFeatureVars.length === 0)}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                    </Button>
+              </CardFooter>
             </Card>
-            
+
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && results && (
-                <div className="space-y-4">
-                    <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics?.f_pvalue} />
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
-                            <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
-                        </Card>
-                    )}
-                    <div className="grid lg:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader><CardTitle>Model Performance</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableBody>
-                                        <TableRow><TableCell>R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell></TableRow>
-                                        <TableRow><TableCell>Adj. R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell></TableRow>
-                                        <TableRow><TableCell>F-statistic</TableCell><TableCell className="text-right font-mono">{diagnostics?.f_statistic?.toFixed(2)}</TableCell></TableRow>
-                                        <TableRow><TableCell>p-value (F-test)</TableCell><TableCell className="text-right font-mono">{diagnostics?.f_pvalue && diagnostics.f_pvalue < 0.001 ? '<.001' : diagnostics?.f_pvalue?.toFixed(4)}</TableCell></TableRow>
-                                        <TableRow><TableCell>RMSE</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(3)}</TableCell></TableRow>
-                                        <TableRow><TableCell>MAE</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.mae.toFixed(3)}</TableCell></TableRow>
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader><CardTitle>Diagnostic Tests</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Test</TableHead>
-                                            <TableHead className="text-right">Statistic</TableHead>
-                                            <TableHead className="text-right">p-value</TableHead>
-                                            <TableHead>Result</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {diagnostics?.heteroscedasticity_tests?.breusch_pagan && (
-                                            <TableRow>
-                                                <TableCell>Breusch-Pagan Test</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.heteroscedasticity_tests.breusch_pagan.statistic.toFixed(2)}</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.heteroscedasticity_tests.breusch_pagan.p_value.toFixed(4)}</TableCell>
-                                                <TableCell>{diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? <Badge>Homoscedasticity ✓</Badge> : <Badge variant="destructive">Heteroscedasticity ✗</Badge>}</TableCell>
-                                            </TableRow>
-                                        )}
-                                        {diagnostics?.normality_tests?.shapiro_wilk && (
-                                            <TableRow>
-                                                <TableCell>Shapiro-Wilk (residuals)</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.normality_tests.shapiro_wilk.statistic.toFixed(3)}</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.normality_tests.shapiro_wilk.p_value.toFixed(4)}</TableCell>
-                                                <TableCell>{diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? <Badge>Normality ✓</Badge> : <Badge variant="destructive">Non-normal ✗</Badge>}</TableCell>
-                                            </TableRow>
-                                        )}
-                                        {diagnostics?.specification_tests?.reset && (
-                                            <TableRow>
-                                                <TableCell>RESET Test</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.specification_tests.reset.statistic.toFixed(2)}</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.specification_tests.reset.p_value.toFixed(4)}</TableCell>
-                                                <TableCell>{diagnostics.specification_tests.reset.p_value > 0.05 ? <Badge>No specification error ✓</Badge> : <Badge variant="destructive">Mis-specified ✗</Badge>}</TableCell>
-                                            </TableRow>
-                                        )}
-                                         {diagnostics?.influence_tests && diagnostics.influence_tests.max_cooks_d !== undefined && (
-                                            <TableRow>
-                                                <TableCell>Cook's Distance (max)</TableCell>
-                                                <TableCell className="font-mono text-right">{diagnostics.influence_tests.max_cooks_d.toFixed(3)}</TableCell>
-                                                <TableCell>-</TableCell>
-                                                <TableCell>{diagnostics.influence_tests.max_cooks_d < 0.5 ? <Badge>No influential outliers ✓</Badge> : <Badge variant="destructive">Influential outlier(s) ✗</Badge>}</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </div>
+            {analysisResult && <ResultDisplay results={analysisResult.results} />}
+            {analysisResult?.plot && (
+                <Card>
+                    <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
+                    <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
+                </Card>
+            )}
+
+            {!analysisResult && !isLoading && (
+                <div className="text-center text-muted-foreground py-10">
+                    <TrendingUp className="mx-auto h-12 w-12 text-gray-400"/>
+                    <p className="mt-2">Select variables and click 'Run Analysis' to see the results.</p>
                 </div>
             )}
         </div>
