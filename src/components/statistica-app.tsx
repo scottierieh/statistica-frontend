@@ -137,9 +137,6 @@ import HistoryPage from './pages/history-page';
 import html2canvas from 'html2canvas';
 import PanelDataRegressionPage from './pages/panel-data-regression-page';
 import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
-import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
-import SpatialErrorModelPage from './pages/spatial-error-model-page';
-import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
@@ -154,6 +151,7 @@ import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import DeaPage from './pages/dea-page';
 import RelativeImportancePage from './pages/relative-importance-page';
+import SemPage from './pages/sem-page';
 
 const analysisCategories = [
     {
@@ -255,6 +253,7 @@ const analysisCategories = [
             items: [
               { id: 'mediation', label: 'Mediation Analysis', icon: GitBranch, component: MediationPage },
               { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationPage },
+              { id: 'sem', label: 'Structural Equation Model (SEM)', icon: BrainCircuit, component: SemPage },
             ]
           },
       ]
