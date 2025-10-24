@@ -1,6 +1,5 @@
 
 'use client';
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Sigma, Loader2, BrainCircuit, X, PlusCircle, HelpCircle, Trash2 } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { produce } from 'immer';
 
 interface LatentVariable {
     id: string;
