@@ -22,16 +22,7 @@ export async function POST(req: NextRequest) {
       error += data.toString();
     });
 
-    // Pass the correct parameter names to the python script
-    const scriptPayload = {
-      data: body.data,
-      subject_col: body.subjectCol,
-      within_cols: body.withinCols,
-      dependent_var_template: body.dependentVar,
-      between_col: body.betweenCol,
-    };
-
-    pythonProcess.stdin.write(JSON.stringify(scriptPayload));
+    pythonProcess.stdin.write(JSON.stringify(body));
     pythonProcess.stdin.end();
 
     return new Promise<NextResponse>((resolve) => {
