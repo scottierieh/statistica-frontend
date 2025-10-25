@@ -172,23 +172,39 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     try {
         switch(chartType) {
             case 'histogram':
+            case 'ecdf':
+            case 'qq':
             case 'density':
             case 'box':
             case 'violin':
+            case 'ridgeline':
                 if (!distColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
-                config.config = { x_col: distColumn, y_col: chartType === 'box' || chartType === 'violin' ? groupedBarCategory1 : undefined };
+                config.config = { x_col: distColumn, y_col: ['box', 'violin', 'ridgeline'].includes(chartType) ? groupedBarCategory1 : undefined };
                 break;
             case 'bar':
+            case 'column':
+            case 'diverging_bar':
+            case 'likert':
+            case 'nps':
+            case 'waterfall':
+            case 'funnel':
+            case 'kpi':
+            case 'bullet':
             case 'pareto':
             case 'lollipop':
                 if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
                 config.config = { x_col: barColumn };
                 break;
             case 'scatter':
+            case 'regression':
+            case 'hexbin':
                 if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
-                config.config = { x_col: scatterX, y_col: scatterY, trend_line: scatterTrend, group_col: scatterGroup };
+                config.config = { x_col: scatterX, y_col: scatterY, trend_line: chartType === 'regression' ? true : scatterTrend, group_col: scatterGroup };
                 break;
             case 'line':
+            case 'area':
+            case 'stream':
+            case 'calendar_heatmap':
                  if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
                 config.config = { x_col: scatterX, y_col: scatterY };
                 break;
@@ -198,17 +214,32 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                 break;
             case 'pie':
             case 'donut':
+            case 'treemap':
+            case 'sunburst':
                 if (!pieNameCol) { toast({ title: "Error", description: "Please select a category column."}); return; }
                 config.config = { name_col: pieNameCol, value_col: pieValueCol };
                 break;
             case 'grouped-bar':
             case 'stacked-bar':
+            case 'stacked-column':
+            case 'sankey':
+            case 'chord':
+            case 'alluvial':
+            case 'mosaic':
+            case 'pca':
+            case 'scree':
+            case 'cluster':
+            case 'dendrogram':
                 if (!groupedBarCategory1 || !groupedBarCategory2 || !groupedBarValue) { toast({ title: "Error", description: "Please select two categories and one value."}); return; }
                 config.config = { x_col: groupedBarCategory1, group_col: groupedBarCategory2, y_col: groupedBarValue };
                 break;
             case 'heatmap':
-                 if (heatmapVars.length < 2) { toast({ title: "Error", description: "Please select at least two variables for the heatmap."}); return; }
+            case 'scatter_matrix':
+                 if (heatmapVars.length < 2) { toast({ title: "Error", description: "Please select at least two variables."}); return; }
                  config.config = { variables: heatmapVars };
+                 break;
+            case 'network':
+                 config.config = { x_col: allHeaders[0], y_col: allHeaders[1] };
                  break;
             default:
                 toast({ title: "Error", description: "Invalid chart type selected." });
@@ -239,7 +270,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
         setIsLoading(false);
     }
 
-  }, [data, toast, distColumn, barColumn, scatterX, scatterY, scatterTrend, scatterGroup, bubbleX, bubbleY, bubbleZ, pieNameCol, pieValueCol, groupedBarCategory1, groupedBarCategory2, groupedBarValue, heatmapVars]);
+  }, [data, toast, distColumn, barColumn, scatterX, scatterY, scatterTrend, scatterGroup, bubbleX, bubbleY, bubbleZ, pieNameCol, pieValueCol, groupedBarCategory1, groupedBarCategory2, groupedBarValue, heatmapVars, allHeaders]);
 
    if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
@@ -249,28 +280,56 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
-  const chartTypes = {
+  const chartTypes: Record<string, { id: string, label: string, icon: any, disabled?: boolean, tags?: string[] }[]> = {
       distribution: [
         { id: 'histogram', label: 'Histogram', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
         { id: 'density', label: 'Density Plot', icon: AreaChart, disabled: numericHeaders.length === 0 },
         { id: 'box', label: 'Box Plot', icon: Box, disabled: numericHeaders.length === 0 },
         { id: 'violin', label: 'Violin Plot', icon: GanttChart, disabled: numericHeaders.length === 0 },
+        { id: 'ridgeline', label: 'Ridgeline Plot', icon: AreaChart, disabled: numericHeaders.length < 1 || categoricalHeaders.length < 1 },
+        { id: 'ecdf', label: 'ECDF Plot', icon: LineChartIcon, disabled: numericHeaders.length === 0 },
+        { id: 'qq', label: 'Q-Q Plot', icon: ScatterIcon, disabled: numericHeaders.length === 0 },
       ],
       relationship: [
         { id: 'scatter', label: 'Scatter Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+        { id: 'regression', label: 'Regression Plot', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
+        { id: 'hexbin', label: 'Hexbin Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
         { id: 'bubble', label: 'Bubble Chart', icon: Dot, disabled: numericHeaders.length < 3 },
+        { id: 'scatter_matrix', label: 'Scatter Matrix', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
         { id: 'heatmap', label: 'Heatmap', icon: Heater, disabled: numericHeaders.length < 2 },
-         { id: 'line', label: 'Line Chart', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
+        { id: 'network', label: 'Network Graph', icon: Dot, disabled: allHeaders.length < 2 },
+        { id: 'dendrogram', label: 'Dendrogram', icon: GanttChart, disabled: numericHeaders.length < 2 },
+        { id: 'pca', label: 'PCA Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+        { id: 'scree', label: 'Scree Plot', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
+        { id: 'cluster', label: 'Cluster Plot', icon: Dot, disabled: numericHeaders.length < 2 },
+        { id: 'line', label: 'Line Chart', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
+        { id: 'area', label: 'Area Chart', icon: AreaChart, disabled: numericHeaders.length < 2 },
+        { id: 'stream', label: 'Stream Graph', icon: AreaChart, disabled: numericHeaders.length < 2 },
+        { id: 'calendar_heatmap', label: 'Calendar Heatmap', icon: Heater, disabled: allHeaders.length < 2 },
       ],
       categorical: [
         { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'column', label: 'Column Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'lollipop', label: 'Lollipop Chart', icon: Dot, disabled: categoricalHeaders.length === 0 },
         { id: 'pareto', label: 'Pareto Chart', icon: BarChartIcon, tags: ["Quality Control", "80/20 Rule"] },
-        { id: 'lollipop', label: 'Lollipop Chart', icon: BarChartIcon, tags: ["Ranking", "Comparison"] },
         { id: 'grouped-bar', label: 'Grouped Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
+        { id: 'stacked-column', label: 'Stacked Column', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
         { id: 'donut', label: 'Donut Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
-        { id: 'treemap', label: 'Treemap', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'treemap', label: 'Treemap', icon: GanttChart, disabled: categoricalHeaders.length === 0 },
+        { id: 'sunburst', label: 'Sunburst', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'sankey', label: 'Sankey Diagram', icon: MoveRight, disabled: categoricalHeaders.length < 2 },
+        { id: 'chord', label: 'Chord Diagram', icon: Dot, disabled: categoricalHeaders.length < 2 },
+        { id: 'alluvial', label: 'Alluvial Diagram', icon: GanttChart, disabled: categoricalHeaders.length < 2 },
+        { id: 'mosaic', label: 'Mosaic Plot', icon: GanttChart, disabled: categoricalHeaders.length < 2 },
+        { id: 'likert', label: 'Likert Scale Chart', icon: BarChartIcon, disabled: categoricalHeaders.length < 1 },
+        { id: 'diverging_bar', label: 'Diverging Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 1 },
+        { id: 'nps', label: 'NPS Chart', icon: PieChartIcon, disabled: categoricalHeaders.length < 1 },
+        { id: 'kpi', label: 'KPI Card', icon: Settings, disabled: numericHeaders.length === 0 },
+        { id: 'bullet', label: 'Bullet Chart', icon: BarChartIcon, disabled: numericHeaders.length < 2 },
+        { id: 'waterfall', label: 'Waterfall', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
+        { id: 'funnel', label: 'Funnel Chart', icon: GanttChart, disabled: numericHeaders.length === 0 },
       ]
   }
 
@@ -294,7 +353,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
             
             <div className="mt-4 p-4 border rounded-lg">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                    {chartTypes[activeCategory as keyof typeof chartTypes].map(chart => (
+                    {chartTypes[activeCategory as keyof typeof chartTypes]?.map(chart => (
                         <Button key={chart.id} variant={activeChart === chart.id ? "secondary" : "ghost"} onClick={() => handleRunAnalysis(chart.id)} disabled={chart.disabled}>
                             <chart.icon className="mr-2 h-4 w-4"/> {chart.label}
                         </Button>
@@ -302,21 +361,22 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                 </div>
                 
                  <div className="mt-4 pt-4 border-t">
-                    {(activeChart === 'histogram' || activeChart === 'density' || activeChart === 'box' || activeChart === 'violin') && (
+                    {(['histogram', 'density', 'box', 'violin', 'ecdf', 'ridgeline', 'qq'].includes(activeChart || '')) && (
                         <div><Label>Variable:</Label><Select value={distColumn} onValueChange={setDistColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     )}
-                     {(activeChart === 'bar' || activeChart === 'pareto' || activeChart === 'lollipop') && (
+                     {(['bar', 'pareto', 'lollipop', 'column', 'diverging_bar', 'likert', 'nps', 'waterfall', 'funnel', 'kpi', 'bullet'].includes(activeChart || '')) && (
                         <div><Label>Variable:</Label><Select value={barColumn} onValueChange={setBarColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     )}
-                    {activeChart === 'scatter' && (
+                    {(['scatter', 'regression', 'hexbin'].includes(activeChart || '')) && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
                             <div><Label>X-Axis:</Label><Select value={scatterX} onValueChange={setScatterX}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Y-Axis:</Label><Select value={scatterY} onValueChange={setScatterY}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== scatterX).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                              <div><Label>Color By (Group):</Label><Select value={scatterGroup} onValueChange={v => setScatterGroup(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="None"/></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            <div className="flex items-center space-x-2 pt-6"><Checkbox id="trendline" checked={scatterTrend} onCheckedChange={c => setScatterTrend(!!c)}/><Label htmlFor="trendline">Show Trend Line</Label></div>
+                            {activeChart === 'regression' && <div className="flex items-center space-x-2 pt-6"><Checkbox id="trendline" checked={scatterTrend} onCheckedChange={c => setScatterTrend(!!c)}/><Label htmlFor="trendline">Show Regression Line</Label></div>}
+                            {activeChart === 'scatter' && <div className="flex items-center space-x-2 pt-6"><Checkbox id="trendline" checked={scatterTrend} onCheckedChange={c => setScatterTrend(!!c)}/><Label htmlFor="trendline">Show Trend Line</Label></div>}
                         </div>
                     )}
-                     {activeChart === 'line' && (
+                     {(['line', 'area', 'stream', 'calendar_heatmap'].includes(activeChart || '')) && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
                             <div><Label>X-Axis:</Label><Select value={scatterX} onValueChange={setScatterX}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Y-Axis:</Label><Select value={scatterY} onValueChange={setScatterY}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== scatterX).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
@@ -329,22 +389,22 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                             <div><Label>Size (Z-Axis):</Label><Select value={bubbleZ} onValueChange={setBubbleZ}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== bubbleX && h !== bubbleY).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
-                    {(activeChart === 'pie' || activeChart === 'donut') && (
+                    {(['pie', 'donut', 'treemap', 'sunburst'].includes(activeChart || '')) && (
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><Label>Category Column:</Label><Select value={pieNameCol} onValueChange={setPieNameCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Value Column (Optional):</Label><Select value={pieValueCol} onValueChange={v => setPieValueCol(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="Count of categories"/></SelectTrigger><SelectContent><SelectItem value="none">Count of categories</SelectItem>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
-                    {(activeChart === 'grouped-bar' || activeChart === 'stacked-bar') && (
+                    {(['grouped-bar', 'stacked-bar', 'stacked-column', 'sankey', 'chord', 'alluvial', 'mosaic', 'pca', 'scree', 'cluster', 'dendrogram'].includes(activeChart || '')) && (
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div><Label>Category Axis:</Label><Select value={groupedBarCategory1} onValueChange={setGroupedBarCategory1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Group By:</Label><Select value={groupedBarCategory2} onValueChange={setGroupedBarCategory2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.filter(h=>h !== groupedBarCategory1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Value Column:</Label><Select value={groupedBarValue} onValueChange={setGroupedBarValue}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
-                    {activeChart === 'heatmap' && (
+                    {(activeChart === 'heatmap' || activeChart === 'scatter_matrix' || activeChart === 'calendar_heatmap') && (
                         <div>
-                            <Label>Variables for Heatmap:</Label>
+                            <Label>Variables for {activeChart === 'scatter_matrix' ? 'Scatter Matrix' : activeChart === 'calendar_heatmap' ? 'Calendar Heatmap' : 'Heatmap'}:</Label>
                             <ScrollArea className="h-24 border rounded p-2">
                                 {numericHeaders.map(h => (
                                     <div key={h}><Checkbox checked={heatmapVars.includes(h)} onCheckedChange={(c) => setHeatmapVars(p => c ? [...p, h] : p.filter(i => i !== h))}/> <Label>{h}</Label></div>
@@ -370,4 +430,3 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
 }
 
 
-  

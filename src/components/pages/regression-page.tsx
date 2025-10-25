@@ -40,7 +40,16 @@ interface RegressionResultsData {
         coefficient_tests?: {
             params: { [key: string]: number };
             pvalues: { [key: string]: number };
+            bse?: { [key: string]: number };
+            tvalues?: { [key: string]: number };
         },
+        anova_table?: Array<{
+            source: string;
+            sum_sq: number;
+            df: number;
+            F: number;
+            'PR(>F)': number;
+        }>;
         normality_tests?: {
             jarque_bera: { statistic: number; p_value: number; };
             shapiro_wilk: { statistic: number; p_value: number; };
@@ -177,14 +186,14 @@ const PolynomialIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, 
     return (
         <div className="flex flex-1 items-center justify-center p-4">
             <Card className="w-full max-w-4xl">
-                 <CardHeader className="text-center p-8">
+                <CardHeader className="text-center p-8">
                     <CardTitle className="font-headline text-4xl font-bold">Polynomial Regression</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground">Model a non-linear relationship between variables by fitting a polynomial equation.</CardDescription>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground">Fit a non-linear curve to capture more complex relationships.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use Polynomial Regression?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">When your data shows a curved or U-shaped pattern, a straight line (linear regression) won't fit well. Polynomial regression can capture these non-linear trends by adding polynomial terms (like X², X³) to the model, creating a more flexible curve.</p>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">When the relationship between your variables is not linear, polynomial regression can fit a curve (quadratic, cubic, etc.) to the data. This is useful for capturing more nuanced patterns, but be careful of overfitting.</p>
                     </div>
                      <div className="flex justify-center">
                            {regressionExample && (
@@ -197,13 +206,13 @@ const PolynomialIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, 
                                 </Card>
                             )}
                         </div>
-                     <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> The outcome variable.</li>
-                                <li><strong>Feature Variable(s) (X):</strong> One or more predictor variables.</li>
-                                <li><strong>Degree:</strong> The degree of the polynomial. A degree of 2 creates a quadratic model (e.g., Y = B₀ + B₁X + B₂X²). A degree of 3 creates a cubic model.</li>
+                                <li><strong>Target Variable (Y):</strong> The outcome you want to predict.</li>
+                                <li><strong>Feature Variable(s) (X):</strong> One or more predictors. Polynomial terms will be generated automatically.</li>
+                                <li><strong>Degree:</strong> The degree of the polynomial (e.g., 2 for quadratic, 3 for cubic). Higher degrees can fit more complex curves but risk overfitting.</li>
                             </ol>
                         </div>
                         <div className="space-y-6">
@@ -226,38 +235,20 @@ const PolynomialIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, 
 
 const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: string, f_pvalue?: number }) => {
     if (!interpretation) return null;
-    
-    const isSignificant = f_pvalue !== undefined && f_pvalue < 0.05;
 
-    const formattedInterpretation = useMemo(() => {
-        if (!interpretation) return null;
-        return interpretation
-            .replace(/\\n/g, '<br />')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<i>$1</i>')
-            .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
-            .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
-            .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
-            .replace(/R²adj\s*=\s*([\d.-]+)/g, '<i>R</i>²adj = $1')
-            .replace(/R²\s*=\s*([\d.-]+)/g, '<i>R</i>² = $1')
-            .replace(/B\s*=\s*([\d.-]+)/g, '<i>B</i> = $1');
-    }, [interpretation]);
+    const isSignificant = f_pvalue !== undefined && f_pvalue < 0.05;
+    const icon = isSignificant ? <CheckCircle className="w-5 h-5 text-green-600"/> : <AlertTriangle className="w-5 h-5 text-yellow-600"/>;
+    const title = isSignificant ? "Model is Statistically Significant" : "Model is Not Statistically Significant";
+    const variant = isSignificant ? "default" : "destructive";
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Alert variant={isSignificant ? 'default' : 'secondary'}>
-                    {isSignificant ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                    <AlertTitle>{isSignificant ? "Statistically Significant Model" : "Model Not Statistically Significant"}</AlertTitle>
-                    {formattedInterpretation && <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />}
-                </Alert>
-            </CardContent>
-        </Card>
+        <Alert variant={variant as any}>
+            {icon}
+            <AlertTitle>{title}</AlertTitle>
+            <AlertDescription className="text-sm whitespace-pre-line">{interpretation}</AlertDescription>
+        </Alert>
     );
-}
+};
 
 const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
     const diagnostics = results.diagnostics;
@@ -265,6 +256,91 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
     return (
          <div className="space-y-4">
             <InterpretationDisplay interpretation={results.interpretation} f_pvalue={diagnostics?.f_pvalue} />
+            
+            {/* 회귀 계수 테이블 추가 */}
+            {diagnostics?.coefficient_tests && (
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Regression Coefficients</CardTitle>
+                        <CardDescription>Parameter estimates with standard errors, t-values, and p-values</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Variable</TableHead>
+                                    <TableHead className="text-right">Coefficient</TableHead>
+                                    <TableHead className="text-right">Std Error</TableHead>
+                                    <TableHead className="text-right">t-value</TableHead>
+                                    <TableHead className="text-right">p-value</TableHead>
+                                    <TableHead>Significance</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {Object.keys(diagnostics.coefficient_tests.params).map((variable) => {
+                                    const coef = diagnostics.coefficient_tests?.params[variable];
+                                    const pval = diagnostics.coefficient_tests?.pvalues?.[variable];
+                                    const bse = diagnostics.coefficient_tests?.bse?.[variable];
+                                    const tval = diagnostics.coefficient_tests?.tvalues?.[variable];
+                                    const isSignificant = pval !== undefined && pval < 0.05;
+                                    
+                                    return (
+                                        <TableRow key={variable}>
+                                            <TableCell className="font-medium">{variable}</TableCell>
+                                            <TableCell className="text-right font-mono">{coef?.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">{bse?.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">{tval?.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{pval && pval < 0.001 ? '<.001' : pval?.toFixed(4)}</TableCell>
+                                            <TableCell>
+                                                {isSignificant ? <Badge>Significant</Badge> : <Badge variant="outline">Not Sig.</Badge>}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* ANOVA 테이블 추가 */}
+            {diagnostics?.anova_table && diagnostics.anova_table.length > 0 && (
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>ANOVA Table</CardTitle>
+                        <CardDescription>Analysis of Variance for the regression model</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Source</TableHead>
+                                    <TableHead className="text-right">Sum of Squares</TableHead>
+                                    <TableHead className="text-right">df</TableHead>
+                                    <TableHead className="text-right">F-statistic</TableHead>
+                                    <TableHead className="text-right">p-value</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {diagnostics.anova_table.map((row, idx) => (
+                                    <TableRow key={idx}>
+                                        <TableCell className="font-medium">{row.source}</TableCell>
+                                        <TableCell className="text-right font-mono">{row.sum_sq?.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right font-mono">{row.df?.toFixed(0)}</TableCell>
+                                        <TableCell className="text-right font-mono">{row.F ? row.F.toFixed(4) : '-'}</TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {row['PR(>F)'] !== undefined && row['PR(>F)'] !== null 
+                                                ? (row['PR(>F)'] < 0.001 ? '<.001' : row['PR(>F)'].toFixed(4))
+                                                : '-'}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="grid lg:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader><CardTitle>Model Performance</CardTitle></CardHeader>
@@ -330,7 +406,9 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
                         </Table>
                     </CardContent>
                 </Card>
-                {results.model_type === 'multiple' && diagnostics?.vif && Object.keys(diagnostics.vif).length > 1 && (
+                
+                {/* VIF 테이블 - 단순회귀에서도 표시하도록 조건 수정 */}
+                {diagnostics?.vif && Object.keys(diagnostics.vif).filter(k => k !== 'const').length > 0 && (
                     <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle>Multicollinearity (VIF)</CardTitle>
@@ -342,13 +420,23 @@ const ResultDisplay = ({ results }: { results: RegressionResultsData }) => {
                                     <TableRow>
                                         <TableHead>Variable</TableHead>
                                         <TableHead className="text-right">VIF</TableHead>
+                                        <TableHead>Assessment</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {Object.entries(diagnostics.vif).filter(([key]) => key !== 'const').map(([variable, vif]) => (
                                         <TableRow key={variable}>
-                                            <TableCell>{variable}</TableCell>
-                                            <TableCell className={`text-right font-mono ${vif > 5 ? 'text-destructive font-bold' : ''}`}>{typeof vif === 'number' ? vif.toFixed(3) : 'N/A'}</TableCell>
+                                            <TableCell className="font-medium">{variable}</TableCell>
+                                            <TableCell className={`text-right font-mono ${vif > 5 ? 'text-destructive font-bold' : ''}`}>
+                                                {typeof vif === 'number' ? vif.toFixed(3) : 'N/A'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {typeof vif === 'number' ? (
+                                                    vif > 10 ? <Badge variant="destructive">High</Badge> :
+                                                    vif > 5 ? <Badge variant="outline">Moderate</Badge> :
+                                                    <Badge>Low</Badge>
+                                                ) : '-'}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -369,184 +457,169 @@ interface RegressionPageProps {
 }
 
 export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
-    const { toast } = useToast();
-    const [view, setView] = useState('intro');
-
-    const modelType = useMemo(() => activeAnalysis.replace('regression-', ''), [activeAnalysis]);
-    const [selectionMethod, setSelectionMethod] = useState('none');
-
-    // States for different models
-    const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
-    const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
-    const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
-    
-    // Model specific params
-    const [polyDegree, setPolyDegree] = useState(2);
-    
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    const modelType = activeAnalysis === 'simple-regression' ? 'simple' : activeAnalysis === 'multiple-regression' ? 'multiple' : 'polynomial';
+    const [view, setView] = useState<'intro' | 'analysis'>('intro');
+    const [targetVar, setTargetVar] = useState<string>('');
+    const [simpleFeatureVar, setSimpleFeatureVar] = useState<string>('');
+    const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>([]);
+    const [selectionMethod, setSelectionMethod] = useState<string>('enter');
+    const [polynomialDegree, setPolynomialDegree] = useState<number>(2);
     const [isLoading, setIsLoading] = useState(false);
-    
-    const allHeaders = useMemo(() => numericHeaders, [numericHeaders]);
-
-    const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== targetVar), [numericHeaders, targetVar]);
-    
-    useEffect(() => {
-        const newTarget = numericHeaders[numericHeaders.length - 1];
-        setTargetVar(newTarget);
-        
-        const initialFeatures = numericHeaders.filter(h => h !== newTarget);
-        setSimpleFeatureVar(initialFeatures[0])
-        setMultipleFeatureVars(initialFeatures);
-
-        setAnalysisResult(null);
-        setView(data.length > 0 ? 'main' : 'intro');
-    }, [data, numericHeaders]);
-    
-    useEffect(() => {
-        // Reset when model type changes
-        setAnalysisResult(null);
-        setView(data.length > 0 ? 'main' : 'intro');
-    }, [modelType, data]);
-
-    const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
-        setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
-    };
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    const { toast } = useToast();
 
     const handleAnalysis = useCallback(async () => {
-        if (!targetVar) {
-            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable.'});
-            return;
-        }
-
-        let features: string[] = [];
-        let params: any = { data, targetVar, modelType, selectionMethod };
-
-        switch (modelType) {
-            case 'simple':
-                if (!simpleFeatureVar) { toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a feature variable.'}); return; }
-                features = [simpleFeatureVar];
-                break;
-            case 'multiple':
-            case 'polynomial':
-                if (multipleFeatureVars.length < 1) { toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'}); return; }
-                features = multipleFeatureVars;
-                if (modelType === 'polynomial') params.degree = polyDegree;
-                break;
-        }
-        params.features = features;
-
         setIsLoading(true);
         setAnalysisResult(null);
-        
+
+        const payload: any = {
+            data: data.rows,
+            targetVar,
+            modelType,
+        };
+
+        if (modelType === 'simple') {
+            payload.features = [simpleFeatureVar];
+        } else if (modelType === 'multiple') {
+            payload.features = multipleFeatureVars;
+            payload.selectionMethod = selectionMethod;
+        } else if (modelType === 'polynomial') {
+            payload.features = multipleFeatureVars;
+            payload.degree = polynomialDegree;
+        }
+
         try {
-            const response = await fetch('/api/analysis/regression', {
+            const response = await fetch('/api/stats/regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params)
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Analysis failed');
             }
-            
-            const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
-            
-            setAnalysisResult(result);
-            toast({title: 'Analysis Complete'});
 
-        } catch (e: any) {
-            console.error('Analysis error:', e);
-            toast({variant: 'destructive', title: 'Analysis Error', description: e.message})
-            setAnalysisResult(null);
+            const result = await response.json();
+            setAnalysisResult(result);
+            toast({ title: "Analysis Complete", description: "Regression analysis has been successfully completed." });
+        } catch (error: any) {
+            toast({ title: "Analysis Failed", description: error.message, variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, selectionMethod, toast]);
-    
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-    
-    useEffect(() => {
-        setView(canRun ? 'main' : 'intro');
-    }, [canRun]);
+    }, [data, targetVar, simpleFeatureVar, multipleFeatureVars, selectionMethod, polynomialDegree, modelType, toast]);
 
-    const introPages: { [key: string]: React.FC<any> } = {
-        simple: SimpleLinearIntroPage,
-        multiple: MultipleLinearIntroPage,
-        polynomial: PolynomialIntroPage
+    const renderIntroPage = () => {
+        switch (modelType) {
+            case 'simple':
+                return <SimpleLinearIntroPage onStart={() => setView('analysis')} onLoadExample={onLoadExample} />;
+            case 'multiple':
+                return <MultipleLinearIntroPage onStart={() => setView('analysis')} onLoadExample={onLoadExample} />;
+            case 'polynomial':
+                return <PolynomialIntroPage onStart={() => setView('analysis')} onLoadExample={onLoadExample} />;
+            default:
+                return null;
+        }
     };
-    const IntroComponent = introPages[modelType];
 
     if (view === 'intro') {
-        return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return renderIntroPage();
     }
-    
+
     const renderSetupUI = () => {
         switch (modelType) {
             case 'simple':
                 return (
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         <div>
                             <Label>Target Variable (Y)</Label>
                             <Select value={targetVar} onValueChange={setTargetVar}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select target variable"/></SelectTrigger>
                                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
                             <Label>Feature Variable (X)</Label>
                             <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>{availableFeatures.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                <SelectTrigger><SelectValue placeholder="Select feature variable"/></SelectTrigger>
+                                <SelectContent>{numericHeaders.filter(h => h !== targetVar).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                     </div>
                 );
             case 'multiple':
-            case 'polynomial':
-                 return (
+                return (
                     <div className="space-y-4">
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <Label>Target Variable (Y)</Label>
-                                <Select value={targetVar} onValueChange={setTargetVar}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label>Feature Variables (X)</Label>
-                                <ScrollArea className="h-24 border rounded-md p-2">
-                                    {availableFeatures.map((h: string) => (
-                                        <div key={h} className="flex items-center space-x-2">
-                                            <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
-                                            <Label htmlFor={`feat-${h}`}>{h}</Label>
-                                        </div>
-                                    ))}
-                                </ScrollArea>
-                            </div>
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue placeholder="Select target variable"/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
                         </div>
-                        {modelType === 'polynomial' && (
-                            <div>
-                                <Label>Polynomial Degree</Label>
-                                <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2"/>
-                            </div>
-                        )}
-                        {modelType === 'multiple' && (
-                            <div>
-                                <Label>Variable Selection Method</Label>
-                                <Select value={selectionMethod} onValueChange={setSelectionMethod}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Enter All</SelectItem>
-                                        <SelectItem value="forward">Forward Selection</SelectItem>
-                                        <SelectItem value="backward">Backward Elimination</SelectItem>
-                                        <SelectItem value="stepwise">Stepwise</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        <div>
+                            <Label>Feature Variables (X) - Select Multiple</Label>
+                            <ScrollArea className="h-40 border rounded-md p-2">
+                                {numericHeaders.filter(h => h !== targetVar).map(header => (
+                                    <div key={header} className="flex items-center space-x-2 py-1">
+                                        <Checkbox
+                                            checked={multipleFeatureVars.includes(header)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) setMultipleFeatureVars([...multipleFeatureVars, header]);
+                                                else setMultipleFeatureVars(multipleFeatureVars.filter(v => v !== header));
+                                            }}
+                                        />
+                                        <label className="text-sm">{header}</label>
+                                    </div>
+                                ))}
+                            </ScrollArea>
+                        </div>
+                        <div>
+                            <Label>Variable Selection Method</Label>
+                            <Select value={selectionMethod} onValueChange={setSelectionMethod}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="enter">Enter (No Selection)</SelectItem>
+                                    <SelectItem value="forward">Forward Selection</SelectItem>
+                                    <SelectItem value="backward">Backward Elimination</SelectItem>
+                                    <SelectItem value="stepwise">Stepwise Selection</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                );
+            case 'polynomial':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue placeholder="Select target variable"/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Feature Variables (X)</Label>
+                            <ScrollArea className="h-40 border rounded-md p-2">
+                                {numericHeaders.filter(h => h !== targetVar).map(header => (
+                                    <div key={header} className="flex items-center space-x-2 py-1">
+                                        <Checkbox
+                                            checked={multipleFeatureVars.includes(header)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) setMultipleFeatureVars([...multipleFeatureVars, header]);
+                                                else setMultipleFeatureVars(multipleFeatureVars.filter(v => v !== header));
+                                            }}
+                                        />
+                                        <label className="text-sm">{header}</label>
+                                    </div>
+                                ))}
+                            </ScrollArea>
+                        </div>
+                        <div>
+                            <Label>Polynomial Degree</Label>
+                            <Input type="number" min={2} max={5} value={polynomialDegree} onChange={(e) => setPolynomialDegree(parseInt(e.target.value) || 2)}/>
+                        </div>
                     </div>
                 );
             default:
@@ -596,3 +669,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
+
