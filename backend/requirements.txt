@@ -18,4 +18,4 @@ onnx
 onnxruntime
 cffi==1.16.0
 squarify
-semopy
+Cython

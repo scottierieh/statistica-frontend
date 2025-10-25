@@ -153,7 +153,6 @@ import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import DeaPage from './pages/dea-page';
 import RelativeImportancePage from './pages/relative-importance-page';
-import SemPage from './pages/sem-page';
 import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
@@ -270,7 +269,6 @@ const analysisCategories = [
             items: [
               { id: 'mediation', label: 'Mediation Analysis', icon: GitBranch, component: MediationPage },
               { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationPage },
-              { id: 'sem', label: 'Structural Equation Model (SEM)', icon: BrainCircuit, component: SemPage },
             ]
           },
       ]
@@ -696,3 +694,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
