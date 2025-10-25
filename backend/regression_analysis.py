@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 try:
     import statsmodels.api as sm
     from statsmodels.stats.outliers_influence import variance_inflation_factor
-    from statsmodels.stats.diagnostic import het_breuschpagan
+    from statsmodels.stats.diagnostic import het_breuschpagan, linear_reset
     from statsmodels.stats.stattools import durbin_watson, jarque_bera
     HAS_STATSMODELS = True
 except ImportError:
@@ -180,6 +180,7 @@ class RegressionAnalysis:
 
     def _calculate_diagnostics(self, X, sm_model):
         residuals = sm_model.resid
+        influence = sm_model.get_influence()
         diagnostics = {}
         
         def clean_name(name):
@@ -237,6 +238,18 @@ class RegressionAnalysis:
             diagnostics['heteroscedasticity_tests'] = {'breusch_pagan': {'statistic': bp_stat, 'p_value': bp_p}}
         except Exception:
              diagnostics['heteroscedasticity_tests'] = {}
+        
+        try:
+            reset_test = linear_reset(sm_model)
+            diagnostics['specification_tests'] = {'reset': {'statistic': reset_test.fvalue.item(), 'p_value': reset_test.pvalue}}
+        except Exception:
+            diagnostics['specification_tests'] = {}
+            
+        try:
+            cooks_d = influence.cooks_distance[0]
+            diagnostics['influence_tests'] = {'max_cooks_d': np.max(cooks_d)}
+        except Exception:
+            diagnostics['influence_tests'] = {}
         
         return diagnostics
     
@@ -377,4 +390,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 

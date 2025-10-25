@@ -270,7 +270,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
         { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
         { id: 'donut', label: 'Donut Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
-        { id: 'treemap', label: 'Treemap', icon: Grid3x3, disabled: categoricalHeaders.length === 0 },
+        { id: 'treemap', label: 'Treemap', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
       ]
   }
 
