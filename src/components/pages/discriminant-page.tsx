@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -8,14 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, CheckCircle, XCircle, Search, BarChart, Binary, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
+import { Sigma, Loader2, Users, CheckCircle, XCircle, Search, BarChart, Binary, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart as RechartsBarChart, XAxis, YAxis, Legend, Tooltip, CartesianGrid, ReferenceLine, ScatterChart, Scatter } from 'recharts';
+import { BarChart as RechartsBarChart, XAxis, YAxis, Legend, Tooltip, CartesianGrid, ReferenceLine, ScatterChart, Scatter, Bar, ResponsiveContainer, Cell } from 'recharts';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 
@@ -79,13 +80,13 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
-                     <div className="text-center">
+                    <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use Discriminant Analysis?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
                             Discriminant Analysis is used to predict group membership from a set of continuous independent variables. It's particularly useful for understanding which variables are most powerful in distinguishing between groups and for creating a predictive model for classification. For example, it can be used to predict whether a customer will belong to a 'high-value' or 'low-value' segment based on their purchasing behavior.
                         </p>
                     </div>
-                    <div className="flex justify-center">
+                     <div className="flex justify-center">
                         {discriminantExample && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(discriminantExample)}>
                                 <discriminantExample.icon className="mx-auto h-8 w-8 text-primary"/>
@@ -380,10 +381,10 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                              <ScrollArea className="h-32 border rounded-md p-4">
                                 <div className="space-y-2">
                                     {availableFeatures.map(header => (
-                                    <div key={header} className="flex items-center space-x-2">
-                                        <Checkbox id={`pred-${header}`} checked={predictorVars.includes(header)} onCheckedChange={(checked) => handlePredictorSelectionChange(header, checked as boolean)} />
-                                        <label htmlFor={`pred-${header}`} className="text-sm font-medium leading-none">{header}</label>
-                                    </div>
+                                        <div key={header} className="flex items-center space-x-2">
+                                            <Checkbox id={`pred-${header}`} checked={predictorVars.includes(header)} onCheckedChange={(checked) => handlePredictorSelectionChange(header, checked as boolean)} />
+                                            <label htmlFor={`pred-${header}`} className="text-sm font-medium leading-none">{header}</label>
+                                        </div>
                                     ))}
                                 </div>
                             </ScrollArea>
@@ -423,3 +424,4 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
     
 
     
+
