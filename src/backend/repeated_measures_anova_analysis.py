@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -67,17 +68,22 @@ class RepeatedMeasuresAnova:
             
             aov = pg.rm_anova(**kwargs)
 
-            self.results['anova_table'] = aov.to_dict('records')
+            # Convert NaN to None before creating the dictionary
+            self.results['anova_table'] = aov.replace({np.nan: None}).to_dict('records')
             
             # Sphericity test is only relevant for within-subject effects with > 2 levels
             if len(self.within_cols) > 2:
                 sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within='time', subject=self.subject_col)
                 if isinstance(sphericity_test, tuple): # Older pingouin versions might return a tuple
                     w, spher, chi2, dof, pval = sphericity_test
-                    self.results['mauchly_test'] = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
+                    spher_dict = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
+                    self.results['mauchly_test'] = spher_dict
                 else: # Newer pingouin versions return dataframe
                     spher_dict = sphericity_test.to_dict('records')[0]
-                    self.results['mauchly_test'] = spher_dict
+                    # Ensure 'W' key exists, mapping from 'W-spher' if necessary
+                    if 'W-spher' in spher_dict and 'W' not in spher_dict:
+                        spher_dict['W'] = spher_dict['W-spher']
+                    self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
             else:
                 self.results['mauchly_test'] = None
 
@@ -109,7 +115,7 @@ class RepeatedMeasuresAnova:
                     posthoc_args['between'] = self.between_col
                 
                 posthoc = pg.pairwise_tests(**posthoc_args)
-                self.results['posthoc_results'] = posthoc.to_dict('records')
+                self.results['posthoc_results'] = posthoc.replace({np.nan: None}).to_dict('records')
 
         except Exception as e:
             self.results['error'] = str(e)

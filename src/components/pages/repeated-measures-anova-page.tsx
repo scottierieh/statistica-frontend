@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Sigma, Loader2, Repeat, CheckCircle, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, Users } from 'lucide-react';
 import Image from 'next/image';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
@@ -226,7 +227,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                                 <TableRow key={i}>
                                     <TableCell>{row.Source}</TableCell>
                                     <TableCell>{row.SS?.toFixed(3)}</TableCell>
-                                    <TableCell>{row.ddof1 || row.DF1 || 'N/A'}</TableCell>
+                                    <TableCell>{row.ddof1 ?? row.DF1 ?? 'N/A'}</TableCell>
                                     <TableCell>{row.MS?.toFixed(3)}</TableCell>
                                     <TableCell>{row.F?.toFixed(3)}</TableCell>
                                     <TableCell>{row['p-unc'] < 0.001 ? '<.001' : row['p-unc']?.toFixed(4)}</TableCell>
@@ -242,7 +243,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                  <Card>
                     <CardHeader><CardTitle>Mauchly's Test for Sphericity</CardTitle></CardHeader>
                     <CardContent>
-                        <p>Sphericity assumed: {results.mauchly_test.sphericity ? 'Yes' : 'No'} (W={results.mauchly_test['W-spher']?.toFixed(3)}, p={results.mauchly_test['p-val']?.toFixed(4)})</p>
+                        <p>Sphericity assumed: {results.mauchly_test.spher ? 'Yes' : 'No'} (W={results.mauchly_test['W']?.toFixed(3)}, p={results.mauchly_test['p-val']?.toFixed(4)})</p>
                          <p className="text-xs text-muted-foreground mt-1">If p &lt; 0.05, the assumption is violated. Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.</p>
                     </CardContent>
                 </Card>
