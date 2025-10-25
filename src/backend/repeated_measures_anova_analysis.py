@@ -82,7 +82,7 @@ class RepeatedMeasuresAnova:
                     spher_dict = sphericity_test.to_dict('records')[0]
                     # Ensure 'W' key exists, mapping from 'W-spher' if necessary
                     if 'W-spher' in spher_dict and 'W' not in spher_dict:
-                        spher_dict['W'] = spher_dict['W-spher']
+                        spher_dict['W'] = spher_dict.pop('W-spher')
                     self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
             else:
                 self.results['mauchly_test'] = None
