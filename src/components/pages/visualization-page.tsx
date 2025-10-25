@@ -180,6 +180,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                 break;
             case 'bar':
             case 'pareto':
+            case 'lollipop':
                 if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
                 config.config = { x_col: barColumn };
                 break;
@@ -269,6 +270,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
         { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
         { id: 'donut', label: 'Donut Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'treemap', label: 'Treemap', icon: Grid3x3, disabled: categoricalHeaders.length === 0 },
       ]
   }
 
@@ -366,3 +368,6 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     </div>
   );
 }
+
+
+  
