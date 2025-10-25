@@ -10,7 +10,6 @@ wordcloud
 nltk
 networkx
 plotly
-pingouin
 qrcode
 factor-analyzer
 skl2onnx
@@ -18,4 +17,3 @@ onnx
 onnxruntime
 cffi==1.16.0
 squarify
-Cython
