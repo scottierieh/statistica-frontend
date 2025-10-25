@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -22,16 +21,11 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     const vizExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('visuals'));
 
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <BarChartIcon size={36} />
-                        </div>
-                    </div>
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center p-8">
                     <CardTitle className="font-headline text-4xl font-bold">Data Visualization</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                    <CardDescription className="text-xl pt-2 text-muted-foreground">
                         Create a variety of charts and graphs to explore and present your data effectively.
                     </CardDescription>
                 </CardHeader>
@@ -214,6 +208,10 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                  if (heatmapVars.length < 2) { toast({ title: "Error", description: "Please select at least two variables for the heatmap."}); return; }
                  config.config = { variables: heatmapVars };
                  break;
+            case 'pareto':
+                if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
+                config.config = { x_col: barColumn };
+                break;
             default:
                 toast({ title: "Error", description: "Invalid chart type selected." });
                 return;
@@ -268,6 +266,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
       ],
       categorical: [
         { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'pareto', label: 'Pareto Chart', icon: BarChartIcon, tags: ["Quality Control", "80/20 Rule"] },
         { id: 'grouped-bar', label: 'Grouped Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
