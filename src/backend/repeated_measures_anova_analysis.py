@@ -77,7 +77,7 @@ class RepeatedMeasuresAnova:
                 if isinstance(sphericity_test, tuple): # Older pingouin versions might return a tuple
                     w, spher, chi2, dof, pval = sphericity_test
                     spher_dict = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
-                    self.results['mauchly_test'] = spher_dict
+                    self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
                 else: # Newer pingouin versions return dataframe
                     spher_dict = sphericity_test.to_dict('records')[0]
                     # Ensure 'W' key exists, mapping from 'W-spher' if necessary
