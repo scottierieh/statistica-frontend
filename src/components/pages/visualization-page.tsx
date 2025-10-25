@@ -179,6 +179,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                 config.config = { x_col: distColumn, y_col: chartType === 'box' || chartType === 'violin' ? groupedBarCategory1 : undefined };
                 break;
             case 'bar':
+            case 'pareto':
                 if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
                 config.config = { x_col: barColumn };
                 break;
@@ -208,10 +209,6 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                  if (heatmapVars.length < 2) { toast({ title: "Error", description: "Please select at least two variables for the heatmap."}); return; }
                  config.config = { variables: heatmapVars };
                  break;
-            case 'pareto':
-                if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
-                config.config = { x_col: barColumn };
-                break;
             default:
                 toast({ title: "Error", description: "Invalid chart type selected." });
                 return;
@@ -254,9 +251,9 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
   const chartTypes = {
       distribution: [
         { id: 'histogram', label: 'Histogram', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
+        { id: 'density', label: 'Density Plot', icon: AreaChart, disabled: numericHeaders.length === 0 },
         { id: 'box', label: 'Box Plot', icon: Box, disabled: numericHeaders.length === 0 },
         { id: 'violin', label: 'Violin Plot', icon: GanttChart, disabled: numericHeaders.length === 0 },
-        { id: 'density', label: 'Density Plot', icon: AreaChart, disabled: numericHeaders.length === 0 },
       ],
       relationship: [
         { id: 'scatter', label: 'Scatter Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
@@ -267,6 +264,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
       categorical: [
         { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
         { id: 'pareto', label: 'Pareto Chart', icon: BarChartIcon, tags: ["Quality Control", "80/20 Rule"] },
+        { id: 'lollipop', label: 'Lollipop Chart', icon: BarChartIcon, tags: ["Ranking", "Comparison"] },
         { id: 'grouped-bar', label: 'Grouped Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
@@ -305,7 +303,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                     {(activeChart === 'histogram' || activeChart === 'density' || activeChart === 'box' || activeChart === 'violin') && (
                         <div><Label>Variable:</Label><Select value={distColumn} onValueChange={setDistColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     )}
-                     {activeChart === 'bar' && (
+                     {(activeChart === 'bar' || activeChart === 'pareto' || activeChart === 'lollipop') && (
                         <div><Label>Variable:</Label><Select value={barColumn} onValueChange={setBarColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     )}
                     {activeChart === 'scatter' && (
