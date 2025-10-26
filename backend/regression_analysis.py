@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 try:
     import statsmodels.api as sm
     from statsmodels.stats.outliers_influence import variance_inflation_factor
-    from statsmodels.stats.diagnostic import het_breuschpagan, linear_reset
+    from statsmodels.stats.diagnostic import het_breuschpagan
     from statsmodels.stats.stattools import durbin_watson, jarque_bera
     HAS_STATSMODELS = True
 except ImportError:
@@ -180,7 +180,6 @@ class RegressionAnalysis:
 
     def _calculate_diagnostics(self, X, sm_model):
         residuals = sm_model.resid
-        influence = sm_model.get_influence()
         diagnostics = {}
         
         def clean_name(name):
@@ -199,26 +198,15 @@ class RegressionAnalysis:
             summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
         diagnostics['model_summary_data'] = summary_data
 
-        # ANOVA 테이블 추가
         try:
             anova_table = sm.stats.anova_lm(sm_model, typ=2)
-            anova_records = []
-            for idx, row in anova_table.iterrows():
-                anova_records.append({
-                    'source': clean_name(str(idx)),
-                    'sum_sq': row.get('sum_sq', None),
-                    'df': row.get('df', None),
-                    'F': row.get('F', None),
-                    'PR(>F)': row.get('PR(>F)', None)
-                })
-            diagnostics['anova_table'] = anova_records
+            diagnostics['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source'}).to_dict('records')
         except Exception:
             diagnostics['anova_table'] = None
 
         diagnostics['f_statistic'] = sm_model.fvalue
         diagnostics['f_pvalue'] = sm_model.f_pvalue
         
-        # coefficient_tests에 bse, tvalues 추가
         diagnostics['coefficient_tests'] = {
             'params': {clean_name(k): v for k, v in sm_model.params.to_dict().items()},
             'pvalues': {clean_name(k): v for k, v in sm_model.pvalues.to_dict().items()},
@@ -227,7 +215,6 @@ class RegressionAnalysis:
         }
         diagnostics['durbin_watson'] = durbin_watson(residuals) if len(residuals) > 1 else None
         
-        # VIF 계산
         try:
              X_for_vif = sm.add_constant(X)
              if X_for_vif.shape[1] > 1:
@@ -236,8 +223,7 @@ class RegressionAnalysis:
                 diagnostics['vif'] = vif
              else:
                  diagnostics['vif'] = {}
-        except Exception: 
-            diagnostics['vif'] = {}
+        except Exception: diagnostics['vif'] = {}
         
         jb_stat, jb_p, _, _ = jarque_bera(residuals) if len(residuals) > 2 else (np.nan, np.nan, np.nan, np.nan)
         sw_stat, sw_p = stats.shapiro(residuals) if len(residuals) > 2 else (np.nan, np.nan)
@@ -251,18 +237,6 @@ class RegressionAnalysis:
             diagnostics['heteroscedasticity_tests'] = {'breusch_pagan': {'statistic': bp_stat, 'p_value': bp_p}}
         except Exception:
              diagnostics['heteroscedasticity_tests'] = {}
-        
-        try:
-            reset_test = linear_reset(sm_model)
-            diagnostics['specification_tests'] = {'reset': {'statistic': reset_test.fvalue.item(), 'p_value': reset_test.pvalue}}
-        except Exception:
-            diagnostics['specification_tests'] = {}
-            
-        try:
-            cooks_d = influence.cooks_distance[0]
-            diagnostics['influence_tests'] = {'max_cooks_d': np.max(cooks_d)}
-        except Exception:
-            diagnostics['influence_tests'] = {}
         
         return diagnostics
     
@@ -403,5 +377,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
