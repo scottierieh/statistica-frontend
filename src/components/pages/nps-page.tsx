@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Smile, Frown, Meh, Percent } from 'lucide-react';
+import { Sigma, Loader2, Smile, Frown, Meh, Percent, HelpCircle, MoveRight, Settings, FileSearch, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -28,6 +27,67 @@ interface FullAnalysisResponse {
     results: NpsResult;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const npsExample = exampleDatasets.find(ex => ex.id === 'csat-data');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <TrendingUp size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Net Promoter Score (NPS) Analysis</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Measure customer loyalty and predict business growth with a single, powerful metric.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use NPS?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            NPS is a widely adopted metric that gauges customer loyalty by asking one simple question: "How likely are you to recommend our company/product/service to a friend or colleague?" on a 0-10 scale. It categorizes customers into Promoters, Passives, and Detractors to provide a clear, actionable score.
+                        </p>
+                    </div>
+                    <div className="flex justify-center">
+                        {npsExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(npsExample)}>
+                                <npsExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{npsExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{npsExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Score Column:</strong> Choose the numeric column containing your 0-10 NPS ratings.</li>
+                                <li><strong>Run Analysis:</strong> The tool will automatically calculate the NPS score and segment your respondents.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>NPS Score:</strong> Calculated as (% Promoters - % Detractors). Ranges from -100 to +100. A score above 0 is good, above 50 is excellent.</li>
+                                <li><strong>Promoters (9-10):</strong> Your loyal enthusiasts who will keep buying and refer others.</li>
+                                <li><strong>Passives (7-8):</strong> Satisfied but unenthusiastic customers who are vulnerable to competitive offerings.</li>
+                                 <li><strong>Detractors (0-6):</strong> Unhappy customers who can damage your brand through negative word-of-mouth.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface NpsPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -36,6 +96,7 @@ interface NpsPageProps {
 
 export default function NpsPage({ data, numericHeaders, onLoadExample }: NpsPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [scoreColumn, setScoreColumn] = useState<string | undefined>();
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +107,8 @@ export default function NpsPage({ data, numericHeaders, onLoadExample }: NpsPage
         const npsCol = numericHeaders.find(h => h.toLowerCase().includes('nps') || h.toLowerCase().includes('rating'));
         setScoreColumn(npsCol || numericHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!scoreColumn) {
@@ -85,25 +147,8 @@ export default function NpsPage({ data, numericHeaders, onLoadExample }: NpsPage
         }
     }, [data, scoreColumn, toast]);
     
-    if (!canRun) {
-        const npsExample = exampleDatasets.find(ex => ex.analysisTypes.includes('csat'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-lg text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Net Promoter Score (NPS)</CardTitle>
-                        <CardDescription>To analyze NPS, you need data with a numeric rating column (typically 0-10).</CardDescription>
-                    </CardHeader>
-                    {npsExample && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(npsExample)}>
-                                <Smile className="mr-2" /> Load CSAT Example Data
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -118,7 +163,10 @@ export default function NpsPage({ data, numericHeaders, onLoadExample }: NpsPage
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">NPS Analysis Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">NPS Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="max-w-xs">
