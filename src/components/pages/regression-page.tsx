@@ -17,8 +17,7 @@ import Image from 'next/image';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-
+import { Badge } from '../ui/badge';
 
 interface RegressionMetrics {
     r2: number;
@@ -485,6 +484,12 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const durbinWatson = results?.diagnostics?.durbin_watson;
     const dwMet = durbinWatson !== undefined && durbinWatson >= 1.5 && durbinWatson <= 2.5;
 
+    const bpTest = results?.diagnostics?.heteroscedasticity_tests?.breusch_pagan;
+    const bpMet = bpTest !== undefined && bpTest.p_value > 0.05;
+
+    const swTest = results?.diagnostics?.normality_tests?.shapiro_wilk;
+    const swMet = swTest !== undefined && swTest.p_value > 0.05;
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -509,45 +514,52 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
             {analysisResult && results && (
                 <div className="space-y-4">
                     <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics?.f_pvalue} />
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                          <Card><CardHeader><CardTitle className="text-sm">R-squared</CardTitle><CardDescription className="text-2xl font-bold">{results.metrics.all_data.r2.toFixed(4)}</CardDescription></CardHeader></Card>
                          <Card><CardHeader><CardTitle className="text-sm">Adj. R-squared</CardTitle><CardDescription className="text-2xl font-bold">{results.metrics.all_data.adj_r2.toFixed(4)}</CardDescription></CardHeader></Card>
                          <Card><CardHeader><CardTitle className="text-sm">F-statistic</CardTitle><CardDescription className="text-2xl font-bold">{results.diagnostics?.f_statistic?.toFixed(2)}</CardDescription></CardHeader></Card>
-                         <Card><CardHeader><CardTitle className="text-sm">Prob (F-statistic)</CardTitle><CardDescription className="text-2xl font-bold">{results.diagnostics?.f_pvalue?.toFixed(4)}</CardDescription></CardHeader></Card>
-                        <Card>
-                            <CardHeader><CardTitle className="text-sm">Durbin-Watson</CardTitle></CardHeader>
-                            <CardContent>
-                                <p className="text-2xl font-bold">{durbinWatson?.toFixed(3)}</p>
-                                <Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge>
-                            </CardContent>
-                        </Card>
                     </div>
 
                      <Card>
-                        <CardHeader><CardTitle className="font-headline">Coefficients</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Assumption Checks</CardTitle>
+                        </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Variable</TableHead>
-                                        <TableHead className="text-right">Coefficient</TableHead>
-                                        <TableHead className="text-right">Std. Error</TableHead>
-                                        <TableHead className="text-right">t-value</TableHead>
-                                        <TableHead className="text-right">p-value</TableHead>
+                                        <TableHead>Test</TableHead>
+                                        <TableHead>Assumption</TableHead>
+                                        <TableHead className="text-right">Statistic</TableHead>
+                                        <TableHead className="text-right">P-value</TableHead>
+                                        <TableHead className="text-right">Result</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {coefficientTableData.map(row => (
-                                        <TableRow key={row.key}>
-                                            <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.tValue?.toFixed(3) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4)} {getSignificanceStars(row.pValue)}</TableCell>
-                                        </TableRow>
-                                    ))}
+                                    <TableRow>
+                                        <TableCell>Durbin-Watson</TableCell>
+                                        <TableCell>Independence of Residuals</TableCell>
+                                        <TableCell className="font-mono text-right">{durbinWatson?.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right">-</TableCell>
+                                        <TableCell className="text-right"><Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge></TableCell>
+                                    </TableRow>
+                                    {bpTest && <TableRow>
+                                        <TableCell>Breusch-Pagan</TableCell>
+                                        <TableCell>Homoscedasticity</TableCell>
+                                        <TableCell className="font-mono text-right">{bpTest.statistic.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bpTest.p_value.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right"><Badge variant={bpMet ? 'default' : 'destructive'}>{bpMet ? "Met" : "Not Met"}</Badge></TableCell>
+                                    </TableRow>}
+                                    {swTest && <TableRow>
+                                        <TableCell>Shapiro-Wilk</TableCell>
+                                        <TableCell>Normality of Residuals</TableCell>
+                                        <TableCell className="font-mono text-right">{swTest.statistic.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{swTest.p_value.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right"><Badge variant={swMet ? 'default' : 'destructive'}>{swMet ? "Met" : "Not Met"}</Badge></TableCell>
+                                    </TableRow>}
                                 </TableBody>
                             </Table>
+                            <p className="text-xs text-muted-foreground mt-2">Durbin-Watson: value between 1.5 and 2.5 is generally considered normal.</p>
                         </CardContent>
                     </Card>
 
@@ -563,4 +575,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     );
 }
 
-    
+```
