@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -50,6 +51,9 @@ interface RegressionResultsData {
         };
         heteroscedasticity_tests?: {
             breusch_pagan: { statistic: number; p_value: number; };
+        },
+        specification_tests?: {
+            reset: { statistic: number; p_value: number; };
         },
         anova_table?: any[];
         model_summary_data?: any[];
@@ -454,12 +458,18 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const swTest = results?.diagnostics?.normality_tests?.shapiro_wilk;
     const swMet = swTest !== undefined && swTest.p_value > 0.05;
 
+    const resetTest = results?.diagnostics?.specification_tests?.reset;
+    const resetMet = resetTest !== undefined && resetTest.p_value > 0.05;
+    
+    const fTestPValue = results?.diagnostics?.f_pvalue;
+    const fTestMet = fTestPValue !== undefined && fTestPValue < 0.05;
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Regression Setup</CardTitle>
+                        <CardTitle className="font-headline">{modelType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())} Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
@@ -483,7 +493,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             <CardContent>
                                <Alert>
                                   <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>Analysis Summary</AlertTitle>
+                                  <AlertTitle>AI Generated Summary</AlertTitle>
                                   <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
                                </Alert>
                             </CardContent>
@@ -516,7 +526,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableCell className="text-right font-mono">{row.stdError?.toFixed(4)}</TableCell>
                                             <TableCell className="text-right font-mono">{row.tValue?.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">
-                                                {row.pValue < 0.001 ? '&lt;.001' : row.pValue?.toFixed(4)}
+                                                {row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4)}
                                                 {getSignificanceStars(row.pValue)}
                                             </TableCell>
                                         </TableRow>
@@ -525,18 +535,26 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </Table>
                         </CardContent>
                     </Card>
-
+                    
                     <Card>
                         <CardHeader><CardTitle>Assumption Checks</CardTitle></CardHeader>
                         <CardContent>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow><TableHead>Test</TableHead><TableHead>Assumption</TableHead><TableHead className="text-right">Statistic</TableHead><TableHead className="text-right">p-value</TableHead><TableHead className="text-right">Result</TableHead></TableRow>
+                            <Table>
+                                 <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Test</TableHead>
+                                        <TableHead>Assumption</TableHead>
+                                        <TableHead className="text-right">Statistic</TableHead>
+                                        <TableHead className="text-right">p-value</TableHead>
+                                        <TableHead className="text-right">Result</TableHead>
+                                    </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {durbinWatson !== undefined && <TableRow><TableCell>Durbin-Watson</TableCell><TableCell>Independence of Residuals</TableCell><TableCell className="text-right font-mono">{durbinWatson.toFixed(3)}</TableCell><TableCell className="text-right">-</TableCell><TableCell className="text-right"><Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
+                                    {fTestPValue !== undefined && <TableRow><TableCell>F-test</TableCell><TableCell>Overall Model Significance</TableCell><TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{fTestPValue.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={fTestMet ? 'default' : 'destructive'}>{fTestMet ? "Significant" : "Not Significant"}</Badge></TableCell></TableRow>}
+                                    {durbinWatson !== undefined && <TableRow><TableCell>Durbin-Watson</TableCell><TableCell>Independence of Residuals</TableCell><TableCell className="font-mono text-right">{durbinWatson.toFixed(3)}</TableCell><TableCell className="text-right">-</TableCell><TableCell className="text-right"><Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {bpTest && <TableRow><TableCell>Breusch-Pagan</TableCell><TableCell>Homoscedasticity</TableCell><TableCell className="font-mono text-right">{bpTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{bpTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={bpMet ? 'default' : 'destructive'}>{bpMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {swTest && <TableRow><TableCell>Shapiro-Wilk</TableCell><TableCell>Normality of Residuals</TableCell><TableCell className="font-mono text-right">{swTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{swTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={swMet ? 'default' : 'destructive'}>{swMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
+                                    {resetTest && <TableRow><TableCell>Ramsey RESET</TableCell><TableCell>Model Specification</TableCell><TableCell className="font-mono text-right">{resetTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{resetTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={resetMet ? 'default' : 'destructive'}>{resetMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                 </TableBody>
                             </Table>
                         </CardContent>
@@ -547,4 +565,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     );
 }
 
-    
+```

@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -180,7 +178,6 @@ class RegressionAnalysis:
 
     def _calculate_diagnostics(self, X, sm_model):
         residuals = sm_model.resid
-        influence = sm_model.get_influence()
         diagnostics = {}
         
         def clean_name(name):
@@ -238,12 +235,6 @@ class RegressionAnalysis:
             diagnostics['specification_tests'] = {'reset': {'statistic': reset_test.fvalue.item(), 'p_value': reset_test.pvalue}}
         except Exception:
             diagnostics['specification_tests'] = {}
-            
-        try:
-            cooks_d = influence.cooks_distance[0]
-            diagnostics['influence_tests'] = {'max_cooks_d': np.max(cooks_d)}
-        except Exception:
-            diagnostics['influence_tests'] = {}
         
         return diagnostics
     
@@ -384,5 +375,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-```
