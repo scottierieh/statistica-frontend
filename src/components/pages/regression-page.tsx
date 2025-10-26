@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -400,6 +399,74 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
+    const renderSetupUI = () => {
+    switch (modelType) {
+        case 'simple':
+            return (
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Feature Variable (X)</Label>
+                        <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                </div>
+            );
+        case 'multiple':
+            return (
+                 <div className="grid md:grid-cols-3 gap-4">
+                     <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="md:col-span-2">
+                        <Label>Feature Variables (X)</Label>
+                        <ScrollArea className="h-32 border rounded-md p-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                {availableFeatures.map(h => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
+                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
+        case 'polynomial':
+             return (
+                 <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="md:col-span-1">
+                        <Label>Feature Variable(s)</Label>
+                        <ScrollArea className="h-24 border rounded-md p-2">
+                            <div className="grid grid-cols-1 gap-2">
+                                {availableFeatures.map(h => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
+                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                    <div>
+                        <Label>Polynomial Degree</Label>
+                        <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2" max="5"/>
+                    </div>
+                </div>
+            );
+        default:
+            return null;
+        }
+    }
+
     const results = analysisResult?.results;
     const anovaTable = results?.diagnostics?.anova_table;
     const coefficientTableData = results?.diagnostics?.coefficient_tests ? Object.entries(results.diagnostics.coefficient_tests.params).map(([key, value]) => ({
@@ -432,25 +499,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     </div>
                 </CardContent>
             </Card>
-
-             {modelType === 'simple' && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Prediction</CardTitle>
-                        <CardDescription>Enter a value for '{simpleFeatureVar}' to predict '{targetVar}'.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex items-center gap-4">
-                        <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${simpleFeatureVar}`}/>
-                        <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
-                    </CardContent>
-                    {predictedYValue !== null && (
-                        <CardFooter>
-                            <p className="text-lg">Predicted '{targetVar}': <strong className="font-bold text-primary">{predictedYValue.toFixed(4)}</strong></p>
-                        </CardFooter>
-                    )}
-                </Card>
-            )}
-
+            
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {analysisResult && results && (
@@ -509,3 +558,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
+
