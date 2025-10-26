@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -160,6 +161,7 @@ import LassoRegressionPage from './pages/lasso-regression-page';
 import RidgeRegressionPage from './pages/ridge-regression-page';
 import ClassifierComparisonPage from './pages/classifier-comparison-page';
 import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
+import OutlierDetectionPage from './pages/outlier-detection-page';
 
 const analysisCategories = [
     {
@@ -193,6 +195,7 @@ const analysisCategories = [
       items: [
           { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
           { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
+          { id: 'outlier-detection', label: 'Outlier Detection', icon: AlertTriangle, component: OutlierDetectionPage },
       ],
   },
   
@@ -315,7 +318,7 @@ const analysisCategories = [
           {
             name: 'Hierarchical-based',
             items: [
-              { id: 'hca', label: 'Hierarchical (HCA)', icon: GitBranch, component: HcaPage },
+              { id: 'hca', label: 'Hierarchical Clustering (HCA)', icon: GitBranch, component: HcaPage },
             ]
           }
       ]
