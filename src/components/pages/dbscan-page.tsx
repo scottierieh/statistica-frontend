@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, ScanSearch, Bot } from 'lucide-react';
+import { Sigma, Loader2, ScanSearch, Bot, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -17,7 +17,6 @@ import Image from 'next/image';
 import { Input } from '../ui/input';
 import { getClusteringInterpretation } from '@/app/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-
 
 interface DbscanResults {
     n_clusters: number;
@@ -39,6 +38,78 @@ interface FullAnalysisResponse {
     results: DbscanResults;
     plot: string;
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const dbscanExample = exampleDatasets.find(d => d.id === 'customer-segments');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                     <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <ScanSearch size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">DBSCAN Clustering</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A density-based clustering algorithm that groups together points that are closely packed, marking as outliers points that lie alone in low-density regions.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use DBSCAN?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Unlike K-Means, DBSCAN does not require you to specify the number of clusters beforehand. It excels at finding arbitrarily shaped clusters and identifying noise or outliers in the data, making it a great tool for anomaly detection and for datasets where clusters are not spherical.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {dbscanExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(dbscanExample)}>
+                                <dbscanExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{dbscanExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{dbscanExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Variables:</strong> Choose two or more numeric variables for clustering.</li>
+                                <li><strong>Epsilon (eps):</strong> Set the maximum distance between two samples for one to be considered as in the neighborhood of the other. Smaller values create more dense clusters.</li>
+                                <li><strong>Min Samples:</strong> The number of samples in a neighborhood for a point to be considered a core point. Higher values result in more points being classified as noise.</li>
+                                <li><strong>Run Analysis:</strong> The algorithm will identify clusters and noise points based on data density.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Clusters Found:</strong> The number of distinct groups identified by the algorithm.
+                                </li>
+                                 <li>
+                                    <strong>Noise Points:</strong> The number of data points that did not belong to any cluster. A high percentage of noise may indicate that the data is not well-structured for density-based clustering or that parameters need tuning.
+                                </li>
+                                <li>
+                                    <strong>Cluster Plot:</strong> Visualizes the clusters. Noise points are typically marked differently (e.g., with an 'x'), allowing for easy identification of outliers.
+                                </li>
+                                <li>
+                                    <strong>Cluster Profiles:</strong> The mean values (centroids) for each cluster help you understand the defining characteristics of each group.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 const InterpretationDisplay = ({ promise }: { promise: Promise<string | null> | null }) => {
     const [interpretation, setInterpretation] = useState<string | null>(null);
@@ -84,6 +155,7 @@ interface DbscanPageProps {
 
 export default function DbscanPage({ data, numericHeaders, onLoadExample }: DbscanPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [eps, setEps] = useState<number>(0.5);
     const [minSamples, setMinSamples] = useState<number>(5);
@@ -91,14 +163,15 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [aiPromise, setAiPromise] = useState<Promise<string | null> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
         setAiPromise(null);
-    }, [data, numericHeaders]);
-
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, canRun]);
 
     const handleItemSelectionChange = (header: string, checked: boolean) => {
         setSelectedItems(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -154,27 +227,9 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
         }
     }, [data, selectedItems, eps, minSamples, toast]);
     
-    if (!canRun) {
+    if (view === 'intro' || !canRun) {
         const dbscanExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('dbscan'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">DBSCAN Clustering</CardTitle>
-                        <CardDescription>
-                           To perform DBSCAN, you need data with at least two numeric variables. Try an example dataset to get started.
-                        </CardDescription>
-                    </CardHeader>
-                    {dbscanExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(dbscanExamples[0])} className="w-full" size="sm">
-                                Load {dbscanExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResult?.results;
@@ -182,8 +237,11 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
     return (
         <div className="flex flex-col gap-4">
             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">DBSCAN Clustering Setup</CardTitle>
+                 <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">DBSCAN Clustering Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select variables and adjust the DBSCAN parameters.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
