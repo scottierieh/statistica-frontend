@@ -1,21 +1,24 @@
 
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { type DataSet } from '@/lib/stats';
+import { type ExampleDataSet } from '@/lib/example-datasets';
+import { exampleDatasets } from '@/lib/example-datasets';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot, MoveRight, HelpCircle, Settings, FileSearch, BarChart } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Checkbox } from '../ui/checkbox';
-import { ScrollArea } from '../ui/scroll-area';
-import Image from 'next/image';
+import { Sigma, FlaskConical, MoveRight, BarChart as BarChartIcon, Settings, FileSearch, Users, Repeat, CheckCircle, XCircle, AlertTriangle, HelpCircle, Bot, Loader2, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
+import { Skeleton } from '../ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
+import Image from 'next/image';
 import { Input } from '../ui/input';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+
 
 interface RegressionMetrics {
     r2: number;
@@ -51,6 +54,7 @@ interface RegressionResultsData {
             breusch_pagan: { statistic: number; p_value: number; };
         },
         anova_table?: any[];
+        model_summary_data?: any[];
     };
     stepwise_log?: string[];
     interpretation?: string;
@@ -230,7 +234,7 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
     const formattedInterpretation = useMemo(() => {
         if (!interpretation) return null;
         return interpretation
-            .replace(/\n/g, '<br />')
+            .replace(/\\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>')
             .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
@@ -264,6 +268,75 @@ const getSignificanceStars = (p: number | undefined) => {
     if (p < 0.05) return '*';
     return '';
 };
+
+const renderSetupUI = (modelType: string, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod }: any) => {
+    switch (modelType) {
+        case 'simple':
+            return (
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Feature Variable (X)</Label>
+                        <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableFeatures.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                </div>
+            );
+        case 'multiple':
+            return (
+                 <div className="grid md:grid-cols-3 gap-4">
+                     <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="md:col-span-2">
+                        <Label>Feature Variables (X)</Label>
+                        <ScrollArea className="h-32 border rounded-md p-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                {availableFeatures.map((h:string) => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => setMultipleFeatureVars((prev:string[]) => c ? [...prev, h] : prev.filter(v => v !== h))} />
+                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
+        case 'polynomial':
+             return (
+                 <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="md:col-span-1">
+                        <Label>Feature Variable(s)</Label>
+                        <ScrollArea className="h-24 border rounded-md p-2">
+                            <div className="grid grid-cols-1 gap-2">
+                                {availableFeatures.map((h:string) => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => setMultipleFeatureVars((prev:string[]) => c ? [...prev, h] : prev.filter(v => v !== h))} />
+                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                    <div>
+                        <Label>Polynomial Degree</Label>
+                        <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2" max="5"/>
+                    </div>
+                </div>
+            );
+        default:
+            return null;
+        }
+    }
+
 
 interface RegressionPageProps {
     data: DataSet;
@@ -399,74 +472,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
-    const renderSetupUI = () => {
-    switch (modelType) {
-        case 'simple':
-            return (
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <Label>Target Variable (Y)</Label>
-                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div>
-                        <Label>Feature Variable (X)</Label>
-                        <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                </div>
-            );
-        case 'multiple':
-            return (
-                 <div className="grid md:grid-cols-3 gap-4">
-                     <div>
-                        <Label>Target Variable (Y)</Label>
-                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div className="md:col-span-2">
-                        <Label>Feature Variables (X)</Label>
-                        <ScrollArea className="h-32 border rounded-md p-4">
-                            <div className="grid grid-cols-2 gap-2">
-                                {availableFeatures.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
-                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    </div>
-                </div>
-            );
-        case 'polynomial':
-             return (
-                 <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                        <Label>Target Variable (Y)</Label>
-                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div className="md:col-span-1">
-                        <Label>Feature Variable(s)</Label>
-                        <ScrollArea className="h-24 border rounded-md p-2">
-                            <div className="grid grid-cols-1 gap-2">
-                                {availableFeatures.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
-                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    </div>
-                    <div>
-                        <Label>Polynomial Degree</Label>
-                        <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2" max="5"/>
-                    </div>
-                </div>
-            );
-        default:
-            return null;
-        }
-    }
-
     const results = analysisResult?.results;
     const anovaTable = results?.diagnostics?.anova_table;
     const coefficientTableData = results?.diagnostics?.coefficient_tests ? Object.entries(results.diagnostics.coefficient_tests.params).map(([key, value]) => ({
@@ -485,21 +490,20 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Linear Regression Setup</CardTitle>
+                        <CardTitle className="font-headline">Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
-                    <CardDescription>Select a regression model, then configure its variables and parameters.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    {renderSetupUI()}
-                    <div className="flex justify-end mt-4">
-                        <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar || (modelType === 'simple' ? !simpleFeatureVar : multipleFeatureVars.length === 0)}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                        </Button>
-                    </div>
+                <CardContent>
+                    {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars: setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod })}
                 </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                    </Button>
+                </CardFooter>
             </Card>
-            
+
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {analysisResult && results && (
@@ -559,3 +563,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     );
 }
 
+    
