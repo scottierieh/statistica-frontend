@@ -1,15 +1,19 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Sigma, AlertTriangle } from 'lucide-react';
+import { Loader2, Sigma, AlertTriangle, FileSearch, Settings, MoveRight, HelpCircle, Columns } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '../ui/skeleton';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import type { DataSet } from '@/lib/stats';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+
 
 interface CrosstabResults {
   contingency_table: { [key: string]: { [key: string]: number } };
@@ -27,55 +31,102 @@ interface FullAnalysisResponse {
   plot: string;
 }
 
-interface CrosstabSurveyPageProps {
-  survey: Survey;
-  responses: SurveyResponse[];
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const crosstabExample = exampleDatasets.find(d => d.id === 'crosstab');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Columns size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Crosstabulation & Chi-Squared Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Analyze the relationship and independence between two categorical variables.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Crosstabulation?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Crosstabulation (or contingency tables) is a fundamental tool for understanding the relationship between two categorical variables. It organizes data into a table that displays the frequency distribution of the variables, allowing you to see how the categories of one variable are related to the categories of another. The associated Chi-Squared test determines if this relationship is statistically significant.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {crosstabExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(crosstabExample)}>
+                                <crosstabExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{crosstabExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{crosstabExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Row Variable:</strong> Select a categorical variable to form the rows of the table (e.g., 'Gender').</li>
+                                <li><strong>Column Variable:</strong> Select another categorical variable for the columns (e.g., 'Product Preference').</li>
+                                <li><strong>Run Analysis:</strong> The tool generates the contingency table, calculates the Chi-Squared statistic, and provides an interpretation.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Chi-Squared (χ²) Test:</strong> A p-value less than 0.05 indicates that there is a statistically significant association between the two variables; they are not independent.
+                                </li>
+                                <li>
+                                    <strong>Cramer's V:</strong> Measures the strength of the association, ranging from 0 (no association) to 1 (perfect association).
+                                </li>
+                                <li>
+                                    <strong>Contingency Table:</strong> Examine the counts in each cell to understand the nature of the relationship. Standardized residuals (if available) can highlight which specific cells contribute most to the association.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
+interface CrosstabPageProps {
+  data: DataSet;
+  categoricalHeaders: string[];
+  onLoadExample?: (example: ExampleDataSet) => void;
 }
 
-export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurveyPageProps) {
+export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }: CrosstabPageProps) {
   const { toast } = useToast();
   const [rowVar, setRowVar] = useState<string>('');
   const [colVar, setColVar] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+  const [view, setView] = useState('intro');
 
-  // Get all questions that can be used for crosstab
-  const questionOptions = useMemo(() => {
-    if (!survey || !survey.questions) return [];
-    return survey.questions
-      .filter(q => {
-        // Include single choice, multiple choice, dropdown, and matrix questions
-        return ['single', 'multiple', 'dropdown', 'matrix'].includes(q.type);
-      })
-      .flatMap(q => {
-        // For matrix questions, create an option for each row
-        if (q.type === 'matrix' && q.rows) {
-          return q.rows.map(row => ({
-            label: `${q.title} - ${row}`,
-            value: `${q.id}__${row}`,
-            questionId: q.id,
-            rowName: row
-          }));
-        }
-        // For other question types, just use the question itself
-        return [{
-          label: q.title,
-          value: q.id,
-          questionId: q.id,
-          rowName: null
-        }];
-      });
-  }, [survey?.questions]);
-
-  // Set initial values
+  const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length >= 2, [data, categoricalHeaders]);
+  
   useEffect(() => {
-    if (questionOptions.length > 0 && !rowVar) {
-      setRowVar(questionOptions[0].value);
-      if (questionOptions.length > 1) {
-        setColVar(questionOptions[1].value);
+    if (categoricalHeaders.length > 0) {
+      setRowVar(categoricalHeaders[0]);
+      if (categoricalHeaders.length > 1) {
+        setColVar(categoricalHeaders[1]);
+      } else {
+        setColVar('');
       }
     }
-  }, [questionOptions, rowVar]);
+    setAnalysisResult(null);
+    setView(canRun ? 'main' : 'intro');
+  }, [categoricalHeaders, data, canRun]);
 
   const handleAnalysis = useCallback(async () => {
     if (!rowVar || !colVar) {
@@ -100,62 +151,11 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
     setAnalysisResult(null);
 
     try {
-      // Parse the selected variables
-      const rowOption = questionOptions.find(opt => opt.value === rowVar);
-      const colOption = questionOptions.find(opt => opt.value === colVar);
-
-      if (!rowOption || !colOption) {
-        throw new Error('Selected variables not found');
-      }
-
-      // Extract data based on question type
-      const dataForAnalysis = responses.map(r => {
-        let rowValue: any;
-        let colValue: any;
-
-        // Get row value
-        if (rowOption.rowName) {
-          // Matrix question
-          const matrixAnswer = r.answers[rowOption.questionId];
-          rowValue = matrixAnswer?.[rowOption.rowName];
-        } else {
-          // Regular question
-          rowValue = r.answers[rowOption.questionId];
-        }
-
-        // Get column value
-        if (colOption.rowName) {
-          // Matrix question
-          const matrixAnswer = r.answers[colOption.questionId];
-          colValue = matrixAnswer?.[colOption.rowName];
-        } else {
-          // Regular question
-          colValue = r.answers[colOption.questionId];
-        }
-
-        // Handle array values (for multiple choice)
-        if (Array.isArray(rowValue)) {
-          rowValue = rowValue.join(', ');
-        }
-        if (Array.isArray(colValue)) {
-          colValue = colValue.join(', ');
-        }
-
-        return {
-          [rowVar]: rowValue,
-          [colVar]: colValue
-        };
-      }).filter(row => row[rowVar] !== undefined && row[colVar] !== undefined);
-
-      if (dataForAnalysis.length === 0) {
-        throw new Error('No valid data found for the selected variables');
-      }
-
       const response = await fetch('/api/analysis/crosstab', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          data: dataForAnalysis, 
+          data: data, 
           rowVar, 
           colVar 
         })
@@ -180,19 +180,22 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
     } finally {
       setIsLoading(false);
     }
-  }, [rowVar, colVar, responses, toast, questionOptions]);
+  }, [rowVar, colVar, data, toast]);
   
   const results = analysisResult?.results;
 
-  // Get display labels for selected variables
-  const rowLabel = questionOptions.find(q => q.value === rowVar)?.label || 'Row Variable';
-  const colLabel = questionOptions.find(q => q.value === colVar)?.label || 'Column Variable';
+  if (view === 'intro' || !canRun) {
+    return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample!} />;
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Crosstabulation Setup</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="font-headline">Crosstabulation Setup</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+          </div>
           <CardDescription>Select two categorical variables to analyze their relationship.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -204,13 +207,13 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                   <SelectValue placeholder="Select Row Variable..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {questionOptions.map(opt => (
+                  {categoricalHeaders.map(opt => (
                     <SelectItem 
-                      key={opt.value} 
-                      value={opt.value}
-                      disabled={opt.value === colVar}
+                      key={opt} 
+                      value={opt}
+                      disabled={opt === colVar}
                     >
-                      {opt.label}
+                      {opt}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,13 +226,13 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                   <SelectValue placeholder="Select Column Variable..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {questionOptions.map(opt => (
+                  {categoricalHeaders.map(opt => (
                     <SelectItem 
-                      key={opt.value} 
-                      value={opt.value}
-                      disabled={opt.value === rowVar}
+                      key={opt} 
+                      value={opt}
+                      disabled={opt === rowVar}
                     >
-                      {opt.label}
+                      {opt}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -240,19 +243,10 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
           {rowVar && colVar && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-gray-700">
-                <strong>Selected:</strong> {rowLabel} × {colLabel}
+                <strong>Selected:</strong> {rowVar} × {colVar}
               </p>
             </div>
           )}
-
-          <Alert className="mt-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Note</AlertTitle>
-            <AlertDescription>
-              This analysis works best with categorical variables (e.g., single choice, multiple choice, matrix rows). 
-              Results may not be meaningful for numeric or text-based questions.
-            </AlertDescription>
-          </Alert>
         </CardContent>
         <CardFooter className="flex justify-end">
           <Button 
@@ -329,7 +323,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
             <CardHeader>
               <CardTitle>Contingency Table</CardTitle>
               <CardDescription>
-                {rowLabel} × {colLabel}
+                {rowVar} × {colVar}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -337,19 +331,19 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="font-bold">{rowLabel}</TableHead>
-                      {Object.keys(results.contingency_table).map(col => (
+                      <TableHead className="font-bold">{rowVar}</TableHead>
+                      {Object.keys(results.contingency_table[Object.keys(results.contingency_table)[0]]).map(col => (
                         <TableHead key={col} className="text-right font-bold">{col}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Object.entries(Object.values(results.contingency_table)[0] || {}).map(([rowKey]) => (
+                     {Object.entries(results.contingency_table).map(([rowKey, rowData]) => (
                       <TableRow key={rowKey}>
                         <TableCell className="font-semibold">{rowKey}</TableCell>
-                        {Object.keys(results.contingency_table).map(colKey => (
-                          <TableCell key={colKey} className="text-right">
-                            {results.contingency_table[colKey]?.[rowKey] || 0}
+                        {Object.values(rowData).map((cellValue, index) => (
+                          <TableCell key={index} className="text-right">
+                            {cellValue}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -364,3 +358,5 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
     </div>
   );
 }
+
+    
