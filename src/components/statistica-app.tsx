@@ -356,16 +356,36 @@ const analysisCategories = [
     {
       name: 'Panel & Econometrics',
       icon: Sigma,
-      items: [
-        { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
-        { id: 'instrumental-variable-regression', label: 'Instrumental Variable (IV)', icon: Link2, component: InstrumentalVariableRegressionPage },
-        { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares (2SLS)', icon: Repeat, component: TwoStageLeastSquaresPage },
-        { id: 'did', label: 'Difference-in-Differences', icon: GitCommit, component: DidPage },
-        { id: 'rdd', label: 'Regression Discontinuity', icon: GitCommit, component: RddPage },
-        { id: 'spatial-autoregressive-model', label: 'Spatial Autoregressive (SAR)', icon: Map, component: SpatialAutoregressiveModelPage },
-        { id: 'spatial-error-model', label: 'Spatial Error (SEM)', icon: Map, component: SpatialErrorModelPage },
-        { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
-        { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
+      subCategories: [
+          {
+            name: 'Panel Data Models',
+            items: [
+              { id: 'panel-data-regression', label: 'Pooled OLS / Fixed / Random Effects', icon: Users, component: PanelDataRegressionPage },
+              { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
+            ]
+          },
+          {
+            name: 'Endogeneity Correction',
+            items: [
+               { id: 'instrumental-variable-regression', label: 'Instrumental Variables', icon: Link2, component: InstrumentalVariableRegressionPage },
+               { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares', icon: Repeat, component: TwoStageLeastSquaresPage },
+            ]
+          },
+          {
+            name: 'Quasi-Experimental Methods',
+            items: [
+              { id: 'did', label: 'Difference-in-Differences', icon: GitCommit, component: DidPage },
+              { id: 'rdd', label: 'Regression Discontinuity', icon: GitCommit, component: RddPage },
+              { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
+            ]
+          },
+          {
+            name: 'Spatial Econometrics',
+            items: [
+              { id: 'spatial-autoregressive-model', label: 'SAR', icon: Map, component: SpatialAutoregressiveModelPage },
+              { id: 'spatial-error-model', label: 'SEM', icon: Map, component: SpatialErrorModelPage },
+            ]
+          }
       ],
     },
      {
@@ -726,8 +746,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
-
-
-
 
