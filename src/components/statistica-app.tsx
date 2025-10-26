@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -230,14 +229,29 @@ const analysisCategories = [
     {
       name: 'Relationship',
       icon: TrendingUp,
-      items: [
-        { id: 'correlation', label: 'Correlation', icon: Link2, component: CorrelationPage },
-        { id: 'regression-simple', label: 'Simple Linear Regression', icon: TrendingUp, component: RegressionPage },
-        { id: 'regression-multiple', label: 'Multiple Linear Regression', icon: TrendingUp, component: RegressionPage },
-        { id: 'regression-polynomial', label: 'Polynomial Regression', icon: TrendingUp, component: RegressionPage },
-        { id: 'logistic-regression', label: 'Logistic Regression', icon: TrendingUp, component: LogisticRegressionPage },
-        { id: 'crosstab', label: 'Crosstab & Chi-Squared', icon: Columns, component: CrosstabPage },
-        { id: 'relative-importance', label: 'Relative Importance', icon: Percent, component: RelativeImportancePage },
+      subCategories: [
+          {
+              name: 'Relationship Analysis',
+              items: [
+                  { id: 'correlation', label: 'Correlation', icon: Link2, component: CorrelationPage },
+                  { id: 'crosstab', label: 'Crosstab & Chi-Squared', icon: Columns, component: CrosstabPage },
+              ]
+          },
+          {
+              name: 'Regression Analysis',
+              items: [
+                  { id: 'regression-simple', label: 'Simple Linear', icon: TrendingUp, component: RegressionPage },
+                  { id: 'regression-multiple', label: 'Multiple Linear', icon: TrendingUp, component: RegressionPage },
+                  { id: 'regression-polynomial', label: 'Polynomial', icon: TrendingUp, component: RegressionPage },
+                  { id: 'logistic-regression', label: 'Logistic', icon: TrendingUp, component: LogisticRegressionPage },
+              ]
+          },
+          {
+              name: 'Model Interpretation',
+              items: [
+                  { id: 'relative-importance', label: 'Relative Importance', icon: Percent, component: RelativeImportancePage },
+              ]
+          }
       ]
     },
      {
@@ -298,7 +312,7 @@ const analysisCategories = [
             {
                 name: 'Diagnostic Stage',
                 items: [
-                    { id: 'acf-pacf', label: 'ACF/PACF Plots', icon: BarChart, component: AcfPacfPage },
+                    { id: 'acf-pacf', label: 'ACF/PACF', icon: BarChart, component: AcfPacfPage },
                     { id: 'stationarity', label: 'ADF Test', icon: TrendingUp, component: StationarityPage },
                     { id: 'ljung-box', label: 'Ljung-Box Test', icon: CheckSquare, component: LjungBoxPage },
                     { id: 'arch-lm-test', label: 'ARCH-LM Test', icon: AlertTriangle, component: ArchLmTestPage },
@@ -712,6 +726,7 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
 
 
 
