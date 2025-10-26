@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, Play, SlidersHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
