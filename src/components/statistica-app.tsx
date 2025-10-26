@@ -156,6 +156,10 @@ import SpatialErrorModelPage from './pages/spatial-error-model-page';
 import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
 import VisualizationPage from './pages/visualization-page';
 import RandomForestPage from './pages/random-forest-page';
+import LassoRegressionPage from './pages/lasso-regression-page';
+import RidgeRegressionPage from './pages/ridge-regression-page';
+import ClassifierComparisonPage from './pages/classifier-comparison-page';
+import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
 
 const analysisCategories = [
     {
@@ -244,6 +248,8 @@ const analysisCategories = [
                   { id: 'regression-multiple', label: 'Multiple Linear', icon: TrendingUp, component: RegressionPage },
                   { id: 'regression-polynomial', label: 'Polynomial', icon: TrendingUp, component: RegressionPage },
                   { id: 'logistic-regression', label: 'Logistic', icon: TrendingUp, component: LogisticRegressionPage },
+                  { id: 'lasso-regression', label: 'Lasso Regression', icon: TrendingUp, component: LassoRegressionPage },
+                  { id: 'ridge-regression', label: 'Ridge Regression', icon: TrendingUp, component: RidgeRegressionPage },
               ]
           },
           {
@@ -263,6 +269,7 @@ const analysisCategories = [
           { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
           { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
           { id: 'random-forest', label: 'Random Forest', icon: GitBranch, component: RandomForestPage },
+          { id: 'classifier-comparison', label: 'Classifier Comparison', icon: Users, component: ClassifierComparisonPage },
       ]
     },
      {
@@ -275,6 +282,7 @@ const analysisCategories = [
               { id: 'reliability', label: 'Reliability (Cronbach)', icon: ShieldCheck, component: ReliabilityPage },
               { id: 'efa', label: 'Exploratory (EFA)', icon: FileSearch, component: EfaPage },
               { id: 'pca', label: 'Principal Component (PCA)', icon: Component, component: PcaPage },
+              { id: 'pca-lda-comparison', label: 'PCA vs. LDA', icon: Component, component: PcaLdaComparisonPage },
             ]
           },
           {
@@ -760,4 +768,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-

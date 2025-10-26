@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart } from 'lucide-react';
+import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart, MoveRight } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -72,7 +73,7 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                                 <li><strong>Target Variable (Y):</strong> The numeric variable you want to predict.</li>
                                 <li><strong>Feature Variables (X):</strong> The numeric variables used for prediction.</li>
                                 <li><strong>Alpha (α):</strong> The regularization strength. Higher values lead to more shrinkage and a simpler model.</li>
-                                <li><strong>Test Set Size:</strong> The proportion of data held out for model evaluation.</li>
+                                <li><strong>Test Set Size:</strong> The proportion of data used to evaluate the model on unseen data.</li>
                             </ul>
                         </div>
                          <div className="space-y-4">
@@ -289,7 +290,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                         <Card className="md:col-span-2">
                              <CardHeader>
                                 <CardTitle>Coefficients</CardTitle>
-                                <CardDescription>Ridge regression shrinks coefficients towards zero to prevent overfitting.</CardDescription>
+                                <CardDescription>Ridge regression shrinks coefficients towards zero to combat multicollinearity.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ScrollArea className="h-80">
@@ -303,7 +304,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                                             {Object.entries(results.coefficients).map(([feature, coeff]) => (
                                                 <TableRow key={feature}>
                                                     <TableCell>{feature}</TableCell>
-                                                    <TableCell className="text-right font-mono">{coeff.toFixed(4)}</TableCell>
+                                                    <TableCell className={`text-right font-mono ${Math.abs(coeff) < 1e-6 ? 'text-muted-foreground' : ''}`}>{coeff.toFixed(4)}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
