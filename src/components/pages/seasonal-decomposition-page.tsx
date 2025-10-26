@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, TableIcon } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, TableIcon, HelpCircle, MoveRight, Settings, FileSearch, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -40,6 +40,69 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const trendExample = exampleDatasets.find(d => d.analysisTypes.includes('seasonal-decomposition'));
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <AreaChart size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Seasonal Decomposition</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Deconstruct a time series into its core components: Trend, Seasonality, and Residuals.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Seasonal Decomposition?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Decomposition helps you understand the underlying patterns in your time series data. By separating the trend (long-term direction), seasonality (repeating cycles), and residuals (random noise), you can gain deeper insights, make better forecasts, and identify anomalies more effectively.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {trendExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(trendExample)}>
+                                <trendExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{trendExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{trendExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Time & Value Columns:</strong> Select the date/time column and the numeric data column you want to analyze.</li>
+                                <li><strong>Model Type:</strong> Choose 'Additive' if the seasonal variation is constant over time, or 'Multiplicative' if it changes in proportion to the level of the series.</li>
+                                <li><strong>Period:</strong> Specify the length of the seasonal cycle (e.g., 12 for monthly data, 7 for daily data with weekly patterns).</li>
+                                <li><strong>Run Analysis:</strong> The tool will decompose the series and visualize the components.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Trend Component:</strong> Shows the underlying long-term direction of the data, stripped of seasonality and noise.</li>
+                                <li><strong>Seasonal Component:</strong> Displays the repeating cyclical pattern. For monthly data, this will show which months are typically higher or lower than average.</li>
+                                <li><strong>Residual Component:</strong> What's left after removing the trend and seasonal components. Ideally, it should look like random noise with no clear pattern.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface SeasonalDecompositionPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -48,6 +111,7 @@ interface SeasonalDecompositionPageProps {
 
 export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExample }: SeasonalDecompositionPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
     const [model, setModel] = useState('additive');
@@ -65,7 +129,8 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
         setTimeCol(dateCol || allHeaders[0]);
         setValueCol(numericCols.find(h => h !== dateCol) || numericCols[0]);
         setAnalysisResult(null);
-    }, [data, allHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, allHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!timeCol || !valueCol) {
@@ -112,44 +177,12 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
         }
     }, [data, timeCol, valueCol, model, period, toast]);
 
-    if (!canRun) {
-        const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('seasonal-decomposition'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Seasonal Decomposition</CardTitle>
-                        <CardDescription>
-                           To perform seasonal decomposition, you need time-series data with at least one date/time column and one numeric column.
-                        </CardDescription>
-                    </CardHeader>
-                     {trendExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {trendExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <AreaChart className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -166,7 +199,10 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Seasonal Decomposition Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Seasonal Decomposition Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Configure the parameters for time series decomposition.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -277,4 +313,3 @@ export default function SeasonalDecompositionPage({ data, allHeaders, onLoadExam
         </div>
     );
 }
-
