@@ -7,14 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, CheckSquare, LineChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
-
 
 interface LjungBoxResult {
     lb_statistic: number;
@@ -29,6 +28,68 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const trendExample = exampleDatasets.find(d => d.analysisTypes.includes('trend-analysis'));
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <CheckSquare size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Ljung-Box Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Test whether any of a group of autocorrelations of a time series are different from zero.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use the Ljung-Box Test?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            The Ljung-Box test is a crucial diagnostic tool in time series analysis, primarily used to check if the residuals from a forecasting model (like ARIMA) are random and independent. If significant autocorrelation exists in the residuals, it indicates that the model has not captured all the underlying patterns in the data, and it may need to be refined.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {trendExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(trendExample)}>
+                                <trendExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{trendExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{trendExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Value Column:</strong> Select the time series data to test. This is often the residuals from a previously fitted model.</li>
+                                <li><strong>Number of Lags:</strong> Specify the number of lags to include in the test. A common choice is `ln(T)` where T is the number of observations, or around 10-20 for typical time series.</li>
+                                <li><strong>Run Test:</strong> The tool will compute the Ljung-Box Q statistic and its corresponding p-value.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Null Hypothesis (H₀):</strong> The data are independently distributed (i.e., the autocorrelations are all zero).</li>
+                                <li><strong>p-value:</strong> A p-value less than 0.05 indicates that there is significant autocorrelation in the series, and you should reject the null hypothesis. This suggests that your model may be misspecified.</li>
+                                <li><strong>P-Values by Lag Plot:</strong> This plot shows the p-value for the Ljung-Box test at each lag up to the maximum specified. If the line drops below the red significance line (0.05), it indicates that significant autocorrelation exists up to that lag.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface LjungBoxPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -37,6 +98,7 @@ interface LjungBoxPageProps {
 
 export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: LjungBoxPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [valueCol, setValueCol] = useState<string | undefined>();
     const [lags, setLags] = useState<number>(10);
     
@@ -48,7 +110,8 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
     useEffect(() => {
         setValueCol(numericHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!valueCol) {
@@ -90,27 +153,11 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
         }
     }, [data, valueCol, lags, toast]);
 
-    if (!canRun) {
-        const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Ljung-Box Test</CardTitle>
-                        <CardDescription>
-                           To run this test, you need time-series data with at least one numeric column (often the residuals from another model).
-                        </CardDescription>
-                    </CardHeader>
-                     {trendExamples.length > 0 && (
-                        <CardContent>
-                             <Button onClick={() => onLoadExample(trendExamples[0])} className="w-full" size="sm">
-                                Load Sample Time Series Data
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -119,7 +166,10 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Ljung-Box Test Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Ljung-Box Test Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Test for autocorrelation in a time series.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -141,7 +191,7 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[400px] w-full"/></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-48 w-full"/></CardContent></Card>}
 
             {results && analysisResult?.plot && (
                 <div className="space-y-4">
@@ -168,7 +218,7 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
                                         <TableCell className="font-mono text-right">{results.lb_statistic.toFixed(4)}</TableCell>
                                     </TableRow>
                                      <TableRow>
-                                        <TableCell>P-value</TableCell>
+                                        <TableCell>p-value</TableCell>
                                         <TableCell className="font-mono text-right">{results.p_value < 0.001 ? "< 0.001" : results.p_value.toFixed(4)}</TableCell>
                                     </TableRow>
                                      <TableRow>
@@ -182,6 +232,7 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">P-Values by Lag</CardTitle>
+                             <CardDescription>This plot shows if autocorrelation becomes significant at different lags.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Image src={analysisResult.plot} alt="Ljung-Box p-values plot" width={1000} height={500} className="w-full rounded-md border"/>
