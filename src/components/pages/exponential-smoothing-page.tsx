@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -6,13 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, TableIcon } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, HelpCircle, MoveRight, Settings, FileSearch, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { ScrollArea } from '../ui/scroll-area';
 
 interface AnalysisResponse {
     results: {
@@ -25,6 +24,74 @@ interface AnalysisResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const example = exampleDatasets.find(d => d.analysisTypes.includes('exponential-smoothing'));
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <TrendingUp size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Exponential Smoothing</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A versatile forecasting method that gives more weight to recent observations.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Exponential Smoothing?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Exponential smoothing is a robust forecasting technique that is easy to interpret and computationally efficient. It's highly effective for short-term forecasting on time series data that exhibits trend and/or seasonality. Unlike simple moving averages, it assigns exponentially decreasing weights to older observations, making it more responsive to recent changes.
+                        </p>
+                    </div>
+                    <div className="flex justify-center">
+                        {example && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(example)}>
+                                <example.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{example.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{example.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Time & Value Columns:</strong> Select the date/time column and the numeric data column.</li>
+                                <li><strong>Smoothing Type:</strong>
+                                    <ul className="list-disc pl-5 mt-1 text-xs">
+                                        <li><strong>Simple:</strong> For data with no trend or seasonality.</li>
+                                        <li><strong>Holt's Linear:</strong> For data with a trend but no seasonality.</li>
+                                        <li><strong>Holt-Winters:</strong> For data with both trend and seasonality.</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Model Parameters (Optional):</strong> Leave parameters (alpha, beta, gamma) blank to let the model find the optimal values automatically.</li>
+                                <li><strong>Run Analysis:</strong> The tool will fit the model and show the smoothed series against the original.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Fitted Plot:</strong> The primary output. Visually check how closely the orange 'Fitted Values' line follows the blue 'Original Series' line. A good fit will track the data's pattern well.</li>
+                                <li><strong>AIC/BIC/AICc:</strong> Information criteria used to compare different models. Lower values indicate a better fit, especially when comparing different smoothing types on the same data.</li>
+                                <li><strong>Fitted Parameters:</strong> These are the smoothing parameters (alpha, beta, gamma) found by the model. Values close to 1 mean the model puts heavy weight on recent observations, while values close to 0 mean it considers a longer history.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface ExponentialSmoothingPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -33,6 +100,7 @@ interface ExponentialSmoothingPageProps {
 
 export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExample }: ExponentialSmoothingPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
     const [smoothingType, setSmoothingType] = useState('simple');
@@ -59,7 +127,8 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
         setTimeCol(dateCol || allHeaders[0]);
         setValueCol(numericCols.find(h => h !== dateCol) || numericCols[0]);
         setAnalysisResult(null);
-    }, [data, allHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, allHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!timeCol || !valueCol) {
@@ -111,44 +180,12 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
         }
     }, [data, timeCol, valueCol, smoothingType, trendType, seasonalType, seasonalPeriods, toast, alpha, beta, gamma]);
 
-    if (!canRun) {
-        const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Exponential Smoothing</CardTitle>
-                        <CardDescription>
-                           To use this feature, you need time-series data with at least one date/time column and one numeric column.
-                        </CardDescription>
-                    </CardHeader>
-                     {trendExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {trendExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <AreaChart className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -157,7 +194,10 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Exponential Smoothing Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Exponential Smoothing Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Configure the parameters for the smoothing model.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
