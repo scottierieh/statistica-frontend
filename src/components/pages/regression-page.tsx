@@ -70,7 +70,6 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-
 const SimpleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
     return (
@@ -231,6 +230,84 @@ interface RegressionPageProps {
     activeAnalysis: string; 
 }
 
+const getSignificanceStars = (p: number | undefined) => {
+    if (p === undefined || p === null) return '';
+    if (p < 0.001) return '***';
+    if (p < 0.01) return '**';
+    if (p < 0.05) return '*';
+    return '';
+};
+
+const renderSetupUI = (modelType: string, props: any) => {
+    const { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod, handleMultiFeatureSelectionChange } = props;
+    switch (modelType) {
+        case 'simple':
+            return (
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Feature Variable (X)</Label>
+                        <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableFeatures.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                </div>
+            );
+        case 'multiple':
+            return (
+                 <div className="grid md:grid-cols-3 gap-4">
+                     <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="md:col-span-2">
+                        <Label>Feature Variables (X)</Label>
+                        <ScrollArea className="h-32 border rounded-md p-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                {availableFeatures.map((h:string) => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, !!c)} />
+                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
+        case 'polynomial':
+             return (
+                 <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <Label>Target Variable (Y)</Label>
+                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="md:col-span-1">
+                        <Label>Feature Variable(s)</Label>
+                        <ScrollArea className="h-24 border rounded-md p-2">
+                            <div className="grid grid-cols-1 gap-2">
+                                {availableFeatures.map((h:string) => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, !!c)} />
+                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                    <div>
+                        <Label>Polynomial Degree</Label>
+                        <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2" max="5"/>
+                    </div>
+                </div>
+            );
+        default:
+            return null;
+    }
+}
+
+
 export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
@@ -273,74 +350,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
     
-    const renderSetupUI = (modelType: string) => {
-    switch (modelType) {
-        case 'simple':
-            return (
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <Label>Target Variable (Y)</Label>
-                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div>
-                        <Label>Feature Variable (X)</Label>
-                        <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableFeatures.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                </div>
-            );
-        case 'multiple':
-            return (
-                 <div className="grid md:grid-cols-3 gap-4">
-                     <div>
-                        <Label>Target Variable (Y)</Label>
-                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div className="md:col-span-2">
-                        <Label>Feature Variables (X)</Label>
-                        <ScrollArea className="h-32 border rounded-md p-4">
-                            <div className="grid grid-cols-2 gap-2">
-                                {availableFeatures.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, !!c)} />
-                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    </div>
-                </div>
-            );
-        case 'polynomial':
-             return (
-                 <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                        <Label>Target Variable (Y)</Label>
-                        <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div className="md:col-span-1">
-                        <Label>Feature Variable(s)</Label>
-                        <ScrollArea className="h-24 border rounded-md p-2">
-                            <div className="grid grid-cols-1 gap-2">
-                                {availableFeatures.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`iv-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, !!c)} />
-                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    </div>
-                    <div>
-                        <Label>Polynomial Degree</Label>
-                        <Input type="number" value={polyDegree} onChange={e => setPolyDegree(Number(e.target.value))} min="2" max="5"/>
-                    </div>
-                </div>
-            );
-        default:
-            return null;
-        }
-    }
-
     const handleAnalysis = useCallback(async (predictValue?: number) => {
         if (!targetVar) {
             toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable.'});
@@ -455,7 +464,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod })}
+                    {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod, handleMultiFeatureSelectionChange })}
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar}>
@@ -472,11 +481,11 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         <Card>
                             <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
                             <CardContent>
-                                <Alert>
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Analysis Summary</AlertTitle>
-                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
-                                </Alert>
+                               <Alert>
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>Analysis Summary</AlertTitle>
+                                  <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
+                               </Alert>
                             </CardContent>
                         </Card>
                     )}
@@ -507,7 +516,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableCell className="text-right font-mono">{row.stdError?.toFixed(4)}</TableCell>
                                             <TableCell className="text-right font-mono">{row.tValue?.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">
-                                                {row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4)}
+                                                {row.pValue < 0.001 ? '&lt;.001' : row.pValue?.toFixed(4)}
                                                 {getSignificanceStars(row.pValue)}
                                             </TableCell>
                                         </TableRow>
@@ -538,4 +547,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     );
 }
 
-```
+    
