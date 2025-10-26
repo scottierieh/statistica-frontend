@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -73,6 +72,15 @@ interface FullAnalysisResponse {
     model_type: string;
     plot: string;
 }
+
+const getSignificanceStars = (p: number | undefined) => {
+    if (p === undefined || p === null) return '';
+    if (p < 0.001) return '***';
+    if (p < 0.01) return '**';
+    if (p < 0.05) return '*';
+    return '';
+};
+
 
 const SimpleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
@@ -234,16 +242,9 @@ interface RegressionPageProps {
     activeAnalysis: string; 
 }
 
-const getSignificanceStars = (p: number | undefined) => {
-    if (p === undefined || p === null) return '';
-    if (p < 0.001) return '***';
-    if (p < 0.01) return '**';
-    if (p < 0.05) return '*';
-    return '';
-};
 
 const renderSetupUI = (modelType: string, props: any) => {
-    const { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod, handleMultiFeatureSelectionChange } = props;
+    const { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, handleMultiFeatureSelectionChange, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod } = props;
     switch (modelType) {
         case 'simple':
             return (
@@ -260,12 +261,24 @@ const renderSetupUI = (modelType: string, props: any) => {
             );
         case 'multiple':
             return (
-                 <div className="grid md:grid-cols-3 gap-4">
+                 <div className="grid md:grid-cols-2 gap-4">
                      <div>
                         <Label>Target Variable (Y)</Label>
                         <Select value={targetVar} onValueChange={setTargetVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map((h:string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                         <div className="mt-4">
+                            <Label>Variable Selection Method</Label>
+                            <Select value={selectionMethod} onValueChange={setSelectionMethod}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Enter (All Selected)</SelectItem>
+                                    <SelectItem value="forward">Forward Selection</SelectItem>
+                                    <SelectItem value="backward">Backward Elimination</SelectItem>
+                                    <SelectItem value="stepwise">Stepwise Regression</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                     <div className="md:col-span-2">
+                     <div className="md:col-span-1">
                         <Label>Feature Variables (X)</Label>
                         <ScrollArea className="h-32 border rounded-md p-4">
                             <div className="grid grid-cols-2 gap-2">
@@ -349,6 +362,10 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         setAnalysisResult(null);
         setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
+    
+    useEffect(() => {
+      setAnalysisResult(null); // Reset results when model type changes
+    }, [modelType])
 
     const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
         setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
@@ -457,7 +474,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
     const swTest = results?.diagnostics?.normality_tests?.shapiro_wilk;
     const swMet = swTest !== undefined && swTest.p_value > 0.05;
-
+    
     const resetTest = results?.diagnostics?.specification_tests?.reset;
     const resetMet = resetTest !== undefined && resetTest.p_value > 0.05;
     
@@ -476,7 +493,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 <CardContent>
                     {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod, handleMultiFeatureSelectionChange })}
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                 <CardFooter className="flex justify-end">
                     <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
@@ -487,7 +504,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
             {analysisResult && results && (
                 <div className="space-y-4">
-                    {results.interpretation && (
+                     {results.interpretation && (
                         <Card>
                             <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
                             <CardContent>
@@ -550,19 +567,48 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {fTestPValue !== undefined && <TableRow><TableCell>F-test</TableCell><TableCell>Overall Model Significance</TableCell><TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{fTestPValue.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={fTestMet ? 'default' : 'destructive'}>{fTestMet ? "Significant" : "Not Significant"}</Badge></TableCell></TableRow>}
+                                    {fTestPValue !== undefined && <TableRow><TableCell>F-test</TableCell><TableCell>Overall Model Significance</TableCell><TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{fTestPValue.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={fTestMet ? 'default' : 'destructive'}>{fTestMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {durbinWatson !== undefined && <TableRow><TableCell>Durbin-Watson</TableCell><TableCell>Independence of Residuals</TableCell><TableCell className="font-mono text-right">{durbinWatson.toFixed(3)}</TableCell><TableCell className="text-right">-</TableCell><TableCell className="text-right"><Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {bpTest && <TableRow><TableCell>Breusch-Pagan</TableCell><TableCell>Homoscedasticity</TableCell><TableCell className="font-mono text-right">{bpTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{bpTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={bpMet ? 'default' : 'destructive'}>{bpMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {swTest && <TableRow><TableCell>Shapiro-Wilk</TableCell><TableCell>Normality of Residuals</TableCell><TableCell className="font-mono text-right">{swTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{swTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={swMet ? 'default' : 'destructive'}>{swMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
-                                    {resetTest && <TableRow><TableCell>Ramsey RESET</TableCell><TableCell>Model Specification</TableCell><TableCell className="font-mono text-right">{resetTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{resetTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={resetMet ? 'default' : 'destructive'}>{resetMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
+                                    {resetTest && <TableRow><TableCell>Ramsey RESET</TableCell><TableCell>Model Specification</TableCell><TableCell className="font-mono text-right">{resetTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{resetTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={resetMet ? 'default' : 'destructive'}>{resetMet ? "Correct" : "Incorrect"}</Badge></TableCell></TableRow>}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
+                    
+                    {modelType === 'multiple' && results?.diagnostics?.vif && Object.keys(results.diagnostics.vif).length > 1 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>VIF (Variance Inflation Factor)</CardTitle>
+                                <CardDescription>Measures multicollinearity. Values &gt; 5 are a concern, &gt; 10 are problematic.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Variable</TableHead>
+                                            <TableHead className="text-right">VIF</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results.diagnostics.vif).map(([key, value]) => {
+                                            if (key === 'const') return null;
+                                            return (
+                                                <TableRow key={key}>
+                                                    <TableCell>{key}</TableCell>
+                                                    <TableCell className={`text-right font-mono ${value > 10 ? 'text-destructive font-bold' : value > 5 ? 'text-orange-500 font-semibold' : ''}`}>{value.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>
     );
 }
-
 ```
