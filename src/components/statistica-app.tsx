@@ -288,16 +288,36 @@ const analysisCategories = [
     {
         name: 'Time Series',
         icon: LineChart,
-        items: [
-            { id: 'trend-analysis', label: 'Trend Analysis', icon: TrendingUp, component: TrendAnalysisPage },
-            { id: 'seasonal-decomposition', label: 'Seasonal Decomposition', icon: AreaChart, component: SeasonalDecompositionPage },
-            { id: 'acf-pacf', label: 'ACF/PACF Plots', icon: BarChart, component: AcfPacfPage },
-            { id: 'stationarity', label: 'Stationarity Test (ADF)', icon: TrendingUp, component: StationarityPage },
-            { id: 'ljung-box', label: 'Ljung-Box Test', icon: CheckSquare, component: LjungBoxPage },
-            { id: 'arch-lm-test', label: 'ARCH-LM Test', icon: AlertTriangle, component: ArchLmTestPage },
-            { id: 'exponential-smoothing', label: 'Exponential Smoothing', icon: LineChart, component: ExponentialSmoothingPage },
-            { id: 'arima', label: 'ARIMA & SARIMAX', icon: TrendingUp, component: ArimaPage },
-            { id: 'forecast-evaluation', label: 'Forecast Model Evaluation', icon: Target, component: ForecastEvaluationPage },
+        subCategories: [
+            {
+                name: 'Exploratory Stage',
+                items: [
+                    { id: 'trend-analysis', label: 'Trend Analysis', icon: TrendingUp, component: TrendAnalysisPage },
+                    { id: 'seasonal-decomposition', label: 'Seasonal Decomposition', icon: AreaChart, component: SeasonalDecompositionPage },
+                ]
+            },
+            {
+                name: 'Diagnostic Stage',
+                items: [
+                    { id: 'acf-pacf', label: 'ACF/PACF Plots', icon: BarChart, component: AcfPacfPage },
+                    { id: 'stationarity', label: 'ADF Test', icon: TrendingUp, component: StationarityPage },
+                    { id: 'ljung-box', label: 'Ljung-Box Test', icon: CheckSquare, component: LjungBoxPage },
+                    { id: 'arch-lm-test', label: 'ARCH-LM Test', icon: AlertTriangle, component: ArchLmTestPage },
+                ]
+            },
+            {
+                name: 'Modeling Stage',
+                items: [
+                    { id: 'exponential-smoothing', label: 'Exponential Smoothing', icon: LineChart, component: ExponentialSmoothingPage },
+                    { id: 'arima', label: 'ARIMA / SARIMAX', icon: TrendingUp, component: ArimaPage },
+                ]
+            },
+            {
+                name: 'Evaluation Stage',
+                items: [
+                    { id: 'forecast-evaluation', label: 'Forecast Model Evaluation', icon: Target, component: ForecastEvaluationPage },
+                ]
+            }
         ]
     },
     {
@@ -694,4 +714,6 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+
 
