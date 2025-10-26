@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, Terminal } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, BrainCircuit } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -28,6 +28,69 @@ interface FullAnalysisResponse {
     results: GbmResults;
     plot: string;
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: ExampleDataSet) => void }) => {
+    const gbmExample = exampleDatasets.find(d => d.id === 'gbm-regression');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BrainCircuit size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Gradient Boosting Machine (GBM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A powerful machine learning technique that builds an ensemble of decision trees sequentially to make highly accurate predictions.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use GBM?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Gradient Boosting is an advanced ensemble method that creates a strong predictive model by combining multiple "weak" decision trees. Unlike Random Forest, which builds trees independently, GBM builds them one by one, where each new tree focuses on correcting the errors made by the previous ones. This sequential learning process often leads to higher accuracy, making it a popular choice for both regression and classification tasks.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {gbmExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(gbmExample)}>
+                                <gbmExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{gbmExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{gbmExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Problem Type:</strong> Choose between 'Regression' (for continuous outcomes like price) and 'Classification' (for categorical outcomes like 'yes'/'no').</li>
+                                <li><strong>Target & Features:</strong> Select the outcome variable to predict and the features to use for prediction.</li>
+                                <li><strong>Hyperparameters:</strong> Adjust parameters like 'Number of Estimators' (trees), 'Learning Rate', and 'Max Depth' to control model complexity and prevent overfitting.</li>
+                                <li><strong>Train Model:</strong> Build and evaluate the GBM model.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Performance Metrics:</strong> For regression, R-squared and RMSE indicate model fit and error size. For classification, accuracy and the confusion matrix show predictive power.</li>
+                                <li><strong>Feature Importance:</strong> Identifies which variables had the most influence on the model's predictions, helping you understand key drivers.</li>
+                                <li><strong>Learning Curve:</strong> This plot shows how model error changes as more trees are added. Ideally, the test error should decrease and then plateau. An increasing test error suggests overfitting.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 const PredictionExamplesTable = ({ examples, problemType }: { examples: any[], problemType: 'regression' | 'classification' }) => {
     if (!examples || examples.length === 0) return null;
@@ -96,6 +159,7 @@ interface GbmPageProps {
 
 export default function GbmPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: GbmPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [problemType, setProblemType] = useState<'regression' | 'classification'>('regression');
     const [target, setTarget] = useState<string | undefined>();
     const [features, setFeatures] = useState<string[]>([]);
@@ -122,37 +186,28 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
     }, [problemType, numericHeaders, binaryCategoricalHeaders]);
 
     useEffect(() => {
-        // This effect runs only when data or the headers change (i.e., new file loaded)
         setAnalysisResult(null);
         setIsLoading(false);
-        
-        const newTargetOptions = problemType === 'regression' ? numericHeaders : binaryCategoricalHeaders;
-        const defaultTarget = newTargetOptions.find(h => h === target) || newTargetOptions[0];
-        setTarget(defaultTarget);
+        const canActuallyRun = data.length > 0 && allHeaders.length > 1;
+        setView(canActuallyRun ? 'main' : 'intro');
 
-    }, [data, allHeaders]); // Removed headers from deps to avoid re-triggering on type change
-
-    useEffect(() => {
-        // This effect runs only when problemType changes
-        setAnalysisResult(null);
         const newTargetOptions = problemType === 'regression' ? numericHeaders : binaryCategoricalHeaders;
-        // If the current target is not valid for the new problem type, update it.
-        if (!target || !newTargetOptions.includes(target)) {
-            setTarget(newTargetOptions[0]);
+        let defaultTarget = newTargetOptions.find(h => h === target);
+        if (!defaultTarget) {
+            defaultTarget = newTargetOptions[0];
         }
-    }, [problemType, target, numericHeaders, binaryCategoricalHeaders]);
-    
-    useEffect(() => {
-        // Update features whenever the target variable changes
-        if (target) {
-            setFeatures(allHeaders.filter(h => h !== target));
+        setTarget(defaultTarget);
+        
+        if (defaultTarget) {
+            setFeatures(allHeaders.filter(h => h !== defaultTarget));
         } else {
             setFeatures([]);
         }
-    }, [target, allHeaders]);
 
+    }, [data, allHeaders, problemType]);
+    
     const handleFeatureChange = (header: string, checked: boolean) => {
-        setFeatures(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+        setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -200,47 +255,19 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
         return allHeaders.filter(h => h !== target);
     }, [allHeaders, target]);
 
-    if (!canRun) {
-        const gbmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('gbm'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Gradient Boosting Machine (GBM)</CardTitle>
-                        <CardDescription>Upload data with features and a target variable to get started.</CardDescription>
-                    </CardHeader>
-                     {gbmExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {gbmExamples.map((ex) => {
-                                    const Icon = ex.icon;
-                                    return (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Icon className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    const handleLoadExample = (example: ExampleDataSet) => {
+        onLoadExample(example);
+        if (example.id.includes('regression')) {
+            setProblemType('regression');
+        } else {
+            setProblemType('classification');
+        }
     }
 
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
+    }
+    
     const results = analysisResult?.results;
     
     const renderClassificationMetrics = () => {
@@ -310,7 +337,10 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Gradient Boosting Machine (GBM)</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="font-headline">Gradient Boosting Machine (GBM)</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-4 h-4" /></Button>
+                    </div>
                     <CardDescription>Configure and run a GBM model for regression or classification.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -345,8 +375,8 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
                         </div>
                     </div>
                      <Card>
-                        <CardHeader><CardTitle className='text-base'>Hyperparameters</CardTitle></CardHeader>
-                        <CardContent className="grid md:grid-cols-3 gap-4">
+                        <CardHeader className='pb-2'><CardTitle className='text-base'>Hyperparameters</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div><Label>Number of Estimators</Label><Input type="number" value={nEstimators} onChange={(e) => setNEstimators(Number(e.target.value))} /></div>
                             <div><Label>Learning Rate</Label><Input type="number" value={learningRate} step="0.01" onChange={(e) => setLearningRate(Number(e.target.value))} /></div>
                             <div><Label>Max Depth</Label><Input type="number" value={maxDepth} onChange={(e) => setMaxDepth(Number(e.target.value))} /></div>
