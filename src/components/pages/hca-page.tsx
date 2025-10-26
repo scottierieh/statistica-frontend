@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, Bot } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Bot, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -53,6 +52,69 @@ interface FullHcaResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const hcaExample = exampleDatasets.find(d => d.id === 'customer-segments');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <GitBranch size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Hierarchical Cluster Analysis (HCA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        A clustering method that builds a hierarchy of clusters, either from the bottom up (agglomerative) or the top down (divisive).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use HCA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Hierarchical clustering is ideal for when you don't know the number of clusters in your data beforehand. It produces a dendrogram, a tree-like diagram that visualizes the cluster hierarchy, allowing you to understand how data points group together at different levels of similarity. This is particularly useful in fields like biology for gene analysis or in market research to understand customer taxonomies.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {hcaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(hcaExample)}>
+                                <hcaExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{hcaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{hcaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Variables:</strong> Choose two or more numeric variables to base the clustering on.</li>
+                                <li><strong>Linkage Method:</strong> Select how the distance between clusters is measured. 'Ward' is a popular default that minimizes variance within clusters.</li>
+                                <li><strong>Distance Metric:</strong> Choose the metric to calculate distance between data points (e.g., 'Euclidean'). 'Ward' linkage only works with 'Euclidean'.</li>
+                                <li><strong>Number of Clusters (Optional):</strong> You can specify the number of clusters to form. If left blank, the system will recommend an optimal number based on silhouette scores.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Dendrogram:</strong> The primary visualization for HCA. You can determine the number of clusters by "cutting" the tree at a certain height. The height of the links represents the distance between clusters.</li>
+                                <li><strong>Silhouette Score Plot:</strong> Helps identify the optimal number of clusters. Look for the 'k' with the highest score.</li>
+                                <li><strong>Cluster Profiles:</strong> Once clusters are formed, examine their mean values to understand their unique characteristics and assign meaningful labels.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 const InterpretationDisplay = ({ interpretations }: { interpretations: HcaResults['interpretations'] | undefined }) => {
   if (!interpretations) return null;
 
@@ -92,6 +154,7 @@ interface HcaPageProps {
 
 export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [linkageMethod, setLinkageMethod] = useState('ward');
     const [distanceMetric, setDistanceMetric] = useState('euclidean');
@@ -102,6 +165,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -150,27 +214,12 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
         }
     }, [data, selectedItems, linkageMethod, distanceMetric, nClusters, toast]);
     
-    if (!canRun) {
-        const hcaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('hca'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Hierarchical Cluster Analysis</CardTitle>
-                        <CardDescription>
-                           To perform HCA, you need data with at least two numeric variables. Try an example dataset to get started.
-                        </CardDescription>
-                    </CardHeader>
-                    {hcaExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(hcaExamples[0])} className="w-full" size="sm">
-                                Load {hcaExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResult?.results;
@@ -179,7 +228,10 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Hierarchical Clustering Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Hierarchical Clustering Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select variables and clustering parameters.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -229,7 +281,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                             <Label>Number of Clusters (Optional)</Label>
                             <Input 
                                 type="number" 
-                                placeholder={`Auto (e.g. ${results?.optimal_k_recommendation?.silhouette || '...'})`}
+                                placeholder={`Auto (e.g. ${results?.optimal_k_recommendation?.silhouette || '...'}`}
                                 value={nClusters ?? ''}
                                 onChange={e => setNClusters(e.target.value ? parseInt(e.target.value) : null)}
                             />
@@ -346,3 +398,4 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
         </div>
     );
 }
+
