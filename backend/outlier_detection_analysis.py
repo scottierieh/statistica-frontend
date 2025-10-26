@@ -49,7 +49,7 @@ def create_plot(series, variable_name):
     plt.tight_layout()
     
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', bbox_inches='tight')
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.read()).decode('utf-8')
@@ -89,7 +89,7 @@ def main():
                     'z_score_count': len(z_outliers),
                     'iqr_count': len(iqr_outliers)
                 },
-                'plot': f"data:image/png;base64,{plot_image}"
+                'plot': plot_image
             }
 
         print(json.dumps({'results': results}, default=_to_native_type))
