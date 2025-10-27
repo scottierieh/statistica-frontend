@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 interface RandomForestResults {
     accuracy: number;
+    nir: number;
     classification_report: any;
     confusion_matrix: number[][];
     feature_importance: { [key: string]: number };
@@ -243,17 +244,22 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
                     <Card>
                         <CardHeader><CardTitle>Model Performance</CardTitle></CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <Card>
-                                    <CardHeader><CardTitle>Accuracy</CardTitle></CardHeader>
-                                    <CardContent className="text-4xl font-bold">{(results.accuracy * 100).toFixed(2)}%</CardContent>
-                                </Card>
-                                {results.roc_auc_data?.auc && (
-                                     <Card>
-                                        <CardHeader><CardTitle>AUC</CardTitle></CardHeader>
-                                        <CardContent className="text-4xl font-bold">{results.roc_auc_data.auc.toFixed(4)}</CardContent>
-                                    </Card>
-                                )}
+                            <div className="grid md:grid-cols-3 gap-4 text-center">
+                                <div className="p-4 bg-muted rounded-lg">
+                                    <p className="text-sm text-muted-foreground">Accuracy</p>
+                                    <p className="text-3xl font-bold">{(results.accuracy * 100).toFixed(2)}%</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Baseline (NIR): {(results.nir * 100).toFixed(2)}%
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-muted rounded-lg">
+                                    <p className="text-sm text-muted-foreground">AUC</p>
+                                    <p className="text-3xl font-bold">{results.roc_auc_data?.auc?.toFixed(4) || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-muted rounded-lg">
+                                    <p className="text-sm text-muted-foreground">F1-Score (Weighted Avg)</p>
+                                    <p className="text-3xl font-bold">{results.classification_report['weighted avg']['f1-score'].toFixed(4)}</p>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -277,8 +283,8 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {Object.entries(results.classification_report).filter(([key]) => results.class_names.includes(key)).map(([label, metrics]) => (
-                                        <TableRow key={label}>
+                                    {Object.entries(results.classification_report).filter(([key]) => results.class_names.includes(key) || key.includes('avg')).map(([label, metrics]) => (
+                                        <TableRow key={label} className={label.includes('avg') ? 'font-semibold bg-muted/50' : ''}>
                                             <TableCell>{label}</TableCell>
                                             <TableCell className="text-right font-mono">{(metrics as any).precision.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">{(metrics as any).recall.toFixed(3)}</TableCell>
