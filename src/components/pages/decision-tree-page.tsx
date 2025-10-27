@@ -28,7 +28,7 @@ interface DtResults {
 
 interface FullAnalysisResponse {
     results: DtResults;
-    plot: string;
+    tree_plot: string;
     pruning_plot?: string;
 }
 
@@ -109,7 +109,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
 
     const binaryCategoricalHeaders = useMemo(() => {
         if (!data || !categoricalHeaders) return [];
-        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v !== null && v !== undefined && v !== '')).size === 2);
+        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1 && binaryCategoricalHeaders.length > 0, [data, allHeaders, binaryCategoricalHeaders]);
@@ -125,7 +125,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                  setShowHelpPage(true);
             }
         } else {
-            const defaultTarget = binaryCategoricalHeaders[0];
+            const defaultTarget = binaryCategoricalHeaders.find(h => h.toLowerCase().includes('status') || h.toLowerCase().includes('churn') || h.toLowerCase().includes('approved')) || binaryCategoricalHeaders[0];
             setTarget(defaultTarget);
             setFeatures(allHeaders.filter(h => h !== defaultTarget));
             setAnalysisResult(null);
@@ -193,8 +193,11 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <CardTitle className="font-headline">Decision Tree Classifier Setup</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="w-4 h-4" /></Button>
                     </div>
+                     <CardDescription>
+                        Select your target variable (Y), feature variable(s) (X), and configure the model parameters.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid md:grid-cols-2 gap-4">
@@ -270,7 +273,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                             <CardTitle>Decision Tree Visualization</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
+                             <Image src={analysisResult.tree_plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
                      {analysisResult.pruning_plot && (
@@ -280,7 +283,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                                 <CardDescription>This plot shows how model accuracy on training and test sets changes with the 'alpha' (pruning) parameter. The ideal alpha often maximizes test accuracy while avoiding overfitting.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Image src={`data:image/png;base64,${analysisResult.pruning_plot}`} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
+                                <Image src={analysisResult.pruning_plot} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
