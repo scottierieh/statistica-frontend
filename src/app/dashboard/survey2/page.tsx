@@ -1,12 +1,11 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import Link from "next/link";
-import Survey2Dashboard from "@/components/dashboard/survey2/page";
+import SurveyDashboard from "@/components/survey/survey-dashboard";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 
-export default function SurveyPage() {
+export default function Survey2Page() {
   return (
     <DashboardClientLayout>
       <div className="flex flex-col min-h-screen bg-background">
@@ -28,7 +27,7 @@ export default function SurveyPage() {
           <div className="w-[180px]"/>
         </header>
         <main className="flex-1">
-          <Survey2Dashboard />
+          <SurveyDashboard />
         </main>
       </div>
     </DashboardClientLayout>
