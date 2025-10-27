@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, CheckCircle, XCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -322,4 +323,3 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         </div>
     );
 }
-
