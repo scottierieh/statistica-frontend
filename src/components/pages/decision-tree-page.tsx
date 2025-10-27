@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, HelpCircle, MoveRight, Settings, BarChart, Users } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -186,6 +185,22 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     
     const results = analysisResult?.results;
 
+    const performanceMetrics = useMemo(() => {
+        if (!results || !results.confusion_matrix || results.confusion_matrix.length !== 2) return null;
+        const [tn, fp, fn, tp] = results.confusion_matrix.flat();
+        const sensitivity = tp / (tp + fn);
+        const specificity = tn / (tn + fp);
+        const ppv = tp / (tp + fp);
+        const npv = tn / (tn + fn);
+
+        let interpretation = `The model achieved an accuracy of <strong>${(results.accuracy * 100).toFixed(1)}%</strong>. `;
+        interpretation += `It correctly identifies <strong>${(sensitivity * 100).toFixed(1)}%</strong> of positive cases (Sensitivity/Recall) and <strong>${(specificity * 100).toFixed(1)}%</strong> of negative cases (Specificity).`;
+        
+        return {
+            sensitivity, specificity, ppv, npv, interpretation
+        }
+    }, [results]);
+
     return (
         <div className="space-y-4">
             <Card>
@@ -239,60 +254,66 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                         <CardHeader>
                             <CardTitle className="font-headline">Model Performance</CardTitle>
                         </CardHeader>
-                         <CardContent className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="font-semibold">Accuracy</h3>
-                                    <p className="text-3xl font-bold">{(results.accuracy * 100).toFixed(2)}%</p>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold">Confusion Matrix</h3>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead></TableHead>
-                                                {results.class_names.map(name => <TableHead key={name} className="text-center">Predicted {name}</TableHead>)}
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {results.class_names.map((name, i) => (
-                                                <TableRow key={name}>
-                                                    <TableHead>Actual {name}</TableHead>
-                                                    {results.confusion_matrix[i].map((val, j) => (
-                                                        <TableCell key={j} className="text-center font-mono">{val}</TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                         <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Accuracy</p><p className="text-3xl font-bold">{(results.accuracy * 100).toFixed(1)}%</p></div>
+                                {performanceMetrics && <>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Sensitivity</p><p className="text-3xl font-bold">{(performanceMetrics.sensitivity * 100).toFixed(1)}%</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Specificity</p><p className="text-3xl font-bold">{(performanceMetrics.specificity * 100).toFixed(1)}%</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Precision (PPV)</p><p className="text-3xl font-bold">{(performanceMetrics.ppv * 100).toFixed(1)}%</p></div>
+                                </>}
                             </div>
-                            <Alert>
-                                <AlertTitle className="font-semibold">Interpretation</AlertTitle>
-                                <AlertDescription>
-                                    <div className="whitespace-pre-wrap font-sans text-sm" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }}></div>
-                                </AlertDescription>
-                            </Alert>
+                             {performanceMetrics?.interpretation && (
+                                <Alert className="mt-4">
+                                  <AlertTitle>Summary</AlertTitle>
+                                  <AlertDescription dangerouslySetInnerHTML={{ __html: performanceMetrics.interpretation }} />
+                                </Alert>
+                            )}
                         </CardContent>
                     </Card>
-                    {analysisResult.plot && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle>Confusion Matrix</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead></TableHead>
+                                            {results.class_names.map(name => <TableHead key={name} className="text-center">Predicted {name}</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.class_names.map((name, i) => (
+                                            <TableRow key={name}>
+                                                <TableHead>Actual {name}</TableHead>
+                                                {results.confusion_matrix[i].map((val, j) => (
+                                                    <TableCell key={j} className="text-center font-mono">{val}</TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                         {analysisResult.pruning_plot && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Accuracy vs. Pruning (Alpha)</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.pruning_plot} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                     {analysisResult.plot && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Decision Tree Visualization</CardTitle>
+                                <CardDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/```[\s\S]*?```/g, '') }} />
                             </CardHeader>
                             <CardContent>
                                 <Image src={analysisResult.plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
-                     {analysisResult.pruning_plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Accuracy vs. Alpha for Pruning</CardTitle>
-                                <CardDescription>This plot shows how model accuracy on training and test sets changes with the 'alpha' (pruning) parameter. The ideal alpha often maximizes test accuracy while avoiding overfitting.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.pruning_plot} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
@@ -301,3 +322,4 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         </div>
     );
 }
+
