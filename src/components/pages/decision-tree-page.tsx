@@ -41,7 +41,7 @@ interface DecisionTreePageProps {
 }
 
 const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: ExampleDataSet) => void, onBackToSetup: () => void }) => {
-    const loanApprovalExample = exampleDatasets.find(ex => ex.id === 'loan-approval');
+    const survivalExample = exampleDatasets.find(ex => ex.id === 'survival-churn');
     
     return (
         <div className="flex flex-1 items-center justify-center p-4">
@@ -85,9 +85,9 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                     {loanApprovalExample && (
-                         <Button variant="outline" onClick={() => onLoadExample(loanApprovalExample)}>
-                            <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Loan Data
+                     {survivalExample && (
+                         <Button variant="outline" onClick={() => onLoadExample(survivalExample)}>
+                            <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Churn Data
                         </Button>
                      )}
                      <Button onClick={onBackToSetup}>Back to Setup</Button>
@@ -96,7 +96,6 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
         </div>
     );
 };
-
 
 export default function DecisionTreePage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: DecisionTreePageProps) {
     const { toast } = useToast();
@@ -108,27 +107,31 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     const [isLoading, setIsLoading] = useState(false);
     const [showHelpPage, setShowHelpPage] = useState(data.length === 0);
 
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
+    const binaryCategoricalHeaders = useMemo(() => {
+        if (!data || !categoricalHeaders) return [];
+        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v !== null && v !== undefined && v !== '')).size === 2);
+    }, [data, categoricalHeaders]);
+
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1 && binaryCategoricalHeaders.length > 0, [data, allHeaders, binaryCategoricalHeaders]);
     
-    const loanApprovalExample = exampleDatasets.find(ex => ex.id === 'loan-approval');
+    const survivalExample = exampleDatasets.find(ex => ex.id === 'survival-churn');
 
     useEffect(() => {
         if (!canRun) {
-            if (loanApprovalExample) {
-                onLoadExample(loanApprovalExample);
-                setTarget('status');
-                setFeatures(['age', 'income', 'loan_amount', 'credit_score']);
+            if (survivalExample) {
+                onLoadExample(survivalExample);
                 setShowHelpPage(false);
             } else {
                  setShowHelpPage(true);
             }
         } else {
-            const defaultTarget = categoricalHeaders[0];
+            const defaultTarget = binaryCategoricalHeaders[0];
             setTarget(defaultTarget);
             setFeatures(allHeaders.filter(h => h !== defaultTarget));
             setAnalysisResult(null);
+            setShowHelpPage(false);
         }
-    }, [data, allHeaders, numericHeaders, categoricalHeaders, canRun, loanApprovalExample, onLoadExample]);
+    }, [data, allHeaders, numericHeaders, binaryCategoricalHeaders, canRun, survivalExample, onLoadExample]);
 
 
     const handleFeatureChange = (header: string, checked: boolean) => {
@@ -196,10 +199,10 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                 <CardContent className="space-y-4">
                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                            <Label>Target Variable</Label>
+                            <Label>Target Variable (Binary)</Label>
                             <Select value={target} onValueChange={setTarget}>
                                 <SelectTrigger><SelectValue placeholder="Select target"/></SelectTrigger>
-                                <SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                <SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
@@ -267,7 +270,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                             <CardTitle>Decision Tree Visualization</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Image src={analysisResult.plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
+                             <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
                      {analysisResult.pruning_plot && (
@@ -277,7 +280,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                                 <CardDescription>This plot shows how model accuracy on training and test sets changes with the 'alpha' (pruning) parameter. The ideal alpha often maximizes test accuracy while avoiding overfitting.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.pruning_plot} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
+                                <Image src={`data:image/png;base64,${analysisResult.pruning_plot}`} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
