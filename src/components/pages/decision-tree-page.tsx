@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, CheckCircle, XCircle, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, CheckCircle, XCircle, AlertTriangle, TrendingUp, BookOpen } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -311,7 +311,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                         <Card>
                             <CardHeader>
                                 <CardTitle>Decision Tree Visualization</CardTitle>
-                                <CardDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/```[\s\S]*?```/g, '') }} />
+                                <CardDescription dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/```[\s\S]*?```/g, '') || '' }} />
                             </CardHeader>
                             <CardContent>
                                 <Image src={analysisResult.plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
