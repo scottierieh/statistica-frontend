@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, Settings, BarChart, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, HelpCircle, MoveRight, Settings, BarChart, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -16,11 +16,13 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface DtResults {
     accuracy: number;
     confusion_matrix: number[][];
     class_names: string[];
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -229,7 +231,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full"/></CardContent></Card>}
 
             {analysisResult && results && (
                 <div className="space-y-4">
@@ -237,32 +239,40 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                         <CardHeader>
                             <CardTitle className="font-headline">Model Performance</CardTitle>
                         </CardHeader>
-                         <CardContent className="grid md:grid-cols-2 gap-4">
-                             <div>
-                                <h3 className="font-semibold">Accuracy</h3>
-                                <p className="text-3xl font-bold">{(results.accuracy * 100).toFixed(2)}%</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold">Confusion Matrix</h3>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead></TableHead>
-                                            {results.class_names.map(name => <TableHead key={name} className="text-center">Predicted {name}</TableHead>)}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {results.class_names.map((name, i) => (
-                                            <TableRow key={name}>
-                                                <TableHead>Actual {name}</TableHead>
-                                                {results.confusion_matrix[i].map((val, j) => (
-                                                    <TableCell key={j} className="text-center font-mono">{val}</TableCell>
-                                                ))}
+                         <CardContent className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="font-semibold">Accuracy</h3>
+                                    <p className="text-3xl font-bold">{(results.accuracy * 100).toFixed(2)}%</p>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold">Confusion Matrix</h3>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead></TableHead>
+                                                {results.class_names.map(name => <TableHead key={name} className="text-center">Predicted {name}</TableHead>)}
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {results.class_names.map((name, i) => (
+                                                <TableRow key={name}>
+                                                    <TableHead>Actual {name}</TableHead>
+                                                    {results.confusion_matrix[i].map((val, j) => (
+                                                        <TableCell key={j} className="text-center font-mono">{val}</TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </div>
+                            <Alert>
+                                <AlertTitle className="font-semibold">Interpretation</AlertTitle>
+                                <AlertDescription>
+                                    <div className="whitespace-pre-wrap font-sans text-sm" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }}></div>
+                                </AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
                     {analysisResult.plot && (

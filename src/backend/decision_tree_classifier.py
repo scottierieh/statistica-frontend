@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.tree import DecisionTreeClassifier, plot_tree, export_text
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
@@ -24,6 +24,29 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
+
+def _generate_interpretation(accuracy, cm, class_names, clf, feature_names):
+    interpretation = f"The decision tree model achieved an overall accuracy of {accuracy:.2%}, correctly classifying {int(np.trace(cm))} out of {int(np.sum(cm))} instances in the test set.\n\n"
+
+    # Confusion Matrix Interpretation
+    if len(class_names) == 2:
+        tn, fp, fn, tp = cm.flatten()
+        interpretation += f"Specifically, the model correctly identified {tp} true positives and {tn} true negatives. "
+        interpretation += f"However, it misclassified {fp} negative instances as positive (Type I error) and {fn} positive instances as negative (Type II error).\n\n"
+    
+    # Feature Importance / Rules
+    try:
+        rules = export_text(clf, feature_names=feature_names, max_depth=3)
+        interpretation += "The key decision rules learned by the model are:\n"
+        interpretation += f"```\n{rules}\n```\n"
+        top_feature = clf.tree_.feature[0]
+        if top_feature != -2:
+             interpretation += f"The most important feature for the initial split was '{feature_names[top_feature]}'."
+    except Exception as e:
+        interpretation += "Could not extract detailed decision rules from the model."
+
+    return interpretation.strip()
+
 
 def main():
     try:
@@ -64,7 +87,9 @@ def main():
         # --- Evaluation ---
         y_pred = clf.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
-        cm = confusion_matrix(y_test, y_pred).tolist()
+        cm = confusion_matrix(y_test, y_pred)
+        
+        interpretation = _generate_interpretation(accuracy, cm, class_names, clf, X_clean.columns.tolist())
         
         # --- Decision Tree Plotting ---
         plt.figure(figsize=(20, 15))
@@ -92,7 +117,6 @@ def main():
             pruned_clf.fit(X_train, y_train)
             clfs.append(pruned_clf)
         
-        # We remove the last classifier because it's a trivial tree with only one node.
         clfs = clfs[:-1]
         ccp_alphas = ccp_alphas[:-1]
 
@@ -117,10 +141,11 @@ def main():
         response = {
             'results': {
                 'accuracy': accuracy,
-                'confusion_matrix': cm,
+                'confusion_matrix': cm.tolist(),
                 'class_names': class_names,
+                'interpretation': interpretation
             },
-            'tree_plot': f"data:image/png;base64,{tree_plot_image}",
+            'plot': f"data:image/png;base64,{tree_plot_image}",
             'pruning_plot': f"data:image/png;base64,{pruning_plot_image}"
         }
         
@@ -132,4 +157,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
