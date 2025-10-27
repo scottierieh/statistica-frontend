@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, Settings, BarChart, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, Settings, BarChart, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -16,6 +16,9 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
 
 interface DtResults {
     accuracy: number;
@@ -27,6 +30,14 @@ interface FullAnalysisResponse {
     results: DtResults;
     plot: string;
     pruning_plot?: string;
+}
+
+interface DecisionTreePageProps {
+    data: DataSet;
+    allHeaders: string[];
+    numericHeaders: string[];
+    categoricalHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
 }
 
 const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: ExampleDataSet) => void, onBackToSetup: () => void }) => {
@@ -57,7 +68,7 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                         <div className="space-y-4">
                             <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Target Variable:</strong> Select the categorical variable you want to predict. It can have two or more classes (e.g., 'Approved'/'Denied').</li>
+                                <li><strong>Target Variable:</strong> Select the categorical variable you want to predict (e.g., 'Approved'/'Denied').</li>
                                 <li><strong>Feature Variables:</strong> Select the variables (numeric or categorical) that the model will use to make predictions.</li>
                                 <li><strong>Random State:</strong> A fixed number to ensure the result is reproducible. The same settings will produce the same tree every time.</li>
                             </ul>
@@ -87,14 +98,6 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
 };
 
 
-interface DecisionTreePageProps {
-    data: DataSet;
-    allHeaders: string[];
-    numericHeaders: string[];
-    categoricalHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
-}
-
 export default function DecisionTreePage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: DecisionTreePageProps) {
     const { toast } = useToast();
     const [target, setTarget] = useState<string | undefined>();
@@ -105,7 +108,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     const [isLoading, setIsLoading] = useState(false);
     const [showHelpPage, setShowHelpPage] = useState(data.length === 0);
 
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2 && categoricalHeaders.length >= 1, [data, allHeaders, categoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
     
     const loanApprovalExample = exampleDatasets.find(ex => ex.id === 'loan-approval');
 
@@ -171,7 +174,9 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         }
     }, [data, target, features, randomState, toast]);
     
-    const availableFeatures = useMemo(() => allHeaders.filter(h => h !== target), [allHeaders, target]);
+    const availableFeatures = useMemo(() => {
+        return allHeaders.filter(h => h !== target);
+    }, [allHeaders, target]);
     
     if (showHelpPage) {
         return <HelpPage onLoadExample={onLoadExample} onBackToSetup={() => setShowHelpPage(false)} />
@@ -200,7 +205,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                         <div>
                             <Label>Features</Label>
                             <ScrollArea className="h-24 border rounded-md p-2">
-                               {availableFeatures.map(h => (
+                                {availableFeatures.map(h => (
                                     <div key={h} className="flex items-center space-x-2">
                                         <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                         <Label htmlFor={`feat-${h}`}>{h}</Label>
@@ -281,4 +286,3 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         </div>
     );
 }
-

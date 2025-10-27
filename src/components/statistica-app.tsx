@@ -161,6 +161,8 @@ import RidgeRegressionPage from './pages/ridge-regression-page';
 import ClassifierComparisonPage from './pages/classifier-comparison-page';
 import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
 import OutlierDetectionPage from './pages/outlier-detection-page';
+import DecisionTreePage from './pages/decision-tree-page';
+
 
 const analysisCategories = [
     {
@@ -270,6 +272,7 @@ const analysisCategories = [
           { id: 'glm', label: 'Generalized Linear Model (GLM)', icon: Scaling, component: GlmPage },
           { id: 'discriminant', label: 'Discriminant Analysis', icon: Users, component: DiscriminantPage },
           { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
+          { id: 'decision-tree', label: 'Decision Tree', icon: GitBranch, component: DecisionTreePage },
           { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
           { id: 'random-forest', label: 'Random Forest', icon: GitBranch, component: RandomForestPage },
           { id: 'classifier-comparison', label: 'Classifier Comparison', icon: Users, component: ClassifierComparisonPage },
