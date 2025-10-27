@@ -294,3 +294,4 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         </div>
     );
 }
+
