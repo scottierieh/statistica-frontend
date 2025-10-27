@@ -16,9 +16,6 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-
 
 interface DtResults {
     accuracy: number;
@@ -28,7 +25,7 @@ interface DtResults {
 
 interface FullAnalysisResponse {
     results: DtResults;
-    tree_plot: string;
+    plot: string;
     pruning_plot?: string;
 }
 
@@ -268,13 +265,13 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                             </div>
                         </CardContent>
                     </Card>
-                    {analysisResult.tree_plot && (
+                    {analysisResult.plot && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Decision Tree Visualization</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.tree_plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
+                                <Image src={analysisResult.plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
@@ -294,4 +291,3 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         </div>
     );
 }
-
