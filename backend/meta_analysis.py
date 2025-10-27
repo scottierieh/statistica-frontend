@@ -33,6 +33,7 @@ def perform_meta_analysis(studies):
     total_weight_fixed = sum(s['weight'] for s in studies)
     weighted_effect_sum_fixed = sum(s['effectSize'] * s['weight'] for s in studies)
     
+    pooled_effect_fixed = 0
     if total_weight_fixed > 0:
         pooled_effect_fixed = weighted_effect_sum_fixed / total_weight_fixed
         se_fixed = np.sqrt(1 / total_weight_fixed)
@@ -98,9 +99,12 @@ def perform_meta_analysis(studies):
     sensitivity = []
     for i, study in enumerate(studies):
         remaining_studies = studies[:i] + studies[i+1:]
-        if len(remaining_studies) > 0:
-            rem_res = perform_meta_analysis(remaining_studies)
-            sensitivity.append({'excluded_study': study['name'], 'fixed_effect': rem_res['fixedEffect']['pooledEffect'], 'random_effect': rem_res['randomEffect']['pooledEffect']})
+        if len(remaining_studies) > 1:
+            try:
+                rem_res = perform_meta_analysis(remaining_studies)
+                sensitivity.append({'excluded_study': study['name'], 'fixed_effect': rem_res['fixedEffect']['pooledEffect'], 'random_effect': rem_res['randomEffect']['pooledEffect']})
+            except:
+                pass # Ignore if sub-analysis fails
     results['sensitivity'] = sensitivity
 
     return results

@@ -16,6 +16,7 @@ import { exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface StudyInput {
   id: number;
@@ -347,3 +348,4 @@ export default function MetaAnalysisPage({ onLoadExample }: { onLoadExample: (ex
         </div>
     );
 }
+

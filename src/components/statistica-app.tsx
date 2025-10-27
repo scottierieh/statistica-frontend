@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -196,6 +195,7 @@ const analysisCategories = [
           { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
           { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
           { id: 'outlier-detection', label: 'Outlier Detection', icon: AlertTriangle, component: OutlierDetectionPage },
+          { id: 'durbin-watson', label: 'Durbin-Watson Test', icon: TrendingUp, component: RegressionPage }
       ],
   },
   
@@ -273,6 +273,7 @@ const analysisCategories = [
           { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
           { id: 'random-forest', label: 'Random Forest', icon: GitBranch, component: RandomForestPage },
           { id: 'classifier-comparison', label: 'Classifier Comparison', icon: Users, component: ClassifierComparisonPage },
+          { id: 'meta-analysis', label: 'Meta-Analysis', icon: Layers, component: MetaAnalysisPage },
       ]
     },
      {
@@ -393,7 +394,6 @@ const analysisCategories = [
             name: 'Endogeneity Correction',
             items: [
                { id: 'instrumental-variable-regression', label: 'Instrumental Variables', icon: Link2, component: InstrumentalVariableRegressionPage },
-               { id: 'two-stage-least-squares', label: 'Two-Stage Least Squares', icon: Repeat, component: TwoStageLeastSquaresPage },
             ]
           },
           {
