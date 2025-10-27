@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, AlertTriangle, CheckCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -15,6 +15,7 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface RandomForestResults {
     accuracy: number;
@@ -128,7 +129,12 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
     const [view, setView] = useState('intro');
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
-    const targetOptions = useMemo(() => categoricalHeaders, [categoricalHeaders]);
+    
+    const binaryCategoricalHeaders = useMemo(() => {
+        return categoricalHeaders.filter(h => new Set(data.map(row => row[h])).size === 2);
+    }, [data, categoricalHeaders]);
+    
+    const targetOptions = useMemo(() => binaryCategoricalHeaders, [binaryCategoricalHeaders]);
     const featureOptions = useMemo(() => allHeaders.filter(h => h !== target), [allHeaders, target]);
 
     useEffect(() => {
@@ -136,7 +142,7 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
         setTarget(defaultTarget);
         setFeatures(allHeaders.filter(h => h !== defaultTarget));
         setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
+        setView(canRun && targetOptions.length > 0 ? 'main' : 'intro');
     }, [data, allHeaders, targetOptions, canRun]);
     
     const handleFeatureChange = (header: string, checked: boolean) => {
@@ -184,11 +190,54 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
         }
     }, [data, target, features, nEstimators, maxDepth, minSamplesSplit, minSamplesLeaf, toast]);
     
-    if (view === 'intro' || !canRun) {
+    if (view === 'intro' || !canRun || targetOptions.length === 0) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
+
+    const renderClassificationMetrics = () => {
+        if (!results) return null;
+        const report = results.classification_report;
+        const labels = Object.keys(report).filter(k => k !== 'accuracy' && k !== 'macro avg' && k !== 'weighted avg');
+        return (
+            <div className="grid grid-cols-2 gap-4">
+                 <Card>
+                    <CardHeader><CardTitle>Classification Report</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Class</TableHead>
+                                    <TableHead className='text-right'>Precision</TableHead>
+                                    <TableHead className='text-right'>Recall</TableHead>
+                                    <TableHead className='text-right'>F1-Score</TableHead>
+                                    <TableHead className='text-right'>Support</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {labels.map(label => (
+                                    <TableRow key={label}>
+                                        <TableCell>{label}</TableCell>
+                                        <TableCell className='text-right font-mono'>{report[label].precision.toFixed(3)}</TableCell>
+                                        <TableCell className='text-right font-mono'>{report[label].recall.toFixed(3)}</TableCell>
+                                        <TableCell className='text-right font-mono'>{report[label]['f1-score'].toFixed(3)}</TableCell>
+                                        <TableCell className='text-right font-mono'>{report[label].support}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle>Overall Accuracy</CardTitle></CardHeader>
+                    <CardContent className="text-center">
+                        <p className="text-4xl font-bold">{(results.accuracy * 100).toFixed(2)}%</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    };
 
     return (
         <div className="space-y-4">
@@ -202,7 +251,7 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
                 <CardContent className="space-y-4">
                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                            <Label>Target Variable</Label>
+                            <Label>Target Variable (Binary)</Label>
                             <Select value={target} onValueChange={setTarget}>
                                 <SelectTrigger><SelectValue placeholder="Select target" /></SelectTrigger>
                                 <SelectContent>{targetOptions.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
@@ -242,58 +291,17 @@ export default function RandomForestPage({ data, allHeaders, numericHeaders, cat
             {results && analysisResult && (
                 <div className="space-y-4">
                     <Card>
-                        <CardHeader><CardTitle>Model Performance</CardTitle></CardHeader>
+                        <CardHeader><CardTitle className="font-headline">Model Performance</CardTitle></CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-3 gap-4 text-center">
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <p className="text-sm text-muted-foreground">Accuracy</p>
-                                    <p className="text-3xl font-bold">{(results.accuracy * 100).toFixed(2)}%</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Baseline (NIR): {(results.nir * 100).toFixed(2)}%
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <p className="text-sm text-muted-foreground">AUC</p>
-                                    <p className="text-3xl font-bold">{results.roc_auc_data?.auc?.toFixed(4) || 'N/A'}</p>
-                                </div>
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <p className="text-sm text-muted-foreground">F1-Score (Weighted Avg)</p>
-                                    <p className="text-3xl font-bold">{results.classification_report['weighted avg']['f1-score'].toFixed(4)}</p>
-                                </div>
-                            </div>
+                            {renderClassificationMetrics()}
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader><CardTitle>Analysis Plots</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Analysis Plots</CardTitle>
+                        </CardHeader>
                         <CardContent>
                             <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Random Forest Plots" width={1600} height={1200} className="w-full rounded-md border"/>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Classification Report</CardTitle></CardHeader>
-                        <CardContent>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Class</TableHead>
-                                        <TableHead className="text-right">Precision</TableHead>
-                                        <TableHead className="text-right">Recall</TableHead>
-                                        <TableHead className="text-right">F1-Score</TableHead>
-                                        <TableHead className="text-right">Support</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.classification_report).filter(([key]) => results.class_names.includes(key) || key.includes('avg')).map(([label, metrics]) => (
-                                        <TableRow key={label} className={label.includes('avg') ? 'font-semibold bg-muted/50' : ''}>
-                                            <TableCell>{label}</TableCell>
-                                            <TableCell className="text-right font-mono">{(metrics as any).precision.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{(metrics as any).recall.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{(metrics as any)['f1-score'].toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{(metrics as any).support}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
                         </CardContent>
                     </Card>
                 </div>
