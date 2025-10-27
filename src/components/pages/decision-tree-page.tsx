@@ -193,7 +193,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <CardTitle className="font-headline">Decision Tree Classifier Setup</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
                     </div>
                      <CardDescription>
                         Select your target variable (Y), feature variable(s) (X), and configure the model parameters.
@@ -268,14 +268,16 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Decision Tree Visualization</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <Image src={analysisResult.tree_plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
-                        </CardContent>
-                    </Card>
+                    {analysisResult.tree_plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Decision Tree Visualization</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.tree_plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
                      {analysisResult.pruning_plot && (
                         <Card>
                             <CardHeader>
