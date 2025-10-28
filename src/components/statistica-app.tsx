@@ -58,8 +58,6 @@ import {
   Link2,
   ShieldCheck,
   FileSearch,
-  CheckCircle2,
-  AlertTriangle,
   CheckSquare,
   Clock,
   Filter,
@@ -94,7 +92,6 @@ import AncovaPage from './pages/ancova-page';
 import ManovaPage from './pages/manova-page';
 import ReliabilityPage from './pages/reliability-page';
 import RegressionPage from './pages/regression-page';
-import DurbinWatsonTestPage from './pages/durbin-watson-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import GlmPage from './pages/glm-page';
 import EfaPage from './pages/efa-page';
@@ -200,7 +197,6 @@ const analysisCategories = [
           { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
           { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
           { id: 'outlier-detection', label: 'Outlier Detection', icon: AlertTriangle, component: OutlierDetectionPage },
-          { id: 'durbin-watson', label: 'Durbin-Watson Test', icon: TrendingUp, component: DurbinWatsonTestPage }
       ],
   },
   
