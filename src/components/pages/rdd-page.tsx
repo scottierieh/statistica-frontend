@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight, Settings, FileSearch, CheckCircle2, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight, Settings, FileSearch, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -24,6 +24,7 @@ interface RddResults {
     ci_upper: number;
     n_effective: number;
     bandwidth: number;
+    interpretation: string;
     mccrary_test: {
         statistic: number;
         p_value: number;
@@ -108,9 +109,9 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
+    
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-
+    
     useEffect(() => {
         if (canRun) {
             setRunningVar(numericHeaders[0]);
@@ -182,7 +183,7 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                     <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">Regression Discontinuity Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
@@ -195,7 +196,7 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !runningVar || !outcomeVar}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run RDD</>}
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run RDD</>}
                     </Button>
                 </CardFooter>
             </Card>
@@ -206,18 +207,13 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>RDD Treatment Effect Estimate</CardTitle>
+                            <CardTitle className="font-headline">Analysis Summary</CardTitle>
                         </CardHeader>
                         <CardContent>
                              <Alert variant={results.p_value < 0.05 ? 'default' : 'secondary'}>
                                 {results.p_value < 0.05 ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                                <AlertTitle>
-                                    {results.p_value < 0.05 ? "Statistically Significant Effect" : "No Significant Effect"}
-                                </AlertTitle>
-                                <AlertDescription>
-                                    The estimated treatment effect at the cutoff is <strong>{results.effect.toFixed(4)}</strong>. 
-                                    This result is statistically {results.p_value < 0.05 ? 'significant' : 'not significant'} (p = {results.p_value.toFixed(4)}).
-                                </AlertDescription>
+                                <AlertTitle>{results.p_value < 0.05 ? "Statistically Significant Effect" : "No Significant Effect"}</AlertTitle>
+                                <AlertDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                             </Alert>
                         </CardContent>
                     </Card>
@@ -231,13 +227,13 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
                             <CardContent>
                                 <Table>
                                     <TableBody>
-                                        <TableRow><TableCell>Effect</TableCell><TableCell className="font-mono text-right">{results.effect.toFixed(4)}</TableCell></TableRow>
+                                        <TableRow><TableCell>Treatment Effect</TableCell><TableCell className="font-mono text-right">{results.effect.toFixed(4)}</TableCell></TableRow>
                                         <TableRow><TableCell>Std. Error</TableCell><TableCell className="font-mono text-right">{results.se.toFixed(4)}</TableCell></TableRow>
                                         <TableRow><TableCell>T-statistic</TableCell><TableCell className="font-mono text-right">{results.t_statistic.toFixed(3)}</TableCell></TableRow>
                                         <TableRow><TableCell>P-value</TableCell><TableCell className="font-mono text-right">{results.p_value.toFixed(4)}</TableCell></TableRow>
                                         <TableRow><TableCell>95% CI</TableCell><TableCell className="font-mono text-right">[{results.ci_lower.toFixed(3)}, {results.ci_upper.toFixed(3)}]</TableCell></TableRow>
                                         <TableRow><TableCell>Bandwidth</TableCell><TableCell className="font-mono text-right">{results.bandwidth.toFixed(3)}</TableCell></TableRow>
-                                        <TableRow><TableCell>Observations</TableCell><TableCell className="font-mono text-right">{results.n_effective}</TableCell></TableRow>
+                                        <TableRow><TableCell>Observations in BW</TableCell><TableCell className="font-mono text-right">{results.n_effective}</TableCell></TableRow>
                                     </TableBody>
                                 </Table>
                             </CardContent>
@@ -261,4 +257,3 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
     );
 }
 
-    

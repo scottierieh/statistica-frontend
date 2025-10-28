@@ -6,8 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import warnings
 import io
 import base64
@@ -28,6 +28,25 @@ def _to_native_type(obj):
     if isinstance(obj, np.bool_): return bool(obj)
     return obj
 
+def generate_interpretation(results):
+    effect = results.get('effect')
+    p_value = results.get('p_value')
+    ci = results.get('ci_lower'), results.get('ci_upper')
+
+    if effect is None or p_value is None:
+        return "Analysis results are incomplete. Cannot generate interpretation."
+
+    sig_text = "statistically significant" if p_value < 0.05 else "not statistically significant"
+    direction = "increase" if effect > 0 else "decrease"
+    
+    interp = (
+        f"The analysis estimates a local average treatment effect of **{effect:.4f}**. This effect is **{sig_text}** (p = {p_value:.4f}).\n"
+        f"This means that at the cutoff point, the treatment is associated with an estimated {direction} of {abs(effect):.4f} in the outcome variable.\n"
+        f"The 95% confidence interval for this effect is [{ci[0]:.4f}, {ci[1]:.4f}]. Since this interval does {'not' if p_value < 0.05 else ''} contain zero, the result is considered significant."
+    )
+    return interp
+
+
 class RegressionDiscontinuity:
     def __init__(self, cutoff, bandwidth=None, kernel='triangular', polynomial=1):
         self.cutoff = cutoff
@@ -37,71 +56,48 @@ class RegressionDiscontinuity:
         self.results = {}
         
     def _calculate_optimal_bandwidth(self, X, Y):
-        # Placeholder for a more complex optimal bandwidth calculation like Imbens-Kalyanaraman
-        # Using a rule of thumb for now.
         n = len(X)
         iqr_X = np.subtract(*np.percentile(X, [75, 25]))
         h = 1.84 * iqr_X * (n ** -0.2)
         return h
 
-    def _kernel_weight(self, x, h):
-        u = x / h
+    def _kernel_weight(self, x_centered, h):
+        u = x_centered / h
         if self.kernel == 'uniform': return (np.abs(u) <= 1).astype(float)
         elif self.kernel == 'triangular': return np.maximum(0, 1 - np.abs(u))
         elif self.kernel == 'epanechnikov': return np.maximum(0, 0.75 * (1 - u**2))
         else: raise ValueError(f"Unknown kernel: {self.kernel}")
     
-    def _run_regression(self, X_reg, y_reg, weights):
-        model = LinearRegression()
-        model.fit(X_reg, y_reg, sample_weight=weights)
-        
-        y_pred = model.predict(X_reg)
-        residuals = y_reg - y_pred
-        n, k = X_reg.shape
-
-        # Robust Standard Errors (HC1)
-        try:
-            X_weighted = X_reg * np.sqrt(weights).reshape(-1, 1)
-            bread = np.linalg.inv(X_weighted.T @ X_weighted)
-            meat = np.zeros((k, k))
-            for i in range(n):
-                score = X_weighted[i:i+1].T * residuals[i]
-                meat += score @ score.T
-            vcov = bread @ meat @ bread
-            se = np.sqrt(np.diag(vcov) * (n / (n - k)))
-        except np.linalg.LinAlgError:
-            se = np.full(k, np.nan)
-        
-        t_stats = model.coef_ / se if np.all(se > 0) else np.full(k, np.nan)
-        p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), n - k)) if n > k else np.full(k, np.nan)
-        
-        return model.coef_, se, t_stats, p_values
-
     def estimate_sharp_rdd(self, X, Y):
         if self.bandwidth is None:
             self.bandwidth = self._calculate_optimal_bandwidth(X, Y)
 
-        in_bw = np.abs(X - self.cutoff) <= self.bandwidth
-        X_bw, Y_bw = X[in_bw], Y[in_bw]
+        df = pd.DataFrame({'X': X, 'Y': Y})
+        df_bw = df[np.abs(df['X'] - self.cutoff) <= self.bandwidth].copy()
         
-        T = (X_bw >= self.cutoff).astype(int)
-        X_centered = X_bw - self.cutoff
-        weights = self._kernel_weight(X_centered, self.bandwidth)
+        df_bw['T'] = (df_bw['X'] >= self.cutoff).astype(int)
+        df_bw['X_centered'] = df_bw['X'] - self.cutoff
+        weights = self._kernel_weight(df_bw['X_centered'], self.bandwidth)
         
-        poly = PolynomialFeatures(self.polynomial, include_bias=False)
-        X_poly = poly.fit_transform(X_centered.reshape(-1, 1))
-
-        X_reg = np.column_stack([T] + [X_poly[:, i] for i in range(X_poly.shape[1])] + [X_poly[:, i] * T for i in range(X_poly.shape[1])])
-        
-        coefs, ses, t_stats, p_vals = self._run_regression(X_reg, Y_bw, weights)
+        formula = 'Y ~ T'
+        for i in range(1, self.polynomial + 1):
+            df_bw[f'X_centered_p{i}'] = df_bw['X_centered'] ** i
+            formula += f' + X_centered_p{i} + T:X_centered_p{i}'
+            
+        model = smf.wls(formula, data=df_bw, weights=weights).fit(cov_type='HC1') # Using robust standard errors
 
         self.results = {
-            'effect': coefs[0], 'se': ses[0], 't_statistic': t_stats[0], 'p_value': p_vals[0],
-            'ci_lower': coefs[0] - 1.96 * ses[0], 'ci_upper': coefs[0] + 1.96 * ses[0],
-            'n_effective': int(np.sum(in_bw)), 'bandwidth': self.bandwidth,
-            'coefficients': { f'param_{i}': v for i, v in enumerate(coefs) },
-            'X_bw': X_bw, 'Y_bw': Y_bw, 'T_bw': T,
+            'effect': model.params.get('T', 0),
+            'se': model.bse.get('T', 0),
+            't_statistic': model.tvalues.get('T', 0),
+            'p_value': model.pvalues.get('T', 0),
+            'ci_lower': model.conf_int().loc['T'][0],
+            'ci_upper': model.conf_int().loc['T'][1],
+            'n_effective': int(len(df_bw)), 'bandwidth': self.bandwidth,
+            'coefficients': {k: v for k, v in model.params.to_dict().items()},
+            'model_summary': str(model.summary())
         }
+        self.results['interpretation'] = generate_interpretation(self.results)
         return self.results
 
     def mccrary_test(self, X):
@@ -124,9 +120,26 @@ class RegressionDiscontinuity:
         bin_width = (X.max() - X.min()) / n_bins
         bins = np.arange(X.min(), X.max() + bin_width, bin_width)
         bin_centers = (bins[:-1] + bins[1:]) / 2
-        bin_means = [Y[np.logical_and(X >= bins[i], X < bins[i+1])].mean() for i in range(n_bins)]
+        bin_means = [Y[np.logical_and(X >= bins[i], X < bins[i+1])].mean() for i in range(len(bins)-1)]
         
         ax1.scatter(bin_centers, bin_means, alpha=0.8, edgecolors='k', facecolors='none', label='Binned Averages')
+        
+        # Plot fitted lines
+        x_range_left = np.linspace(max(self.cutoff - self.bandwidth, X.min()), self.cutoff, 100)
+        x_range_right = np.linspace(self.cutoff, min(self.cutoff + self.bandwidth, X.max()), 100)
+        
+        params = self.results['coefficients']
+        
+        def predict_y(x_vals, is_treated):
+            y_pred = params.get('Intercept', 0) + params.get('T', 0) * is_treated
+            for i in range(1, self.polynomial + 1):
+                y_pred += params.get(f'X_centered_p{i}', 0) * (x_vals - self.cutoff)**i
+                y_pred += params.get(f'T:X_centered_p{i}', 0) * is_treated * (x_vals - self.cutoff)**i
+            return y_pred
+
+        ax1.plot(x_range_left, predict_y(x_range_left, 0), color='blue', lw=2, label='Fit (Control)')
+        ax1.plot(x_range_right, predict_y(x_range_right, 1), color='orange', lw=2, label='Fit (Treated)')
+
         ax1.axvline(self.cutoff, color='red', linestyle='--', label=f'Cutoff ({self.cutoff})')
         ax1.set_xlabel('Running Variable'); ax1.set_ylabel('Outcome'); ax1.set_title('RDD Plot'); ax1.legend()
         
@@ -168,5 +181,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
