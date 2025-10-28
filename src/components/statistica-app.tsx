@@ -162,7 +162,7 @@ import DecisionTreePage from './pages/decision-tree-page';
 import RobustRegressionPage from './pages/robust-regression-page';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
-
+import VisualizationPage from './pages/visualization-page';
 const analysisCategories = [
     {
       name: 'Guide',
@@ -773,3 +773,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+

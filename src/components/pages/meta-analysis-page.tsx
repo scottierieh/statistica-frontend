@@ -1,13 +1,11 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Sigma, Loader2, BarChart, LineChart, PieChart, Users, Search } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -203,7 +201,8 @@ export default function MetaAnalysisPage({ onLoadExample }: { onLoadExample: (ex
     }, [numStudies, createInputs]);
 
     const handleLoadSample = () => {
-        setNumStudies(6);
+        const sampleSize = 6;
+        setNumStudies(sampleSize);
         setAnalysisSettings({
             title: "Online Learning Meta-Analysis",
             effectSizeType: "cohen_d",
@@ -217,7 +216,15 @@ export default function MetaAnalysisPage({ onLoadExample }: { onLoadExample: (ex
             { id: 4, name: "Jung et al. (2020)", effectSize: '0.52', standardError: '0.14', sampleSize: '110' },
             { id: 5, name: "Song et al. (2021)", effectSize: '0.38', standardError: '0.13', sampleSize: '130' }
         ];
-        setStudyInputs(sampleData);
+        
+        // This direct update ensures the state is correct before moving to the next step
+        const newInputs = Array.from({ length: sampleSize }, (_, i) => sampleData.find(d => d.id === i) || {
+            id: i, name: `Study ${i + 1}`, effectSize: '', standardError: '', sampleSize: ''
+        });
+        
+        setStudyInputs(newInputs);
+        nextMetaStep(2);
+        toast({ title: 'Sample Data Loaded', description: 'Proceed with the analysis.' });
     };
 
     const handleInputChange = (id: number, field: keyof StudyInput, value: string) => {
@@ -348,4 +355,3 @@ export default function MetaAnalysisPage({ onLoadExample }: { onLoadExample: (ex
         </div>
     );
 }
-
