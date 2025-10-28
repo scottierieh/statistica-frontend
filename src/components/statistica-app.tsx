@@ -30,6 +30,8 @@ import {
   HeartPulse,
   Component,
   BrainCircuit,
+  CheckCircle2,
+  AlertTriangle,
   Network,
   Columns,
   Target,

@@ -47,12 +47,10 @@ class AncovaAnalysis:
         for var in [self.dependent_var] + self.covariate_vars:
             self.clean_data[var] = pd.to_numeric(self.clean_data[var], errors='coerce')
         
-        # Ensure factor variable is treated as a category
         self.clean_data[self.factor_var] = self.clean_data[self.factor_var].astype('category')
         
         self.clean_data.dropna(inplace=True)
         
-        # Sanitize column names for formula
         self.dv_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.dependent_var)
         self.fv_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.factor_var)
         self.cv_clean = [re.sub(r'[^A-Za-z0-9_]', '_', c) for c in self.covariate_vars]
@@ -81,7 +79,7 @@ class AncovaAnalysis:
             if eta_sq_p >= 0.01: return "small"
             return "negligible"
 
-        interpretation = f"A One-Way ANCOVA was conducted to examine the effect of '{self.factor_var}' on '{self.dependent_var}', while considering the influence of '{', '.join(self.covariate_vars)}'.\n"
+        interpretation = f"A One-Way ANCOVA was conducted to examine the effect of '{self.factor_var}' on '{self.dependent_var}', while controlling for the influence of '{', '.join(self.covariate_vars)}'.\n"
 
         # Main Effect of Factor
         factor_res = anova_dict.get(self.factor_var)
@@ -111,8 +109,10 @@ class AncovaAnalysis:
                 )
 
         # Interaction Effect
-        interaction_key = f'{self.factor_var} * {self.covariate_vars[0]}'
-        int_res = anova_dict.get(interaction_key) # Simple interaction for now
+        interaction_key = f'{self.factor_var}:{self.covariate_vars[0]}' # Based on formula `~ C(Group):PreTest`
+        interaction_key_clean = f'{self.fv_clean}:{self.cv_clean[0]}'
+        int_res = anova_dict.get(interaction_key_clean)
+        
         if int_res and 'p-value' in int_res and int_res['p-value'] is not None:
             sig_text = "a statistically significant" if int_res['p-value'] < self.alpha else "no statistically significant"
             p_text_int = format_p(int_res['p-value'])
@@ -121,7 +121,7 @@ class AncovaAnalysis:
 
             interpretation += (
                 f"The analysis also revealed {sig_text} interaction effect between '{self.factor_var}' and '{self.covariate_vars[0]}', "
-                f"F({int_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {int_res['F']:.2f}, {p_text_int}, indicating that the effect of '{self.factor_var}' on '{self.dependent_var}' depends on the level of '{self.covariate_vars[0]}'. "
+                f"F({int_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {int_res['F']:.2f}, {p_text_int}, indicating that the effect of '{self.factor_var}' on '{self.dependent_var}' may depend on the level of '{self.covariate_vars[0]}'. "
                 f"The effect size for this interaction was {interp_int} (η²p = {effect_size_int:.3f})."
             )
 
@@ -129,37 +129,34 @@ class AncovaAnalysis:
 
 
     def run_analysis(self):
-        covariates_formula = ' + '.join([f'Q("{c}")' for c in self.cv_clean])
-        # Using Type II SS, interaction is tested separately from main effects
-        formula = f'Q("{self.dv_clean}") ~ C(Q("{self.fv_clean}")) * ({covariates_formula})'
+        covariates_formula = ' + '.join(self.cv_clean)
+        formula = f'`{self.dv_clean}` ~ C(`{self.fv_clean}`) * ({covariates_formula})'
         
         try:
             model = ols(formula, data=self.clean_data).fit()
             anova_table = anova_lm(model, typ=2)
         except Exception as e:
-            # A simpler model if interaction fails
-            formula = f'Q("{self.dv_clean}") ~ C(Q("{self.fv_clean}")) + {covariates_formula}'
+            # Fallback to a simpler model without interaction
+            formula = f'`{self.dv_clean}` ~ C(`{self.fv_clean}`) + {covariates_formula}'
             model = ols(formula, data=self.clean_data).fit()
             anova_table = anova_lm(model, typ=2)
             warnings.warn(f"Could not fit interaction model, proceeding without it. Error: {e}")
 
         # Add partial eta-squared (η²p)
         if 'Residual' in anova_table.index and 'sum_sq' in anova_table.columns:
-             anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+             ss_residual = anova_table.loc['Residual', 'sum_sq']
+             anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + ss_residual)
         else:
              anova_table['η²p'] = np.nan
         
-        # Clean the summary object
         summary_obj = model.summary()
         summary_data = []
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
-            if table_data:
-                 # Clean header of the coefficient table
-                if len(table_data) > 1 and 'coef' in table_data[0]:
-                    for row in table_data[1:]:
-                        if row and row[0]:
-                             row[0] = re.sub(r'Q\("([^"]+)"\)', r'\1', row[0].strip())
+            if table_data and len(table_data) > 1 and 'coef' in table_data[0]:
+                for row in table_data[1:]:
+                    if row and row[0]:
+                         row[0] = re.sub(r'C\(`([^`]+)`\).*\[T\.([^\]]+)\]', r'\1[\2]', row[0].strip())
             
             summary_data.append({
                 'caption': getattr(table, 'title', None),
@@ -167,18 +164,13 @@ class AncovaAnalysis:
             })
         self.results['model_summary_data'] = summary_data
         
-        # Clean up source names for readability
         cleaned_index = {
-            f'C(Q("{self.fv_clean}"))': self.factor_var,
-            **{f'Q("{cv}")': self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)}
+            f'C(`{self.fv_clean}`)': self.factor_var,
+            **{f'`{cv}`': self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)},
+            **{f'C(`{self.fv_clean}`):`{cv}`': f'{self.factor_var}:{self.covariate_vars[i]}' for i, cv in enumerate(self.cv_clean)}
         }
-        for i, cv in enumerate(self.cv_clean):
-             interaction_key = f'C(Q("{self.fv_clean}")):Q("{cv}")'
-             cleaned_index[interaction_key] = f'{self.factor_var} * {self.covariate_vars[i]}'
-
+        
         anova_table_renamed = anova_table.rename(index=cleaned_index)
-
-        # Convert to dict, handling NaN
         self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         self.results['residuals'] = model.resid.tolist()
         
@@ -187,10 +179,8 @@ class AncovaAnalysis:
 
     def _test_assumptions(self, model):
         residuals = model.resid
-        # 1. Normality of residuals
         shapiro_stat, shapiro_p = stats.shapiro(residuals)
         
-        # 2. Homogeneity of variances (Levene's test on the groups)
         groups = [group[self.dv_clean] for name, group in self.clean_data.groupby(self.fv_clean)]
         if len(groups) > 1:
             levene_stat, levene_p = stats.levene(*groups)
@@ -220,7 +210,7 @@ class AncovaAnalysis:
             )
             
             for group_name, group_data in self.clean_data.groupby(self.fv_clean):
-                group_model = ols(f'Q("{self.dv_clean}") ~ Q("{clean_cov_name}")', data=group_data).fit()
+                group_model = ols(f'`{self.dv_clean}` ~ `{clean_cov_name}`', data=group_data).fit()
                 x_vals = np.linspace(group_data[clean_cov_name].min(), group_data[clean_cov_name].max(), 100)
                 y_vals = group_model.predict(pd.DataFrame({clean_cov_name: x_vals}))
                 axes[0].plot(x_vals, y_vals, label=f'Fit: {group_name}')
@@ -274,9 +264,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
-
-  
-
-
