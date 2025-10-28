@@ -162,6 +162,7 @@ import RobustRegressionPage from './pages/robust-regression-page';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
 import VisualizationPage from './pages/visualization-page';
+
 const analysisCategories = [
     {
       name: 'Guide',
@@ -171,18 +172,11 @@ const analysisCategories = [
         { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
       ]
     },
-     {
-      name: 'Visualization',
-      icon: Palette,
-      isSingle: true,
-      items: [
-        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
-      ]
-    },
     {
       name: 'Descriptive',
       icon: BarChart,
       items: [
+        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
         { id: 'descriptive-stats', label: 'Descriptive Statistics', icon: BarChart, component: DescriptiveStatisticsPage },
         { id: 'frequency-analysis', label: 'Frequency Analysis', icon: Users, component: FrequencyAnalysisPage },
          { id: 'variability-analysis', label: 'Variability Analysis', icon: TrendingUp, component: VariabilityAnalysisPage },
