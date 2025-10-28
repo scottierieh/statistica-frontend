@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -18,16 +17,22 @@ import re
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
-    if isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, (np.floating, float)):
+    """Convert numpy types to native Python types, handling NaN/Inf values"""
+    # Check for NaN/Inf first (works for both np.floating and regular float)
+    if isinstance(obj, (np.floating, float)):
         if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
+    elif isinstance(obj, np.integer):
+        return int(obj)
     elif isinstance(obj, np.bool_):
         return bool(obj)
+    elif isinstance(obj, np.ndarray):
+        return [_to_native_type(item) for item in obj.tolist()]
+    elif isinstance(obj, dict):
+        return {key: _to_native_type(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_to_native_type(item) for item in obj]
     return obj
 
 class AncovaAnalysis:
@@ -213,34 +218,19 @@ class AncovaAnalysis:
             original_cov_name = self.covariate_vars[0]
             clean_cov_name = self.cv_clean[0]
             
-            # Scatter plot of raw data
             sns.scatterplot(
                 data=self.clean_data, 
                 x=clean_cov_name, 
                 y=self.dv_clean, 
                 hue=self.fv_clean, 
-                ax=axes[0],
-                alpha=0.6,
-                legend=False
+                ax=axes[0]
             )
             
-            # Plot regression lines for each group
-            sns.regplot(
-                data=self.clean_data,
-                x=clean_cov_name,
-                y=self.dv_clean,
-                ax=axes[0],
-                scatter=False, # Don't plot scatter again
-                ci=None, # No confidence interval
-                line_kws={'lw': 2, 'ls': '--'}
-            )
-            
-            # FacetGrid approach is complex to embed, so let's iterate
-            for group_name in self.clean_data[self.fv_clean].unique():
-                group_data = self.clean_data[self.clean_data[self.fv_clean] == group_name]
-                sns.regplot(x=clean_cov_name, y=self.dv_clean, data=group_data, ax=axes[0],
-                            scatter=False, ci=None, label=f'Fit: {group_name}')
-
+            for group_name, group_data in self.clean_data.groupby(self.fv_clean):
+                group_model = ols(f'{self.dv_clean} ~ {clean_cov_name}', data=group_data).fit()
+                x_vals = np.linspace(group_data[clean_cov_name].min(), group_data[clean_cov_name].max(), 100)
+                y_vals = group_model.predict(pd.DataFrame({clean_cov_name: x_vals}))
+                axes[0].plot(x_vals, y_vals, label=f'Fit: {group_name}')
 
             axes[0].set_title(f'Interaction: {self.dependent_var} vs {original_cov_name}')
             axes[0].set_xlabel(original_cov_name)
@@ -283,7 +273,9 @@ def main():
             'plot': plot_image
         }
         
-        print(json.dumps(response, default=_to_native_type))
+        # Clean the entire response to handle NaN/Inf values
+        cleaned_response = _to_native_type(response)
+        print(json.dumps(cleaned_response))
 
     except Exception as e:
         import traceback
@@ -296,4 +288,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

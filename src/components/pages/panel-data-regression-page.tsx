@@ -16,33 +16,35 @@ import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Badge } from '../ui/badge';
 
-interface RegressionResult {
-    model: string;
-    coefficients: number[];
-    std_errors?: number[];
-    t_statistics?: number[];
-    p_values?: number[];
-    variable_names: string[];
-    r_squared?: number;
-    adj_r_squared?: number;
-    r_squared_within?: number;
-    n_obs?: number;
-    dof?: number;
-    error?: string;
+interface ModelResult {
+    name: string;
+    params: { [key: string]: number };
+    pvalues: { [key: string]: number };
+    tstats: { [key: string]: number };
+    rsquared: number;
+    rsquared_within?: number;
 }
-
-interface HausmanResult {
-    statistic: number | null;
-    p_value: number | null;
+interface FTestResult {
+    statistic: number;
+    p_value: number;
     interpretation: string;
 }
-
-interface FullAnalysisResponse {
-    pooled_ols: RegressionResult;
-    fixed_effects: RegressionResult;
-    random_effects: RegressionResult;
-    hausman_test: HausmanResult;
+interface HausmanResult {
+    statistic: number;
+    p_value: number;
+    interpretation: string;
 }
+interface FullAnalysisResponse {
+    results: {
+        pooled_ols: ModelResult;
+        fixed_effects: ModelResult;
+        random_effects: ModelResult;
+        f_test_entity: FTestResult;
+        hausman_test: HausmanResult;
+        interpretation: string;
+    };
+}
+
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const panelExample = exampleDatasets.find(d => d.id === 'panel-data');
@@ -57,7 +59,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Panel Data Regression</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Analyze datasets that observe multiple entities over multiple time periods.
+                        Analyze datasets that observe multiple entities over multiple time periods, such as countries, firms, or individuals.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
@@ -92,9 +94,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                 <li><strong>Run Analysis:</strong> The tool will automatically run three key models: Pooled OLS, Fixed Effects, and Random Effects.</li>
                             </ol>
                         </div>
-                         <div className="space-y-6">
+                        <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2">
-                                <FileSearch className="text-primary"/> Results Interpretation
+                                <FileSearch className="text-primary"/> Model Interpretation
                             </h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li><strong>Pooled OLS:</strong> A basic regression that ignores the panel structure. It's a useful baseline but often biased.</li>
@@ -115,24 +117,20 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-export default function PanelDataRegressionPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: { data: DataSet; allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (e: any) => void }) {
+export default function PanelDataRegressionPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: { data: DataSet; allHeaders: string[]; numericHeaders: string[]; categoricalHeaders: string[]; onLoadExample: (e: any) => void }) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    
     const [entityCol, setEntityCol] = useState<string | undefined>();
     const [timeCol, setTimeCol] = useState<string | undefined>();
-    const [yCol, setYCol] = useState<string | undefined>();
-    const [xCols, setXCols] = useState<string[]>([]);
+    const [dependent, setDependent] = useState<string | undefined>();
+    const [exog, setExog] = useState<string[]>([]);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2 && allHeaders.length >= 3, [data, numericHeaders, allHeaders]);
     
-    const availableFeatures = useMemo(() => {
-        const excluded = new Set([entityCol, timeCol, yCol]);
-        return allHeaders.filter(h => !excluded.has(h));
-    }, [allHeaders, entityCol, timeCol, yCol]);
+    const availableFeatures = useMemo(() => allHeaders.filter(h => h !== entityCol && h !== timeCol && h !== dependent), [allHeaders, entityCol, timeCol, dependent]);
     
     const availableTimeCols = useMemo(() => allHeaders.filter(h => h !== entityCol), [allHeaders, entityCol]);
 
@@ -145,10 +143,10 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             setTimeCol(potentialTime);
 
             const potentialY = numericHeaders.find(h => h.toLowerCase().includes('gdp') || h.toLowerCase().includes('y'));
-            setYCol(potentialY || numericHeaders[0]);
+            setDependent(potentialY || numericHeaders[0]);
             
             const initialXCols = numericHeaders.filter(h => h !== (potentialY || numericHeaders[0]) && h !== potentialTime && h !== potentialEntity).slice(0, 3);
-            setXCols(initialXCols);
+            setExog(initialXCols);
             setView('main');
         } else {
             setView('intro');
@@ -158,11 +156,11 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
 
 
     const handleFeatureChange = (header: string, checked: boolean) => {
-        setXCols(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+        setExog(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!entityCol || !timeCol || !yCol || xCols.length === 0) {
+        if (!entityCol || !timeCol || !dependent || exog.length === 0) {
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required variables.' });
             return;
         }
@@ -173,23 +171,23 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             const response = await fetch('/api/analysis/panel-data-regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, entityCol, timeCol, yCol, xCols })
+                body: JSON.stringify({ data, entityCol, timeCol, dependent, exog })
             });
 
             if (!response.ok) {
                 const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                throw new Error(errorResult.error || 'API error');
             }
-            const result = await response.json();
-            if (result.error) throw new Error(result.error);
+            const result: FullAnalysisResponse = await response.json();
+            if ((result as any).error) throw new Error((result as any).error);
             setAnalysisResult(result);
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
         }
-    }, [data, entityCol, timeCol, yCol, xCols, toast]);
-    
+    }, [data, entityCol, timeCol, dependent, exog, toast]);
+
     const handleLoadExampleData = () => {
         const panelExample = exampleDatasets.find(ex => ex.id === 'panel-data');
         if (panelExample) {
@@ -198,55 +196,26 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
         }
     };
 
-    if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
-    }
-
-    const { pooled_ols, fixed_effects, random_effects, hausman_test } = analysisResult || {};
-
-    const renderResultTable = (result: RegressionResult) => {
-        if (result.error) {
-            return (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{result.model}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Analysis Error</AlertTitle>
-                            <AlertDescription>{result.error}</AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
-            );
-        }
+    const renderResultsTable = (result: ModelResult) => {
+        if (!result) return null;
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>{result.model}</CardTitle>
+                    <CardTitle>{result.name}</CardTitle>
                     <CardDescription>
-                         {result.r_squared !== undefined && `R²: ${result.r_squared.toFixed(3)} `}
-                         {result.r_squared_within !== undefined && `R² (within): ${result.r_squared_within.toFixed(3)}`}
+                         {result.rsquared !== undefined && result.rsquared !== null ? `R²: ${result.rsquared.toFixed(3)} ` : ''}
+                         {result.rsquared_within !== undefined && result.rsquared_within !== null ? `(Within: ${result.rsquared_within.toFixed(3)})` : ''}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Variable</TableHead>
-                                <TableHead className="text-right">Coef.</TableHead>
-                                <TableHead className="text-right">p-value</TableHead>
-                            </TableRow>
-                        </TableHeader>
+                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Coefficient</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {result.variable_names.map((name, i) => (
+                            {Object.keys(result.params).map(name => (
                                 <TableRow key={name}>
                                     <TableCell>{name}</TableCell>
-                                    <TableCell className="text-right font-mono">{result.coefficients[i]?.toFixed(4)}</TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        {result.p_values?.[i] < 0.001 ? '<.001' : result.p_values?.[i]?.toFixed(3) ?? 'N/A'}
-                                    </TableCell>
+                                    <TableCell className="text-right font-mono">{result.params[name]?.toFixed(4)}</TableCell>
+                                    <TableCell className="text-right font-mono">{result.pvalues[name] < 0.001 ? '<.001' : result.pvalues[name]?.toFixed(3) ?? 'N/A'}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -254,12 +223,18 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                 </CardContent>
             </Card>
         );
-    };
+    }
+    
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
+    }
+    
+    const { pooled_ols, fixed_effects, random_effects, f_test_entity, hausman_test, interpretation } = analysisResult?.results || {};
 
     return (
         <div className="space-y-4">
             <Card>
-                <CardHeader>
+                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">Panel Data Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
@@ -267,15 +242,15 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div><Label>Entity</Label><Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label>Time</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableTimeCols.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label>Dependent (Y)</Label><Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Entity</Label><Select value={entityCol} onValueChange={setEntityCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Time</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{availableTimeCols.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Dependent (Y)</Label><Select value={dependent} onValueChange={setDependent}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
                             <Label>Independent (X)</Label>
                             <ScrollArea className="h-24 border rounded-md p-2">
                                {availableFeatures.map(h => (
                                     <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`x-${h}`} checked={xCols.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
+                                        <Checkbox id={`x-${h}`} checked={exog.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                         <Label htmlFor={`x-${h}`}>{h}</Label>
                                     </div>
                                 ))}
@@ -289,25 +264,39 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                     </Button>
                 </CardFooter>
             </Card>
+
             {isLoading && <Skeleton className="h-96 w-full"/>}
+            
             {analysisResult && (
                 <div className="space-y-4">
                     <Card>
-                        <CardHeader><CardTitle>Hausman Test</CardTitle></CardHeader>
-                        <CardContent>
-                            <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
-                                {hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                                <AlertTitle>Model Recommendation: {hausman_test?.interpretation}</AlertTitle>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Model Selection Diagnostics</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-4">
+                             <Alert variant={f_test_entity?.p_value !== null && f_test_entity?.p_value < 0.05 ? 'default' : 'secondary'}>
+                                 <AlertTitle>F-test for Entity Effects</AlertTitle>
                                 <AlertDescription>
-                                    p-value: {hausman_test?.p_value?.toFixed(4) ?? 'N/A'}. A p-value &lt; 0.05 suggests that the Fixed Effects model is more appropriate.
+                                    {f_test_entity?.interpretation} (p={f_test_entity?.p_value?.toFixed(4)})
+                                </AlertDescription>
+                            </Alert>
+                             <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
+                                 <AlertTitle>Hausman Test</AlertTitle>
+                                <AlertDescription>
+                                    {hausman_test?.interpretation} (p={hausman_test?.p_value?.toFixed(4) ?? 'N/A'})
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
                     </Card>
+                     <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>AI Interpretation</AlertTitle>
+                        <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation?.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || '' }} />
+                    </Alert>
                     <div className="grid lg:grid-cols-3 gap-4">
-                        {pooled_ols && renderResultTable(pooled_ols)}
-                        {fixed_effects && renderResultTable(fixed_effects)}
-                        {random_effects && renderResultTable(random_effects)}
+                        {pooled_ols && renderResultsTable(pooled_ols)}
+                        {fixed_effects && renderResultsTable(fixed_effects)}
+                        {random_effects && renderResultsTable(random_effects)}
                     </div>
                 </div>
             )}

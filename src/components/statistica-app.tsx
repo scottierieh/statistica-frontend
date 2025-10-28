@@ -138,7 +138,6 @@ import HistoryPage from './pages/history-page';
 import html2canvas from 'html2canvas';
 import PanelDataRegressionPage from './pages/panel-data-regression-page';
 import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
-import TwoStageLeastSquaresPage from './pages/two-stage-least-squares-page';
 import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
 import RddPage from './pages/rdd-page';
@@ -153,8 +152,6 @@ import DeaPage from './pages/dea-page';
 import RelativeImportancePage from './pages/relative-importance-page';
 import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
 import SpatialErrorModelPage from './pages/spatial-error-model-page';
-import TimeSeriesCrossSectionalPage from './pages/time-series-cross-sectional-page';
-import VisualizationPage from './pages/visualization-page';
 import RandomForestPage from './pages/random-forest-page';
 import LassoRegressionPage from './pages/lasso-regression-page';
 import RidgeRegressionPage from './pages/ridge-regression-page';
@@ -390,7 +387,7 @@ const analysisCategories = [
           {
             name: 'Panel Data Models',
             items: [
-              { id: 'time-series-cross-sectional', label: 'Panel Data Regression', icon: Users, component: TimeSeriesCrossSectionalPage },
+              { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
             ]
           },
           {
