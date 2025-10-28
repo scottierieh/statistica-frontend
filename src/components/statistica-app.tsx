@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -162,6 +161,7 @@ import RobustRegressionPage from './pages/robust-regression-page';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
 import VisualizationPage from './pages/visualization-page';
+import SnaPage from './pages/sna-page';
 
 const analysisCategories = [
     {
@@ -291,6 +291,12 @@ const analysisCategories = [
               { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationPage },
             ]
           },
+          {
+            name: 'Network Analysis',
+            items: [
+              { id: 'sna', label: 'Social Network Analysis', icon: Network, component: SnaPage },
+            ]
+          }
       ]
     },
     {
@@ -661,7 +667,7 @@ export default function StatisticaApp() {
                                 onClick={() => setActiveAnalysis(item.id)}
                                 isActive={activeAnalysis === item.id}
                                 >
-                                <item.icon />
+                                {item.icon && <item.icon />} 
                                 {item.label}
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -678,7 +684,7 @@ export default function StatisticaApp() {
                                   onClick={() => setActiveAnalysis(item.id)}
                                   isActive={activeAnalysis === item.id}
                                 >
-                                  <item.icon />
+                                  {item.icon && <item.icon />}
                                   {item.label}
                                 </SidebarMenuButton>
                               </SidebarMenuItem>

@@ -116,7 +116,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-
 interface SnaPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -192,16 +191,21 @@ export default function SnaPage({ data, allHeaders, onLoadExample }: SnaPageProp
         }
     }, [data, sourceCol, targetCol, weightCol, isDirected, toast]);
 
-    const results = analysisResult?.results;
+    const handleLoadExampleData = () => {
+        const snaExample = exampleDatasets.find(ex => ex.id === 'sna-emails');
+        if (snaExample) {
+            onLoadExample(snaExample);
+            setView('main');
+        }
+    };
 
-    if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
-    
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-    
+
+    const results = analysisResult?.results;
+    const plotData = analysisResult ? JSON.parse(analysisResult.plot) : null;
+
     return (
         <div className="space-y-4">
             <Card>
@@ -237,8 +241,8 @@ export default function SnaPage({ data, allHeaders, onLoadExample }: SnaPageProp
                         </CardHeader>
                         <CardContent>
                              <Plot
-                                data={JSON.parse(analysisResult.plot).data}
-                                layout={JSON.parse(analysisResult.plot).layout}
+                                data={plotData.data}
+                                layout={plotData.layout}
                                 useResizeHandler={true}
                                 className="w-full h-[600px]"
                             />
