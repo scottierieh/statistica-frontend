@@ -165,6 +165,7 @@ import OutlierDetectionPage from './pages/outlier-detection-page';
 import DecisionTreePage from './pages/decision-tree-page';
 import RobustRegressionPage from './pages/robust-regression-page';
 import { UserNav } from './user-nav';
+import { Separator } from '@/components/ui/separator';
 
 const analysisCategories = [
     {
