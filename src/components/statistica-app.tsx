@@ -136,7 +136,6 @@ import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import HistoryPage from './pages/history-page';
 import html2canvas from 'html2canvas';
-import PanelDataRegressionPage from './pages/panel-data-regression-page';
 import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
 import PsmPage from './pages/psm-page';
 import DidPage from './pages/did-page';
@@ -384,12 +383,6 @@ const analysisCategories = [
       name: 'Panel & Econometrics',
       icon: Sigma,
       subCategories: [
-          {
-            name: 'Panel Data Models',
-            items: [
-              { id: 'panel-data-regression', label: 'Panel Data Regression', icon: Users, component: PanelDataRegressionPage },
-            ]
-          },
           {
             name: 'Endogeneity Correction',
             items: [
@@ -773,4 +766,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-

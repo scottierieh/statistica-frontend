@@ -1,212 +1,767 @@
+'use client';
 
-import sys
-import json
-import numpy as np
-import pandas as pd
-from linearmodels.panel import PanelOLS, RandomEffects
-import statsmodels.api as sm
-import warnings
-
-warnings.filterwarnings('ignore')
-
-def _to_native_type(obj):
-    if isinstance(obj, np.integer): return int(obj)
-    if isinstance(obj, (np.floating, float)): return float(obj) if np.isfinite(obj) else None
-    if isinstance(obj, np.ndarray): return obj.tolist()
-    if isinstance(obj, (bool, np.bool_)): return bool(obj)
-    return str(obj)
-
-def generate_interpretation(fe_result, re_result, hausman_result, f_test_entity):
-    """Generates an interpretation for the panel data regression results."""
-    interp = "### Panel Data Regression Interpretation\n\n"
-    
-    # F-test Interpretation
-    f_p = f_test_entity.get('p_value')
-    if f_p is not None:
-        if f_p < 0.05:
-            interp += f"The **F-test for entity effects** is significant (p = {f_p:.4f}), which suggests that the Fixed Effects model is a better fit than a simple Pooled OLS model.\n\n"
-        else:
-            interp += f"The **F-test for entity effects** is not significant (p = {f_p:.4f}), suggesting that individual entity effects are not jointly significant. A Pooled OLS model might be sufficient.\n\n"
-
-    # Hausman Test Interpretation
-    hausman_p = hausman_result.get('p_value')
-    if hausman_p is not None:
-        if hausman_p < 0.05:
-            interp += f"The **Hausman test** is significant (p = {hausman_p:.4f}), strongly suggesting that the **Fixed Effects (FE) model is more appropriate** than the Random Effects (RE) model. This indicates that unobserved entity-specific effects are likely correlated with the model's predictors.\n\n"
-            preferred_model = fe_result
-            model_name = "Fixed Effects"
-        else:
-            interp += f"The **Hausman test** is not significant (p = {hausman_p:.4f}), suggesting that the **Random Effects (RE) model is more efficient** and appropriate. This implies that the unobserved entity-specific effects are likely not correlated with the predictors.\n\n"
-            preferred_model = re_result
-            model_name = "Random Effects"
-    else:
-        interp += f"The Hausman test could not be performed ({hausman_result.get('error', 'reason unknown')}), so a definitive choice between FE and RE models cannot be made statistically. We will interpret the Fixed Effects model by default as it is generally more robust to omitted variable bias.\n\n"
-        preferred_model = fe_result
-        model_name = "Fixed Effects"
-        
-    # Interpretation of the preferred model
-    interp += f"**Interpreting the {model_name} Model:**\n"
-    
-    significant_vars = []
-    if preferred_model and 'pvalues' in preferred_model and preferred_model['pvalues']:
-        for param, pval in preferred_model['pvalues'].items():
-            if param != 'Intercept' and pval is not None and pval < 0.05:
-                coef = preferred_model['params'][param]
-                direction = "positively" if coef > 0 else "negatively"
-                significant_vars.append(f"**{param}** (coefficient: {coef:.3f})")
-
-    if significant_vars:
-        interp += f"- The model shows that {', '.join(significant_vars)} significantly influence(s) the dependent variable, holding other factors constant.\n"
-    else:
-        interp += "- None of the independent variables showed a statistically significant effect on the dependent variable in this model.\n"
-        
-    rsquared_key = 'rsquared_within' if model_name == 'Fixed Effects' else 'rsquared_overall'
-    if preferred_model and rsquared_key in preferred_model and preferred_model.get(rsquared_key) is not None:
-        r2 = preferred_model.get(rsquared_key)
-        if r2 is not None:
-            interp += f"- The model explains approximately **{(r2 * 100):.1f}%** of the variance in the dependent variable ({'within entities' if rsquared_key == 'rsquared_within' else 'overall'}).\n"
-
-    interp += "\n**Conclusion:** Based on the diagnostic tests, the analysis suggests the **{} model** is the most suitable. This approach provides more reliable estimates than simple regression by appropriately handling the panel structure of the data.".format(model_name)
-    
-    return interp
-
-def manual_hausman_test(fe_model, re_model):
-    """
-    Manually calculates the Hausman test statistic.
-    """
-    # fe_model and re_model are statsmodels result objects
-    b_fe = fe_model.params
-    b_re = re_model.params
-    v_fe = fe_model.cov
-    v_re = re_model.cov
-    
-    # Common coefficients
-    common_params = list(set(b_fe.index) & set(b_re.index))
-    if 'Intercept' in common_params:
-        common_params.remove('Intercept')
-
-    if not common_params:
-        raise ValueError("No common coefficients between models for Hausman test.")
-
-    b_diff = b_fe[common_params] - b_re[common_params]
-    v_diff = v_fe.loc[common_params, common_params] - v_re.loc[common_params, common_params]
-
-    try:
-        v_diff_inv = np.linalg.inv(v_diff)
-        chi2_stat = b_diff.T @ v_diff_inv @ b_diff
-        df = len(b_diff)
-        p_value = 1 - stats.chi2.cdf(chi2_stat, df)
-        return chi2_stat, p_value, df
-    except np.linalg.LinAlgError:
-        raise ValueError("Could not compute Hausman test. The difference in covariance matrices is singular.")
-
-
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        data = pd.DataFrame(payload.get('data'))
-        dependent = payload.get('dependent')
-        exog = payload.get('exog_cols') or payload.get('exog')
-        entity_col = payload.get('entity_col')
-        time_col = payload.get('time_col')
-
-        if not all([data is not None, dependent, exog, entity_col, time_col]):
-            raise ValueError("Missing required parameters.")
-            
-        df = data.copy()
-        
-        for col in [dependent] + exog:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-        df = df.dropna(subset=[dependent] + exog + [entity_col, time_col])
-        
-        if df.empty:
-            raise ValueError("No valid data for panel analysis after cleaning.")
-
-        df[time_col] = pd.to_datetime(df[time_col])
-        df = df.set_index([entity_col, time_col])
-        
-        y = df[dependent]
-        X = sm.add_constant(df[exog])
-
-        # --- Pooled OLS ---
-        pooled_ols = PanelOLS(y, X).fit(cov_type='robust')
-        
-        # --- Fixed Effects ---
-        fe_model = PanelOLS(y, X, entity_effects=True).fit(cov_type='robust')
-        
-        # --- Random Effects ---
-        re_model = RandomEffects(y, X).fit(cov_type='robust')
-
-        # --- F-test for entity effects ---
-        try:
-            f_test_entity = fe_model.f_statistic_robust
-            f_stat_val = f_test_entity.stat
-            f_pval_val = f_test_entity.pval
-            f_df = getattr(f_test_entity, 'df', None)
-            f_df_resid = getattr(f_test_entity, 'df_resid', None)
-            
-            f_test_results = {
-                'statistic': f_stat_val, 'p_value': f_pval_val, 'df': f_df, 'df_resid': f_df_resid,
-                'interpretation': 'Fixed effects are significant (use FE over OLS)' if f_pval_val < 0.05 else 'Fixed effects are not significant (OLS may be sufficient)'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarInset,
+  SidebarTrigger,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenu,
+  SidebarGroupLabel
+} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  FileText,
+  Loader2,
+  TrendingUp,
+  BarChart,
+  GitBranch,
+  Users,
+  Sigma,
+  TestTube,
+  Repeat,
+  HeartPulse,
+  Component,
+  BrainCircuit,
+  CheckCircle2,
+  AlertTriangle,
+  Network,
+  Columns,
+  Target,
+  Layers,
+  Map,
+  ScanSearch,
+  Atom,
+  MessagesSquare,
+  Share2,
+  GitCommit,
+  DollarSign,
+  ThumbsUp,
+  ClipboardList,
+  Handshake,
+  Replace,
+  Activity,
+  Palette,
+  Feather,
+  Smile,
+  Scaling,
+  AreaChart,
+  LineChart,
+  ChevronsUpDown,
+  Calculator,
+  Brain,
+  Link2,
+  ShieldCheck,
+  FileSearch,
+  CheckSquare,
+  Clock,
+  Filter,
+  Download,
+  Bot,
+  BookOpen, // Import BookOpen icon
+  Building,
+  Award,
+  Truck,
+  Percent,
+  Intersection,
+  Container
+} from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import {
+  type DataSet,
+  parseData,
+  unparseData,
+} from '@/lib/stats';
+import { useToast } from '@/hooks/use-toast';
+import { getSummaryReport } from '@/app/actions';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import DataUploader from './data-uploader';
+import DataPreview from './data-preview';
+import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
+import CorrelationPage from './pages/correlation-page';
+import AnovaPage from './pages/anova-page';
+import TwoWayAnovaPage from './pages/two-way-anova-page';
+import AncovaPage from './pages/ancova-page';
+import ManovaPage from './pages/manova-page';
+import ReliabilityPage from './pages/reliability-page';
+import RegressionPage from './pages/regression-page';
+import LogisticRegressionPage from './pages/logistic-regression-page';
+import GlmPage from './pages/glm-page';
+import EfaPage from './pages/efa-page';
+import CfaPage from './pages/cfa-page';
+import MediationPage from './pages/mediation-page';
+import ModerationPage from './pages/moderation-page';
+import KMeansPage from './pages/kmeans-page';
+import KMedoidsPage from './pages/kmedoids-page';
+import HcaPage from './pages/hca-page';
+import DbscanPage from './pages/dbscan-page';
+import HdbscanPage from './pages/hdbscan-page';
+import PcaPage from './pages/pca-page';
+import MdsPage from './pages/mds-page';
+import DiscriminantPage from './pages/discriminant-page';
+import NonParametricPage from './pages/nonparametric-page';
+import FrequencyAnalysisPage from './pages/frequency-analysis-page';
+import CrosstabPage from './pages/crosstab-page';
+import NormalityTestPage from './pages/normality-test-page';
+import HomogeneityTestPage from './pages/homogeneity-test-page';
+import SurvivalAnalysisPage from './pages/survival-analysis-page';
+import GbmPage from './pages/gbm-page';
+import SentimentAnalysisPage from './pages/sentiment-analysis-page';
+import MetaAnalysisPage from './pages/meta-analysis-page';
+import NonlinearRegressionPage from './pages/nonlinear-regression-page';
+import TopicModelingPage from './pages/topic-modeling-page';
+import TrendAnalysisPage from './pages/trend-analysis-page';
+import SeasonalDecompositionPage from './pages/seasonal-decomposition-page';
+import AcfPacfPage from './pages/acf-pacf-page';
+import StationarityPage from './pages/stationarity-page';
+import ArimaPage from './pages/arima-page';
+import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
+import ForecastEvaluationPage from './pages/forecast-evaluation-page';
+import ArchLmTestPage from './pages/arch-lm-test-page';
+import LjungBoxPage from './pages/ljung-box-page';
+import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
+import TTestPage from './pages/t-test-page';
+import { cn } from '@/lib/utils';
+import OneSampleTTestPage from './pages/one-sample-ttest-page';
+import WordCloudPage from './pages/wordcloud-page';
+import IpaPage from './pages/ipa-page';
+import HistoryPage from './pages/history-page';
+import html2canvas from 'html2canvas';
+import InstrumentalVariableRegressionPage from './pages/instrumental-variable-regression-page';
+import PsmPage from './pages/psm-page';
+import DidPage from './pages/did-page';
+import RddPage from './pages/rdd-page';
+import GuidePage from './pages/guide-page';
+import VariabilityAnalysisPage from './pages/variability-analysis-page';
+import NpsPage from './pages/nps-page';
+import RoiAnalysisPage from './pages/roi-analysis-page';
+import LinearProgrammingPage from './pages/linear-programming-page';
+import GoalProgrammingPage from './pages/goal-programming-page';
+import TransportationProblemPage from './pages/transportation-problem-page';
+import DeaPage from './pages/dea-page';
+import RelativeImportancePage from './pages/relative-importance-page';
+import SpatialAutoregressiveModelPage from './pages/spatial-autoregressive-model-page';
+import SpatialErrorModelPage from './pages/spatial-error-model-page';
+import RandomForestPage from './pages/random-forest-page';
+import LassoRegressionPage from './pages/lasso-regression-page';
+import RidgeRegressionPage from './pages/ridge-regression-page';
+import ClassifierComparisonPage from './pages/classifier-comparison-page';
+import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
+import OutlierDetectionPage from './pages/outlier-detection-page';
+import DecisionTreePage from './pages/decision-tree-page';
+import RobustRegressionPage from './pages/robust-regression-page';
+import { UserNav } from './user-nav';
+import { Separator } from '@/components/ui/separator';
+import VisualizationPage from './pages/visualization-page';
+const analysisCategories = [
+    {
+      name: 'Guide',
+      icon: BookOpen,
+      isSingle: true,
+      items: [
+        { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
+      ]
+    },
+     {
+      name: 'Visualization',
+      icon: Palette,
+      isSingle: true,
+      items: [
+        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
+      ]
+    },
+    {
+      name: 'Descriptive',
+      icon: BarChart,
+      items: [
+        { id: 'descriptive-stats', label: 'Descriptive Statistics', icon: BarChart, component: DescriptiveStatisticsPage },
+        { id: 'frequency-analysis', label: 'Frequency Analysis', icon: Users, component: FrequencyAnalysisPage },
+         { id: 'variability-analysis', label: 'Variability Analysis', icon: TrendingUp, component: VariabilityAnalysisPage },
+      ],
+    },
+    {
+      name: 'Assumptions',
+      icon: CheckSquare,
+      items: [
+          { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
+          { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
+          { id: 'outlier-detection', label: 'Outlier Detection', icon: AlertTriangle, component: OutlierDetectionPage },
+      ],
+  },
+  
+    {
+      name: 'Comparison',
+      icon: Users,
+      subCategories: [
+          {
+            name: 'T-Tests',
+            items: [
+                { id: 't-test-one-sample', label: 'One-Sample T-Test', icon: Target, component: TTestPage },
+                { id: 't-test-independent-samples', label: 'Independent Samples', icon: Users, component: TTestPage },
+                { id: 't-test-paired-samples', label: 'Paired Samples', icon: Repeat, component: TTestPage },
+            ]
+          },
+          {
+            name: 'ANOVA',
+            items: [
+                { id: 'one-way-anova', label: 'One-Way ANOVA', icon: Users, component: AnovaPage },
+                { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Users, component: TwoWayAnovaPage },
+                { id: 'ancova', label: 'ANCOVA', icon: Layers, component: AncovaPage },
+                { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
+                { id: 'repeated-measures-anova', label: 'Repeated Measures ANOVA', icon: Repeat, component: RepeatedMeasuresAnovaPage },
+            ]
+          },
+          {
+            name: 'Non-Parametric',
+            items: [
+                { id: 'nonparametric-mann-whitney', label: 'Mann-Whitney U Test', icon: Users, component: NonParametricPage },
+                { id: 'nonparametric-wilcoxon', label: 'Wilcoxon Signed-Rank', icon: Repeat, component: NonParametricPage },
+                { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: NonParametricPage },
+                { id: 'nonparametric-friedman', label: 'Friedman Test', icon: Repeat, component: NonParametricPage },
+                { id: 'nonparametric-mcnemar', label: 'McNemar\'s Test', icon: CheckSquare, component: NonParametricPage },
+            ]
+          }
+      ]
+    },
+    {
+      name: 'Relationship',
+      icon: TrendingUp,
+      subCategories: [
+          {
+              name: 'Relationship Analysis',
+              items: [
+                  { id: 'correlation', label: 'Correlation', icon: Link2, component: CorrelationPage },
+                  { id: 'crosstab', label: 'Crosstab & Chi-Squared', icon: Columns, component: CrosstabPage },
+              ]
+          },
+          {
+              name: 'Regression Analysis',
+              items: [
+                  { id: 'regression-simple', label: 'Simple Linear', icon: TrendingUp, component: RegressionPage },
+                  { id: 'regression-multiple', label: 'Multiple Linear', icon: TrendingUp, component: RegressionPage },
+                  { id: 'regression-polynomial', label: 'Polynomial', icon: TrendingUp, component: RegressionPage },
+                  { id: 'logistic-regression', label: 'Logistic', icon: TrendingUp, component: LogisticRegressionPage },
+                  { id: 'lasso-regression', label: 'Lasso Regression', icon: TrendingUp, component: LassoRegressionPage },
+                  { id: 'ridge-regression', label: 'Ridge Regression', icon: TrendingUp, component: RidgeRegressionPage },
+                  { id: 'robust-regression', label: 'Robust Regression', icon: TrendingUp, component: RobustRegressionPage },
+              ]
+          },
+          {
+              name: 'Model Interpretation',
+              items: [
+                  { id: 'relative-importance', label: 'Relative Importance', icon: Percent, component: RelativeImportancePage },
+              ]
+          }
+      ]
+    },
+     {
+      name: 'Predictive',
+      icon: Brain,
+      items: [
+          { id: 'glm', label: 'Generalized Linear Model (GLM)', icon: Scaling, component: GlmPage },
+          { id: 'discriminant', label: 'Discriminant Analysis', icon: Users, component: DiscriminantPage },
+          { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
+          { id: 'decision-tree', label: 'Decision Tree', icon: GitBranch, component: DecisionTreePage },
+          { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
+          { id: 'random-forest', label: 'Random Forest', icon: GitBranch, component: RandomForestPage },
+          { id: 'classifier-comparison', label: 'Classifier Comparison', icon: Users, component: ClassifierComparisonPage },
+          { id: 'meta-analysis', label: 'Meta-Analysis', icon: Layers, component: MetaAnalysisPage },
+      ]
+    },
+     {
+      name: 'Structural',
+      icon: Network,
+      subCategories: [
+          {
+            name: 'Factor Analysis',
+            items: [
+              { id: 'reliability', label: 'Reliability (Cronbach)', icon: ShieldCheck, component: ReliabilityPage },
+              { id: 'efa', label: 'Exploratory (EFA)', icon: FileSearch, component: EfaPage },
+              { id: 'pca', label: 'Principal Component (PCA)', icon: Component, component: PcaPage },
+              { id: 'pca-lda-comparison', label: 'PCA vs. LDA', icon: Component, component: PcaLdaComparisonPage },
+            ]
+          },
+          {
+            name: 'Path Analysis',
+            items: [
+              { id: 'mediation', label: 'Mediation Analysis', icon: GitBranch, component: MediationPage },
+              { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationPage },
+            ]
+          },
+      ]
+    },
+    {
+      name: 'Clustering',
+      icon: Users,
+      subCategories: [
+          {
+            name: 'Distance-based',
+            items: [
+              { id: 'kmeans', label: 'K-Means', icon: ScanSearch, component: KMeansPage },
+              { id: 'kmedoids', label: 'K-Medoids', icon: ScanSearch, component: KMedoidsPage },
+            ]
+          },
+          {
+            name: 'Density-based',
+            items: [
+              { id: 'dbscan', label: 'DBSCAN', icon: ScanSearch, component: DbscanPage },
+              { id: 'hdbscan', label: 'HDBSCAN', icon: ScanSearch, component: HdbscanPage },
+            ]
+          },
+          {
+            name: 'Hierarchical-based',
+            items: [
+              { id: 'hca', label: 'Hierarchical Clustering (HCA)', icon: GitBranch, component: HcaPage },
+            ]
+          }
+      ]
+    },
+    {
+        name: 'Time Series',
+        icon: LineChart,
+        subCategories: [
+            {
+                name: 'Exploratory Stage',
+                items: [
+                    { id: 'trend-analysis', label: 'Trend Analysis', icon: TrendingUp, component: TrendAnalysisPage },
+                    { id: 'seasonal-decomposition', label: 'Seasonal Decomposition', icon: AreaChart, component: SeasonalDecompositionPage },
+                ]
+            },
+            {
+                name: 'Diagnostic Stage',
+                items: [
+                    { id: 'acf-pacf', label: 'ACF/PACF', icon: BarChart, component: AcfPacfPage },
+                    { id: 'stationarity', label: 'ADF Test', icon: TrendingUp, component: StationarityPage },
+                    { id: 'ljung-box', label: 'Ljung-Box Test', icon: CheckSquare, component: LjungBoxPage },
+                    { id: 'arch-lm-test', label: 'ARCH-LM Test', icon: AlertTriangle, component: ArchLmTestPage },
+                ]
+            },
+            {
+                name: 'Modeling Stage',
+                items: [
+                    { id: 'exponential-smoothing', label: 'Exponential Smoothing', icon: LineChart, component: ExponentialSmoothingPage },
+                    { id: 'arima', label: 'ARIMA / SARIMAX', icon: TrendingUp, component: ArimaPage },
+                ]
+            },
+            {
+                name: 'Evaluation Stage',
+                items: [
+                    { id: 'forecast-evaluation', label: 'Forecast Model Evaluation', icon: Target, component: ForecastEvaluationPage },
+                ]
             }
-        except Exception as e:
-            f_test_results = {'statistic': None, 'p_value': None, 'interpretation': f'F-test could not be computed: {e}'}
+        ]
+    },
+    {
+      name: 'Text Analysis',
+      icon: FileText,
+      items: [
+        { id: 'sentiment', label: 'Sentiment Analysis', icon: Smile, component: SentimentAnalysisPage },
+        { id: 'topic-modeling', label: 'Topic Modeling (LDA)', icon: MessagesSquare, component: TopicModelingPage },
+        { id: 'wordcloud', label: 'Word Cloud', icon: Feather, component: WordCloudPage },
+      ]
+    },
 
-        # --- Hausman Test ---
-        hausman_results = None
-        try:
-            # Re-fit with non-robust SEs for Hausman
-            fe_nonrobust = PanelOLS(y, X, entity_effects=True).fit()
-            re_nonrobust = RandomEffects(y, X).fit()
-            
-            chi2_stat, p_value, df_hausman = manual_hausman_test(fe_nonrobust, re_nonrobust)
-            
-            hausman_results = {
-                'statistic': chi2_stat,
-                'p_value': p_value,
-                'df': df_hausman,
-                'interpretation': 'Fixed Effects Recommended' if p_value < 0.05 else 'Random Effects Recommended'
-            }
-        except Exception as e:
-            hausman_results = {'error': str(e), 'p_value': None, 'interpretation': f'Test failed: {e}'}
-            
-        def format_summary(model_fit, name):
-            summary = {
-                'name': name,
-                'params': model_fit.params.to_dict(),
-                'pvalues': model_fit.pvalues.to_dict(),
-                'tstats': model_fit.tstats.to_dict(),
-            }
-            if hasattr(model_fit, 'rsquared_overall'): summary['rsquared_overall'] = model_fit.rsquared_overall
-            if hasattr(model_fit, 'rsquared_within'): summary['rsquared_within'] = model_fit.rsquared_within
-            if hasattr(model_fit, 'rsquared'): summary['rsquared'] = model_fit.rsquared
-            return summary
+     {
+        name: 'Marketing',
+        icon: Target,
+        items: [
+            { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
+            { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
+            { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
+        ],
+    },
+    {
+      name: 'Panel & Econometrics',
+      icon: Sigma,
+      subCategories: [
+          {
+            name: 'Endogeneity Correction',
+            items: [
+               { id: 'instrumental-variable-regression', label: 'Instrumental Variables', icon: Link2, component: InstrumentalVariableRegressionPage },
+            ]
+          },
+          {
+            name: 'Quasi-Experimental Methods',
+            items: [
+              { id: 'did', label: 'Difference-in-Differences', icon: GitCommit, component: DidPage },
+              { id: 'rdd', label: 'Regression Discontinuity', icon: GitCommit, component: RddPage },
+              { id: 'psm', label: 'Propensity Score Matching', icon: Handshake, component: PsmPage },
+            ]
+          },
+          {
+            name: 'Spatial Econometrics',
+            items: [
+              { id: 'spatial-autoregressive-model', label: 'SAR', icon: Map, component: SpatialAutoregressiveModelPage },
+              { id: 'spatial-error-model', label: 'SEM', icon: Map, component: SpatialErrorModelPage },
+            ]
+          }
+      ],
+    },
+     {
+      name: 'Optimization',
+      icon: Target,
+      items: [
+        { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp, component: LinearProgrammingPage },
+        { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
+        { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
+        { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
+      ]
+    },
+];
 
-        pooled_res = format_summary(pooled_ols, 'Pooled OLS')
-        fe_res = format_summary(fe_model, 'Fixed Effects')
-        re_res = format_summary(re_model, 'Random Effects')
+
+export default function StatisticaApp() {
+  const [data, setData] = useState<DataSet>([]);
+  const [allHeaders, setAllHeaders] = useState<string[]>([]);
+  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
+  const [fileName, setFileName] = useState('');
+  const [report, setReport] = useState<{ title: string, content: string } | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [activeAnalysis, setActiveAnalysis] = useState('guide');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Guide', 'Visualization']);
+  const analysisPageRef = useRef<HTMLDivElement>(null);
+
+
+  const { toast } = useToast();
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  };
+  
+  const processData = useCallback((content: string, name: string) => {
+    setIsUploading(true);
+    try {
+        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
         
-        interpretation = generate_interpretation(fe_res, re_res, hausman_results, f_test_results)
+        if (newData.length === 0 || newHeaders.length === 0) {
+          throw new Error("No valid data found in the file.");
+        }
+        setData(newData);
+        setAllHeaders(newHeaders);
+        setNumericHeaders(newNumericHeaders);
+        setCategoricalHeaders(newCategoricalHeaders);
+        setFileName(name);
+        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
 
-        response = {
-            'results': {
-                'pooled_ols': pooled_res,
-                'fixed_effects': fe_res,
-                'random_effects': re_res,
-                'f_test_entity': f_test_results,
-                'hausman_test': hausman_results,
-                'interpretation': interpretation
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
+        });
+        handleClearData();
+      } finally {
+        setIsUploading(false);
+      }
+  }, [toast]);
+
+  const handleFileSelected = useCallback((file: File) => {
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (!content) {
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+            setIsUploading(false);
+            return;
+        }
+        processData(content, file.name);
+    };
+
+    reader.onerror = (e) => {
+        toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
+        setIsUploading(false);
+    }
+    
+    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+        reader.readAsArrayBuffer(file);
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            processData(csv, file.name);
+        }
+    } else {
+        reader.readAsText(file);
+    }
+  }, [processData, toast]);
+
+  const handleClearData = () => {
+    setData([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
+    setFileName('');
+    setActiveAnalysis('guide');
+  };
+
+  const handleLoadExampleData = (example: ExampleDataSet) => {
+    processData(example.data, example.name);
+    if(example.recommendedAnalysis) {
+      setActiveAnalysis(example.recommendedAnalysis);
+    }
+  };
+
+  const handleDownloadData = () => {
+    if (data.length === 0) {
+      toast({ title: 'No Data to Download', description: 'There is no data currently loaded.' });
+      return;
+    }
+    try {
+      const csvContent = unparseData({ headers: allHeaders, data });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace(/\.[^/.]+$/, "") + "_statistica.csv" || 'statistica_data.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download data:', error);
+      toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
+    }
+  };
+
+  const handleDownloadAsPDF = async () => {
+    if (!analysisPageRef.current) return;
+    toast({ title: "Generating PDF...", description: "Please wait while the report is being captured." });
+
+    try {
+        const canvas = await html2canvas(analysisPageRef.current, { 
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: window.getComputedStyle(document.body).backgroundColor,
+            onclone: (document) => {
+                // You can modify the cloned document before capture if needed
+            }
+        });
+        const image = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = `Statistica_Report_${activeAnalysis}_${new Date().toISOString().split('T')[0]}.png`;
+        link.href = image;
+        link.click();
+    } catch (error) {
+        console.error("Failed to generate PDF:", error);
+        toast({ title: "Error", description: "Could not generate PDF.", variant: "destructive" });
+    }
+  };
+
+
+  const handleGenerateReport = async (analysisType: string, stats: any, viz: string | null) => {
+    setIsGeneratingReport(true);
+    try {
+        const result = await getSummaryReport({
+            analysisType,
+            statistics: JSON.stringify(stats, null, 2),
+            visualizations: viz || "No visualization available.",
+        });
+        if (result.success && result.report) {
+            setReport({ title: 'Analysis Report', content: result.report });
+        } else {
+            toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
+        }
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while generating the report.' });
+    } finally {
+        setIsGeneratingReport(false);
+    }
+};
+  
+  const downloadReport = () => {
+    if (!report) return;
+    const blob = new Blob([report.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'statistica_report.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const hasData = data.length > 0;
+  
+  const ActivePageComponent = useMemo(() => {
+    for (const category of analysisCategories) {
+        if ('items' in category) {
+            const found = category.items.find(item => item.id === activeAnalysis);
+            if (found) return found.component;
+        } else if ('subCategories' in category) {
+            for (const sub of category.subCategories) {
+                const found = sub.items.find(item => item.id === activeAnalysis);
+                if (found) return found.component;
             }
         }
-        
-        print(json.dumps(response, default=_to_native_type, ensure_ascii=False))
+    }
+    return GuidePage; // Fallback to guide page
+}, [activeAnalysis]);
 
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Calculator className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-headline font-bold">Statistica</h1>
+            </div>
+             <div className='p-2'>
+              <DataUploader 
+                onFileSelected={handleFileSelected}
+                loading={isUploading}
+              />
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              {analysisCategories.map(category => 
+                category.isSingle ? (
+                  <SidebarMenuItem key={category.name}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveAnalysis(category.items[0].id)}
+                      isActive={activeAnalysis === category.items[0].id}
+                      className="text-base font-semibold"
+                    >
+                      <category.icon className="mr-2 h-5 w-5"/>
+                      {category.name}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
+                <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
+                  <CollapsibleTrigger asChild>
+                     <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold bg-muted text-foreground">
+                       <category.icon className="mr-2 h-5 w-5"/>
+                       <span>{category.name}</span>
+                       <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')}/>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    {'items' in category ? (
+                      <SidebarMenu>
+                        {(category.items).map(item => (
+                            <SidebarMenuItem key={item.id}>
+                                <SidebarMenuButton
+                                onClick={() => setActiveAnalysis(item.id)}
+                                isActive={activeAnalysis === item.id}
+                                >
+                                <item.icon />
+                                {item.label}
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    ) : (
+                      <SidebarMenu>
+                        {(category.subCategories).map((sub, i) => (
+                          <div key={i}>
+                            <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2 my-1">{sub.name}</SidebarGroupLabel>
+                            {sub.items.map(item => (
+                              <SidebarMenuItem key={item.id}>
+                                <SidebarMenuButton
+                                  onClick={() => setActiveAnalysis(item.id)}
+                                  isActive={activeAnalysis === item.id}
+                                >
+                                  <item.icon />
+                                  {item.label}
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </div>
+                        ))}
+                      </SidebarMenu>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter className="flex-col gap-2">
+            <div className="w-full flex gap-2">
+                <Button variant="outline" onClick={() => setActiveAnalysis('history')} className="flex-1">
+                    <Clock />
+                    <span className="group-data-[collapsible=icon]:hidden">History</span>
+                </Button>
+                 <Button onClick={handleDownloadAsPDF} disabled={!hasData} className="flex-1">
+                    <Download />
+                    <span className="group-data-[collapsible=icon]:hidden">PDF</span>
+                </Button>
+            </div>
+            <Separator />
+            <UserNav />
+          </SidebarFooter>
+        </Sidebar>
 
-if __name__ == '__main__':
-    main()
+        <SidebarInset>
+          <div ref={analysisPageRef} className="p-4 md:p-6 h-full flex flex-col gap-4">
+            <header className="flex items-center justify-between md:justify-end">
+                <SidebarTrigger className="md:hidden"/>
+                <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
+                <div />
+            </header>
+            
+            {hasData && activeAnalysis !== 'guide' && (
+              <DataPreview 
+                fileName={fileName}
+                data={data}
+                headers={allHeaders}
+                onDownload={handleDownloadData}
+                onClearData={handleClearData}
+              />
+            )}
+            
+            <ActivePageComponent 
+                data={data}
+                allHeaders={allHeaders}
+                numericHeaders={numericHeaders}
+                categoricalHeaders={categoricalHeaders}
+                onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
+                isUploading={isUploading}
+                activeAnalysis={activeAnalysis}
+                onGenerateReport={(stats: any, viz: string | null) => handleGenerateReport(activeAnalysis, stats, viz)}
+             />
+          </div>
+        </SidebarInset>
+      </div>
 
+      <Dialog open={!!report} onOpenChange={(open) => !open && setReport(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline">{report?.title}</DialogTitle>
+            <DialogDescription>
+              An AI-generated summary of your data and selected analysis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto rounded-md border p-4 whitespace-pre-wrap">
+            {report?.content}
+          </div>
+          <DialogFooter>
+            <Button onClick={downloadReport}>Download as .txt</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </SidebarProvider>
+  );
+}
