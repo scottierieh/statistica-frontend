@@ -70,7 +70,8 @@ import {
   Award,
   Truck,
   Percent,
-  Intersection
+  Intersection,
+  Container
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -162,7 +163,7 @@ import ClassifierComparisonPage from './pages/classifier-comparison-page';
 import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
 import OutlierDetectionPage from './pages/outlier-detection-page';
 import DecisionTreePage from './pages/decision-tree-page';
-
+import RobustRegressionPage from './pages/robust-regression-page';
 
 const analysisCategories = [
     {
@@ -255,6 +256,7 @@ const analysisCategories = [
                   { id: 'logistic-regression', label: 'Logistic', icon: TrendingUp, component: LogisticRegressionPage },
                   { id: 'lasso-regression', label: 'Lasso Regression', icon: TrendingUp, component: LassoRegressionPage },
                   { id: 'ridge-regression', label: 'Ridge Regression', icon: TrendingUp, component: RidgeRegressionPage },
+                  { id: 'robust-regression', label: 'Robust Regression', icon: TrendingUp, component: RobustRegressionPage },
               ]
           },
           {
