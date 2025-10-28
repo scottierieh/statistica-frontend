@@ -40,7 +40,7 @@ def generate_interpretation(fe_result, re_result, hausman_result, f_test_entity)
             preferred_model = re_result
             model_name = "Random Effects"
     else:
-        interp += "The Hausman test could not be performed (this can happen with unbalanced panels), so a definitive choice between FE and RE models cannot be made statistically. We will interpret the Fixed Effects model by default as it is generally more robust to omitted variable bias.\n\n"
+        interp += f"The Hausman test could not be performed ({hausman_result.get('error', 'reason unknown')}), so a definitive choice between FE and RE models cannot be made statistically. We will interpret the Fixed Effects model by default as it is generally more robust to omitted variable bias.\n\n"
         preferred_model = fe_result
         model_name = "Fixed Effects"
         
@@ -50,7 +50,7 @@ def generate_interpretation(fe_result, re_result, hausman_result, f_test_entity)
     significant_vars = []
     if preferred_model and 'pvalues' in preferred_model and preferred_model['pvalues']:
         for param, pval in preferred_model['pvalues'].items():
-            if param != 'Intercept' and pval < 0.05:
+            if param != 'Intercept' and pval is not None and pval < 0.05:
                 coef = preferred_model['params'][param]
                 direction = "positively" if coef > 0 else "negatively"
                 significant_vars.append(f"**{param}** (coefficient: {coef:.3f})")
@@ -60,7 +60,7 @@ def generate_interpretation(fe_result, re_result, hausman_result, f_test_entity)
     else:
         interp += "- None of the independent variables showed a statistically significant effect on the dependent variable in this model.\n"
         
-    rsquared_key = 'rsquared_within' if preferred_model and preferred_model.get('name') == 'Fixed Effects' else 'rsquared_overall'
+    rsquared_key = 'rsquared_within' if model_name == 'Fixed Effects' else 'rsquared_overall'
     if preferred_model and rsquared_key in preferred_model and preferred_model.get(rsquared_key) is not None:
         r2 = preferred_model.get(rsquared_key)
         if r2 is not None:
@@ -70,13 +70,43 @@ def generate_interpretation(fe_result, re_result, hausman_result, f_test_entity)
     
     return interp
 
+def manual_hausman_test(fe_model, re_model):
+    """
+    Manually calculates the Hausman test statistic.
+    """
+    # fe_model and re_model are statsmodels result objects
+    b_fe = fe_model.params
+    b_re = re_model.params
+    v_fe = fe_model.cov
+    v_re = re_model.cov
+    
+    # Common coefficients
+    common_params = list(set(b_fe.index) & set(b_re.index))
+    if 'Intercept' in common_params:
+        common_params.remove('Intercept')
+
+    if not common_params:
+        raise ValueError("No common coefficients between models for Hausman test.")
+
+    b_diff = b_fe[common_params] - b_re[common_params]
+    v_diff = v_fe.loc[common_params, common_params] - v_re.loc[common_params, common_params]
+
+    try:
+        v_diff_inv = np.linalg.inv(v_diff)
+        chi2_stat = b_diff.T @ v_diff_inv @ b_diff
+        df = len(b_diff)
+        p_value = 1 - stats.chi2.cdf(chi2_stat, df)
+        return chi2_stat, p_value, df
+    except np.linalg.LinAlgError:
+        raise ValueError("Could not compute Hausman test. The difference in covariance matrices is singular.")
+
 
 def main():
     try:
         payload = json.load(sys.stdin)
         data = pd.DataFrame(payload.get('data'))
         dependent = payload.get('dependent')
-        exog = payload.get('exog') or payload.get('exog_cols') # Accept both keys
+        exog = payload.get('exog_cols') or payload.get('exog')
         entity_col = payload.get('entity_col')
         time_col = payload.get('time_col')
 
@@ -85,7 +115,6 @@ def main():
             
         df = data.copy()
         
-        # Ensure correct types
         for col in [dependent] + exog:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -95,7 +124,6 @@ def main():
         if df.empty:
             raise ValueError("No valid data for panel analysis after cleaning.")
 
-        # Set panel data index
         df[time_col] = pd.to_datetime(df[time_col])
         df = df.set_index([entity_col, time_col])
         
@@ -112,53 +140,53 @@ def main():
         re_model = RandomEffects(y, X).fit(cov_type='robust')
 
         # --- F-test for entity effects ---
-        f_test_entity = fe_model.f_statistic_robust
-        
+        try:
+            f_test_entity = fe_model.f_statistic_robust
+            f_stat_val = f_test_entity.stat
+            f_pval_val = f_test_entity.pval
+            f_df = getattr(f_test_entity, 'df', None)
+            f_df_resid = getattr(f_test_entity, 'df_resid', None)
+            
+            f_test_results = {
+                'statistic': f_stat_val, 'p_value': f_pval_val, 'df': f_df, 'df_resid': f_df_resid,
+                'interpretation': 'Fixed effects are significant (use FE over OLS)' if f_pval_val < 0.05 else 'Fixed effects are not significant (OLS may be sufficient)'
+            }
+        except Exception as e:
+            f_test_results = {'statistic': None, 'p_value': None, 'interpretation': f'F-test could not be computed: {e}'}
+
         # --- Hausman Test ---
         hausman_results = None
         try:
-            # We need to re-fit the models with non-robust standard errors for Hausman test
-            fe_model_nonrobust = PanelOLS(y, X, entity_effects=True).fit()
-            re_model_nonrobust = RandomEffects(y, X).fit()
-            hausman_test = fe_model_nonrobust.compare(re_model_nonrobust)
+            # Re-fit with non-robust SEs for Hausman
+            fe_nonrobust = PanelOLS(y, X, entity_effects=True).fit()
+            re_nonrobust = RandomEffects(y, X).fit()
+            
+            chi2_stat, p_value, df_hausman = manual_hausman_test(fe_nonrobust, re_nonrobust)
+            
             hausman_results = {
-                'statistic': hausman_test.stat,
-                'p_value': hausman_test.pval,
-                'df': hausman_test.dof,
-                'interpretation': 'Fixed Effects Recommended' if hausman_test.pval < 0.05 else 'Random Effects Recommended'
+                'statistic': chi2_stat,
+                'p_value': p_value,
+                'df': df_hausman,
+                'interpretation': 'Fixed Effects Recommended' if p_value < 0.05 else 'Random Effects Recommended'
             }
         except Exception as e:
-            hausman_results = {'error': str(e), 'p_value': None, 'interpretation': 'Test could not be performed. This can happen with unbalanced panels or other data issues.'}
+            hausman_results = {'error': str(e), 'p_value': None, 'interpretation': f'Test failed: {e}'}
             
         def format_summary(model_fit, name):
-            return {
+            summary = {
                 'name': name,
                 'params': model_fit.params.to_dict(),
                 'pvalues': model_fit.pvalues.to_dict(),
                 'tstats': model_fit.tstats.to_dict(),
-                'rsquared': getattr(model_fit, 'rsquared_overall', getattr(model_fit, 'rsquared', None)),
-                'rsquared_within': getattr(model_fit, 'rsquared_within', None),
             }
+            if hasattr(model_fit, 'rsquared_overall'): summary['rsquared_overall'] = model_fit.rsquared_overall
+            if hasattr(model_fit, 'rsquared_within'): summary['rsquared_within'] = model_fit.rsquared_within
+            if hasattr(model_fit, 'rsquared'): summary['rsquared'] = model_fit.rsquared
+            return summary
 
         pooled_res = format_summary(pooled_ols, 'Pooled OLS')
         fe_res = format_summary(fe_model, 'Fixed Effects')
         re_res = format_summary(re_model, 'Random Effects')
-        
-        f_stat_val = getattr(f_test_entity, 'stat', None)
-        f_pval_val = getattr(f_test_entity, 'pval', None)
-        if f_stat_val is None or f_pval_val is None:
-             f_test_results = {
-                'statistic': None, 'p_value': None, 'df': None, 'df_resid': None,
-                'interpretation': 'F-test could not be computed.'
-             }
-        else:
-             f_test_results = {
-                'statistic': f_stat_val,
-                'p_value': f_pval_val,
-                'df': getattr(f_test_entity, 'df', None),
-                'df_resid': getattr(f_test_entity, 'df_resid', None),
-                'interpretation': 'Fixed effects are significant (use FE over OLS)' if f_pval_val < 0.05 else 'Fixed effects are not significant (OLS may be sufficient)'
-            }
         
         interpretation = generate_interpretation(fe_res, re_res, hausman_results, f_test_results)
 
@@ -182,4 +210,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-    
