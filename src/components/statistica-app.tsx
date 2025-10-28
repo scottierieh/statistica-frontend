@@ -393,8 +393,7 @@ const analysisCategories = [
           {
             name: 'Panel Data Models',
             items: [
-              { id: 'panel-data-regression', label: 'Pooled OLS / Fixed / Random Effects', icon: Users, component: PanelDataRegressionPage },
-              { id: 'time-series-cross-sectional', label: 'Time-Series Cross-Sectional', icon: AreaChart, component: TimeSeriesCrossSectionalPage },
+              { id: 'time-series-cross-sectional', label: 'Panel Data Regression', icon: Users, component: TimeSeriesCrossSectionalPage },
             ]
           },
           {

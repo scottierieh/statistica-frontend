@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -136,47 +135,77 @@ def main():
         did_effect_key = f'C(Q("{group_var}"))[T.1]:C(Q("{time_var}"))[T.1]'
         did_coefficient = model.params.get(did_effect_key, 0)
         did_p_value = model.pvalues.get(did_effect_key, 1.0)
-        
-        interpretation = _generate_interpretation(model, did_p_value, did_coefficient, group_var_orig, time_var_orig, outcome_var_orig)
 
-        name_map = {
-            'Intercept': 'Intercept',
-            f'C(Q("{group_var}"))[T.1]': f'Group_Effect (Treat)',
-            f'C(Q("{time_var}"))[T.1]': f'Time_Effect (Post)',
-            did_effect_key: f'DiD_Effect ({group_var_orig}*{time_var_orig})',
-        }
-        
-        params_cleaned = {name_map.get(k, k): v for k, v in model.params.to_dict().items()}
-        pvalues_cleaned = {name_map.get(k, k): v for k, v in model.pvalues.to_dict().items()}
-        
+        interpretation = _generate_interpretation(
+            model, did_p_value, did_coefficient,
+            group_var_orig, time_var_orig, outcome_var_orig
+        )
+
+        # ✅ 변수명 정리 함수 (완전히 심플하게)
+        def clean_var_name(name: str) -> str:
+            if not isinstance(name, str):
+                return str(name)
+            
+            original = name.strip()
+            
+            # Intercept는 그대로
+            if original == 'Intercept':
+                return 'Intercept'
+            
+            # DiD interaction (콜론이 있으면 interaction)
+            if ':' in original:
+                return 'DiD_Effect'
+            
+            # Group effect
+            if group_var in original:
+                return 'Group_Effect'
+            
+            # Time effect  
+            if time_var in original:
+                return 'Time_Effect'
+            
+            # 혹시 못 잡았을 경우 기본 정리
+            return original
+
+        # 모델 파라미터 및 p-value 이름 정리
+        params_cleaned = {clean_var_name(k): _to_native_type(v) for k, v in model.params.to_dict().items()}
+        pvalues_cleaned = {clean_var_name(k): _to_native_type(v) for k, v in model.pvalues.to_dict().items()}
+
         summary_obj = model.summary()
         summary_data = []
+
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
-            
-            # Clean variable names in the coefficient table (second table)
-            if any("Coef." in str(h) for h in table_data[0]):
+
+            # ✅ 불필요한 통계 줄 제거 (Omnibus, Skew, Kurtosis 등)
+            joined_text = " ".join([str(cell) for row in table_data for cell in row])
+            if re.search(r'Omnibus|Durbin|Jarque|Skew|Kurtosis|Cond\.', joined_text, re.IGNORECASE):
+                continue
+
+            # ✅ 계수 테이블의 변수명 정리
+            if any("coef" in str(h).lower() for h in table_data[0]):
                 for i in range(1, len(table_data)):
-                    original_name = table_data[i][0]
-                    table_data[i][0] = name_map.get(original_name, original_name)
-            
+                    if table_data[i]:  # 빈 행이 아닌 경우만
+                        table_data[i][0] = clean_var_name(table_data[i][0])
+
             summary_data.append({
                 'caption': getattr(table, 'title', None),
                 'data': table_data
             })
-        
+
+        # ✅ 최종 출력
         response = {
             'results': {
                 'model_summary_data': summary_data,
                 'params': params_cleaned,
                 'pvalues': pvalues_cleaned,
-                'rsquared': model.rsquared,
-                'rsquared_adj': model.rsquared_adj,
+                'rsquared': _to_native_type(model.rsquared),
+                'rsquared_adj': _to_native_type(model.rsquared_adj),
                 'interpretation': interpretation,
             },
             'plot': f"data:image/png;base64,{plot_image}"
         }
-        
+
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
@@ -186,5 +215,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
     
