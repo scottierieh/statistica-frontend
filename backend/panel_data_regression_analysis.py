@@ -61,9 +61,10 @@ def generate_interpretation(fe_result, re_result, hausman_result, f_test_entity)
         interp += "- None of the independent variables showed a statistically significant effect on the dependent variable in this model.\n"
         
     rsquared_key = 'rsquared_within' if preferred_model and preferred_model.get('name') == 'Fixed Effects' else 'rsquared_overall'
-    if preferred_model and rsquared_key in preferred_model and preferred_model[rsquared_key] is not None:
-        r2 = preferred_model[rsquared_key]
-        interp += f"- The model explains approximately **{(r2 * 100):.1f}%** of the variance in the dependent variable ({'within entities' if rsquared_key == 'rsquared_within' else 'overall'}).\n"
+    if preferred_model and rsquared_key in preferred_model and preferred_model.get(rsquared_key) is not None:
+        r2 = preferred_model.get(rsquared_key)
+        if r2 is not None:
+            interp += f"- The model explains approximately **{(r2 * 100):.1f}%** of the variance in the dependent variable ({'within entities' if rsquared_key == 'rsquared_within' else 'overall'}).\n"
 
     interp += "\n**Conclusion:** Based on the diagnostic tests, the analysis suggests the **{} model** is the most suitable. This approach provides more reliable estimates than simple regression by appropriately handling the panel structure of the data.".format(model_name)
     
@@ -116,7 +117,10 @@ def main():
         # --- Hausman Test ---
         hausman_results = None
         try:
-            hausman_test = fe_model.compare(re_model)
+            # We need to re-fit the models with non-robust standard errors for Hausman test
+            fe_model_nonrobust = PanelOLS(y, X, entity_effects=True).fit()
+            re_model_nonrobust = RandomEffects(y, X).fit()
+            hausman_test = fe_model_nonrobust.compare(re_model_nonrobust)
             hausman_results = {
                 'statistic': hausman_test.stat,
                 'p_value': hausman_test.pval,
@@ -124,7 +128,7 @@ def main():
                 'interpretation': 'Fixed Effects Recommended' if hausman_test.pval < 0.05 else 'Random Effects Recommended'
             }
         except Exception as e:
-            hausman_results = {'error': str(e), 'interpretation': 'Test could not be performed. This may happen with robust standard errors or unbalanced panels.'}
+            hausman_results = {'error': str(e), 'p_value': None, 'interpretation': 'Test could not be performed. This can happen with unbalanced panels or other data issues.'}
             
         def format_summary(model_fit, name):
             return {
@@ -140,13 +144,21 @@ def main():
         fe_res = format_summary(fe_model, 'Fixed Effects')
         re_res = format_summary(re_model, 'Random Effects')
         
-        f_test_results = {
-            'statistic': f_test_entity.stat,
-            'p_value': f_test_entity.pval,
-            'df': f_test_entity.df,
-            'df_resid': f_test_entity.df_resid,
-            'interpretation': 'Fixed effects are significant (use FE over OLS)' if f_test_entity.pval < 0.05 else 'Fixed effects are not significant (OLS may be sufficient)'
-        }
+        f_stat_val = getattr(f_test_entity, 'stat', None)
+        f_pval_val = getattr(f_test_entity, 'pval', None)
+        if f_stat_val is None or f_pval_val is None:
+             f_test_results = {
+                'statistic': None, 'p_value': None, 'df': None, 'df_resid': None,
+                'interpretation': 'F-test could not be computed.'
+             }
+        else:
+             f_test_results = {
+                'statistic': f_stat_val,
+                'p_value': f_pval_val,
+                'df': getattr(f_test_entity, 'df', None),
+                'df_resid': getattr(f_test_entity, 'df_resid', None),
+                'interpretation': 'Fixed effects are significant (use FE over OLS)' if f_pval_val < 0.05 else 'Fixed effects are not significant (OLS may be sufficient)'
+            }
         
         interpretation = generate_interpretation(fe_res, re_res, hausman_results, f_test_results)
 
@@ -169,3 +181,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
