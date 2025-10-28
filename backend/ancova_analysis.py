@@ -32,7 +32,18 @@ def _to_native_type(obj):
 
 class AncovaAnalysis:
     def __init__(self, data, dependent_var, factor_var, covariate_vars, alpha=0.05):
-        self.data = pd.DataFrame(data).copy()
+        # Handle both dict (column-oriented) and list (row-oriented) data
+        if isinstance(data, list):
+            self.data = pd.DataFrame(data)
+        elif isinstance(data, dict):
+            # Check if it's column-oriented {col: [values]} or needs conversion
+            if data and isinstance(next(iter(data.values())), list):
+                self.data = pd.DataFrame(data)
+            else:
+                self.data = pd.DataFrame([data])
+        else:
+            self.data = pd.DataFrame(data)
+        
         self.dependent_var = dependent_var
         self.factor_var = factor_var
         self.covariate_vars = covariate_vars if isinstance(covariate_vars, list) else [covariate_vars]
@@ -129,15 +140,16 @@ class AncovaAnalysis:
 
 
     def run_analysis(self):
+        # Build formula without backticks since we cleaned the variable names
         covariates_formula = ' + '.join(self.cv_clean)
-        formula = f'`{self.dv_clean}` ~ C(`{self.fv_clean}`) * ({covariates_formula})'
+        formula = f'{self.dv_clean} ~ C({self.fv_clean}) * ({covariates_formula})'
         
         try:
             model = ols(formula, data=self.clean_data).fit()
             anova_table = anova_lm(model, typ=2)
         except Exception as e:
             # Fallback to a simpler model without interaction
-            formula = f'`{self.dv_clean}` ~ C(`{self.fv_clean}`) + {covariates_formula}'
+            formula = f'{self.dv_clean} ~ C({self.fv_clean}) + {covariates_formula}'
             model = ols(formula, data=self.clean_data).fit()
             anova_table = anova_lm(model, typ=2)
             warnings.warn(f"Could not fit interaction model, proceeding without it. Error: {e}")
@@ -156,7 +168,7 @@ class AncovaAnalysis:
             if table_data and len(table_data) > 1 and 'coef' in table_data[0]:
                 for row in table_data[1:]:
                     if row and row[0]:
-                         row[0] = re.sub(r'C\(`([^`]+)`\).*\[T\.([^\]]+)\]', r'\1[\2]', row[0].strip())
+                         row[0] = re.sub(r'C\(([^)]+)\).*\[T\.([^\]]+)\]', r'\1[\2]', row[0].strip())
             
             summary_data.append({
                 'caption': getattr(table, 'title', None),
@@ -165,9 +177,9 @@ class AncovaAnalysis:
         self.results['model_summary_data'] = summary_data
         
         cleaned_index = {
-            f'C(`{self.fv_clean}`)': self.factor_var,
-            **{f'`{cv}`': self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)},
-            **{f'C(`{self.fv_clean}`):`{cv}`': f'{self.factor_var}:{self.covariate_vars[i]}' for i, cv in enumerate(self.cv_clean)}
+            f'C({self.fv_clean})': self.factor_var,
+            **{cv: self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)},
+            **{f'C({self.fv_clean}):{cv}': f'{self.factor_var}:{self.covariate_vars[i]}' for i, cv in enumerate(self.cv_clean)}
         }
         
         anova_table_renamed = anova_table.rename(index=cleaned_index)
@@ -201,19 +213,34 @@ class AncovaAnalysis:
             original_cov_name = self.covariate_vars[0]
             clean_cov_name = self.cv_clean[0]
             
+            # Scatter plot of raw data
             sns.scatterplot(
                 data=self.clean_data, 
                 x=clean_cov_name, 
                 y=self.dv_clean, 
                 hue=self.fv_clean, 
-                ax=axes[0]
+                ax=axes[0],
+                alpha=0.6,
+                legend=False
             )
             
-            for group_name, group_data in self.clean_data.groupby(self.fv_clean):
-                group_model = ols(f'`{self.dv_clean}` ~ `{clean_cov_name}`', data=group_data).fit()
-                x_vals = np.linspace(group_data[clean_cov_name].min(), group_data[clean_cov_name].max(), 100)
-                y_vals = group_model.predict(pd.DataFrame({clean_cov_name: x_vals}))
-                axes[0].plot(x_vals, y_vals, label=f'Fit: {group_name}')
+            # Plot regression lines for each group
+            sns.regplot(
+                data=self.clean_data,
+                x=clean_cov_name,
+                y=self.dv_clean,
+                ax=axes[0],
+                scatter=False, # Don't plot scatter again
+                ci=None, # No confidence interval
+                line_kws={'lw': 2, 'ls': '--'}
+            )
+            
+            # FacetGrid approach is complex to embed, so let's iterate
+            for group_name in self.clean_data[self.fv_clean].unique():
+                group_data = self.clean_data[self.clean_data[self.fv_clean] == group_name]
+                sns.regplot(x=clean_cov_name, y=self.dv_clean, data=group_data, ax=axes[0],
+                            scatter=False, ci=None, label=f'Fit: {group_name}')
+
 
             axes[0].set_title(f'Interaction: {self.dependent_var} vs {original_cov_name}')
             axes[0].set_xlabel(original_cov_name)
@@ -225,7 +252,7 @@ class AncovaAnalysis:
 
 
         # Q-Q plot for residuals
-        sm.qqplot(self.results['residuals'], line='s', ax=axes[1])
+        sm.qqplot(np.array(self.results['residuals']), line='s', ax=axes[1])
         axes[1].set_title('Q-Q Plot of Residuals')
         axes[1].grid(True, alpha=0.3)
         
@@ -259,8 +286,16 @@ def main():
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        import traceback
+        error_details = {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        print(json.dumps(error_details), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
     main()
+    
+
+  
