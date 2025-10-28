@@ -10,9 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Users, AlertTriangle, CheckCircle, HelpCircle, MoveRight, Settings, FileSearch, Layers } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
-import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Badge } from '../ui/badge';
 
@@ -21,8 +21,8 @@ interface ModelResult {
     params: { [key: string]: number };
     pvalues: { [key: string]: number };
     tstats: { [key: string]: number };
-    rsquared: number;
-    rsquared_within?: number;
+    rsquared: number | null;
+    rsquared_within?: number | null;
 }
 interface FTestResult {
     statistic: number;
@@ -54,10 +54,10 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Users size={36} />
+                            <Layers size={36} />
                         </div>
                     </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Panel Data Regression</CardTitle>
+                    <CardTitle className="font-headline text-4xl font-bold">Panel Data / TSCS Regression</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
                         Analyze datasets that observe multiple entities over multiple time periods, such as countries, firms, or individuals.
                     </CardDescription>
@@ -66,7 +66,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use Panel Data Models?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Panel data allows you to control for variables you cannot observe or measure, like cultural factors in countries or individual business practices. It accounts for both individual heterogeneity and changes over time, providing more robust and accurate estimates than simple cross-sectional or time-series regressions.
+                            Panel data allows you to control for unobservable variables that differ between entities but are constant over time. This makes it possible to estimate causal effects more reliably than with simple cross-sectional or time-series data alone. This tool provides Pooled OLS, Fixed Effects, and Random Effects models to analyze your panel data.
                         </p>
                     </div>
                     <div className="flex justify-center">
@@ -128,7 +128,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2 && allHeaders.length >= 3, [data, numericHeaders, allHeaders]);
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 3, [data, allHeaders]);
     
     const availableFeatures = useMemo(() => allHeaders.filter(h => h !== entityCol && h !== timeCol && h !== dependent), [allHeaders, entityCol, timeCol, dependent]);
     
@@ -171,7 +171,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             const response = await fetch('/api/analysis/panel-data-regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, entityCol, timeCol, dependent, exog })
+                body: JSON.stringify({ data, entity_col: entityCol, time_col: timeCol, dependent, exog })
             });
 
             if (!response.ok) {
@@ -203,13 +203,13 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                 <CardHeader>
                     <CardTitle>{result.name}</CardTitle>
                     <CardDescription>
-                         {result.rsquared !== undefined && result.rsquared !== null ? `R²: ${result.rsquared.toFixed(3)} ` : ''}
-                         {result.rsquared_within !== undefined && result.rsquared_within !== null ? `(Within: ${result.rsquared_within.toFixed(3)})` : ''}
+                         {result.rsquared !== undefined && result.rsquared !== null ? `R²: ${result.rsquared.toFixed(4)} ` : ''}
+                         {result.rsquared_within !== undefined && result.rsquared_within !== null ? `(Within: ${result.rsquared_within.toFixed(4)})` : ''}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Coefficient</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Coefficient</TableHead><TableHead className="text-right">P-value</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {Object.keys(result.params).map(name => (
                                 <TableRow key={name}>
@@ -270,29 +270,35 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             {analysisResult && (
                 <div className="space-y-4">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Model Selection Diagnostics</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle className="font-headline">Model Selection Diagnostics</CardTitle></CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-4">
-                             <Alert variant={f_test_entity?.p_value !== null && f_test_entity?.p_value < 0.05 ? 'default' : 'secondary'}>
-                                 <AlertTitle>F-test for Entity Effects</AlertTitle>
-                                <AlertDescription>
-                                    {f_test_entity?.interpretation} (p={f_test_entity?.p_value?.toFixed(4)})
-                                </AlertDescription>
-                            </Alert>
-                             <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
-                                 <AlertTitle>Hausman Test</AlertTitle>
-                                <AlertDescription>
-                                    {hausman_test?.interpretation} (p={hausman_test?.p_value?.toFixed(4) ?? 'N/A'})
-                                </AlertDescription>
-                            </Alert>
+                            {f_test_entity && (
+                                <Alert variant={f_test_entity.p_value < 0.05 ? 'default' : 'secondary'}>
+                                    <AlertTitle>F-test for Entity Effects</AlertTitle>
+                                    <AlertDescription>
+                                        {f_test_entity.interpretation} (p={f_test_entity.p_value?.toFixed(4)})
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                             {hausman_test && (
+                                <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
+                                    <AlertTitle>Hausman Test</AlertTitle>
+                                    <AlertDescription>
+                                        {hausman_test.interpretation} (p={hausman_test.p_value?.toFixed(4) ?? 'N/A'})
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                         </CardContent>
                     </Card>
-                     <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>AI Interpretation</AlertTitle>
-                        <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation?.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || '' }} />
-                    </Alert>
+                    
+                    {interpretation && (
+                        <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>AI Interpretation</AlertTitle>
+                            <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                        </Alert>
+                    )}
+
                     <div className="grid lg:grid-cols-3 gap-4">
                         {pooled_ols && renderResultsTable(pooled_ols)}
                         {fixed_effects && renderResultsTable(fixed_effects)}
