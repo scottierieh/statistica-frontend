@@ -164,6 +164,7 @@ import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
 import OutlierDetectionPage from './pages/outlier-detection-page';
 import DecisionTreePage from './pages/decision-tree-page';
 import RobustRegressionPage from './pages/robust-regression-page';
+import { UserNav } from './user-nav';
 
 const analysisCategories = [
     {
@@ -710,8 +711,8 @@ export default function StatisticaApp() {
               ))}
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter>
-             <div className="w-full flex gap-2">
+          <SidebarFooter className="flex-col gap-2">
+            <div className="w-full flex gap-2">
                 <Button variant="outline" onClick={() => setActiveAnalysis('history')} className="flex-1">
                     <Clock />
                     <span className="group-data-[collapsible=icon]:hidden">History</span>
@@ -721,6 +722,8 @@ export default function StatisticaApp() {
                     <span className="group-data-[collapsible=icon]:hidden">PDF</span>
                 </Button>
             </div>
+            <Separator />
+            <UserNav />
           </SidebarFooter>
         </Sidebar>
 
