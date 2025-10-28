@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -456,7 +457,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     }
     
     const results = analysisResult?.results;
-    const anovaTable = results?.diagnostics?.anova_table;
     const coefficientTableData = results?.diagnostics?.coefficient_tests ? Object.entries(results.diagnostics.coefficient_tests.params).map(([key, value]) => ({
         key: key,
         coefficient: value,
@@ -551,12 +551,11 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </Table>
                         </CardContent>
                     </Card>
-                    
                     <Card>
                         <CardHeader><CardTitle>Assumption Checks</CardTitle></CardHeader>
                         <CardContent>
                             <Table>
-                                 <TableHeader>
+                                <TableHeader>
                                     <TableRow>
                                         <TableHead>Test</TableHead>
                                         <TableHead>Assumption</TableHead>
