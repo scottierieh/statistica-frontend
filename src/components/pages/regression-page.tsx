@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -567,7 +566,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {fTestPValue !== undefined && <TableRow><TableCell>F-test</TableCell><TableCell>Overall Model Significance</TableCell><TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{fTestPValue.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={fTestMet ? 'default' : 'destructive'}>{fTestMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
+                                    {fTestPValue !== undefined && <TableRow><TableCell>F-test</TableCell><TableCell>Overall Model Significance</TableCell><TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{fTestPValue.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={fTestMet ? 'default' : 'destructive'}>{fTestMet ? "Significant" : "Not Significant"}</Badge></TableCell></TableRow>}
                                     {durbinWatson !== undefined && <TableRow><TableCell>Durbin-Watson</TableCell><TableCell>Independence of Residuals</TableCell><TableCell className="font-mono text-right">{durbinWatson.toFixed(3)}</TableCell><TableCell className="text-right">-</TableCell><TableCell className="text-right"><Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {bpTest && <TableRow><TableCell>Breusch-Pagan</TableCell><TableCell>Homoscedasticity</TableCell><TableCell className="font-mono text-right">{bpTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{bpTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={bpMet ? 'default' : 'destructive'}>{bpMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
                                     {swTest && <TableRow><TableCell>Shapiro-Wilk</TableCell><TableCell>Normality of Residuals</TableCell><TableCell className="font-mono text-right">{swTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{swTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={swMet ? 'default' : 'destructive'}>{swMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
@@ -576,36 +575,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </Table>
                         </CardContent>
                     </Card>
-                    
-                    {modelType === 'multiple' && results?.diagnostics?.vif && Object.keys(results.diagnostics.vif).length > 1 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>VIF (Variance Inflation Factor)</CardTitle>
-                                <CardDescription>Measures multicollinearity. Values &gt; 5 are a concern, &gt; 10 are problematic.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Variable</TableHead>
-                                            <TableHead className="text-right">VIF</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {Object.entries(results.diagnostics.vif).map(([key, value]) => {
-                                            if (key === 'const') return null;
-                                            return (
-                                                <TableRow key={key}>
-                                                    <TableCell>{key}</TableCell>
-                                                    <TableCell className={`text-right font-mono ${value > 10 ? 'text-destructive font-bold' : value > 5 ? 'text-orange-500 font-semibold' : ''}`}>{value.toFixed(3)}</TableCell>
-                                                </TableRow>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             )}
         </div>
