@@ -491,7 +491,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, setMultipleFeatureVars, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod, handleMultiFeatureSelectionChange })}
+                    {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, handleMultiFeatureSelectionChange, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod })}
                 </CardContent>
                  <CardFooter className="flex justify-end">
                     <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar}>
