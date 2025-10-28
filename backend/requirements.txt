@@ -17,3 +17,4 @@ onnxruntime
 cffi==1.16.0
 squarify
 linearmodels
+pingouin
