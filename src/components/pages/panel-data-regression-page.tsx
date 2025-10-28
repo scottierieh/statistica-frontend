@@ -30,9 +30,10 @@ interface FTestResult {
     interpretation: string;
 }
 interface HausmanResult {
-    statistic: number;
-    p_value: number;
+    statistic?: number;
+    p_value?: number;
     interpretation: string;
+    error?: string;
 }
 interface FullAnalysisResponse {
     results: {
@@ -89,7 +90,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                 <Settings className="text-primary"/> Setup Guide
                             </h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Entity & Time Variables:</strong> Select the columns that identify your unique entities (e.g., 'Country') and time periods (e.g., 'Year').</li>
+                                <li><strong>Entity & Time Variables:</strong> Select the columns that identify your unique entities and time periods.</li>
                                 <li><strong>Dependent & Independent Variables:</strong> Choose your outcome variable and one or more predictors.</li>
                                 <li><strong>Run Analysis:</strong> The tool will automatically run three key models: Pooled OLS, Fixed Effects, and Random Effects.</li>
                             </ol>
@@ -99,9 +100,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                 <FileSearch className="text-primary"/> Model Interpretation
                             </h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Pooled OLS:</strong> A basic regression that ignores the panel structure. It's a useful baseline but often biased.</li>
                                 <li><strong>Fixed Effects (FE):</strong> Controls for all time-invariant differences between entities. Use this when you believe unobserved factors are correlated with your predictors.</li>
-                                <li><strong>Random Effects (RE):</strong> Assumes unobserved factors are random and uncorrelated with predictors. More efficient than FE if its assumptions hold.</li>
+                                <li><strong>Random Effects (RE):</strong> Assumes unobserved entity-specific factors are random and uncorrelated with predictors. More efficient than FE if its assumptions hold.</li>
                                 <li><strong>Hausman Test:</strong> Helps you choose between FE and RE. A significant p-value (&lt; 0.05) suggests using the Fixed Effects model.</li>
                             </ul>
                         </div>
@@ -171,7 +171,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             const response = await fetch('/api/analysis/panel-data-regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, entity_col: entityCol, time_col: timeCol, dependent, exog })
+                body: JSON.stringify({ data, entity_col: entityCol, time_col: timeCol, dependent, exog_cols: exog })
             });
 
             if (!response.ok) {
@@ -203,8 +203,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                 <CardHeader>
                     <CardTitle>{result.name}</CardTitle>
                     <CardDescription>
-                         {result.rsquared !== undefined && result.rsquared !== null ? `R²: ${result.rsquared.toFixed(4)} ` : ''}
-                         {result.rsquared_within !== undefined && result.rsquared_within !== null ? `(Within: ${result.rsquared_within.toFixed(4)})` : ''}
+                         R²: {result.rsquared?.toFixed(4) ?? 'N/A'} {result.rsquared_within && `(Within: ${result.rsquared_within.toFixed(4)})`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -247,14 +246,7 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                         <div><Label>Dependent (Y)</Label><Select value={dependent} onValueChange={setDependent}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div>
                             <Label>Independent (X)</Label>
-                            <ScrollArea className="h-24 border rounded-md p-2">
-                               {availableFeatures.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`x-${h}`} checked={exog.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
-                                        <Label htmlFor={`x-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </ScrollArea>
+                            <ScrollArea className="h-24 border rounded-md p-2"><div className="space-y-1">{availableFeatures.map(h => (<div key={h} className="flex items-center space-x-2"><Checkbox id={`x-${h}`} checked={exog.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} /><Label htmlFor={`x-${h}`}>{h}</Label></div>))}</div></ScrollArea>
                         </div>
                     </div>
                 </CardContent>
@@ -266,9 +258,20 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
             </Card>
 
             {isLoading && <Skeleton className="h-96 w-full"/>}
-            
             {analysisResult && (
                 <div className="space-y-4">
+                    {interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle>AI Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                                <Alert>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Analysis Summary & Recommendation</AlertTitle>
+                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                </Alert>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card>
                         <CardHeader><CardTitle className="font-headline">Model Selection Diagnostics</CardTitle></CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-4">
@@ -284,21 +287,13 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
                                 <Alert variant={hausman_test?.p_value !== null && hausman_test?.p_value < 0.05 ? 'default' : 'secondary'}>
                                     <AlertTitle>Hausman Test</AlertTitle>
                                     <AlertDescription>
-                                        {hausman_test.interpretation} (p={hausman_test.p_value?.toFixed(4) ?? 'N/A'})
+                                        {hausman_test.error ? hausman_test.error : `${hausman_test.interpretation} (p=${hausman_test.p_value?.toFixed(4) ?? 'N/A'})`}
                                     </AlertDescription>
                                 </Alert>
                             )}
                         </CardContent>
                     </Card>
                     
-                    {interpretation && (
-                        <Alert>
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>AI Interpretation</AlertTitle>
-                            <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                        </Alert>
-                    )}
-
                     <div className="grid lg:grid-cols-3 gap-4">
                         {pooled_ols && renderResultsTable(pooled_ols)}
                         {fixed_effects && renderResultsTable(fixed_effects)}
@@ -309,3 +304,6 @@ export default function PanelDataRegressionPage({ data, allHeaders, numericHeade
         </div>
     );
 }
+
+
+    
