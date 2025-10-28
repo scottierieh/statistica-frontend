@@ -48,7 +48,7 @@ import { rfmData } from './example-datasets/rfm-data';
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | 'turf' | 'csat' | 'semantic-differential' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'classifier-comparison' | 'turf' | 'csat' | 'semantic-differential' | string;
 
 
 export interface ExampleDataSet {
@@ -73,6 +73,7 @@ const irisData = `sepal.length,sepal.width,petal.length,petal.width,variety
 5.8,2.7,5.1,1.9,Virginica
 `;
 
+
 const tipsData = `total_bill,tip,sex,smoker,day,time,size
 16.99,1.01,Female,No,Sun,Dinner,2
 10.34,1.66,Male,No,Sun,Dinner,3
@@ -94,9 +95,17 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Customer purchase history with IDs, dates, and amounts. Ideal for RFM analysis.',
         icon: Users,
         analysisTypes: ['rfm-analysis', 'stats'],
-        recommendedAnalysis: 'rfm-analysis',
         data: rfmData,
     },
+    
+    {     id: 'rm-anova',
+        name: 'Cognitive Training Study (RM ANOVA)',
+        description: 'A dataset tracking the cognitive scores of 15 subjects over four time points after a training program. Ideal for Repeated Measures ANOVA.',
+        icon: Repeat,
+        analysisTypes: ['rm-anova', 'stats'],
+        data: rmAnovaData,
+    },
+      
     {
         id: 'dea-bank-data',
         name: 'Bank Branch Efficiency',
@@ -135,7 +144,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Simulated data showing response to different doses of a substance.',
         icon: Atom,
         analysisTypes: ['nonlinear-regression', 'stats', 'visuals'],
-        recommendedAnalysis: 'nonlinear-regression',
         data: nonlinearRegressionData,
     },
     {
@@ -168,7 +176,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Customer satisfaction data across different product categories and regions.',
         icon: Columns,
         analysisTypes: ['crosstab', 'stats', 'frequency'],
-        recommendedAnalysis: 'crosstab',
         data: crosstabData,
     },  
      {
@@ -179,15 +186,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         analysisTypes: ['turf'],
         data: turfData,
     },
-    {
-        id: 'rm-anova',
-        name: 'Athlete Performance',
-        description: 'Performance scores over time for two groups. Ideal for Repeated Measures ANOVA.',
-        icon: Repeat,
-        analysisTypes: ['rm-anova'],
-        data: rmAnovaData,
-        recommendedAnalysis: 'repeated-measures-anova'
-    },
+
     {
         id: 'gbm-regression',
         name: 'GBM Regression',
@@ -210,7 +209,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Economic indicators for several countries over multiple years.',
         icon: Layers,
         analysisTypes: ['panel-data-regression'],
-        recommendedAnalysis: 'panel-data-regression',
         data: panelData,
     },
     {
@@ -227,7 +225,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Student scores based on teaching method and gender.',
         icon: Copy,
         analysisTypes: ['two-way-anova', 'stats'],
-        recommendedAnalysis: 'two-way-anova',
         data: twoWayAnovaData,
     },
     {
@@ -236,7 +233,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Customer tenure and churn status. Ideal for Survival Analysis.',
         icon: HeartPulse,
         analysisTypes: ['survival', 'stats', 'glm','crosstab'],
-        recommendedAnalysis: 'survival',
         data: survivalData,
     },
     {
@@ -334,7 +330,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Purchase intent before and after an ad campaign. Ideal for McNemar\'s Test.',
         icon: Handshake,
         analysisTypes: ['mcnemar'],
-        recommendedAnalysis: 'mcnemar',
         data: mcnemarData,
     },
      {
@@ -375,7 +370,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Outcome data for treatment and control groups before and after an intervention.',
         icon: GitCommit,
         analysisTypes: ['did'],
-        recommendedAnalysis: 'did',
         data: didData,
     },
     {
@@ -385,6 +379,5 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: BookOpen,
         analysisTypes: ['stats', 'visuals', 'ancova', 'normality', 'homogeneity', 'regression'],
         data: studentPerformanceData,
-        recommendedAnalysis: 'ancova'
     }
 ]

@@ -1,6 +1,7 @@
+
 import type { ExampleDataSet } from './index';
 
-const data = `
+export const rmAnovaData = `
 Subject,Time,Score
 S1,Time1,8
 S1,Time2,7
@@ -63,11 +64,3 @@ S15,Time2,8
 S15,Time3,7
 S15,Time4,6
 `;
-
-export const rmAnovaData: ExampleDataSet = {
-  id: 'rm-anova',
-  name: 'Cognitive Training Study (RM ANOVA)',
-  description: 'A dataset tracking the cognitive scores of 15 subjects over four time points after a training program. Ideal for Repeated Measures ANOVA.',
-  data,
-  recommendedAnalysis: 'repeated-measures-anova',
-};
