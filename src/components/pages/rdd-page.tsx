@@ -98,7 +98,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-
 export default function RddPage({ data, numericHeaders, onLoadExample }: { data: DataSet; numericHeaders: string[]; onLoadExample: (e: any) => void }) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
@@ -194,9 +193,9 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
                     <div><Label>Cutoff Point</Label><Input type="number" value={cutoff} onChange={e => setCutoff(Number(e.target.value))} /></div>
                     <div><Label>Polynomial Degree</Label><Input type="number" value={polynomial} onChange={e => setPolynomial(Number(e.target.value))} min="1" /></div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !runningVar || !outcomeVar}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run RDD</>}
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
                 </CardFooter>
             </Card>
@@ -211,7 +210,7 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
                         </CardHeader>
                         <CardContent>
                              <Alert variant={results.p_value < 0.05 ? 'default' : 'secondary'}>
-                                {results.p_value < 0.05 ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                                {results.p_value < 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                                 <AlertTitle>{results.p_value < 0.05 ? "Statistically Significant Effect" : "No Significant Effect"}</AlertTitle>
                                 <AlertDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                             </Alert>
@@ -242,7 +241,7 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
                             <CardHeader><CardTitle>McCrary Density Test</CardTitle></CardHeader>
                             <CardContent>
                                 <Alert variant={results.mccrary_test.p_value > 0.05 ? 'default' : 'destructive'}>
-                                    {results.mccrary_test.p_value > 0.05 ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                                    {results.mccrary_test.p_value > 0.05 ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                                     <AlertTitle>{results.mccrary_test.p_value > 0.05 ? "No Significant Manipulation" : "Potential Manipulation Detected"}</AlertTitle>
                                     <AlertDescription>
                                         A non-significant p-value ({results.mccrary_test.p_value.toFixed(3)}) suggests no evidence of individuals manipulating the running variable around the cutoff.
@@ -256,4 +255,3 @@ export default function RddPage({ data, numericHeaders, onLoadExample }: { data:
         </div>
     );
 }
-
