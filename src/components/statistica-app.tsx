@@ -146,7 +146,6 @@ import GuidePage from './pages/guide-page';
 import VariabilityAnalysisPage from './pages/variability-analysis-page';
 import NpsPage from './pages/nps-page';
 import RoiAnalysisPage from './pages/roi-analysis-page';
-import RfmPage from './pages/rfm-page';
 import LinearProgrammingPage from './pages/linear-programming-page';
 import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
@@ -383,7 +382,6 @@ const analysisCategories = [
             { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
             { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
             { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
-            { id: 'rfm-analysis', label: 'RFM Analysis', icon: Users, component: RfmPage },
         ],
     },
     {
