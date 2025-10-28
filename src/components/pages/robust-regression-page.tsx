@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -31,6 +31,12 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
     const [xCol, setXCol] = useState<string | undefined>();
     const [yCol, setYCol] = useState<string | undefined>();
     
+    // New state for advanced settings
+    const [mNorm, setMNorm] = useState('HuberT');
+    const [missing, setMissing] = useState('drop');
+    const [scaleEst, setScaleEst] = useState('mad');
+    const [initMethod, setInitMethod] = useState('ls');
+
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
@@ -56,7 +62,15 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
             const response = await fetch('/api/analysis/robust-regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, x_col: xCol, y_col: yCol })
+                body: JSON.stringify({ 
+                    data, 
+                    x_col: xCol, 
+                    y_col: yCol,
+                    M: mNorm,
+                    missing,
+                    scale_est: scaleEst,
+                    init: initMethod,
+                })
             });
 
             if (!response.ok) {
@@ -75,7 +89,7 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
         } finally {
             setIsLoading(false);
         }
-    }, [data, xCol, yCol, toast]);
+    }, [data, xCol, yCol, mNorm, missing, scaleEst, initMethod, toast]);
 
     const results = analysisResult?.results;
 
@@ -85,21 +99,54 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
                 <CardHeader>
                     <CardTitle className="font-headline">Robust Regression Setup</CardTitle>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <Label>Independent Variable (X)</Label>
-                        <Select value={xCol} onValueChange={setXCol}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                        </Select>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Independent Variable (X)</Label>
+                            <Select value={xCol} onValueChange={setXCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                        <div>
+                            <Label>Dependent Variable (Y)</Label>
+                            <Select value={yCol} onValueChange={setYCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h => h !== xCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
                     </div>
-                    <div>
-                        <Label>Dependent Variable (Y)</Label>
-                        <Select value={yCol} onValueChange={setYCol}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{numericHeaders.filter(h => h !== xCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
+                     <Card className="bg-muted/50 p-4">
+                        <h4 className="font-semibold mb-2">Advanced Settings</h4>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <Label>Robust Norm (M)</Label>
+                                <Select value={mNorm} onValueChange={setMNorm}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                    <SelectItem value="HuberT">HuberT</SelectItem>
+                                    <SelectItem value="TukeyBiweight">TukeyBiweight</SelectItem>
+                                    <SelectItem value="RamsayE">RamsayE</SelectItem>
+                                    <SelectItem value="AndrewWave">AndrewWave</SelectItem>
+                                    <SelectItem value="Hampel">Hampel</SelectItem>
+                                    <SelectItem value="LeastSquares">LeastSquares</SelectItem>
+                                </SelectContent></Select>
+                            </div>
+                            <div>
+                                <Label>Missing Values</Label>
+                                <Select value={missing} onValueChange={setMissing}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                    <SelectItem value="drop">Drop</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
+                                </SelectContent></Select>
+                            </div>
+                             <div>
+                                <Label>Scale Estimation</Label>
+                                <Select value={scaleEst} onValueChange={setScaleEst}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                    <SelectItem value="mad">MAD</SelectItem>
+                                    <SelectItem value="HuberScale">HuberScale</SelectItem>
+                                </SelectContent></Select>
+                            </div>
+                             <div>
+                                <Label>Initial Values</Label>
+                                <Select value={initMethod} onValueChange={setInitMethod}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                    <SelectItem value="ls">Least Squares</SelectItem>
+                                    <SelectItem value="median">Median</SelectItem>
+                                </SelectContent></Select>
+                            </div>
+                        </div>
+                    </Card>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !xCol || !yCol}>
@@ -136,7 +183,7 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardHeader><CardTitle>RLM Results</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>RLM Results ({mNorm})</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Parameter</TableHead><TableHead className="text-right">Coefficient</TableHead><TableHead className="text-right">Std. Error</TableHead></TableRow></TableHeader>
