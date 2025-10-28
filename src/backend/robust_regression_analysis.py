@@ -25,7 +25,7 @@ def main():
         data = payload.get('data')
         x_col = payload.get('x_col')
         y_col = payload.get('y_col')
-        
+
         # New parameters from frontend
         m_norm_str = payload.get('M', 'HuberT')
         missing = payload.get('missing', 'drop')
@@ -67,7 +67,7 @@ def main():
         }
         m_norm = norms.get(m_norm_str, sm.robust.norms.HuberT())
 
-        rlm_model = sm.RLM(y, X, M=m_norm, scale_est=scale_est_str).fit(init=init_method)
+        rlm_model = sm.RLM(y, X, M=m_norm).fit(scale_est=scale_est_str, init=init_method)
 
         # Plot
         fig, ax = plt.subplots(figsize=(10, 8))
@@ -87,6 +87,11 @@ def main():
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         
+        # Calculate pseudo R-squared for RLM
+        dev = np.sum(rlm_model.resid**2)
+        null_dev = np.sum((y - np.mean(y))**2)
+        pseudo_r2 = 1 - (dev / null_dev) if null_dev > 0 else 0
+        
         response = {
             'results': {
                 'ols': {
@@ -96,7 +101,17 @@ def main():
                 },
                 'rlm': {
                     'params': rlm_model.params.tolist(),
-                    'bse': rlm_model.bse.tolist()
+                    'bse': rlm_model.bse.tolist(),
+                    'pseudo_r_squared': pseudo_r2,
+                    'summary': {
+                        'Dep. Variable': y_col,
+                        'Model': 'RLM',
+                        'Method': 'IRLS',
+                        'Norm': m_norm_str,
+                        'No. Iterations': rlm_model.niter,
+                        'Scale Est.': scale_est_str.upper(),
+                        'Cov Type': 'H1' # Default for RLM
+                    }
                 }
             },
             'plot': f"data:image/png;base64,{plot_image}"

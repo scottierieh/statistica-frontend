@@ -16,6 +16,8 @@ interface RegressionResult {
     params: number[];
     bse: number[];
     r_squared?: number;
+    pseudo_r_squared?: number;
+    summary?: { [key: string]: string | number };
 }
 
 interface FullAnalysisResponse {
@@ -92,6 +94,27 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
     }, [data, xCol, yCol, mNorm, missing, scaleEst, initMethod, toast]);
 
     const results = analysisResult?.results;
+
+    const renderRlmSummary = () => {
+        if (!results?.rlm?.summary) return null;
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Robust Linear Model Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(results.rlm.summary).map(([key, value]) => (
+                             <div key={key} className="p-3 bg-muted/50 rounded-md">
+                                <p className="text-xs font-medium text-muted-foreground">{key}</p>
+                                <p className="font-semibold">{value}</p>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
 
     return (
         <div className="space-y-4">
@@ -192,9 +215,11 @@ export default function RobustRegressionPage({ data, numericHeaders }: { data: D
                                         <TableRow><TableCell>{xCol}</TableCell><TableCell className="text-right font-mono">{results.rlm.params[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{results.rlm.bse[1].toFixed(4)}</TableCell></TableRow>
                                     </TableBody>
                                 </Table>
+                                <p className="text-sm mt-2"><strong>Pseudo R-squared:</strong> {results.rlm.pseudo_r_squared?.toFixed(4)}</p>
                             </CardContent>
                         </Card>
                     </div>
+                    {renderRlmSummary()}
                 </div>
             )}
         </div>
