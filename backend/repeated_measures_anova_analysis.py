@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import base64
-from statsmodels.stats.anova import AnovaRM
+import pingouin as pg
 import math
 
 warnings.filterwarnings('ignore')
@@ -54,31 +54,69 @@ class RepeatedMeasuresAnova:
 
     def run_analysis(self):
         try:
-            aov = AnovaRM(
-                data=self.long_data,
-                depvar=self.dependent_var,
-                subject=self.subject_col,
-                within=[ 'time' ],
-                between=[self.between_col] if self.between_col else None,
-                aggregate_func='mean'
-            )
-            res = aov.fit()
+            # Build arguments dynamically for rm_anova
+            kwargs = {
+                'data': self.long_data,
+                'dv': self.dependent_var,
+                'within': 'time', # This is now the standard name for the within-factor
+                'subject': self.subject_col,
+                'detailed': True,
+                'effsize': "np2"
+            }
+            if self.between_col:
+                kwargs['between'] = self.between_col
             
-            # Extract ANOVA table
-            anova_table_df = res.anova_table
-            self.results['anova_table'] = anova_table_df.reset_index().to_dict('records')
+            aov = pg.rm_anova(**kwargs)
+
+            # Convert NaN to None before creating the dictionary
+            self.results['anova_table'] = aov.replace({np.nan: None}).to_dict('records')
             
-            # Mauchly's test for sphericity
-            mauchly_result = res.sphericity
-            if mauchly_result:
-                self.results['mauchly_test'] = {
-                    'spher': mauchly_result[0],
-                    'p-val': mauchly_result[2],
-                    'W': mauchly_result[1],
-                }
+            # Sphericity test is only relevant for within-subject effects with > 2 levels
+            if len(self.within_cols) > 2:
+                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within='time', subject=self.subject_col)
+                if isinstance(sphericity_test, tuple): # Older pingouin versions might return a tuple
+                    w, spher, chi2, dof, pval = sphericity_test
+                    spher_dict = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
+                    self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
+                else: # Newer pingouin versions return dataframe
+                    spher_dict = sphericity_test.to_dict('records')[0]
+                    # Ensure 'W' key exists, mapping from 'W-spher' if necessary
+                    if 'W-spher' in spher_dict and 'W' not in spher_dict:
+                        spher_dict['W'] = spher_dict.pop('W-spher')
+                    self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
             else:
-                 self.results['mauchly_test'] = None
+                self.results['mauchly_test'] = None
+
+
+            # Post-hoc tests if significant interaction or main effect
+            perform_posthoc = False
+            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov.loc[aov['Source'] == 'time', 'p-GG-corr']).any() else 'p-unc'
             
+            if self.between_col:
+                interaction_row = aov[aov['Source'] == f'time * {self.between_col}']
+                if not interaction_row.empty:
+                    interaction_p_col = 'p-GG-corr' if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else 'p-unc'
+                    if interaction_row[interaction_p_col].iloc[0] < self.alpha:
+                        perform_posthoc = True
+            else: # No between-subject factor, check main within-subject effect
+                within_row = aov[aov['Source'] == 'time']
+                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
+                    perform_posthoc = True
+
+            if perform_posthoc:
+                posthoc_args = {
+                    'data': self.long_data,
+                    'dv': self.dependent_var,
+                    'within': 'time',
+                    'subject': self.subject_col,
+                    'padjust': 'bonf'
+                }
+                if self.between_col:
+                    posthoc_args['between'] = self.between_col
+                
+                posthoc = pg.pairwise_tests(**posthoc_args)
+                self.results['posthoc_results'] = posthoc.replace({np.nan: None}).to_dict('records')
+
         except Exception as e:
             self.results['error'] = str(e)
 
