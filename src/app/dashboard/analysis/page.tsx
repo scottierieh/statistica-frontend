@@ -13,22 +13,22 @@ const analysisTools = [
     id: "statistical-analysis",
     href: "/dashboard/statistica",
     icon: Calculator,
-    title: "통계 분석",
-    description: "40가지 이상의 통계 분석 기법을 사용하여 데이터를 분석하고 AI 기반 리포트를 생성합니다.",
+    title: "Statistical Analysis",
+    description: "Analyze data with over 40 statistical techniques and generate AI-powered reports.",
   },
   {
     id: "data-preprocessing",
     href: "/dashboard/data-preprocessing",
     icon: DatabaseZap,
-    title: "데이터 전처리",
-    description: "결측치 처리, 변수 변환, 이상치 탐지 등 데이터 분석을 위한 준비 작업을 수행합니다.",
+    title: "Data Preprocessing",
+    description: "Prepare your data for analysis with tools for handling missing values, variable transformation, and outlier detection.",
   },
   {
     id: "visualization",
     href: "/dashboard/visualization",
     icon: Paintbrush,
-    title: "시각화",
-    description: "다양한 차트와 그래프를 통해 데이터를 시각적으로 탐색하고 인사이트를 발견합니다.",
+    title: "Visualization",
+    description: "Visually explore your data and discover insights through a variety of charts and graphs.",
   },
 ];
 
@@ -48,7 +48,7 @@ function AnalysisToolCard({ tool }: { tool: typeof analysisTools[0] }) {
         </div>
         <div className="flex-grow"></div>
         <div className="relative z-10 mt-6 flex items-center justify-end text-sm font-semibold text-primary opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          분석 시작하기 <ArrowRight className="ml-2 h-4 w-4" />
+          Start Analysis <ArrowRight className="ml-2 h-4 w-4" />
         </div>
       </Card>
     </Link>
@@ -66,7 +66,7 @@ function AnalysisHub() {
       </header>
       <main className="flex-1 p-4 md:p-8 lg:p-12">
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
-          <h2 className="text-3xl font-bold font-headline mb-8 text-center text-foreground">분석 유형 선택</h2>
+          <h2 className="text-3xl font-bold font-headline mb-8 text-center text-foreground">Choose Analysis Type</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {analysisTools.map((tool) => (
               <AnalysisToolCard key={tool.id} tool={tool} />

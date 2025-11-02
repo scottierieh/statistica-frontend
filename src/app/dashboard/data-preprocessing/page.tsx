@@ -12,13 +12,13 @@ export default function DataPreprocessingPage() {
           <div className="flex justify-center items-center mb-4">
             <DatabaseZap className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="font-headline text-3xl">데이터 전처리</CardTitle>
+          <CardTitle className="font-headline text-3xl">Data Preprocessing</CardTitle>
           <CardDescription>
-            이 기능은 현재 준비 중입니다. 데이터 정제, 변수 생성 등의 기능이 곧 추가될 예정입니다!
+            This feature is currently under construction. Tools for data cleaning, variable creation, and more are coming soon!
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <p className="text-muted-foreground">업데이트를 기대해주세요.</p>
+            <p className="text-muted-foreground">Stay tuned for updates.</p>
         </CardContent>
       </Card>
     </div>
