@@ -28,7 +28,8 @@ import {
     Orbit,
     Hexagon,
     CandlestickChart,
-    Calculator
+    Calculator,
+    ArrowLeft
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
