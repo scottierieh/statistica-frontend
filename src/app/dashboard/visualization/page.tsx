@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
     Info, 
     BarChart as BarChartIcon, 
-    PieChart, 
+    PieChart as PieChartIcon, 
     LineChart as LineChartIcon, 
     AreaChart, 
     ScatterChart as ScatterIcon, 
