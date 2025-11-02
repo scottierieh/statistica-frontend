@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -161,7 +160,6 @@ import DecisionTreePage from './pages/decision-tree-page';
 import RobustRegressionPage from './pages/robust-regression-page';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
-import VisualizationPage from './pages/visualization-page';
 import SnaPage from './pages/sna-page';
 import { Input } from '@/components/ui/input';
 
@@ -172,14 +170,6 @@ const analysisCategories = [
       isSingle: true,
       items: [
         { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
-      ]
-    },
-     {
-      name: 'Visualization',
-      icon: Palette,
-      isSingle: true,
-      items: [
-        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
       ]
     },
     {
@@ -438,7 +428,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('guide');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Guide', 'Visualization']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Guide']);
   const [searchTerm, setSearchTerm] = useState('');
   const analysisPageRef = useRef<HTMLDivElement>(null);
 
