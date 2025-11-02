@@ -27,7 +27,7 @@ interface AnovaPageProps {
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const anovaExample = exampleDatasets.find(d => d.id === 'tips');
+    const anovaExample = exampleDatasets.find(d => d.id === 'one-way-anova');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const tools = [
   {
     id: "statistica",
-    href: "/dashboard/statistica",
+    href: "/dashboard/analysis",
     icon: Calculator,
     title: "Statistica",
     description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",

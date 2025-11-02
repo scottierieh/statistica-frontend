@@ -71,7 +71,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                 <li><strong>Exogenous Variable(s) (X):</strong> Predictors that are not correlated with the error term.</li>
                                 <li><strong>Instrumental Variable(s) (Z):</strong> Variables that are correlated with the endogenous variables but do not directly affect the dependent variable.</li>
                             </ol>
-                        </div>
+
+                    </div> 
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">

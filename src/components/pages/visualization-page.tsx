@@ -23,8 +23,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     return (
         <div className="flex flex-1 items-center justify-center p-4">
             <Card className="w-full max-w-4xl">
-                <CardHeader className="text-center p-8">
-                    <CardTitle className="font-headline text-4xl font-bold">Data Visualization</CardTitle>
+            <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+            <CardTitle className="font-headline text-4xl font-bold">Data Visualization</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground">
                         Create a variety of charts and graphs to explore and present your data effectively.
                     </CardDescription>
@@ -88,7 +88,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>

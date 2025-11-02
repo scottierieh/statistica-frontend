@@ -15,6 +15,7 @@ import { ipaRestaurantData } from "./example-datasets/ipa-restaurant-data";
 import { admissionData } from "./example-datasets/admission-data";
 import { survivalData } from "./example-datasets/survival-data";
 import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
+import { oneWayAnovaData } from "./example-datasets/one-way-anova-data";
 import { abTestData } from "./example-datasets/ab-test-data";
 import { gbmClassificationData, gbmRegressionData } from "./example-datasets/gbm-data";
 import { metaAnalysisData } from "./example-datasets/meta-analysis-data";
@@ -99,8 +100,8 @@ export const exampleDatasets: ExampleDataSet[] = [
     },
     
     {     id: 'rm-anova',
-        name: 'Cognitive Training Study (RM ANOVA)',
-        description: 'A dataset tracking the cognitive scores of 15 subjects over four time points after a training program. Ideal for Repeated Measures ANOVA.',
+        name: 'Cognitive Training Study',
+        description: 'A dataset tracking the cognitive scores of 15 subjects over four time points after a training program.',
         icon: Repeat,
         analysisTypes: ['rm-anova', 'stats'],
         data: rmAnovaData,
@@ -177,6 +178,14 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: Columns,
         analysisTypes: ['crosstab', 'stats', 'frequency'],
         data: crosstabData,
+    },  
+    {
+        id: 'one-way-anova',
+        name: 'Advertising Campaign Performance',
+        description: 'Sales performance across different advertising campaign types (Online, TV, and Print).',
+        icon: Columns,
+        analysisTypes: ['one-way-anova'],
+        data: oneWayAnovaData,
     },  
      {
         id: 'turf-analysis',

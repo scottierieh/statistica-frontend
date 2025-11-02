@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -130,62 +129,57 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
             setAnalysisResult(null);
             setShowHelpPage(false);
         }
-    }, [data, allHeaders, numericHeaders, binaryCategoricalHeaders, canRun, survivalExample, onLoadExample]);
+    }, [canRun, binaryCategoricalHeaders, allHeaders, survivalExample, onLoadExample]);
 
-
-    const handleFeatureChange = (header: string, checked: boolean) => {
+    // FIXED: Move all hooks BEFORE any conditional returns
+    const availableFeatures = useMemo(() => allHeaders.filter(h => h !== target), [allHeaders, target]);
+    const handleFeatureChange = useCallback((header: string, checked: boolean) => {
         setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== header));
-    };
+    }, []);
 
     const handleAnalysis = useCallback(async () => {
-        if (!target || features.length === 0) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a target and at least one feature.' });
-            return;
-        }
-
+        if (!target || features.length === 0) return;
+        
         setIsLoading(true);
-        setAnalysisResult(null);
-
         try {
-            const response = await fetch('/api/analysis/decision-tree-classifier', {
+            const response = await fetch('/api/stats/decision-tree', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    data, 
-                    target, 
-                    features,
-                    random_state: randomState,
+                body: JSON.stringify({
+                    data,
+                    headers: { all: allHeaders, numeric: numericHeaders, categorical: categoricalHeaders },
+                    params: { target, features, random_state: randomState }
                 })
             });
 
             if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                const error = await response.json();
+                throw new Error(error.error || 'Analysis failed');
             }
 
             const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
-            
             setAnalysisResult(result);
 
-        } catch (e: any) {
-            console.error('Decision Tree error:', e);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+            toast({
+                title: "Decision Tree Trained Successfully",
+                description: `Model accuracy: ${(result.results.accuracy * 100).toFixed(1)}%`,
+            });
+        } catch (error: any) {
+            console.error('Analysis error:', error);
+            toast({
+                title: "Analysis Failed",
+                description: error.message || 'An error occurred during the analysis',
+                variant: "destructive"
+            });
         } finally {
             setIsLoading(false);
         }
-    }, [data, target, features, randomState, toast]);
-    
-    const availableFeatures = useMemo(() => {
-        return allHeaders.filter(h => h !== target);
-    }, [allHeaders, target]);
-    
-    if (showHelpPage) {
-        return <HelpPage onLoadExample={onLoadExample} onBackToSetup={() => setShowHelpPage(false)} />
-    }
-    
+    }, [target, features, randomState, data, allHeaders, numericHeaders, categoricalHeaders, toast]);
+
+    // Get results from analysisResult (moved before conditional returns)
     const results = analysisResult?.results;
 
+    // FIXED: Calculate performanceMetrics BEFORE any conditional returns
     const performanceMetrics = useMemo(() => {
         if (!results || !results.confusion_matrix || results.confusion_matrix.length !== 2) return null;
         const [tn, fp, fn, tp] = results.confusion_matrix.flat();
@@ -201,6 +195,11 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
             sensitivity, specificity, ppv, npv, interpretation
         }
     }, [results]);
+
+    // NOW we can have conditional returns
+    if (showHelpPage) {
+        return <HelpPage onLoadExample={onLoadExample} onBackToSetup={() => setShowHelpPage(false)} />;
+    }
 
     return (
         <div className="space-y-4">

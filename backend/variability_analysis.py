@@ -30,7 +30,7 @@ def get_interpretation(results):
         return "Could not determine variability interpretation due to invalid data."
 
     interpretation = (
-        f"**Interpretation:** {lowest_cv_item['variable']} shows the lowest variability (CV={lowest_cv_item['cv']:.1f}%), "
+        f"Based on the provided data, {lowest_cv_item['variable']} shows the lowest variability (CV={lowest_cv_item['cv']:.1f}%), "
         f"indicating consistent perception or measurement. "
         f"On the other hand, {highest_cv_item['variable']} has the highest variability (CV={highest_cv_item['cv']:.1f}%), "
         f"suggesting diverse opinions or data points. This could indicate potential for targeted strategies or further investigation into the causes of this variation."

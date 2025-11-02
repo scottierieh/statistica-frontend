@@ -330,13 +330,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     return (
         <div className="flex flex-1 items-center justify-center p-4">
             <Card className="w-full max-w-4xl shadow-2xl">
-                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <BarChartIcon size={36} />
-                        </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Descriptive Statistics</CardTitle>
+                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">                    <CardTitle className="font-headline text-4xl font-bold">Descriptive Statistics</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
                         Summarize and describe the main features of a collection of data. This is the first step in any data analysis.
                     </CardDescription>
@@ -394,7 +388,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                  <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
