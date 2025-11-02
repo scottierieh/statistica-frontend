@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -140,6 +141,7 @@ export default function StandaloneVisualizationPage() {
     };
 
     const hasData = data.length > 0;
+    const vizExample = exampleDatasets.find(ex => ex.id === 'iris');
 
     return (
         <DashboardClientLayout>
@@ -163,8 +165,30 @@ export default function StandaloneVisualizationPage() {
                 </header>
                 <main className="flex-1 p-4 md:p-6 lg:p-8">
                      {!hasData ? (
-                        <div className="w-full max-w-lg mx-auto">
-                            <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                        <div className="flex flex-1 items-center justify-center h-full">
+                          <Card className="w-full max-w-2xl text-center">
+                              <CardHeader>
+                                  <CardTitle className="font-headline">Create a Visualization</CardTitle>
+                                  <CardDescription>
+                                      To get started, upload your data or load an example dataset.
+                                  </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                  <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                                  {vizExample && (
+                                      <>
+                                          <div className="relative my-4">
+                                              <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
+                                          </div>
+                                          <Button variant="secondary" className="w-full" onClick={() => handleLoadExampleData(vizExample)}>
+                                              <vizExample.icon className="mr-2"/>
+                                              Load {vizExample.name} Dataset
+                                          </Button>
+                                      </>
+                                  )}
+                              </CardContent>
+                          </Card>
                         </div>
                     ) : (
                          <div className="space-y-4">
