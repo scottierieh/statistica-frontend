@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Trash2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Save, Search, Download, FilePlus, AlertTriangle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -65,7 +65,7 @@ export default function DataPreprocessingPage() {
       ['007', 'Eric Davis', 29, 'Seattle', null, null, 'Inactive'],
       ['008', 'Fiona Clark', 31, 'Miami', 84.5, 'B', 'Active'],
     ];
-    setTableData({ headers, rows });
+    setTableData({ headers, rows: rows as TableRowData[] });
     setFileName('Sample Data');
   };
 
