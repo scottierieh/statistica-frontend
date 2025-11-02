@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
     Info, 
-    BarChart, 
+    BarChart as BarChartIcon, 
     PieChart, 
     LineChart as LineChartIcon, 
     AreaChart, 
