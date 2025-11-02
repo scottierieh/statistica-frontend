@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -162,6 +163,7 @@ import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
 import VisualizationPage from './pages/visualization-page';
 import SnaPage from './pages/sna-page';
+import { Input } from '@/components/ui/input';
 
 const analysisCategories = [
     {
@@ -172,11 +174,18 @@ const analysisCategories = [
         { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
       ]
     },
+     {
+      name: 'Visualization',
+      icon: Palette,
+      isSingle: true,
+      items: [
+        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
+      ]
+    },
     {
       name: 'Descriptive',
       icon: BarChart,
       items: [
-        { id: 'visualization', label: 'Visualization', icon: Palette, component: VisualizationPage },
         { id: 'descriptive-stats', label: 'Descriptive Statistics', icon: BarChart, component: DescriptiveStatisticsPage },
         { id: 'frequency-analysis', label: 'Frequency Analysis', icon: Users, component: FrequencyAnalysisPage },
          { id: 'variability-analysis', label: 'Variability Analysis', icon: TrendingUp, component: VariabilityAnalysisPage },
@@ -430,6 +439,7 @@ export default function StatisticaApp() {
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('guide');
   const [openCategories, setOpenCategories] = useState<string[]>(['Guide', 'Visualization']);
+  const [searchTerm, setSearchTerm] = useState('');
   const analysisPageRef = useRef<HTMLDivElement>(null);
 
 
@@ -602,6 +612,38 @@ export default function StatisticaApp() {
 
   const hasData = data.length > 0;
   
+  const filteredAnalysisCategories = useMemo(() => {
+    if (!searchTerm) {
+        return analysisCategories;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    
+    return analysisCategories.map(category => {
+        if (category.isSingle) {
+            const hasMatch = category.items[0].label.toLowerCase().includes(lowercasedFilter);
+            return hasMatch ? category : null;
+        }
+
+        if (category.items) {
+            const filteredItems = category.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+            return filteredItems.length > 0 ? { ...category, items: filteredItems } : null;
+        }
+
+        if (category.subCategories) {
+            const filteredSubCategories = category.subCategories
+                .map(sub => {
+                    const filteredItems = sub.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+                    return filteredItems.length > 0 ? { ...sub, items: filteredItems } : null;
+                })
+                .filter(Boolean) as typeof category.subCategories;
+
+            return filteredSubCategories.length > 0 ? { ...category, subCategories: filteredSubCategories } : null;
+        }
+        
+        return null;
+    }).filter(Boolean) as typeof analysisCategories;
+}, [searchTerm]);
+
   const ActivePageComponent = useMemo(() => {
     for (const category of analysisCategories) {
         if ('items' in category) {
@@ -628,16 +670,20 @@ export default function StatisticaApp() {
               </div>
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
-             <div className='p-2'>
+             <div className='p-2 space-y-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
                 loading={isUploading}
               />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search analyses..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9"/>
+              </div>
             </div>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-              {analysisCategories.map(category => 
+              {filteredAnalysisCategories.map(category => 
                 category.isSingle ? (
                   <SidebarMenuItem key={category.name}>
                     <SidebarMenuButton
