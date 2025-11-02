@@ -164,6 +164,7 @@ import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
 import SnaPage from './pages/sna-page';
 import { Input } from '@/components/ui/input';
+import VisualizationPage from './pages/visualization-page';
 
 const analysisCategories = [
     {
