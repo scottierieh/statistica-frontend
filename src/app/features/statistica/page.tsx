@@ -140,7 +140,7 @@ export default function StatisticaFeaturePage() {
                         </CardContent>
                     </Card>
                     
-                     <div className="mt-8 h-[400px] relative w-full overflow-hidden rounded-xl border shadow-lg">
+                     <div className="mt-8 aspect-[24/13.5] relative w-full overflow-hidden rounded-xl border shadow-lg">
                         <AnimatePresence>
                             {activeFeature && features[activeFeature as keyof typeof features].image && (
                                 <motion.div
