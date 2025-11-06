@@ -1189,7 +1189,7 @@ PLOT_MAP = {
     
     # Relationship
     'scatter': plot_scatter,
-    'regression': lambda df, config: plot_scatter(df, {**config, 'chartType': 'regression', 'trend_line': True}),
+    'regression': lambda df, config: plot_scatter(df, {**config, 'chartType': 'regression'}),
     'hexbin': lambda df, config: plot_scatter(df, {**config, 'chartType': 'hexbin'}),
     'bubble': lambda df, config: plot_scatter(df, {**config, 'chartType': 'bubble'}), # plot_scatter handles size_col
     'scatter_matrix': plot_scatter_matrix,
