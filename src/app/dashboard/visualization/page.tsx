@@ -6,17 +6,16 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch, Play, ArrowLeft } from 'lucide-react';
-// ✅ updated: Play icon import added
+import { GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart, Box, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch, Play, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DataSet } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Label } from '../ui/label';
-import { Checkbox } from '../ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
-import { ScrollArea } from '../ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 
 // ---------- Intro ----------
@@ -111,6 +110,7 @@ const chartInfo = [
   { category: 'Relationship', chart: 'Line Chart', variableTypes: 'Time variable + numeric variable', explanation: 'Shows trend or change over time', icon: LineChartIcon },
   { category: 'Relationship', chart: 'Area Chart', variableTypes: 'Time variable + numeric variable', explanation: 'Filled version of line chart showing magnitude', icon: AreaChart },
   { category: 'Relationship', chart: 'Stream Graph', variableTypes: 'Time variable + numeric + category', explanation: 'Flowing layered area chart for multiple groups', icon: AreaChart },
+  { category: 'Relationship', chart: 'Calendar Heatmap', variableTypes: 'Date variable + numeric value', explanation: 'Intensity of data over calendar days', icon: Heater },
   { category: 'Categorical', chart: 'Bar Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Compares values across categories (horizontal)', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Column Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Compares values across categories (vertical)', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Lollipop Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Bar chart alternative with dot and stem', icon: Dot },
@@ -254,9 +254,8 @@ function validateSelection(chartType: string | null, s: {
       if (!s.heatmapVars || s.heatmapVars.length < 2) return 'Please select at least two variables.';
       return null;
     case 'network':
-        if (!s.networkSource || !s.networkTarget) return 'Please select a Source and Target column.';
-        if (s.networkSource === s.networkTarget) return 'Source and Target must be different.';
-        return null;
+      if (!s.allHeaders || s.allHeaders.length < 2) return 'At least two columns are required.';
+      return null;
     default:
       return 'Invalid chart type.';
   }
@@ -296,8 +295,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
   const [analysisResult, setAnalysisResult] = useState<{ plot: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canRun = useMemo(() => data && data.length > 0 && allHeaders && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, allHeaders, numericHeaders, categoricalHeaders]);
-
+  const canRun = useMemo(() => data?.length > 0 && allHeaders?.length > 0 && (numericHeaders?.length > 0 || categoricalHeaders?.length > 0), [data, allHeaders, numericHeaders, categoricalHeaders]);
 
   // ✅ updated: result ref for auto-scroll
   const resultRef = useRef<HTMLDivElement | null>(null);
@@ -490,7 +488,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     bubbleX, bubbleY, bubbleZ,
     pieNameCol, pieValueCol,
     groupedBarCategory1, groupedBarCategory2, groupedBarValue,
-    heatmapVars, networkSource, networkTarget, allHeaders
+    heatmapVars, networkSource, networkTarget, allHeaders, categoricalHeaders, numericHeaders
   ]);
 
   if (!canRun && view === 'main') {
@@ -657,7 +655,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                     </Select>
                   </div>
                 )}
-                {(['box', 'violin'].includes(activeChart || '')) && (
+                {(['box', 'violin', 'ridgeline'].includes(activeChart || '')) && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Numeric Variable</Label>
@@ -675,29 +673,6 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                         <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
-                          {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-                {activeChart === 'ridgeline' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Numeric Variable</Label>
-                      <Select value={distColumn} onValueChange={setDistColumnDirty}>
-                        <SelectTrigger><SelectValue placeholder="Select numeric column" /></SelectTrigger>
-                        <SelectContent>
-                          {numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>Group By (required)</Label>
-                      <Select value={groupedBarCategory1} onValueChange={setGroupedBarCategory1Dirty}>
-                        <SelectTrigger><SelectValue placeholder="Select category column" /></SelectTrigger>
-                        <SelectContent>
                           {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -935,5 +910,3 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     </div>
   );
 }
-
-    
