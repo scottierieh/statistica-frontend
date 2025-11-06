@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -70,21 +71,24 @@ def plot_density(df, config):
     return fig
 
 def plot_box(df, config):
-    """Create box plot with improved error handling"""
+    """Create box plot with improved error handling for grouping."""
     fig, ax = plt.subplots(figsize=(10, 6))
-    x_col = config.get('x_col')
-    y_col = config.get('y_col')
-    
-    if y_col and y_col in df.columns:
+    x_col = config.get('x_col')  # This is the numeric column
+    group_col = config.get('group_col') # This is the categorical column for grouping
+
+    if group_col and group_col in df.columns:
         # Box plot with grouping
-        if x_col not in df.columns: raise ValueError(f"Column '{x_col}' not found in data")
-        if not pd.api.types.is_numeric_dtype(df[y_col]): df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
-        clean_df = df[[x_col, y_col]].dropna()
-        sns.boxplot(data=clean_df, x=x_col, y=y_col, ax=ax)
-        ax.set_title(f"Box Plot of {y_col} by {x_col}", fontsize=14, fontweight='bold')
-        if clean_df[x_col].nunique() > 10: plt.xticks(rotation=45, ha='right')
+        if x_col not in df.columns: raise ValueError(f"Numeric column '{x_col}' not found in data")
+        if not pd.api.types.is_numeric_dtype(df[x_col]): df[x_col] = pd.to_numeric(df[x_col], errors='coerce')
+        
+        clean_df = df[[x_col, group_col]].dropna()
+        sns.boxplot(data=clean_df, x=group_col, y=x_col, ax=ax)
+        ax.set_title(f"Box Plot of {x_col} by {group_col}", fontsize=14, fontweight='bold')
+        if clean_df[group_col].nunique() > 10: plt.xticks(rotation=45, ha='right')
+        ax.set_xlabel(group_col)
+        ax.set_ylabel(x_col)
     else:
-        # Simple box plot
+        # Simple box plot for a single numeric variable
         if x_col not in df.columns: raise ValueError(f"Column '{x_col}' not found in data")
         if not pd.api.types.is_numeric_dtype(df[x_col]): df[x_col] = pd.to_numeric(df[x_col], errors='coerce')
         data_clean = df[x_col].dropna()
@@ -312,7 +316,6 @@ def plot_diverging_bar(df, config):
     # Assuming the user is selecting a categorical column and we need a metric to diverge
     # For simplicity, we will calculate a 'score' for each category based on a simple metric (e.g., mean of a numeric column)
     # Since we only have x_col (categorical) from the frontend config for this type, we'll use a dummy metric.
-    # A real implementation would require a metric column from the frontend.
     
     # Fallback to a dummy score: mean of a numeric column if available, otherwise just use counts
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
@@ -361,9 +364,6 @@ def plot_likert(df, config):
     # Fallback: Assume the data has columns that represent the response categories
     # e.g., 'Statement', 'Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'
     # Since we can't infer this from the single x_col, we will create a dummy example.
-    
-    # A real implementation would require a list of response columns from the frontend.
-    # For now, we'll use a count-based stacked bar chart which is the visual form of a Likert chart.
     
     # This chart is better handled by a different function if it's a simple count bar.
     # To make it a Likert, we need a second categorical column (the response)
@@ -1143,8 +1143,7 @@ def plot_funnel(df, config):
     plt.tight_layout()
     return fig
 
-# --- Network/Flow/Statistical Charts (Advanced) ---
-
+# --- Dendrogram ---
 def plot_dendrogram(df, config):
     """Create Dendrogram (Hierarchical Clustering)"""
     from scipy.cluster.hierarchy import linkage, dendrogram
@@ -1308,9 +1307,10 @@ def main():
             'error': str(e),
             'errorType': type(e).__name__
         }
-        print(json.dumps(error_response))
+        print(json.dumps(error_response), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
     main()
+
 
