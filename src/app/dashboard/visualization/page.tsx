@@ -11,12 +11,12 @@ import { GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart a
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DataSet } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '../ui/label';
+import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea } from '../ui/scroll-area';
 import Link from 'next/link';
 
 // ---------- Intro ----------
@@ -114,7 +114,7 @@ const chartInfo = [
   { category: 'Categorical', chart: 'Bar Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Compares values across categories (horizontal)', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Column Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Compares values across categories (vertical)', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Lollipop Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Bar chart alternative with dot and stem', icon: Dot },
-  { category: 'Categorical', chart: 'Pareto Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Sorted bars + cumulative line showing contribution', icon: BarChartIcon },
+  { category: 'Categorical', chart: 'Pareto Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Sorted bars + cumulative line showing contribution', icon: BarChartIcon, tags: ["Quality Control", "80/20 Rule"] },
   { category: 'Categorical', chart: 'Grouped Bar', variableTypes: 'Two categorical + one numeric variable', explanation: 'Compare categories within groups', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Stacked Bar', variableTypes: 'Two categorical + one numeric variable', explanation: 'Shows part-to-whole contribution in a bar', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Stacked Column', variableTypes: 'Two categorical + one numeric variable', explanation: 'Vertical version of stacked bar chart', icon: BarChartIcon },
@@ -296,7 +296,8 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
   const [analysisResult, setAnalysisResult] = useState<{ plot: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
+  const canRun = useMemo(() => data && data.length > 0 && allHeaders && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, allHeaders, numericHeaders, categoricalHeaders]);
+
 
   // ✅ updated: result ref for auto-scroll
   const resultRef = useRef<HTMLDivElement | null>(null);
@@ -704,7 +705,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                   </div>
                 )}
 
-                {(['bar', 'column', 'pareto', 'lollipop', 'diverging_bar', 'likert', 'nps', 'waterfall', 'funnel', 'kpi', 'bullet'].includes(activeChart || '')) && (
+                {(['bar', 'pareto', 'lollipop', 'column', 'diverging_bar', 'likert', 'nps', 'waterfall', 'funnel', 'kpi', 'bullet'].includes(activeChart || '')) && (
                   <div>
                     <Label>Variable</Label>
                     <Select value={barColumn} onValueChange={setBarColumnDirty}>
@@ -833,7 +834,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                   </div>
                 )}
 
-                {(['grouped-bar', 'stacked-bar', 'stacked-column'].includes(activeChart || '')) && (
+                {(['grouped-bar', 'stacked-bar', 'stacked-column', 'sankey', 'chord', 'alluvial', 'mosaic', 'pca', 'scree', 'cluster', 'dendrogram'].includes(activeChart || '')) && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label>Category Axis</Label>
@@ -916,10 +917,6 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                       </div>
                   </div>
                 )}
-
-                 {(['sankey', 'chord', 'alluvial', 'mosaic', 'pca', 'scree', 'cluster', 'dendrogram'].includes(activeChart || '')) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">This chart type uses the three-column selection above (Category, Group, Value).</p>
-                )}
               </div>
             </div>
           </Tabs>
@@ -938,3 +935,5 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     </div>
   );
 }
+
+    
