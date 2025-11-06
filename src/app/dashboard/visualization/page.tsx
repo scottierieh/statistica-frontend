@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, GanttSquare, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch, Play, ArrowLeft } from 'lucide-react';
+import { GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch, Play, ArrowLeft } from 'lucide-react';
 // ✅ updated: Play icon import added
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DataSet } from '@/lib/stats';
@@ -268,29 +268,29 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
   const [activeChart, setActiveChart] = useState<string | null>(null);
 
   // Chart config states
-  const [distColumn, setDistColumn] = useState(numericHeaders[0]);
-  const [barColumn, setBarColumn] = useState(categoricalHeaders[0]);
+  const [distColumn, setDistColumn] = useState(numericHeaders?.[0]);
+  const [barColumn, setBarColumn] = useState(categoricalHeaders?.[0]);
 
-  const [scatterX, setScatterX] = useState(numericHeaders[0]);
-  const [scatterY, setScatterY] = useState(numericHeaders.length > 1 ? numericHeaders[1] : numericHeaders[0]);
+  const [scatterX, setScatterX] = useState(numericHeaders?.[0]);
+  const [scatterY, setScatterY] = useState(numericHeaders?.[1] || numericHeaders?.[0]);
   const [scatterTrend, setScatterTrend] = useState(false);
   const [scatterGroup, setScatterGroup] = useState<string | undefined>();
 
-  const [bubbleX, setBubbleX] = useState(numericHeaders[0]);
-  const [bubbleY, setBubbleY] = useState(numericHeaders[1]);
-  const [bubbleZ, setBubbleZ] = useState(numericHeaders[2]);
+  const [bubbleX, setBubbleX] = useState(numericHeaders?.[0]);
+  const [bubbleY, setBubbleY] = useState(numericHeaders?.[1]);
+  const [bubbleZ, setBubbleZ] = useState(numericHeaders?.[2]);
 
-  const [pieNameCol, setPieNameCol] = useState(categoricalHeaders[0]);
+  const [pieNameCol, setPieNameCol] = useState(categoricalHeaders?.[0]);
   const [pieValueCol, setPieValueCol] = useState<string | undefined>();
 
-  const [groupedBarCategory1, setGroupedBarCategory1] = useState(categoricalHeaders[0]);
-  const [groupedBarCategory2, setGroupedBarCategory2] = useState(categoricalHeaders[1]);
-  const [groupedBarValue, setGroupedBarValue] = useState(numericHeaders[0]);
-  const [waterfallStep, setWaterfallStep] = useState(categoricalHeaders[0]);
-  const [waterfallValue, setWaterfallValue] = useState(numericHeaders[0]);
-  const [heatmapVars, setHeatmapVars] = useState<string[]>(numericHeaders.slice(0, 5));
-  const [networkSource, setNetworkSource] = useState(allHeaders[0]);
-  const [networkTarget, setNetworkTarget] = useState(allHeaders[1]);
+  const [groupedBarCategory1, setGroupedBarCategory1] = useState(categoricalHeaders?.[0]);
+  const [groupedBarCategory2, setGroupedBarCategory2] = useState(categoricalHeaders?.[1]);
+  const [groupedBarValue, setGroupedBarValue] = useState(numericHeaders?.[0]);
+  const [waterfallStep, setWaterfallStep] = useState(categoricalHeaders?.[0]);
+  const [waterfallValue, setWaterfallValue] = useState(numericHeaders?.[0]);
+  const [heatmapVars, setHeatmapVars] = useState<string[]>(numericHeaders?.slice(0, 5) || []);
+  const [networkSource, setNetworkSource] = useState(allHeaders?.[0]);
+  const [networkTarget, setNetworkTarget] = useState(allHeaders?.[1]);
 
   const [analysisResult, setAnalysisResult] = useState<{ plot: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -305,11 +305,11 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
   const markDirty = () => setIsDirty(true);
 
   useEffect(() => {
-    setDistColumn(numericHeaders[0]);
-    setBarColumn(categoricalHeaders[0]);
-    setScatterX(numericHeaders[0]);
-    setScatterY(numericHeaders[1] || numericHeaders[0]);
-    setPieNameCol(categoricalHeaders[0]);
+    setDistColumn(numericHeaders?.[0]);
+    setBarColumn(categoricalHeaders?.[0]);
+    setScatterX(numericHeaders?.[0]);
+    setScatterY(numericHeaders?.[1] || numericHeaders?.[0]);
+    setPieNameCol(categoricalHeaders?.[0]);
     setPieValueCol(undefined);
     setAnalysisResult(null);
     setActiveChart(null);
@@ -368,7 +368,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
         case 'box':
         case 'violin':
         case 'ridgeline':
-          config.config = { x_col: distColumn, y_col: ['box', 'violin', 'ridgeline'].includes(chartType) ? groupedBarCategory1 : undefined };
+          config.config = { x_col: distColumn, y_col: ['box', 'violin', 'ridgeline'].includes(chartType) ? groupedBarCategory1 : undefined, group_col: ['box', 'violin', 'ridgeline'].includes(chartType) ? groupedBarCategory1 : undefined };
           break;
         case 'bar':
         case 'column':
@@ -802,10 +802,9 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                     </div>
                   </div>
                 )}
-
-                {activeChart === 'heatmap' && (
+                 {(activeChart === 'heatmap' || activeChart === 'scatter_matrix') && (
                   <div>
-                    <Label>Variables for Heatmap</Label>
+                    <Label>Variables for {activeChart === 'scatter_matrix' ? 'Scatter Matrix' : 'Heatmap'}</Label>
                     <ScrollArea className="h-24 border rounded p-2">
                       {numericHeaders.map(h => {
                         const checked = heatmapVars.includes(h);
@@ -833,8 +832,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                     <p className="text-xs text-muted-foreground mt-1">Select at least two variables.</p>
                   </div>
                 )}
-
-                {activeChart === 'network' && (
+                 {activeChart === 'network' && (
                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Source Column</Label>
@@ -856,7 +854,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                       </div>
                   </div>
                 )}
-                
+
                  {(['sankey', 'chord', 'alluvial', 'mosaic', 'pca', 'scree', 'cluster', 'dendrogram'].includes(activeChart || '')) && (
                   <p className="text-sm text-muted-foreground text-center py-4">This chart type uses the three-column selection above (Category, Group, Value).</p>
                 )}
@@ -875,36 +873,6 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
       ) : (
         <div className="text-center py-10 text-muted-foreground">Select a chart type, configure variables, then click <strong>Run Analysis</strong>.</div>
       )}
-
-      {/* Guide Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Chart Guide</CardTitle>
-          <CardDescription>A reference for which chart to use based on your analysis goal.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Chart Type</TableHead>
-                <TableHead>Variable Types</TableHead>
-                <TableHead>Explanation</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {chartInfo.map((row, i) => (
-                <TableRow key={i}>
-                  <TableCell>{row.category}</TableCell>
-                  <TableCell className="font-semibold">{row.chart}</TableCell>
-                  <TableCell>{row.variableTypes}</TableCell>
-                  <TableCell>{row.explanation}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }
