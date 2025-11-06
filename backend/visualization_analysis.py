@@ -73,11 +73,10 @@ def plot_density(df, config):
 def plot_box(df, config):
     """Create box plot with improved error handling for grouping."""
     fig, ax = plt.subplots(figsize=(10, 6))
-    x_col = config.get('x_col')  # This is the numeric column
-    group_col = config.get('y_col') # This is the categorical column for grouping (re-using y_col from frontend config)
+    x_col = config.get('x_col')
+    group_col = config.get('group_col')
 
     if group_col and group_col in df.columns:
-        # Box plot with grouping
         if x_col not in df.columns: raise ValueError(f"Numeric column '{x_col}' not found in data")
         if not pd.api.types.is_numeric_dtype(df[x_col]): df[x_col] = pd.to_numeric(df[x_col], errors='coerce')
         
@@ -88,7 +87,6 @@ def plot_box(df, config):
         ax.set_xlabel(group_col)
         ax.set_ylabel(x_col)
     else:
-        # Simple box plot for a single numeric variable
         if x_col not in df.columns: raise ValueError(f"Column '{x_col}' not found in data")
         if not pd.api.types.is_numeric_dtype(df[x_col]): df[x_col] = pd.to_numeric(df[x_col], errors='coerce')
         data_clean = df[x_col].dropna()
@@ -104,16 +102,18 @@ def plot_violin(df, config):
     """Create violin plot with improved error handling"""
     fig, ax = plt.subplots(figsize=(10, 6))
     x_col = config.get('x_col')
-    y_col = config.get('y_col')
+    group_col = config.get('group_col')
     
-    if y_col and y_col in df.columns:
+    if group_col and group_col in df.columns:
         # Violin plot with grouping
         if x_col not in df.columns: raise ValueError(f"Column '{x_col}' not found in data")
-        if not pd.api.types.is_numeric_dtype(df[y_col]): df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
-        clean_df = df[[x_col, y_col]].dropna()
-        sns.violinplot(data=clean_df, x=x_col, y=y_col, ax=ax, inner='box')
-        ax.set_title(f"Violin Plot of {y_col} by {x_col}", fontsize=14, fontweight='bold')
-        if clean_df[x_col].nunique() > 10: plt.xticks(rotation=45, ha='right')
+        if not pd.api.types.is_numeric_dtype(df[x_col]): df[x_col] = pd.to_numeric(df[x_col], errors='coerce')
+        clean_df = df[[x_col, group_col]].dropna()
+        sns.violinplot(data=clean_df, x=group_col, y=x_col, ax=ax, inner='box')
+        ax.set_title(f"Violin Plot of {x_col} by {group_col}", fontsize=14, fontweight='bold')
+        if clean_df[group_col].nunique() > 10: plt.xticks(rotation=45, ha='right')
+        ax.set_xlabel(group_col)
+        ax.set_ylabel(x_col)
     else:
         # Simple violin plot
         if x_col not in df.columns: raise ValueError(f"Column '{x_col}' not found in data")
@@ -121,6 +121,7 @@ def plot_violin(df, config):
         data_clean = df[x_col].dropna()
         sns.violinplot(data=data_clean, y=x_col, ax=ax, inner='box', orient='v')
         ax.set_title(f"Violin Plot of {x_col}", fontsize=14, fontweight='bold')
+        ax.set_ylabel(x_col) # Set y-axis label for vertical plot
     
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -360,10 +361,6 @@ def plot_likert(df, config):
     # and x_col is the question/statement. We need another column for the response category (e.g., 'Strongly Agree').
     # Since the front-end only sends one column, we will assume the data has been pre-pivoted
     # or we will use a dummy response column.
-    
-    # Fallback: Assume the data has columns that represent the response categories
-    # e.g., 'Statement', 'Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'
-    # Since we can't infer this from the single x_col, we will create a dummy example.
     
     # This chart is better handled by a different function if it's a simple count bar.
     # To make it a Likert, we need a second categorical column (the response)
@@ -1312,6 +1309,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
