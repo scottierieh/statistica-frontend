@@ -74,7 +74,7 @@ def plot_box(df, config):
     """Create box plot with improved error handling for grouping."""
     fig, ax = plt.subplots(figsize=(10, 6))
     x_col = config.get('x_col')  # This is the numeric column
-    group_col = config.get('group_col') # This is the categorical column for grouping
+    group_col = config.get('y_col') # This is the categorical column for grouping (re-using y_col from frontend config)
 
     if group_col and group_col in df.columns:
         # Box plot with grouping
@@ -1312,5 +1312,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
