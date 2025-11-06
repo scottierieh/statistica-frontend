@@ -1,3 +1,4 @@
+
 'use client';
 
 // ✅ updated: added useRef
@@ -92,7 +93,7 @@ const chartInfo = [
   { category: 'Distribution', chart: 'Histogram', variableTypes: 'One continuous variable', explanation: 'Shows frequency distribution using bins', icon: BarChartIcon },
   { category: 'Distribution', chart: 'Density Plot (KDE)', variableTypes: 'One continuous variable', explanation: 'Smooth curve showing estimated probability density', icon: AreaChart },
   { category: 'Distribution', chart: 'Box Plot', variableTypes: 'One continuous + optional categorical variable', explanation: 'Shows median, quartiles, and outliers', icon: Box },
-  { category: 'Distribution', chart: 'Violin Plot', variableTypes: 'One continuous + one categorical variable', explanation: 'Combines box plot with density shape', icon: GanttSquare },
+  { category: 'Distribution', chart: 'Violin Plot', variableTypes: 'One continuous + one categorical variable', explanation: 'Combines box plot with density shape', icon: GanttChartSquare },
   { category: 'Distribution', chart: 'Ridgeline Plot', variableTypes: 'One continuous + one categorical (multiple groups)', explanation: 'Compares multiple distributions stacked vertically', icon: AreaChart },
   { category: 'Distribution', chart: 'ECDF Plot', variableTypes: 'One continuous variable', explanation: 'Shows cumulative proportion of observations', icon: LineChartIcon },
   { category: 'Distribution', chart: 'Q-Q Plot', variableTypes: 'One continuous variable (or two datasets)', explanation: 'Compares data distribution to theoretical distribution', icon: ScatterIcon },
@@ -103,7 +104,7 @@ const chartInfo = [
   { category: 'Relationship', chart: 'Scatter Matrix', variableTypes: 'Three or more continuous variables', explanation: 'Grid of scatter plots for multivariate relationships', icon: ScatterIcon },
   { category: 'Relationship', chart: 'Heatmap', variableTypes: 'Two categorical variables + one numeric value', explanation: 'Color-coded matrix showing intensity or magnitude', icon: Heater },
   { category: 'Relationship', chart: 'Network Graph', variableTypes: 'Nodes (categorical) + edges (numeric or categorical)', explanation: 'Shows connections or relationships between entities', icon: Dot },
-  { category: 'Relationship', chart: 'Dendrogram', variableTypes: 'Multiple continuous variables', explanation: 'Hierarchical clustering tree structure', icon: GanttSquare },
+  { category: 'Relationship', chart: 'Dendrogram', variableTypes: 'Multiple continuous variables', explanation: 'Hierarchical clustering tree structure', icon: GanttChartSquare },
   { category: 'Relationship', chart: 'PCA Plot', variableTypes: 'Two principal components + optional category', explanation: 'Visualizes dimensionality reduction result', icon: ScatterIcon },
   { category: 'Relationship', chart: 'Scree Plot', variableTypes: 'Component number (ordered) + numeric variance', explanation: 'Shows explained variance per principal component', icon: LineChartIcon },
   { category: 'Relationship', chart: 'Cluster Plot', variableTypes: 'Two continuous + one categorical (cluster label)', explanation: 'Visualizes grouped clusters from clustering algorithm', icon: Dot },
@@ -119,19 +120,19 @@ const chartInfo = [
   { category: 'Categorical', chart: 'Stacked Column', variableTypes: 'Two categorical + one numeric variable', explanation: 'Vertical version of stacked bar chart', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Pie Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Shows proportions of a whole', icon: PieChartIcon },
   { category: 'Categorical', chart: 'Donut Chart', variableTypes: 'One categorical + one numeric variable', explanation: 'Pie chart with a hole in the center', icon: PieChartIcon },
-  { category: 'Categorical', chart: 'Treemap', variableTypes: 'Hierarchical categorical + numeric variable', explanation: 'Space-filling layout showing size proportion', icon: GanttSquare },
+  { category: 'Categorical', chart: 'Treemap', variableTypes: 'Hierarchical categorical + numeric variable', explanation: 'Space-filling layout showing size proportion', icon: GanttChartSquare },
   { category: 'Categorical', chart: 'Sunburst', variableTypes: 'Hierarchical categorical + numeric variable', explanation: 'Radial layout for part-whole hierarchy', icon: PieChartIcon },
   { category: 'Categorical', chart: 'Sankey Diagram', variableTypes: 'Source category + target category + numeric flow', explanation: 'Shows directional flow or transitions', icon: MoveRight },
   { category: 'Categorical', chart: 'Chord Diagram', variableTypes: 'Categorical pairs + numeric weights', explanation: 'Shows relationships between categories in a circle', icon: Dot },
-  { category: 'Categorical', chart: 'Alluvial Diagram', variableTypes: 'Categorical stages + numeric flow', explanation: 'Shows how groups change across stages', icon: GanttSquare },
-  { category: 'Categorical', chart: 'Mosaic Plot', variableTypes: 'Two or more categorical variables', explanation: 'Tile size represents proportion by combination', icon: GanttSquare },
+  { category: 'Categorical', chart: 'Alluvial Diagram', variableTypes: 'Categorical stages + numeric flow', explanation: 'Shows how groups change across stages', icon: GanttChartSquare },
+  { category: 'Categorical', chart: 'Mosaic Plot', variableTypes: 'Two or more categorical variables', explanation: 'Tile size represents proportion by combination', icon: GanttChartSquare },
   { category: 'Categorical', chart: 'Likert Scale Chart', variableTypes: 'One categorical + ordinal response levels', explanation: 'Visualizes survey response distribution', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Diverging Bar Chart', variableTypes: 'One categorical + positive/negative values', explanation: 'Splits bars around a central zero point', icon: BarChartIcon },
   { category: 'Categorical', chart: 'NPS Chart', variableTypes: 'One categorical + 3 rating groups', explanation: 'Shows Net Promoter Score distribution', icon: PieChartIcon },
   { category: 'Categorical', chart: 'KPI Card', variableTypes: 'One numeric value', explanation: 'Highlights single key performance indicator', icon: Settings },
   { category: 'Categorical', chart: 'Bullet Chart', variableTypes: 'One numeric actual + one numeric target', explanation: 'Shows performance vs target with ranges', icon: BarChartIcon },
   { category: 'Categorical', chart: 'Waterfall Chart', variableTypes: 'Ordered categories + numeric change', explanation: 'Shows step-by-step cumulative effect', icon: BarChartIcon },
-  { category: 'Categorical', chart: 'Funnel Chart', variableTypes: 'Ordered stages + numeric measure', explanation: 'Shows drop-off across process stages', icon: GanttSquare },
+  { category: 'Categorical', chart: 'Funnel Chart', variableTypes: 'Ordered stages + numeric measure', explanation: 'Shows drop-off across process stages', icon: GanttChartSquare },
 ];
 
 
@@ -253,9 +254,9 @@ function validateSelection(chartType: string | null, s: {
       if (!s.heatmapVars || s.heatmapVars.length < 2) return 'Please select at least two variables.';
       return null;
     case 'network':
-      if (!s.networkSource || !s.networkTarget) return 'Please select a Source and Target column.';
-      if (s.networkSource === s.networkTarget) return 'Source and Target must be different.';
-      return null;
+        if (!s.networkSource || !s.networkTarget) return 'Please select a Source and Target column.';
+        if (s.networkSource === s.networkTarget) return 'Source and Target must be different.';
+        return null;
     default:
       return 'Invalid chart type.';
   }
@@ -491,6 +492,14 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     heatmapVars, networkSource, networkTarget, allHeaders
   ]);
 
+  if (!canRun && view === 'main') {
+    return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+  }
+
+  if (view === 'intro') {
+      return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+  }
+
   const markDirtyWrapper = <T extends (...args: any[]) => any>(setter: T) => (...args: Parameters<T>) => {
     markDirty();
     // @ts-ignore
@@ -514,6 +523,59 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
   const setNetworkSourceDirty = markDirtyWrapper(setNetworkSource);
   const setNetworkTargetDirty = markDirtyWrapper(setNetworkTarget);
 
+
+  const chartTypes: Record<string, { id: string, label: string, icon: any, disabled?: boolean, tags?: string[] }[]> = {
+    distribution: [
+      { id: 'histogram', label: 'Histogram', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
+      { id: 'density', label: 'Density Plot', icon: AreaChart, disabled: numericHeaders.length === 0 },
+      { id: 'box', label: 'Box Plot', icon: Box, disabled: numericHeaders.length === 0 },
+      { id: 'violin', label: 'Violin Plot', icon: GanttChartSquare, disabled: numericHeaders.length === 0 },
+      { id: 'ridgeline', label: 'Ridgeline Plot', icon: AreaChart, disabled: numericHeaders.length < 1 || categoricalHeaders.length < 1 },
+      { id: 'ecdf', label: 'ECDF Plot', icon: LineChartIcon, disabled: numericHeaders.length === 0 },
+      { id: 'qq', label: 'Q-Q Plot', icon: ScatterIcon, disabled: numericHeaders.length === 0 },
+    ],
+    relationship: [
+      { id: 'scatter', label: 'Scatter Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+      { id: 'regression', label: 'Regression Plot', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
+      { id: 'hexbin', label: 'Hexbin Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+      { id: 'bubble', label: 'Bubble Chart', icon: Dot, disabled: numericHeaders.length < 3 },
+      { id: 'scatter_matrix', label: 'Scatter Matrix', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+      { id: 'heatmap', label: 'Heatmap', icon: Heater, disabled: numericHeaders.length < 2 },
+      { id: 'network', label: 'Network Graph', icon: Dot, disabled: allHeaders.length < 2 },
+      { id: 'dendrogram', label: 'Dendrogram', icon: GanttChartSquare, disabled: numericHeaders.length < 2 },
+      { id: 'pca', label: 'PCA Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+      { id: 'scree', label: 'Scree Plot', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
+      { id: 'cluster', label: 'Cluster Plot', icon: Dot, disabled: numericHeaders.length < 2 },
+      { id: 'line', label: 'Line Chart', icon: LineChartIcon, disabled: allHeaders.length < 2 },
+      { id: 'area', label: 'Area Chart', icon: AreaChart, disabled: allHeaders.length < 2 },
+      { id: 'stream', label: 'Stream Graph', icon: AreaChart, disabled: allHeaders.length < 2 },
+      { id: 'calendar_heatmap', label: 'Calendar Heatmap', icon: Heater, disabled: allHeaders.length < 2 },
+    ],
+    categorical: [
+      { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+      { id: 'column', label: 'Column Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+      { id: 'lollipop', label: 'Lollipop Chart', icon: Dot, disabled: categoricalHeaders.length === 0 },
+      { id: 'pareto', label: 'Pareto Chart', icon: BarChartIcon, tags: ["Quality Control", "80/20 Rule"] },
+      { id: 'grouped-bar', label: 'Grouped Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
+      { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
+      { id: 'stacked-column', label: 'Stacked Column', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
+      { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+      { id: 'donut', label: 'Donut Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+      { id: 'treemap', label: 'Treemap', icon: GanttChartSquare, disabled: categoricalHeaders.length === 0 },
+      { id: 'sunburst', label: 'Sunburst', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+      { id: 'sankey', label: 'Sankey Diagram', icon: MoveRight, disabled: categoricalHeaders.length < 2 },
+      { id: 'chord', label: 'Chord Diagram', icon: Dot, disabled: categoricalHeaders.length < 2 },
+      { id: 'alluvial', label: 'Alluvial Diagram', icon: GanttChartSquare, disabled: categoricalHeaders.length < 2 },
+      { id: 'mosaic', label: 'Mosaic Plot', icon: GanttChartSquare, disabled: categoricalHeaders.length < 2 },
+      { id: 'likert', label: 'Likert Scale Chart', icon: BarChartIcon, disabled: categoricalHeaders.length < 1 },
+      { id: 'diverging_bar', label: 'Diverging Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 1 },
+      { id: 'nps', label: 'NPS Chart', icon: PieChartIcon, disabled: categoricalHeaders.length < 1 },
+      { id: 'kpi', label: 'KPI Card', icon: Settings, disabled: numericHeaders.length === 0 },
+      { id: 'bullet', label: 'Bullet Chart', icon: BarChartIcon, disabled: numericHeaders.length < 2 },
+      { id: 'waterfall', label: 'Waterfall', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
+      { id: 'funnel', label: 'Funnel Chart', icon: GanttChartSquare, disabled: numericHeaders.length === 0 },
+    ]
+  };
 
   return (
     <div className="space-y-4">
