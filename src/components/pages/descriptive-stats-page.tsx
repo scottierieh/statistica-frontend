@@ -180,7 +180,7 @@ const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeader
                                 <TableBody>
                                     {numericMetrics.map(metric => (
                                         <TableRow key={metric}>
-                                            <TableCell className="font-medium capitalize">{metric.replace(/([A-Z])/g, ' $1').replace('q1', '25th Percentile').replace('q3', '75th Percentile')}</TableCell>
+                                            <TableCell className="font-medium capitalize">{metric.replace(/([A-Z])/g, ' $1').replace('q1', '25th Percentile').replace('q3', '75th Percentile').replace(/\b\w/g, l => l.toUpperCase())}</TableCell>
                                             {numericVars.map(v => {
                                                 const statValue = results[v]?.stats?.[metric];
                                                 return <TableCell key={`${metric}-${v}`} className="text-right font-mono">{typeof statValue === 'number' ? statValue.toFixed(2) : 'N/A'}</TableCell>
@@ -277,7 +277,7 @@ const AnalysisDisplay = ({ result, varName }: { result: VariableResult, varName:
                                 <Table>
                                     <TableBody>
                                         {(Object.keys(stats) as (keyof NumericStats)[]).map(key => (
-                                            <TableRow key={key}><TableCell className="font-medium">{key.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, c => c.toUpperCase())}</TableCell><TableCell className="text-right font-mono">{(stats as NumericStats)[key]?.toFixed(2) ?? 'N/A'}</TableCell></TableRow>
+                                            <TableRow key={key}><TableCell className="font-medium">{key.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, l => l.toUpperCase())}</TableCell><TableCell className="text-right font-mono">{(stats as NumericStats)[key]?.toFixed(2) ?? 'N/A'}</TableCell></TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -296,7 +296,7 @@ const AnalysisDisplay = ({ result, varName }: { result: VariableResult, varName:
                      {result.insights && result.insights.length > 0 && (
                         <Card>
                             <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                            <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{result.insights.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
+                            <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{result.insights.map((insight, i) => <li key={i}>{insight}</li>)}</ul> }</CardContent>
                         </Card>
                     )}
                 </div>
@@ -473,240 +473,4 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         </div>
     );
 }
-
-```
-- src/hooks/use-auth-modal.tsx:
-```tsx
-import { create } from 'zustand';
-
-interface AuthModalStore {
-  isOpen: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-}
-
-const useAuthModal = create<AuthModalStore>((set) => ({
-  isOpen: false,
-  onOpen: () => set({ isOpen: true }),
-  onClose: () => set({ isOpen: false }),
-}));
-
-export default useAuthModal;
-
-```
-- src/hooks/use-onclick-outside.ts:
-```tsx
-
-"use client"
-
-import { useEffect, type RefObject } from "react"
-
-export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
-  ref: RefObject<T>,
-  handler: (event: MouseEvent | TouchEvent) => void
-) {
-  useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      const el = ref?.current
-
-      // Do nothing if clicking ref's element or descendent elements
-      if (!el || el.contains((event?.target as Node) || null)) {
-        return
-      }
-
-      handler(event)
-    }
-
-    document.addEventListener("mousedown", listener)
-    document.addEventListener("touchstart", listener)
-
-    return () => {
-      document.removeEventListener("mousedown", listener)
-      document.removeEventListener("touchstart", listener)
-    }
-
-    // Reload only when ref or handler changes
-  }, [ref, handler])
-}
-
-```
-- src/lib/auth.ts:
-```ts
-// This is a placeholder for your actual authentication logic.
-// In a real app, this would involve server-side validation of tokens, etc.
-
-export const isAuthenticated = (req: Request): boolean => {
-  // For now, we'll assume a simple header check.
-  // This is NOT secure for production.
-  return req.headers.get('Authorization') === 'Bearer my-secret-token';
-};
-
-```
-- src/middleware.ts:
-```ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-export function middleware(request: NextRequest) {
-  const isAuth = true; // Replace with your actual auth logic
-
-  if (!isAuth && request.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  
-  if(request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: ['/dashboard/:path*', '/'],
-};
-```
-- src/types/d3.d.ts:
-```ts
-declare module 'd3' {
-  export * from 'd3-selection';
-  export * from 'd3-hierarchy';
-  // Add other d3 modules as you use them
-}
-
-```
-- src/types/xlsx.d.ts:
-```ts
-declare module 'xlsx' {
-  import * as XLSX from 'xlsx';
-  export = XLSX;
-}
-
-```
-- tailwind.config.js:
-```js
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: ["class"],
-  content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
-	],
-  theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
-    extend: {
-      colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: 0 },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-      },
-    },
-  },
-  plugins: [require("tailwindcss-animate")],
-}
-```
-- next.config.mjs:
-```js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-    images: {
-        remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: 'picsum.photos',
-            },
-             {
-                protocol: 'https',
-                hostname: 'images.unsplash.com',
-            }
-        ],
-    },
-     typescript: {
-        // !! WARN !!
-        // Dangerously allow production builds to successfully complete even if
-        // your project has type errors.
-        // !! WARN !!
-        ignoreBuildErrors: true,
-    },
-     async headers() {
-        return [
-            {
-                source: '/:path*',
-                headers: [
-                    {
-                        key: 'Access-Control-Allow-Origin',
-                        value: '*',
-                    },
-                     {
-                        key: 'Access-Control-Allow-Methods',
-                        value: 'GET, POST, PUT, DELETE, OPTIONS',
-                    },
-                    {
-                        key: 'Access-Control-Allow-Headers',
-                        value: 'X-Requested-With, Content-Type, Authorization',
-                    },
-                ],
-            },
-        ];
-    },
-};
-
-export default nextConfig;
-
 ```
