@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch, Users } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
-import { type DataSet } from '@/lib/stats';
+import type { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import dynamic from 'next/dynamic';
@@ -193,7 +193,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                         <CardContent className="max-h-[200px] overflow-y-auto">{
                             <Table>
                                 <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
-                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody>
                             </Table>
                         }</CardContent>
                     </Card>
@@ -333,6 +333,66 @@ const SummaryTable = ({ analysisData, selectedVars, numericHeaders, categoricalH
     );
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const statsExample = exampleDatasets.find(d => d.id === 'iris');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BarChartIcon size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Descriptive Statistics</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Get a quick and comprehensive summary of your dataset's main characteristics.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Descriptive Statistics?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Before diving into complex modeling, it's crucial to understand the basics of your data. Descriptive statistics provide a simple summary about the sample and the measures. Together with simple graphics analysis, they form the basis of virtually every quantitative analysis of data.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {statsExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(statsExample)}>
+                                <Users className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{statsExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{statsExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Upload Data:</strong> Provide your dataset in CSV or Excel format.</li>
+                                <li><strong>Select Variables:</strong> Choose the variables you want to summarize. You can select both numeric and categorical variables.</li>
+                                <li><strong>Run Analysis:</strong> The tool will automatically detect the variable type and generate appropriate statistics and visualizations.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Key Metrics</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>For Numeric Data:</strong> Mean, median, standard deviation, min, max, and quartiles to understand central tendency and dispersion.</li>
+                                <li><strong>For Categorical Data:</strong> Frequency counts, percentages, and the mode to understand the distribution across categories.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface DescriptiveStatsPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -393,7 +453,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                         type: 'categorical',
                         table: stats.table,
                         summary: stats.summary,
-                        plotData: stats.table.map(s => ({ name: String(s.name), count: s.count, percentage: parseFloat(s.percentage as any) })),
+                        plotData: stats.table.map(s => ({ name: String(s.name), count: s.count, percentage: s.percentage })),
                         insights: generateCategoricalInsights(stats.table),
                     };
                 }
@@ -440,6 +500,12 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         );
     };
 
+    const canRun = useMemo(() => data.length > 0, [data]);
+
+    if (!canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
