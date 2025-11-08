@@ -8,14 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube, Users, Handshake as HandshakeIcon } from 'lucide-react';
+import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getFrequencyInterpretation } from '@/app/actions';
 
 interface FrequencyTableItem {
     Value: string | number;
@@ -43,7 +42,6 @@ interface VariableResult {
     recommendations?: string[];
     plot: string;
     error?: string;
-    aiPromise: Promise<string | null> | null;
 }
 
 interface FullAnalysisResponse {
@@ -102,58 +100,18 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Bar Chart:</strong> Provides a quick visual summary of the distribution, making it easy to compare the frequencies of different categories.
                                 </li>
                                 <li>
-                                    <strong>AI Insights:</strong> The AI automatically highlights key findings, such as highly skewed distributions or low diversity among categories, and offers recommendations for further analysis.
+                                    <strong>Key Insights:</strong> The tool automatically highlights key findings, such as highly skewed distributions or low diversity among categories, and offers recommendations for further analysis.
                                 </li>
                             </ul>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
-};
-
-
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  const formattedInterpretation = useMemo(() => {
-    if (!interpretation) return null;
-    return interpretation
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>');
-  }, [interpretation]);
-
-
-  if (loading) return <Skeleton className="h-16 w-full" />;
-  if (!interpretation) return null;
-
-  return (
-     <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><Bot /> AI Interpretation</h4>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-    </div>
-  );
 };
 
 
@@ -182,12 +140,11 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         setSelectedVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
 
-    const handleAnalysis = useCallback(async () => {
+    const runAnalysis = useCallback(async () => {
         if (selectedVars.length === 0) {
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select at least one categorical variable.' });
             return;
         }
-
         setIsLoading(true);
         setAnalysisResult(null);
 
@@ -206,39 +163,18 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
             const result: FullAnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
 
-            // Fire off AI interpretation requests for each variable
-            const resultsWithAIPromises = { ...result.results };
-            for (const variable of Object.keys(resultsWithAIPromises)) {
-                const varResult = resultsWithAIPromises[variable];
-                if (varResult && !varResult.error) {
-                    const topCat = varResult.table[0];
-                    const promise = getFrequencyInterpretation({
-                        variableName: variable,
-                        totalCount: varResult.summary.total_count,
-                        uniqueCategories: varResult.summary.unique_categories,
-                        topCategory: String(topCat.Value),
-                        topCategoryFrequency: topCat.Frequency,
-                        topCategoryPercentage: topCat.Percentage,
-                    }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-                    resultsWithAIPromises[variable].aiPromise = promise;
-                }
-            }
-            
-            setAnalysisResult({ results: resultsWithAIPromises });
+            setAnalysisResult(result);
 
         } catch (e: any) {
-            console.error('Frequency Analysis error:', e);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.' });
+            console.error('Analysis error:', e);
+            toast({variant: 'destructive', title: 'Analysis Error', description: e.message})
         } finally {
             setIsLoading(false);
         }
+
     }, [data, selectedVars, toast]);
-
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-
-    if (!canRun) {
+    
+    if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
@@ -268,41 +204,10 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                 <CardTitle className="font-headline">Results for: {header}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <AIGeneratedInterpretation promise={result.aiPromise} />
-                                 <div className="space-y-3">
-                                    {result.insights && result.insights.length > 0 && (
-                                        <div>
-                                            <h4 className="font-semibold text-sm mb-2">Key Insights</h4>
-                                            {result.insights.map((insight, i) => (
-                                                <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
-                                                    <AlertTriangle className="h-4 w-4" />
-                                                    <AlertTitle className="font-bold">{insight.title}</AlertTitle>
-                                                    <AlertDescription dangerouslySetInnerHTML={{ __html: insight.description }} />
-                                                </Alert>
-                                            ))}
-                                        </div>
-                                    )}
-                                     {result.recommendations && result.recommendations.length > 0 && (
-                                        <div className="mt-4">
-                                             <h4 className="font-semibold text-sm mb-2">Recommendations</h4>
-                                            <Alert>
-                                                <Lightbulb className="h-4 w-4" />
-                                                <AlertTitle>Suggestions</AlertTitle>
-                                                <AlertDescription>
-                                                    <ul className="list-disc pl-4 mt-2">
-                                                        {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                                                    </ul>
-                                                </AlertDescription>
-                                            </Alert>
-                                        </div>
-                                     )}
-                                </div>
                                 <div className="grid lg:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                          <Card>
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-lg">Summary</CardTitle>
-                                            </CardHeader>
+                                            <CardHeader className="pb-2"><CardTitle className="text-lg">Summary</CardTitle></CardHeader>
                                             <CardContent>
                                                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                                                     <dt className="text-muted-foreground">Total Count</dt>
@@ -314,38 +219,48 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                                 </dl>
                                             </CardContent>
                                         </Card>
-                                         <Card>
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-lg">Frequency Table</CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <ScrollArea className="h-64">
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>Value</TableHead>
-                                                                <TableHead className="text-right">Frequency</TableHead>
-                                                                <TableHead className="text-right">%</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {result.table.map((row, i) => (
-                                                                <TableRow key={i}>
-                                                                    <TableCell>{String(row.Value)}</TableCell>
-                                                                    <TableCell className="text-right font-mono">{row.Frequency}</TableCell>
-                                                                    <TableCell className="text-right font-mono">{row.Percentage.toFixed(1)}%</TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </ScrollArea>
-                                            </CardContent>
-                                        </Card>
+                                        {result.insights && result.insights.length > 0 && (
+                                            <Card>
+                                                <CardHeader className="pb-2"><CardTitle className="text-lg flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                                                <CardContent>
+                                                    <ul className="space-y-2 text-sm list-disc pl-4">
+                                                        {result.insights.map((insight, i) => <li key={i}>{insight.description}</li>)}
+                                                    </ul>
+                                                </CardContent>
+                                            </Card>
+                                        )}
                                     </div>
                                     <div>
-                                        <Image src={result.plot} alt={`Bar chart for ${header}`} width={800} height={500} className="w-full rounded-md border" />
+                                        <Image src={`data:image/png;base64,${result.plot}`} alt={`Bar chart for ${header}`} width={800} height={500} className="w-full rounded-md border" />
                                     </div>
                                 </div>
+                                <Card>
+                                    <CardHeader className="pb-2"><CardTitle className="text-lg">Frequency Table</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-64">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Value</TableHead>
+                                                        <TableHead className="text-right">Frequency</TableHead>
+                                                        <TableHead className="text-right">%</TableHead>
+                                                        <TableHead className="text-right">Cumulative %</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {result.table.map((row, i) => (
+                                                        <TableRow key={i}>
+                                                            <TableCell>{String(row.Value)}</TableCell>
+                                                            <TableCell className="text-right">{row.Frequency}</TableCell>
+                                                            <TableCell className="text-right">{row.Percentage.toFixed(1)}%</TableCell>
+                                                            <TableCell className="text-right">{row['Cumulative Percentage'].toFixed(1)}%</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
                             </CardContent>
                         </Card>
                     );
@@ -359,7 +274,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
             <Card>
               <CardHeader>
                  <div className="flex justify-between items-center">
-                    <CardTitle className="font-headline">Frequency Analysis Setup</CardTitle>
+                    <CardTitle>Frequency Analysis Setup</CardTitle>
                     <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                 </div>
                 <CardDescription>Select one or more categorical variables to analyze.</CardDescription>
@@ -383,8 +298,8 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                         </ScrollArea>
                     </>
               </CardContent>
-              <CardFooter>
-                   <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.length === 0}>
+              <CardFooter className="flex justify-end">
+                   <Button onClick={runAnalysis} disabled={isLoading || selectedVars.length === 0}>
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4"/>}
                         Run Analysis
                     </Button>

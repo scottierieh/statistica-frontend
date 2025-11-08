@@ -473,4 +473,3 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         </div>
     );
 }
-```
