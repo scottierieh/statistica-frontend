@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -153,7 +153,7 @@ interface DescriptiveStatsPageProps {
 }
 
 
-const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeaders }: { results: FullAnalysisResponse['results'], selectedVars: string[], numericHeaders: string[], categoricalHeaders: string[] }) => {
+const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeaders, groupByVar }: { results: FullAnalysisResponse['results'], selectedVars: string[], numericHeaders: string[], categoricalHeaders: string[], groupByVar?: string }) => {
     const numericVars = selectedVars.filter(v => numericHeaders.includes(v) && results[v]?.type === 'numeric' && !results[v].error);
     const categoricalVars = selectedVars.filter(v => categoricalHeaders.includes(v) && results[v]?.type === 'categorical' && !results[v].error);
 
@@ -162,59 +162,93 @@ const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeader
 
     return (
         <div className="space-y-6">
-            {numericVars.length > 0 && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Overall Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {numericVars.length > 0 && (
+                        <div className="mb-6">
+                            <h3 className="font-semibold mb-2">Numeric Variables</h3>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Statistic</TableHead>
+                                        {numericVars.map(v => <TableHead key={v} className="text-right">{v}</TableHead>)}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {numericMetrics.map(metric => (
+                                        <TableRow key={metric}>
+                                            <TableCell className="font-medium capitalize">{metric.replace(/([A-Z])/g, ' $1').replace('q1', '25th Percentile').replace('q3', '75th Percentile')}</TableCell>
+                                            {numericVars.map(v => {
+                                                const statValue = results[v]?.stats?.[metric];
+                                                return <TableCell key={`${metric}-${v}`} className="text-right font-mono">{typeof statValue === 'number' ? statValue.toFixed(2) : 'N/A'}</TableCell>
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                     {categoricalVars.length > 0 && (
+                        <div>
+                            <h3 className="font-semibold mb-2">Categorical Variables</h3>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Statistic</TableHead>
+                                        {categoricalVars.map(v => <TableHead key={v} className="text-right">{v}</TableHead>)}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {categoricalMetrics.map(metric => (
+                                        <TableRow key={metric}>
+                                            <TableCell className="font-medium capitalize">{metric}</TableCell>
+                                            {categoricalVars.map(v => {
+                                                const statValue = (results[v] as VariableResult)?.summary?.[metric];
+                                                return <TableCell key={`${metric}-${v}`} className="text-right font-mono">{String(statValue ?? 'N/A')}</TableCell>
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {groupByVar && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Numeric Variables Summary</CardTitle>
+                        <CardTitle>Grouped Summary by '{groupByVar}'</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Statistic</TableHead>
-                                    {numericVars.map(v => <TableHead key={v} className="text-right">{v}</TableHead>)}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {numericMetrics.map(metric => (
-                                    <TableRow key={metric}>
-                                        <TableCell className="font-medium capitalize">{metric.replace(/([A-Z])/g, ' $1').trim()}</TableCell>
-                                        {numericVars.map(v => {
-                                            const statValue = results[v]?.stats?.[metric as keyof NumericStats];
-                                            return <TableCell key={`${metric}-${v}`} className="text-right font-mono">{typeof statValue === 'number' ? statValue.toFixed(2) : 'N/A'}</TableCell>
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            )}
-             {categoricalVars.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Categorical Variables Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Statistic</TableHead>
-                                    {categoricalVars.map(v => <TableHead key={v} className="text-right">{v}</TableHead>)}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                 {categoricalMetrics.map(metric => (
-                                    <TableRow key={metric}>
-                                        <TableCell className="font-medium capitalize">{metric}</TableCell>
-                                        {categoricalVars.map(v => {
-                                            const statValue = (results[v] as VariableResult)?.summary?.[metric];
-                                            return <TableCell key={`${metric}-${v}`} className="text-right font-mono">{String(statValue ?? 'N/A')}</TableCell>
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <CardContent className="space-y-4">
+                        {numericVars.map(v => (
+                            <div key={`grouped-${v}`}>
+                                <h4 className="font-semibold text-lg mb-2">{v}</h4>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>{groupByVar}</TableHead>
+                                            <TableHead className="text-right">Count</TableHead>
+                                            <TableHead className="text-right">Mean</TableHead>
+                                            <TableHead className="text-right">Std. Dev.</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results[v].groupedStats || {}).map(([group, stats]) => (
+                                            <TableRow key={group}>
+                                                <TableCell>{group}</TableCell>
+                                                <TableCell className="text-right font-mono">{stats.count}</TableCell>
+                                                <TableCell className="text-right font-mono">{stats.mean.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-mono">{stats.stdDev.toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ))}
                     </CardContent>
                 </Card>
             )}
@@ -243,7 +277,7 @@ const AnalysisDisplay = ({ result, varName }: { result: VariableResult, varName:
                                 <Table>
                                     <TableBody>
                                         {(Object.keys(stats) as (keyof NumericStats)[]).map(key => (
-                                            <TableRow key={key}><TableCell className="font-medium">{key.replace(/([A-Z])/g, ' $1').charAt(0).toUpperCase() + key.replace(/([A-Z])/g, ' $1').slice(1)}</TableCell><TableCell className="text-right font-mono">{(stats as NumericStats)[key]?.toFixed(2) ?? 'N/A'}</TableCell></TableRow>
+                                            <TableRow key={key}><TableCell className="font-medium">{key.replace(/([A-Z])/g, ' $1').replace(/\b\w/g, c => c.toUpperCase())}</TableCell><TableCell className="text-right font-mono">{(stats as NumericStats)[key]?.toFixed(2) ?? 'N/A'}</TableCell></TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -286,6 +320,8 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         setView(data.length > 0 ? 'main' : 'intro');
     }, [allHeaders, data]);
     
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length > 0, [data, allHeaders]);
+    
     const handleVarSelectionChange = (varName: string, isChecked: boolean) => {
         setSelectedVars(prev => isChecked ? [...prev, varName] : prev.filter(v => v !== varName));
     };
@@ -325,10 +361,13 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
 
     }, [data, selectedVars, groupByVar, toast]);
     
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length > 0, [data, allHeaders]);
-    
+    const handleLoadExample = (example: ExampleDataSet) => {
+        onLoadExample(example);
+        setView('main');
+    }
+
     if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
 
     return (
@@ -419,6 +458,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                             selectedVars={selectedVars}
                             numericHeaders={numericHeaders}
                             categoricalHeaders={categoricalHeaders}
+                            groupByVar={groupByVar}
                         />
                     </TabsContent>
                 </Tabs>
@@ -434,3 +474,239 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
     );
 }
 
+```
+- src/hooks/use-auth-modal.tsx:
+```tsx
+import { create } from 'zustand';
+
+interface AuthModalStore {
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}
+
+const useAuthModal = create<AuthModalStore>((set) => ({
+  isOpen: false,
+  onOpen: () => set({ isOpen: true }),
+  onClose: () => set({ isOpen: false }),
+}));
+
+export default useAuthModal;
+
+```
+- src/hooks/use-onclick-outside.ts:
+```tsx
+
+"use client"
+
+import { useEffect, type RefObject } from "react"
+
+export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
+  ref: RefObject<T>,
+  handler: (event: MouseEvent | TouchEvent) => void
+) {
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      const el = ref?.current
+
+      // Do nothing if clicking ref's element or descendent elements
+      if (!el || el.contains((event?.target as Node) || null)) {
+        return
+      }
+
+      handler(event)
+    }
+
+    document.addEventListener("mousedown", listener)
+    document.addEventListener("touchstart", listener)
+
+    return () => {
+      document.removeEventListener("mousedown", listener)
+      document.removeEventListener("touchstart", listener)
+    }
+
+    // Reload only when ref or handler changes
+  }, [ref, handler])
+}
+
+```
+- src/lib/auth.ts:
+```ts
+// This is a placeholder for your actual authentication logic.
+// In a real app, this would involve server-side validation of tokens, etc.
+
+export const isAuthenticated = (req: Request): boolean => {
+  // For now, we'll assume a simple header check.
+  // This is NOT secure for production.
+  return req.headers.get('Authorization') === 'Bearer my-secret-token';
+};
+
+```
+- src/middleware.ts:
+```ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const isAuth = true; // Replace with your actual auth logic
+
+  if (!isAuth && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+  
+  if(request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/'],
+};
+```
+- src/types/d3.d.ts:
+```ts
+declare module 'd3' {
+  export * from 'd3-selection';
+  export * from 'd3-hierarchy';
+  // Add other d3 modules as you use them
+}
+
+```
+- src/types/xlsx.d.ts:
+```ts
+declare module 'xlsx' {
+  import * as XLSX from 'xlsx';
+  export = XLSX;
+}
+
+```
+- tailwind.config.js:
+```js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+	],
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: 0 },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: 0 },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
+```
+- next.config.mjs:
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'picsum.photos',
+            },
+             {
+                protocol: 'https',
+                hostname: 'images.unsplash.com',
+            }
+        ],
+    },
+     typescript: {
+        // !! WARN !!
+        // Dangerously allow production builds to successfully complete even if
+        // your project has type errors.
+        // !! WARN !!
+        ignoreBuildErrors: true,
+    },
+     async headers() {
+        return [
+            {
+                source: '/:path*',
+                headers: [
+                    {
+                        key: 'Access-Control-Allow-Origin',
+                        value: '*',
+                    },
+                     {
+                        key: 'Access-Control-Allow-Methods',
+                        value: 'GET, POST, PUT, DELETE, OPTIONS',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Headers',
+                        value: 'X-Requested-With, Content-Type, Authorization',
+                    },
+                ],
+            },
+        ];
+    },
+};
+
+export default nextConfig;
+
+```
