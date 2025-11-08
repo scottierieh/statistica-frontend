@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,7 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Skeleton } from '../ui/skeleton';
 
 
-const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 // --- Statistical Helper Functions ---
 const getQuantile = (arr: number[], q: number) => {
@@ -257,59 +257,6 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     );
 };
 
-const GroupedStatisticsTable = ({ data, selectedVars, groupVar }: { data: DataSet, selectedVars: string[], groupVar: string }) => {
-    const statsByGroup = useMemo(() => {
-        const groups = Array.from(new Set(data.map(row => row[groupVar])));
-        const result: { [group: string]: { [variable: string]: ReturnType<typeof getNumericStats> } } = {};
-        
-        groups.forEach(group => {
-            const groupData = data.filter(row => row[groupVar] === group);
-            result[String(group)] = {};
-            selectedVars.forEach(varName => {
-                const columnData = groupData.map(row => row[varName]);
-                result[String(group)][varName] = getNumericStats(columnData);
-            });
-        });
-        return result;
-    }, [data, selectedVars, groupVar]);
-
-    const metrics: (keyof ReturnType<typeof getNumericStats>)[] = ['count', 'missing', 'mean', 'median', 'stdDev', 'min', 'max', 'skewness'];
-    const groups = Object.keys(statsByGroup);
-
-    return (
-        <Card>
-            <CardHeader><CardTitle>Descriptive Statistics by {groupVar}</CardTitle></CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[150px]">Statistic</TableHead>
-                            <TableHead className="w-[100px]">{groupVar}</TableHead>
-                            {selectedVars.map(v => <TableHead key={v} className="text-right">{v}</TableHead>)}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {metrics.map(metric => (
-                            <React.Fragment key={metric}>
-                                {groups.map((group, groupIndex) => (
-                                    <TableRow key={`${metric}-${group}`}>
-                                        {groupIndex === 0 && <TableHead rowSpan={groups.length} className="align-top capitalize">{metric.replace(/([A-Z])/g, ' $1').trim()}</TableHead>}
-                                        <TableCell>{group}</TableCell>
-                                        {selectedVars.map(varName => {
-                                            const statValue = statsByGroup[group]?.[varName]?.[metric];
-                                            return <TableCell key={`${metric}-${group}-${varName}`} className="text-right font-mono">{typeof statValue === 'number' && !isNaN(statValue) ? statValue.toFixed(2) : 'NaN'}</TableCell>
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </React.Fragment>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    )
-};
-
 const SummaryTable = ({ analysisData, selectedVars, numericHeaders, categoricalHeaders }: { analysisData: any, selectedVars: string[], numericHeaders: string[], categoricalHeaders: string[]}) => {
     const numericStatsOrder: (keyof ReturnType<typeof getNumericStats>)[] = ['count', 'missing', 'mean', 'stdDev', 'min', 'q1', 'median', 'q3', 'max', 'skewness'];
     const categoricalStatsOrder = ['count', 'missing', 'unique', 'mode'];
@@ -503,9 +450,17 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                     };
                 } else {
                     const stats = getCategoricalStats(columnData);
+                    const mode = stats.length > 0 ? stats[0].name : 'N/A';
                     results[varName] = {
-                        type: 'categorical', stats: stats,
-                        plotData: stats.map(s => ({ name: s.name, count: s.count, percentage: parseFloat(s.percentage as any) })),
+                        type: 'categorical',
+                        table: stats,
+                        stats: {
+                            count: stats.reduce((sum, item) => sum + item.count, 0),
+                            missing: data.length - stats.reduce((sum, item) => sum + item.count, 0),
+                            unique: stats.length,
+                            mode: mode,
+                        },
+                        plotData: stats.map(s => ({ name: String(s.name), count: s.count, percentage: parseFloat(s.percentage as any) })),
                         insights: generateCategoricalInsights(stats),
                     };
                 }
@@ -541,7 +496,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                         <div key={header}>
                            <ChoiceAnalysisDisplay
                                 chartData={result.plotData}
-                                tableData={result.stats}
+                                tableData={result.table}
                                 insightsData={result.insights}
                                 varName={header}
                             />
@@ -648,3 +603,594 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
     );
 }
 
+```
+- src/lib/stats.ts:
+```ts
+
+
+import Papa from 'papaparse';
+
+export type DataPoint = Record<string, number | string>;
+export type DataSet = DataPoint[];
+
+export const parseData = (
+  fileContent: string
+): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
+  const result = Papa.parse(fileContent, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+  });
+
+  if (result.errors.length > 0) {
+    console.error("Parsing errors:", result.errors);
+    // Optionally throw an error for the first critical error
+    const firstError = result.errors[0];
+    if (firstError && firstError.code !== 'UndetectableDelimiter') {
+       throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
+    }
+  }
+
+  if (!result.data || result.data.length === 0) {
+    throw new Error("No parsable data rows found in the file.");
+  }
+  
+  const rawHeaders = (result.meta.fields || []).filter(h => h && h.trim() !== '');
+  const data: DataSet = result.data as DataSet;
+
+  const numericHeaders: string[] = [];
+  const categoricalHeaders: string[] = [];
+
+  rawHeaders.forEach(header => {
+    if (!header) return;
+    const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
+    
+    if (values.length === 0) {
+        categoricalHeaders.push(header); // Default to categorical if all empty
+        return;
+    }
+
+    const isNumericColumn = values.every(val => typeof val === 'number' && isFinite(val));
+
+    if (isNumericColumn) {
+        numericHeaders.push(header);
+    } else {
+        categoricalHeaders.push(header);
+    }
+  });
+
+  // Ensure types are correct, PapaParse does a good job but we can enforce it.
+  const sanitizedData = data.map(row => {
+    const newRow: DataPoint = {};
+    rawHeaders.forEach(header => {
+      if (!header) return;
+      const value = row[header];
+      if (numericHeaders.includes(header)) {
+        if (typeof value === 'number' && isFinite(value)) {
+            newRow[header] = value;
+        } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
+            newRow[header] = parseFloat(value);
+        } else {
+            newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
+        }
+      } else { // Categorical
+        newRow[header] = (value === null || value === undefined) ? '' : String(value);
+      }
+    });
+    return newRow;
+  });
+
+  return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
+};
+
+export const unparseData = (
+    { headers, data }: { headers: string[]; data: DataSet }
+): string => {
+    return Papa.unparse(data, {
+        columns: headers,
+        header: true,
+    });
+};
+```
+- src/lib/survey-templates.ts:
+```ts
+import { Question } from "@/entities/Survey";
+
+export const choiceBasedConjointTemplate = {
+  title: 'Smartphone Choice Survey (CBC)',
+  description: 'Help us understand your preferences for a new smartphone.',
+  questions: [
+    {
+      id: 'cbc_intro',
+      type: 'description',
+      title: 'Choice Task Instructions',
+      content: 'In the following screens, you will be presented with a set of smartphones. From each set, please choose the one you would be most likely to purchase.'
+    },
+    {
+      id: 'conjoint_1',
+      type: 'conjoint',
+      title: 'Which smartphone would you choose?',
+      required: true,
+      attributes: [
+        { id: 'attr1', name: 'Brand', levels: ['Apple', 'Samsung', 'Google'] },
+        { id: 'attr2', name: 'Price', levels: ['$699', '$899', '$1099'] },
+        { id: 'attr3', name: 'Camera', levels: ['Dual-lens', 'Triple-lens'] },
+        { id: 'attr4', name: 'Battery', levels: ['Standard', 'Extended'] }
+      ],
+      designMethod: 'balanced-overlap',
+      sets: 8,
+      cardsPerSet: 3,
+    }
+  ]
+};
+
+export const ratingBasedConjointTemplate = {
+  title: 'Laptop Feature Rating (Conjoint)',
+  description: 'Please rate your interest in the following laptop configurations on a scale of 1 to 10.',
+  questions: [
+    {
+      id: 'rating_conjoint_intro',
+      type: 'description',
+      title: 'Rating Task Instructions',
+      content: 'On the next screens, you will see several different laptop configurations. Please rate each one based on how likely you would be to purchase it, where 1 is "Not at all likely" and 10 is "Extremely likely".'
+    },
+    {
+      id: 'rating_conjoint_1',
+      type: 'rating-conjoint',
+      title: 'Rate this Laptop Configuration',
+      required: true,
+      attributes: [
+        { id: 'attr1', name: 'Brand', levels: ['Brand A', 'Brand B', 'Brand C'] },
+        { id: 'attr2', name: 'Screen Size', levels: ['13-inch', '15-inch'] },
+        { id: 'attr3', name: 'RAM', levels: ['8GB', '16GB', '32GB'] },
+        { id: 'attr4', name: 'Storage', levels: ['256GB SSD', '512GB SSD', '1TB SSD'] }
+      ],
+      designMethod: 'full-factorial', // Full factorial can be used if total profiles are manageable
+      sets: 1, // Only one 'set' for rating-based, showing one profile at a time
+    }
+  ]
+};
+
+export const rankingConjointTemplate = {
+  title: 'Coffee Blend Preferences (Ranking Conjoint)',
+  description: 'Please rank the following coffee blends from most to least preferred.',
+  questions: [
+    {
+      id: 'ranking_conjoint_intro',
+      type: 'description',
+      title: 'Ranking Task Instructions',
+      content: 'On the next screen, you will see a set of coffee blend profiles. Please rank them from 1 (Most Preferred) to 4 (Least Preferred) by dragging and dropping them into your preferred order.'
+    },
+    {
+      id: 'ranking_conjoint_1',
+      type: 'ranking-conjoint',
+      title: 'Rank these Coffee Blends',
+      required: true,
+      attributes: [
+        { id: 'attr1', name: 'Roast', levels: ['Light', 'Medium', 'Dark'] },
+        { id: 'attr2', name: 'Origin', levels: ['Single Origin', 'Blend'] },
+        { id: 'attr3', name: 'Price', levels: ['$12', '$16'] }
+      ],
+      designMethod: 'randomized',
+      sets: 1, // Typically one set is shown for ranking
+      cardsPerSet: 4 // The number of profiles to be ranked
+    }
+  ]
+};
+
+
+export const ipaTemplate = {
+  title: 'Restaurant Experience Survey',
+  description: 'Please rate your experience with our restaurant.',
+  questions: [
+    {
+      id: 'ipa_matrix',
+      type: 'matrix',
+      title: 'Please rate your satisfaction with the following aspects of your visit (1=Very Dissatisfied, 7=Very Satisfied):',
+      required: true,
+      rows: ['Food Quality', 'Service Speed', 'Ambiance', 'Price', 'Overall Satisfaction'],
+      scale: ['1', '2', '3', '4', '5', '6', '7']
+    },
+  ]
+};
+
+export const vanWestendorpTemplate = {
+    title: "Product Pricing Survey",
+    description: "We'd like to get your opinion on the pricing for our new product.",
+    questions: [
+        {
+            id: 'q_too_cheap',
+            type: 'number',
+            title: 'Too Cheap',
+            text: 'At what price would you consider the product to be so cheap that you would question its quality?',
+            required: true
+        },
+        {
+            id: 'q_cheap',
+            type: 'number',
+            title: 'Cheap',
+            text: 'At what price would you consider the product to be a bargain—a great buy for the money?',
+            required: true
+        },
+        {
+            id: 'q_expensive',
+            type: 'number',
+            title: 'Expensive',
+            text: 'At what price would you consider the product to be getting expensive, but you would still consider buying it?',
+            required: true
+        },
+        {
+            id: 'q_too_expensive',
+            type: 'number',
+            title: 'Too Expensive',
+            text: 'At what price would you consider the product to be so expensive that you would not consider buying it?',
+            required: true
+        }
+    ]
+}
+
+export const turfTemplate = {
+    title: "Soda Flavor Preference",
+    description: "Please select all the soda flavors you would be interested in purchasing.",
+    questions: [
+        {
+            id: 'turf_flavors',
+            type: 'multiple',
+            title: 'Which of these flavors appeal to you?',
+            required: true,
+            options: ['Classic Cola', 'Lemon Lime', 'Orange Soda', 'Grape Soda', 'Root Beer', 'Ginger Ale', 'Cherry Cola', 'Cream Soda']
+        }
+    ]
+};
+
+export const gaborGrangerTemplate1 = {
+  title: "Willingness to Pay (Single Price)",
+  description: "Please let us know if you would purchase this product at the following price.",
+  questions: [
+    {
+      id: 'gg_q1',
+      type: 'single',
+      title: 'If this product was sold for $15, how likely would you be to purchase it?',
+      required: true,
+      options: ['Definitely would not buy', 'Probably would not buy', 'Might or might not buy', 'Probably would buy', 'Definitely would buy']
+    }
+  ]
+};
+
+export const gaborGrangerTemplate2 = {
+  title: "Willingness to Pay (Multiple Prices)",
+  description: "Please let us know if you would purchase this product at each of the following prices.",
+  questions: [
+    { id: 'gg_intro', type: 'description', title: 'Pricing Questions', content: 'For each price point shown below, please indicate your likelihood of purchasing the product.'},
+    { id: 'gg_q_price1', type: 'single', title: 'If the price was $10, would you buy it?', required: true, options: ['Yes', 'No'] },
+    { id: 'gg_q_price2', type: 'single', title: 'If the price was $15, would you buy it?', required: true, options: ['Yes', 'No'] },
+    { id: 'gg_q_price3', type: 'single', title: 'If the price was $20, would you buy it?', required: true, options: ['Yes', 'No'] },
+    { id: 'gg_q_price4', type: 'single', title: 'If the price was $25, would you buy it?', required: true, options: ['Yes', 'No'] },
+  ]
+};
+
+export const ahpCriteriaOnlyTemplate = {
+    title: "Smartphone Feature Prioritization (AHP)",
+    description: "Help us decide which features are most important for our next smartphone.",
+    questions: [
+        { id: 'ahp_1', type: 'ahp', title: 'Which feature is more important?', required: true, criteria: [{id: 'c1', name: 'Price'}, {id: 'c2', name:'Performance'}, {id: 'c3', name:'Design'}] }
+    ]
+}
+
+export const ahpWithAlternativesTemplate = {
+    title: "New Car Selection (AHP)",
+    description: "Help us select the best new car model to launch based on your preferences.",
+    questions: [
+        { id: 'ahp_1', type: 'ahp', title: 'Which CRITERION is more important for choosing a car?', required: true, criteria: [{id: 'c1', name: 'Price'}, {id: 'c2', name:'Fuel Economy'}, {id: 'c3', name:'Safety'}] },
+        { id: 'ahp_2', type: 'ahp', title: 'Which car is better in terms of PRICE?', required: true, alternatives: ['Sedan', 'SUV', 'Hatchback'], criteria: [{id: 'c1', name: 'Price'}] },
+        { id: 'ahp_3', type: 'ahp', title: 'Which car is better in terms of FUEL ECONOMY?', required: true, alternatives: ['Sedan', 'SUV', 'Hatchback'], criteria: [{id: 'c2', name: 'Fuel Economy'}] },
+        { id: 'ahp_4', type: 'ahp', title: 'Which car is better in terms of SAFETY?', required: true, alternatives: ['Sedan', 'SUV', 'Hatchback'], criteria: [{id: 'c3', name: 'Safety'}] }
+    ]
+}
+
+export const csatTemplate = {
+  title: "Customer Satisfaction Survey",
+  description: "Please rate your overall satisfaction with our service.",
+  questions: [
+    {
+      id: 'csat_q1',
+      type: 'rating',
+      title: 'Overall, how satisfied are you with our service?',
+      scale: ['1', '2', '3', '4', '5'],
+      leftLabel: 'Very Dissatisfied',
+      rightLabel: 'Very Satisfied',
+      required: true
+    },
+     {
+      id: 'csat_open_ended',
+      type: 'text',
+      title: 'Please provide any additional feedback.',
+      required: false
+    }
+  ]
+};
+
+export const semanticDifferentialTemplate = {
+    title: "Brand Perception Study",
+    description: "Please rate our brand on the following scales.",
+    questions: [
+        {
+            id: 'sd_1',
+            type: 'semantic-differential',
+            title: 'Our Brand is:',
+            required: true,
+            rows: ['Modern vs. Traditional', 'Simple vs. Complex', 'Affordable vs. Luxurious'],
+            numScalePoints: 7,
+        }
+    ]
+};
+
+export const brandFunnelTemplate = {
+    title: "Brand Funnel Survey",
+    description: "Please answer a few questions about your awareness and perception of different brands.",
+    questions: [
+        {
+            id: 'q_awareness',
+            type: 'multiple',
+            title: 'Which of the following brands have you heard of?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D']
+        },
+        {
+            id: 'q_consideration',
+            type: 'multiple',
+            title: 'Which of these brands would you consider purchasing?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D']
+        },
+         {
+            id: 'q_preference',
+            type: 'single',
+            title: 'Which of the following is your most preferred brand?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D']
+        },
+        {
+            id: 'q_usage',
+            type: 'single',
+            title: 'Which brand have you purchased most recently?',
+            required: false,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D', 'None of these']
+        }
+    ]
+};
+
+export const servqualTemplate = {
+    title: "Service Quality Assessment (SERVQUAL)",
+    description: "Please rate your expectations and perceptions of our service.",
+    questions: [
+        {
+            id: 'sq_tangibles',
+            type: 'servqual',
+            title: 'Tangibles',
+            required: true,
+            rows: ['Modern equipment', 'Visually appealing facilities', 'Neat employees'],
+            scale: ['1', '2', '3', '4', '5', '6', '7']
+        },
+         {
+            id: 'sq_reliability',
+            type: 'servqual',
+            title: 'Reliability',
+            required: true,
+            rows: ['Promises to do something by a certain time', 'Performs the service right the first time'],
+            scale: ['1', '2', '3', '4', '5', '6', '7']
+        },
+    ]
+};
+
+export const servperfTemplate = {
+    title: "Service Performance Assessment (SERVPERF)",
+    description: "Please rate your perception of our service performance.",
+    questions: [
+        {
+            id: 'sp_tangibles',
+            type: 'servqual',
+            title: 'Tangibles',
+            servqualType: 'Perception',
+            required: true,
+            rows: ['Modern equipment', 'Visually appealing facilities', 'Neat employees'],
+            scale: ['1', '2', '3', '4', '5', '6', '7']
+        },
+         {
+            id: 'sp_reliability',
+            type: 'servqual',
+            servqualType: 'Perception',
+            title: 'Reliability',
+            required: true,
+            rows: ['Promises to do something by a certain time', 'Performs the service right the first time'],
+            scale: ['1', '2', '3', '4', '5', '6', '7']
+        },
+    ]
+};
+
+```
+- src/lib/utils.ts:
+```ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+```
+- tailwind.config.ts:
+```ts
+import type { Config } from "tailwindcss"
+
+const config = {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+  ],
+  prefix: "",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+       fontFamily: {
+        body: ['var(--font-body)', 'sans-serif'],
+        headline: ['var(--font-headline)', 'sans-serif'],
+      },
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+         chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+} satisfies Config
+
+export default config
+```
+- next.config.mjs:
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
+       {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      }
+    ],
+  },
+   async rewrites() {
+    return [
+      {
+        source: '/api/analysis/:path*',
+        destination: `http://127.0.0.1:3400/api/analysis/:path*`,
+      },
+      {
+        source: '/api/generate-qr-code',
+        destination: `http://127.0.0.1:3400/api/generate-qr-code`,
+      },
+    ];
+  },
+};
+
+export default nextConfig;
+```
+- README.md:
+```md
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+```
+- public/placeholder-user.jpg: ""
+- public/vercel.svg:
+```svg
+<svg width="76" height="65" viewBox="0 0 76 65" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M37.5255 0L75.051 65H0L37.5255 0Z" fill="#000000"/></svg>
+```
