@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -30,7 +31,9 @@ interface CategoricalTableItem { Value: string | number; Frequency: number; Perc
 interface VariableResult {
     type: 'numeric' | 'categorical';
     stats?: NumericStats;
+    groupedStats?: { [groupValue: string]: NumericStats };
     table?: CategoricalTableItem[];
+    groupedTable?: { [groupValue: string]: CategoricalTableItem[] };
     summary?: CategoricalSummary;
     plot?: string;
     error?: string;
@@ -63,45 +66,77 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 };
 
 // --- Display Components ---
-const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => ( <Card><CardHeader><CardTitle>{varName}</CardTitle></CardHeader><CardContent>{children}</CardContent></Card> );
-const ChoiceAnalysisDisplay = ({ tableData, plotData, summaryData, insights, varName }: { tableData: CategoricalTableItem[], plotData?: string, summaryData?: CategoricalSummary, insights?: string[], varName: string }) => (
-    <AnalysisDisplayShell varName={varName}>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+const AnalysisDisplayShell = ({ children, varName, groupByVar }: { children: React.ReactNode, varName: string, groupByVar?: string }) => ( <Card><CardHeader><CardTitle>{varName}{groupByVar && <span className="text-sm text-muted-foreground ml-2"> (Grouped by {groupByVar})</span>}</CardTitle></CardHeader><CardContent>{children}</CardContent></Card> );
+const ChoiceAnalysisDisplay = ({ tableData, groupedTable, plotData, summaryData, insights, varName, groupByVar }: { tableData?: CategoricalTableItem[], groupedTable?: { [groupValue: string]: CategoricalTableItem[] }, plotData?: string, summaryData?: CategoricalSummary, insights?: string[], varName: string, groupByVar?: string }) => (
+    <AnalysisDisplayShell varName={varName} groupByVar={groupByVar}>
+        <div className="space-y-6">
             {plotData && <Image src={`data:image/png;base64,${plotData}`} alt={`${varName} plot`} width={500} height={400} className="rounded-md border" />}
-            <div className="space-y-4">
-                {insights && insights.length > 0 && (
-                    <Alert>
-                        <Lightbulb className="h-4 w-4" />
-                        <AlertTitle>Key Insights</AlertTitle>
-                        <AlertDescription>
-                            <ul className="list-disc pl-4">
-                                {insights.map((insight, i) => <li key={i}>{insight}</li>)}
-                            </ul>
-                        </AlertDescription>
-                    </Alert>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    {insights && insights.length > 0 && (
+                        <Card className="border-l-4 border-primary/50 bg-primary/5 dark:bg-primary/10 shadow-none">
+                            <CardHeader className="flex flex-row items-center space-y-0 p-4"><Lightbulb className="h-5 w-5 text-primary mr-2" />
+                            <CardTitle className="text-lg font-semibold text-primary">Key Insights</CardTitle></CardHeader>
+                            <CardContent className="pt-0 pb-4">
+                                <ul className="list-disc pl-4">
+                                    {insights?.map((insight, i) => <li key={i}>{insight}</li>)}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+                {groupedTable ? (
+                    <div className="space-y-4">
+                        {Object.entries(groupedTable).map(([groupValue, groupTableData]) => (
+                            <div key={groupValue} className="space-y-2 border p-4 rounded-md">
+                                <h4 className="text-md font-semibold text-primary">{groupByVar}: {groupValue}</h4>
+                                <Table className="border-none">
+                                    <TableHeader><TableRow className="border-b"><TableHead className="p-2">Option</TableHead><TableHead className="text-right p-2">Count</TableHead><TableHead className="text-right p-2">Percentage</TableHead></TableRow></TableHeader>
+                                    <TableBody>{groupTableData.map((item) => ( <TableRow key={String(item.Value)} className="border-b hover:bg-transparent"><TableCell className="p-2">{String(item.Value)}</TableCell><TableCell className="text-right p-2">{item.Frequency}</TableCell><TableCell className="text-right p-2">{item.Percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody>
+                                </Table>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-2"><h3 className="text-lg font-semibold">Summary Statistics</h3><Table className="border-none"><TableHeader><TableRow className="border-b"><TableHead className="p-2">Option</TableHead><TableHead className="text-right p-2">Count</TableHead><TableHead className="text-right p-2">Percentage</TableHead></TableRow></TableHeader><TableBody>{tableData?.map((item) => ( <TableRow key={String(item.Value)} className="border-b hover:bg-transparent"><TableCell className="p-2">{String(item.Value)}</TableCell><TableCell className="text-right p-2">{item.Frequency}</TableCell><TableCell className="text-right p-2">{item.Percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody></Table></div>
                 )}
-                <Table><TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader><TableBody>{tableData.map((item) => ( <TableRow key={String(item.Value)}><TableCell>{String(item.Value)}</TableCell><TableCell className="text-right">{item.Frequency}</TableCell><TableCell className="text-right">{item.Percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody></Table>
             </div>
         </div>
     </AnalysisDisplayShell>
 );
-const NumberAnalysisDisplay = ({ plotData, tableData, insights, varName }: { plotData?: string, tableData: NumericStats, insights?: string[], varName: string }) => (
-    <AnalysisDisplayShell varName={varName}>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+const NumberAnalysisDisplay = ({ plotData, tableData, groupedStats, insights, varName, groupByVar }: { plotData?: string, tableData?: NumericStats, groupedStats?: { [groupValue: string]: NumericStats }, insights?: string[], varName: string, groupByVar?: string }) => (
+    <AnalysisDisplayShell varName={varName} groupByVar={groupByVar}>
+        <div className="space-y-6">
             {plotData && <Image src={`data:image/png;base64,${plotData}`} alt={`${varName} plot`} width={500} height={400} className="rounded-md border" />}
-             <div className="space-y-4">
-                {insights && insights.length > 0 && (
-                    <Alert>
-                        <Lightbulb className="h-4 w-4" />
-                        <AlertTitle>Key Insights</AlertTitle>
-                        <AlertDescription>
-                            <ul className="list-disc pl-4">
-                                {insights.map((insight, i) => <li key={i}>{insight}</li>)}
-                            </ul>
-                        </AlertDescription>
-                    </Alert>
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                     {insights && insights.length > 0 && (
+                        <Card className="border-l-4 border-primary/50 bg-primary/5 dark:bg-primary/10 shadow-none">
+                            <CardHeader className="flex flex-row items-center space-y-0 p-4"><Lightbulb className="h-5 w-5 text-primary mr-2" />
+                            <CardTitle className="text-lg font-semibold text-primary">Key Insights</CardTitle></CardHeader>
+                            <CardContent className="pt-0 pb-4">
+                                <ul className="list-disc pl-4">
+                                    {insights?.map((insight, i) => <li key={i}>{insight}</li>)}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+                {groupedStats ? (
+                    <div className="space-y-4">
+                        {Object.entries(groupedStats).map(([groupValue, groupStatsData]) => (
+                            <div key={groupValue} className="space-y-2 border p-4 rounded-md">
+                                <h4 className="text-md font-semibold text-primary">{groupByVar}: {groupValue}</h4>
+                                <Table className="border-none">
+                                    <TableHeader><TableRow className="border-b"><TableHead className="p-2">Statistic</TableHead><TableHead className="text-right p-2">Value</TableHead></TableRow></TableHeader>
+                                    <TableBody>{Object.entries(groupStatsData).map(([key, value]) => (<TableRow key={key} className="border-b hover:bg-transparent"><TableCell className="capitalize p-2">{key.replace(/([A-Z])/g, ' $1').trim()}</TableCell><TableCell className="text-right font-mono p-2">{typeof value === 'number' ? value.toFixed(3) : value}</TableCell></TableRow>))}</TableBody>
+                                </Table>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-2"><h3 className="text-lg font-semibold">Summary Statistics</h3><Table className="border-none"><TableHeader><TableRow className="border-b"><TableHead className="p-2">Statistic</TableHead><TableHead className="text-right p-2">Value</TableHead></TableRow></TableHeader><TableBody>{tableData && Object.entries(tableData).map(([key, value]) => (<TableRow key={key} className="border-b hover:bg-transparent"><TableCell className="capitalize p-2">{key.replace(/([A-Z])/g, ' $1').trim()}</TableCell><TableCell className="text-right font-mono p-2">{typeof value === 'number' ? value.toFixed(3) : value}</TableCell></TableRow>))}</TableBody></Table></div>
                 )}
-                <Table><TableHeader><TableRow><TableHead>Statistic</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader><TableBody>{Object.entries(tableData).map(([key, value]) => (<TableRow key={key}><TableCell className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</TableCell><TableCell className="text-right font-mono">{typeof value === 'number' ? value.toFixed(2) : value}</TableCell></TableRow>))}</TableBody></Table>
             </div>
         </div>
     </AnalysisDisplayShell>
@@ -129,6 +164,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVars, setSelectedVars] = useState<string[]>(allHeaders);
+    const [groupByVar, setGroupByVar] = useState<string | null>(null);
     const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
     const [view, setView] = useState('intro');
 
@@ -141,8 +177,13 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
     }, [allHeaders, data, canRun]);
 
     const handleVarSelectionChange = (varName: string, isChecked: boolean) => { setSelectedVars(prev => isChecked ? [...prev, varName] : prev.filter(v => v !== varName)); };
+    const handleGroupByChange = (value: string) => { setGroupByVar(value === 'None' ? null : value); };
 
     const runAnalysis = useCallback(async () => {
+        if (groupByVar && selectedVars.includes(groupByVar)) {
+            toast({ title: "Invalid Selection", description: "Group By variable cannot be one of the selected analysis variables.", variant: "destructive" });
+            return;
+        }
         if (selectedVars.length === 0) {
             toast({ title: "No Variables Selected", description: "Please select at least one variable to analyze.", variant: "destructive" });
             return;
@@ -154,7 +195,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
             const response = await fetch('/api/analysis/descriptive-stats', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, variables: selectedVars })
+                body: JSON.stringify({ data, variables: selectedVars, groupBy: groupByVar })
             });
             if (!response.ok) { 
                 const errorResult = await response.json();
@@ -169,7 +210,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         } finally {
             setIsLoading(false);
         }
-    }, [data, selectedVars, toast]);
+    }, [data, selectedVars, toast, groupByVar]);
     
     const renderIndividualResults = () => {
         if (!analysisData) return null;
@@ -178,8 +219,8 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                 {selectedVars.map(header => {
                     const result = analysisData[header];
                     if(!result || result.error) return <Card key={header}><CardHeader><CardTitle>{header}</CardTitle></CardHeader><CardContent><Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{result?.error || "Unknown error"}</AlertDescription></Alert></CardContent></Card>;
-                    if(result.type === 'numeric' && result.stats) { return <NumberAnalysisDisplay key={header} plotData={result.plot} tableData={result.stats} insights={result.insights} varName={header} /> }
-                    if(result.type === 'categorical' && result.table) { return <ChoiceAnalysisDisplay key={header} plotData={result.plot} tableData={result.table} summaryData={result.summary} insights={result.insights} varName={header} /> }
+                    if(result.type === 'numeric' && (result.stats || result.groupedStats)) { return <NumberAnalysisDisplay key={header} plotData={result.plot} tableData={result.stats} groupedStats={result.groupedStats} insights={result.insights} varName={header} groupByVar={groupByVar || undefined} /> }
+                    if(result.type === 'categorical' && (result.table || result.groupedTable)) { return <ChoiceAnalysisDisplay key={header} plotData={result.plot} tableData={result.table} groupedTable={result.groupedTable} summaryData={result.summary} insights={result.insights} varName={header} groupByVar={groupByVar || undefined} /> }
                     return null;
                 })}
             </div>
@@ -195,18 +236,37 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
             <Card>
               <CardHeader><div className="flex justify-between items-center"><CardTitle>Descriptive Statistics</CardTitle><Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button></div><CardDescription>Select variables to analyze.</CardDescription></CardHeader>
               <CardContent>
-                <div>
-                  <Label>Variables for Analysis</Label>
-                  <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {allHeaders.map((h: string) => (
-                        <div key={h} className="flex items-center space-x-2">
-                          <Checkbox id={`var-${h}`} onCheckedChange={(checked) => handleVarSelectionChange(h, !!checked)} checked={selectedVars.includes(h)} />
-                          <Label htmlFor={`var-${h}`} className="font-medium">{h}</Label>
-                        </div>
-                      ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2">
+                        <Label className="text-lg font-semibold mb-2 block">Variables for Analysis</Label>
+                        <ScrollArea className="h-40 border rounded-lg p-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {allHeaders.map((h: string) => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox id={`var-${h}`} onCheckedChange={(checked) => handleVarSelectionChange(h, !!checked)} checked={selectedVars.includes(h)} />
+                                        <Label htmlFor={`var-${h}`} className="font-medium">{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
                     </div>
-                  </ScrollArea>
+                    <div className="md:col-span-1">
+                        <Label className="text-lg font-semibold mb-2 block">Group By (Optional)</Label>
+                        <Select onValueChange={handleGroupByChange} value={groupByVar || 'None'}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="None" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None</SelectItem>
+                                {categoricalHeaders.map((header: string) => (
+                                    <SelectItem key={header} value={header} disabled={selectedVars.includes(header)}>
+                                        {header}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground mt-2">Select a categorical variable to see statistics for each group.</p>
+                    </div>
                 </div>
               </CardContent>
               <CardFooter><Button onClick={runAnalysis} disabled={isLoading || selectedVars.length === 0}>{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4"/>}Run Analysis</Button></CardFooter>

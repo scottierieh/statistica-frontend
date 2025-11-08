@@ -74,11 +74,59 @@ def main():
         payload = json.load(sys.stdin)
         data = payload.get('data')
         selected_vars = payload.get('variables')
+        group_by_var = payload.get('groupBy')
 
         df = pd.DataFrame(data)
         all_results = {}
 
         for var in selected_vars:
+            if group_by_var and group_by_var not in df.columns:
+                all_results[var] = {"error": f"Group By variable '{group_by_var}' not found"}
+                continue
+
+            if group_by_var:
+                grouped = df.groupby(group_by_var)
+                grouped_stats = {}
+                grouped_table = {}
+                
+                for name, group in grouped:
+                    group_series = group[var].dropna()
+                    is_numeric = pd.api.types.is_numeric_dtype(group[var])
+                    
+                    if is_numeric:
+                        numeric_series = pd.to_numeric(group_series, errors='coerce').dropna()
+                        if not numeric_series.empty:
+                            grouped_stats[str(name)] = get_numeric_stats(numeric_series)
+                    else:
+                        if not group_series.empty:
+                            stats = get_categorical_stats(group_series)
+                            grouped_table[str(name)] = stats['table']
+
+                # Grouped results structure
+                is_numeric = pd.api.types.is_numeric_dtype(df[var])
+                
+                if is_numeric:
+                    all_results[var] = {'type': 'numeric', 'groupedStats': grouped_stats}
+                else:
+                    all_results[var] = {'type': 'categorical', 'groupedTable': grouped_table}
+                
+                # Fallback to overall stats and plot for visualization if needed (optional, but good practice)
+                series = df[var].dropna()
+                if not series.empty:
+                    if is_numeric:
+                        numeric_series = pd.to_numeric(series, errors='coerce').dropna()
+                        if not numeric_series.empty:
+                            all_results[var]['stats'] = get_numeric_stats(numeric_series)
+                            all_results[var]['plot'] = create_plot(numeric_series, True, var)
+                    else:
+                        stats = get_categorical_stats(series)
+                        all_results[var]['table'] = stats['table']
+                        all_results[var]['summary'] = stats['summary']
+                        all_results[var]['plot'] = create_plot(series, False, var)
+                
+                continue # Skip the non-grouped logic
+
+            # Original non-grouped logic starts here
             if var not in df.columns:
                 all_results[var] = {"error": f"Variable '{var}' not found"}
                 continue
@@ -110,3 +158,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
