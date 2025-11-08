@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -6,7 +7,7 @@ import { type DataSet } from '@/lib/stats';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import { exampleDatasets } from '@/lib/example-datasets';
 import { Button } from '@/components/ui/button';
-import { Sigma, FlaskConical, MoveRight, BarChart, Settings, FileSearch, Users, Repeat, CheckCircle, XCircle, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Sigma, FlaskConical, MoveRight, BarChart, Settings, FileSearch, Users, Repeat, CheckCircle, XCircle, AlertTriangle, HelpCircle, Info, Lightbulb, TrendingUp, Target } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
@@ -16,6 +17,8 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface TTestResults {
     test_type: string;
@@ -68,7 +71,7 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">One-Sample T-Test</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Determine if the mean of a single sample is significantly different from a known or hypothesized population mean.
+                        Determine if the mean of a single sample is statistically different from a known or hypothesized population mean.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
@@ -89,6 +92,33 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                             </Card>
                         </div>
                     )}
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Variable:</strong> Choose the single numeric variable you want to test.</li>
+                                <li><strong>Enter Test Mean:</strong> Input the known or hypothesized mean you want to compare your sample against.</li>
+                                <li><strong>Run Analysis:</strong> The tool will perform the t-test and provide all relevant statistics and visualizations.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>t-statistic &amp; p-value:</strong> The core of the test. A p-value less than 0.05 indicates a statistically significant difference between your sample mean and the test mean.
+                                </li>
+                                <li>
+                                    <strong>Cohen's d:</strong> Measures the size of the effect. A larger 'd' indicates a more substantial difference.
+                                </li>
+                                 <li>
+                                    <strong>Confidence Interval:</strong> If this interval does not contain your test mean, it confirms a significant result.
+                                </li>
+                                <li>
+                                    <strong>Distribution Plot:</strong> Visually compare your sample's distribution against the test mean.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
@@ -184,30 +214,132 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
     );
 };
 
+// 추천사항 컴포넌트
+const TTestRecommendations = ({ activeTest, oneSampleVar, testValue, groupVar, valueVar, pairedVar1, pairedVar2, dataLength }: any) => {
+    const recommendations = useMemo(() => {
+        const items = [];
+        
+        if (activeTest === 'one-sample') {
+            if (!oneSampleVar) {
+                items.push({ type: 'warning', title: 'No Variable Selected', message: 'Please select a numeric variable to test.' });
+            } else {
+                items.push({ type: 'success', title: 'Variable Selected', message: `Testing variable: ${oneSampleVar}` });
+            }
+            if (testValue === '' || isNaN(parseFloat(testValue))) {
+                items.push({ type: 'warning', title: 'Invalid Test Value', message: 'Please enter a valid numeric test value (μ₀).' });
+            } else {
+                items.push({ type: 'success', title: 'Test Value Set', message: `Hypothesized population mean: ${testValue}` });
+            }
+        } else if (activeTest === 'independent-samples') {
+            if (!groupVar || !valueVar) {
+                items.push({ type: 'warning', title: 'Incomplete Selection', message: 'Please select both grouping and dependent variables.' });
+            } else {
+                items.push({ type: 'success', title: 'Variables Selected', message: `Comparing ${valueVar} across ${groupVar} groups.` });
+            }
+        } else if (activeTest === 'paired-samples') {
+            if (!pairedVar1 || !pairedVar2) {
+                items.push({ type: 'warning', title: 'Incomplete Selection', message: 'Please select both variables for paired comparison.' });
+            } else if (pairedVar1 === pairedVar2) {
+                items.push({ type: 'warning', title: 'Same Variable Selected', message: 'Please select two different variables.' });
+            } else {
+                items.push({ type: 'success', title: 'Variables Selected', message: `Comparing ${pairedVar1} vs ${pairedVar2} (paired).` });
+            }
+        }
+
+        // 샘플 크기 체크
+        if (dataLength < 10) {
+            items.push({ type: 'warning', title: 'Very Small Sample', message: `With only ${dataLength} observations, t-test results may not be reliable.` });
+        } else if (dataLength < 30) {
+            items.push({ type: 'info', title: 'Small Sample Size', message: `${dataLength} observations. Check normality assumption.` });
+        } else {
+            items.push({ type: 'success', title: 'Adequate Sample Size', message: `${dataLength} observations provide good reliability.` });
+        }
+
+        // 방법론 정보
+        if (activeTest === 'one-sample') {
+            items.push({ type: 'info', title: 'One-Sample T-Test', message: 'Tests if sample mean differs from hypothesized population mean (μ₀). Assumes approximate normality.' });
+        } else if (activeTest === 'independent-samples') {
+            items.push({ type: 'info', title: 'Independent Samples T-Test', message: 'Compares means of two independent groups. Assumes equal variances (Levene test will check this).' });
+        } else if (activeTest === 'paired-samples') {
+            items.push({ type: 'info', title: 'Paired Samples T-Test', message: 'Compares means of two related groups (e.g., pre/post). Controls for individual differences.' });
+        }
+
+        // 일반 권장사항
+        items.push({ type: 'tip', title: 'Interpreting Results', message: 'If p-value < 0.05, the result is statistically significant. Check Cohen\'s d for effect size magnitude.' });
+
+        return items;
+    }, [activeTest, oneSampleVar, testValue, groupVar, valueVar, pairedVar1, pairedVar2, dataLength]);
+
+    if (recommendations.length === 0) return null;
+
+    return (
+        <Card className="border-l-4 border-l-blue-500">
+            <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5 text-primary" />
+                    Recommendations & Warnings
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {recommendations.map((rec, idx) => {
+                    const bgColor = rec.type === 'success' ? 'bg-green-50 border-green-200' :
+                                   rec.type === 'warning' ? 'bg-amber-50 border-amber-200' :
+                                   rec.type === 'error' ? 'bg-red-50 border-red-200' :
+                                   rec.type === 'tip' ? 'bg-blue-50 border-blue-200' :
+                                   'bg-muted/50 border-border';
+                    const Icon = rec.type === 'success' ? CheckCircle :
+                                rec.type === 'warning' ? AlertTriangle :
+                                rec.type === 'error' ? AlertTriangle :
+                                rec.type === 'tip' ? Lightbulb :
+                                Info;
+                    const iconColor = rec.type === 'success' ? 'text-green-600' :
+                                     rec.type === 'warning' ? 'text-amber-600' :
+                                     rec.type === 'error' ? 'text-red-600' :
+                                     rec.type === 'tip' ? 'text-blue-600' :
+                                     'text-muted-foreground';
+                    return (
+                        <div key={idx} className={`p-3 rounded-lg border ${bgColor}`}>
+                            <div className="flex items-start gap-2">
+                                <Icon className={`h-4 w-4 ${iconColor} mt-0.5`} />
+                                <div>
+                                    <div className="font-semibold text-sm">{rec.title}</div>
+                                    <div className="text-xs text-muted-foreground">{rec.message}</div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </CardContent>
+        </Card>
+    );
+};
+
 const OneSampleSetup = ({ numericHeaders, oneSampleVar, setOneSampleVar, testValue, setTestValue, oneSampleAlternative, setOneSampleAlternative }: any) => {
     return (
-        <div className="grid md:grid-cols-3 gap-4">
-            <div>
-                <Label htmlFor="oneSampleVar">Variable</Label>
-                <Select value={oneSampleVar} onValueChange={setOneSampleVar}>
-                    <SelectTrigger id="oneSampleVar"><SelectValue placeholder="Select a numeric variable..." /></SelectTrigger>
-                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label htmlFor="testValue">Test Value (μ₀)</Label>
-                <Input id="testValue" type="number" value={testValue} onChange={e => setTestValue(e.target.value)} />
-            </div>
-            <div>
-                <Label htmlFor="oneSampleAlternative">Alternative Hypothesis</Label>
-                <Select value={oneSampleAlternative} onValueChange={setOneSampleAlternative}>
-                    <SelectTrigger id="oneSampleAlternative"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="two-sided">Two-sided (≠)</SelectItem>
-                        <SelectItem value="greater">Greater (&gt;)</SelectItem>
-                        <SelectItem value="less">Less (&lt;)</SelectItem>
-                    </SelectContent>
-                </Select>
+        <div className="space-y-4">
+            <div className="flex items-end gap-4">
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="oneSampleVar">Variable</Label>
+                    <Select value={oneSampleVar} onValueChange={setOneSampleVar}>
+                        <SelectTrigger id="oneSampleVar"><SelectValue placeholder="Select a numeric variable..." /></SelectTrigger>
+                        <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="testValue">Test Value (μ₀)</Label>
+                    <Input id="testValue" type="number" value={testValue} onChange={e => setTestValue(e.target.value)} />
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="oneSampleAlternative">Alternative Hypothesis</Label>
+                    <Select value={oneSampleAlternative} onValueChange={setOneSampleAlternative}>
+                        <SelectTrigger id="oneSampleAlternative"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="two-sided">Two-sided (≠)</SelectItem>
+                            <SelectItem value="greater">Greater (&gt;)</SelectItem>
+                            <SelectItem value="less">Less (&lt;)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </div>
     );
@@ -223,31 +355,33 @@ const IndependentSamplesSetup = ({ numericHeaders, categoricalHeaders, data, gro
     }
 
     return (
-        <div className="grid md:grid-cols-3 gap-4">
-            <div>
-                <Label htmlFor="groupVar">Grouping Variable</Label>
-                <Select value={groupVar} onValueChange={setGroupVar}>
-                    <SelectTrigger id="groupVar"><SelectValue /></SelectTrigger>
-                    <SelectContent>{binaryCategoricalHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label htmlFor="valueVar">Dependent Variable</Label>
-                <Select value={valueVar} onValueChange={setValueVar}>
-                    <SelectTrigger id="valueVar"><SelectValue /></SelectTrigger>
-                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label htmlFor="independentSampleAlternative">Alternative Hypothesis</Label>
-                <Select value={independentSampleAlternative} onValueChange={setIndependentSampleAlternative}>
-                    <SelectTrigger id="independentSampleAlternative"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="two-sided">Two-sided (≠)</SelectItem>
-                        <SelectItem value="greater">Greater (&gt;)</SelectItem>
-                        <SelectItem value="less">Less (&lt;)</SelectItem>
-                    </SelectContent>
-                </Select>
+        <div className="space-y-4">
+            <div className="flex items-end gap-4">
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="groupVar">Grouping Variable</Label>
+                    <Select value={groupVar} onValueChange={setGroupVar}>
+                        <SelectTrigger id="groupVar"><SelectValue /></SelectTrigger>
+                        <SelectContent>{binaryCategoricalHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="valueVar">Dependent Variable</Label>
+                    <Select value={valueVar} onValueChange={setValueVar}>
+                        <SelectTrigger id="valueVar"><SelectValue /></SelectTrigger>
+                        <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="independentSampleAlternative">Alternative Hypothesis</Label>
+                    <Select value={independentSampleAlternative} onValueChange={setIndependentSampleAlternative}>
+                        <SelectTrigger id="independentSampleAlternative"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="two-sided">Two-sided (≠)</SelectItem>
+                            <SelectItem value="greater">Greater (&gt;)</SelectItem>
+                            <SelectItem value="less">Less (&lt;)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </div>
     );
@@ -256,31 +390,33 @@ const IndependentSamplesSetup = ({ numericHeaders, categoricalHeaders, data, gro
 const PairedSamplesSetup = ({ numericHeaders, pairedVar1, setPairedVar1, pairedVar2, setPairedVar2, pairedSampleAlternative, setPairedSampleAlternative }: any) => {
     const availablePairedVar2 = numericHeaders.filter((h: string) => h !== pairedVar1);
     return (
-        <div className="grid md:grid-cols-3 gap-4">
-            <div>
-                <Label htmlFor="pairedVar1">Variable 1 (e.g., Pre-test)</Label>
-                <Select value={pairedVar1} onValueChange={setPairedVar1}>
-                    <SelectTrigger id="pairedVar1"><SelectValue /></SelectTrigger>
-                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label htmlFor="pairedVar2">Variable 2 (e.g., Post-test)</Label>
-                <Select value={pairedVar2} onValueChange={setPairedVar2} disabled={!pairedVar1}>
-                    <SelectTrigger id="pairedVar2"><SelectValue /></SelectTrigger>
-                    <SelectContent>{availablePairedVar2.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                </Select>
-            </div>
-             <div>
-                <Label htmlFor="pairedSampleAlternative">Alternative Hypothesis</Label>
-                <Select value={pairedSampleAlternative} onValueChange={setPairedSampleAlternative}>
-                    <SelectTrigger id="pairedSampleAlternative"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="two-sided">Two-sided (≠)</SelectItem>
-                        <SelectItem value="greater">Greater (&gt;)</SelectItem>
-                        <SelectItem value="less">Less (&lt;)</SelectItem>
-                    </SelectContent>
-                </Select>
+        <div className="space-y-4">
+            <div className="flex items-end gap-4">
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="pairedVar1">Variable 1 (e.g., Pre-test)</Label>
+                    <Select value={pairedVar1} onValueChange={setPairedVar1}>
+                        <SelectTrigger id="pairedVar1"><SelectValue /></SelectTrigger>
+                        <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="pairedVar2">Variable 2 (e.g., Post-test)</Label>
+                    <Select value={pairedVar2} onValueChange={setPairedVar2} disabled={!pairedVar1}>
+                        <SelectTrigger id="pairedVar2"><SelectValue /></SelectTrigger>
+                        <SelectContent>{availablePairedVar2.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label htmlFor="pairedSampleAlternative">Alternative Hypothesis</Label>
+                    <Select value={pairedSampleAlternative} onValueChange={setPairedSampleAlternative}>
+                        <SelectTrigger id="pairedSampleAlternative"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="two-sided">Two-sided (≠)</SelectItem>
+                            <SelectItem value="greater">Greater (&gt;)</SelectItem>
+                            <SelectItem value="less">Less (&lt;)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </div>
     );
@@ -391,6 +527,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
+            toast({ title: 'T-Test Complete', description: 'Results are ready.' });
 
         } catch (e: any) {
             console.error('Analysis error:', e);
@@ -412,9 +549,10 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     }
     
     const results = analysisResult?.results;
+    const significant = results?.significant;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
@@ -422,67 +560,123 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     {activeTest === 'one-sample' && <OneSampleSetup {...{ numericHeaders, oneSampleVar, setOneSampleVar, testValue, setTestValue, oneSampleAlternative, setOneSampleAlternative }} />}
                     {activeTest === 'independent-samples' && <IndependentSamplesSetup {...{ numericHeaders, categoricalHeaders, data, groupVar, setGroupVar, valueVar, setValueVar, independentSampleAlternative, setIndependentSampleAlternative }} />}
                     {activeTest === 'paired-samples' && <PairedSamplesSetup {...{ numericHeaders, pairedVar1, setPairedVar1, pairedVar2, setPairedVar2, pairedSampleAlternative, setPairedSampleAlternative }} />}
+                    
+                    {/* 추천사항 컴포넌트 */}
+                    <TTestRecommendations 
+                        activeTest={activeTest}
+                        oneSampleVar={oneSampleVar}
+                        testValue={testValue}
+                        groupVar={groupVar}
+                        valueVar={valueVar}
+                        pairedVar1={pairedVar1}
+                        pairedVar2={pairedVar2}
+                        dataLength={data.length}
+                    />
                 </CardContent>
                  <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                        {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Analyzing...</> : <><Sigma className="mr-2 h-4 w-4"/>Run</>}
                     </Button>
                 </CardFooter>
             </Card>
             
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
+            {isLoading && <Skeleton className="h-96 w-full"/>}
 
             {analysisResult && results && (
-                <div className="space-y-4">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Analysis Interpretation</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Alert variant={results.significant ? 'default' : 'secondary'}>
-                                {results.significant ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                                <AlertTitle>{results.significant ? 'Statistically Significant Result' : 'Not Statistically Significant'}</AlertTitle>
-                                <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
-                            </Alert>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Diagnostic Plots</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <Image src={analysisResult.plot} alt="T-Test Plots" width={1000} height={800} className="rounded-md border mx-auto"/>
-                        </CardContent>
-                    </Card>
-                    <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-6">
+                     {/* Performance Metrics - 4개 그리드 카드 */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Card className={significant ? "bg-amber-50 dark:bg-amber-950 border-amber-500/30" : "bg-green-50 dark:bg-green-950 border-green-500/30"}>
+                            <CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Result</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-2">
+                                    {significant ? <CheckCircle className="h-5 w-5 text-amber-600" /> : <CheckCircle className="h-5 w-5 text-green-600" />}
+                                    <div className="text-2xl font-bold">{significant ? 'Significant' : 'Not Significant'}</div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {significant ? 'Means differ significantly' : 'No significant difference'}
+                                </p>
+                            </CardContent>
+                        </Card>
                         <Card>
-                            <CardHeader><CardTitle>T-Test Statistics</CardTitle></CardHeader>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">P-Value</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableBody>
-                                        <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell></TableRow>
-                                        <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell></TableRow>
-                                        <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value < 0.001 ? ' 0.001' : results.p_value.toFixed(4)}</TableCell></TableRow>
-                                    </TableBody>
-                                </Table>
+                                <div className="text-2xl font-bold font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(4)}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {results.p_value < 0.05 ? 'p < 0.05 (significant)' : 'p ≥ 0.05 (not significant)'}
+                                </p>
                             </CardContent>
                         </Card>
-                         <Card>
-                            <CardHeader><CardTitle>Effect Size &amp; Confidence Interval</CardTitle></CardHeader>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">T-Statistic</CardTitle>
+                                <BarChart className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableBody>
-                                        <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell></TableRow>
-                                        {results.mean_diff !== undefined && <TableRow><TableCell>Mean Difference</TableCell><TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell></TableRow>}
-                                        {results.confidence_interval && <TableRow><TableCell>95% CI of Difference</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(3)}, {results.confidence_interval[1].toFixed(3)}]</TableCell></TableRow>}
-                                    </TableBody>
-                                </Table>
+                                <div className="text-2xl font-bold font-mono">{results.t_statistic.toFixed(3)}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    df = {results.degrees_of_freedom.toFixed(2)}
+                                </p>
                             </CardContent>
                         </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Cohen's d</CardTitle>
+                                <Target className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold font-mono">{results.cohens_d.toFixed(3)}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {Math.abs(results.cohens_d) < 0.2 ? 'Small effect' : 
+                                     Math.abs(results.cohens_d) < 0.5 ? 'Medium effect' : 'Large effect'}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Interpretation과 Visual을 좌우로 배치 */}
+                    <div className="grid gap-6 lg:grid-cols-3">
+                        <div className="lg:col-span-1">
+                            <Card className="h-full">
+                                <CardHeader>
+                                    <CardTitle className="font-headline text-base">Interpretation</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <Alert variant='default' className={significant ? 'border-amber-500 bg-amber-50 dark:bg-amber-950' : 'border-green-500 bg-green-50 dark:bg-green-950'}>
+                                        <div className="flex items-start gap-2">
+                                            {significant ? <CheckCircle className="h-5 w-5 text-amber-600 mt-0.5" /> : <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
+                                            <div className="flex-1">
+                                                <AlertTitle className="text-base font-semibold mb-2">
+                                                    {significant ? 'Statistically Significant' : 'Not Statistically Significant'}
+                                                </AlertTitle>
+                                                <AlertDescription className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
+                                            </div>
+                                        </div>
+                                    </Alert>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="lg:col-span-2">
+                            <Card className="h-full">
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Visual Summary</CardTitle>
+                                    <CardDescription>
+                                        Diagnostic plots for the t-test analysis.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.plot} alt="T-Test Plots" width={1000} height={800} className="w-full rounded-lg border"/>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
                 </div>
             )}
