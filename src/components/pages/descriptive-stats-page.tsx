@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch, Lightbulb } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,6 +19,7 @@ import dynamic from 'next/dynamic';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Skeleton } from '../ui/skeleton';
+import Image from 'next/image';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -34,11 +35,10 @@ interface NumericStats {
     max: number;
     skewness: number;
     kurtosis: number;
-    mode: number | null;
 }
 
 interface CategoricalFreqItem {
-    Value: string;
+    Value: string | number;
     Frequency: number;
     Percentage: number;
 }
@@ -55,10 +55,14 @@ interface CategoricalStats {
 
 interface VariableResult {
     type: 'numeric' | 'categorical';
-    stats: NumericStats | CategoricalStats;
-    plot: string;
-    insights: string[];
+    stats?: NumericStats;
+    table?: CategoricalFreqItem[];
+    summary?: CategoricalStats['summary'];
+    plot?: string;
+    insights?: string[];
     error?: string;
+    groupedStats?: { [key: string]: NumericStats };
+    groupedTable?: { [key: string]: CategoricalFreqItem[] };
 }
 
 interface FullAnalysisResponse {
@@ -66,6 +70,8 @@ interface FullAnalysisResponse {
         [key: string]: VariableResult;
     };
 }
+
+const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
@@ -148,8 +154,8 @@ interface DescriptiveStatsPageProps {
 
 
 const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeaders }: { results: FullAnalysisResponse['results'], selectedVars: string[], numericHeaders: string[], categoricalHeaders: string[] }) => {
-    const numericVars = selectedVars.filter(v => numericHeaders.includes(v) && results[v]?.type === 'numeric');
-    const categoricalVars = selectedVars.filter(v => categoricalHeaders.includes(v) && results[v]?.type === 'categorical');
+    const numericVars = selectedVars.filter(v => numericHeaders.includes(v) && results[v]?.type === 'numeric' && !results[v].error);
+    const categoricalVars = selectedVars.filter(v => categoricalHeaders.includes(v) && results[v]?.type === 'categorical' && !results[v].error);
 
     const numericMetrics: (keyof NumericStats)[] = ['count', 'mean', 'stdDev', 'min', 'q1', 'median', 'q3', 'max', 'skewness'];
     const categoricalMetrics: (keyof CategoricalStats['summary'])[] = ['count', 'unique', 'mode'];
@@ -202,7 +208,7 @@ const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeader
                                     <TableRow key={metric}>
                                         <TableCell className="font-medium capitalize">{metric}</TableCell>
                                         {categoricalVars.map(v => {
-                                            const statValue = (results[v]?.stats as CategoricalStats)?.summary?.[metric];
+                                            const statValue = (results[v] as VariableResult)?.summary?.[metric];
                                             return <TableCell key={`${metric}-${v}`} className="text-right font-mono">{String(statValue ?? 'N/A')}</TableCell>
                                         })}
                                     </TableRow>
@@ -216,13 +222,13 @@ const SummaryTable = ({ results, selectedVars, numericHeaders, categoricalHeader
     )
 }
 
-const AnalysisDisplay = ({ result }: { result: VariableResult }) => {
+const AnalysisDisplay = ({ result, varName }: { result: VariableResult, varName: string }) => {
     const isNumeric = result.type === 'numeric';
-    const stats = result.stats as (NumericStats | CategoricalStats);
+    const stats = result.stats;
 
     return (
         <Card>
-            <CardHeader><CardTitle>{result.plot ? 'Distribution Plot' : 'Summary'}</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{varName}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {result.plot && (
                     <div className="w-full h-full flex items-center justify-center">
@@ -233,7 +239,7 @@ const AnalysisDisplay = ({ result }: { result: VariableResult }) => {
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary</CardTitle></CardHeader>
                         <CardContent>
-                            {isNumeric ? (
+                            {isNumeric && stats ? (
                                 <Table>
                                     <TableBody>
                                         {(Object.keys(stats) as (keyof NumericStats)[]).map(key => (
@@ -241,16 +247,16 @@ const AnalysisDisplay = ({ result }: { result: VariableResult }) => {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            ) : (
+                            ) : result.table && result.summary ? (
                                 <ScrollArea className="h-64">
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Value</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {(stats as CategoricalStats).table.map((item, i) => <TableRow key={i}><TableCell>{item.Value}</TableCell><TableCell className="text-right">{item.Frequency}</TableCell><TableCell className="text-right">{item.Percentage.toFixed(1)}%</TableCell></TableRow>)}
+                                        {result.table.map((item: any, i: number) => <TableRow key={i}><TableCell>{String(item.Value)}</TableCell><TableCell className="text-right">{item.Frequency}</TableCell><TableCell className="text-right">{item.Percentage.toFixed(1)}%</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
                                 </ScrollArea>
-                            )}
+                            ) : <p>No statistics available.</p>}
                         </CardContent>
                     </Card>
                      {result.insights && result.insights.length > 0 && (
