@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -243,7 +243,7 @@ const AnalysisDisplay = ({ result, varName }: { result: VariableResult, varName:
                                 <Table>
                                     <TableBody>
                                         {(Object.keys(stats) as (keyof NumericStats)[]).map(key => (
-                                            <TableRow key={key}><TableCell className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim().capitalize()}</TableCell><TableCell className="text-right font-mono">{(stats as NumericStats)[key]?.toFixed(2) ?? 'N/A'}</TableCell></TableRow>
+                                            <TableRow key={key}><TableCell className="font-medium">{key.replace(/([A-Z])/g, ' $1').charAt(0).toUpperCase() + key.replace(/([A-Z])/g, ' $1').slice(1)}</TableCell><TableCell className="text-right font-mono">{(stats as NumericStats)[key]?.toFixed(2) ?? 'N/A'}</TableCell></TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -434,4 +434,3 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
     );
 }
 
-```
