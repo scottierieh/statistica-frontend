@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -13,14 +11,19 @@ from sklearn.decomposition import PCA
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -170,25 +173,32 @@ class KMeansAnalysis:
         return interpretations
         
     def plot_results(self):
-        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-        fig.suptitle('K-Means Clustering Results', fontsize=16, fontweight='bold')
+        # Ensure seaborn style is applied
+        sns.set_theme(style="darkgrid")
+        sns.set_context("notebook", font_scale=1.1)
+        
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
 
         # 1. Elbow Plot
         if 'optimal_k' in self.results:
             opt_k_res = self.results['optimal_k']
-            axes[0, 0].plot(opt_k_res['k_range'], opt_k_res['inertias'], 'bo-')
-            axes[0, 0].set_xlabel('Number of Clusters (k)')
-            axes[0, 0].set_ylabel('Inertia (WCSS)')
-            axes[0, 0].set_title('Elbow Method for Optimal k')
+            axes[0, 0].plot(opt_k_res['k_range'], opt_k_res['inertias'], 'o-', color='#5B9BD5', linewidth=2, markersize=8)
+            axes[0, 0].set_xlabel('Number of Clusters (k)', fontsize=12)
+            axes[0, 0].set_ylabel('Inertia (WCSS)', fontsize=12)
+            axes[0, 0].set_title('Elbow Method for Optimal k', fontsize=12, fontweight='bold')
             axes[0, 0].grid(True, alpha=0.3)
 
         # 2. Silhouette Plot
         if 'optimal_k' in self.results and self.results['optimal_k']['silhouette_scores']:
             opt_k_res = self.results['optimal_k']
-            sns.barplot(x=opt_k_res['k_range'], y=opt_k_res['silhouette_scores'], ax=axes[0, 1], color='skyblue')
-            axes[0, 1].set_xlabel('Number of Clusters (k)')
-            axes[0, 1].set_ylabel('Average Silhouette Score')
-            axes[0, 1].set_title('Silhouette Scores for Optimal k')
+            colors = sns.color_palette('crest', n_colors=len(opt_k_res['k_range']))
+            axes[0, 1].bar(range(len(opt_k_res['k_range'])), opt_k_res['silhouette_scores'], 
+                          color=colors, alpha=0.7, edgecolor='black')
+            axes[0, 1].set_xlabel('Number of Clusters (k)', fontsize=12)
+            axes[0, 1].set_ylabel('Average Silhouette Score', fontsize=12)
+            axes[0, 1].set_title('Silhouette Scores for Optimal k', fontsize=12, fontweight='bold')
+            axes[0, 1].set_xticks(range(len(opt_k_res['k_range'])))
+            axes[0, 1].set_xticklabels(opt_k_res['k_range'])
             axes[0, 1].grid(True, alpha=0.3)
 
         # 3. Cluster Scatter Plot (PCA)
@@ -196,15 +206,24 @@ class KMeansAnalysis:
             pca = PCA(n_components=2)
             pca_data = pca.fit_transform(self.cluster_data_scaled)
             
-            sns.scatterplot(x=pca_data[:, 0], y=pca_data[:, 1], hue=self.cluster_labels, 
-                            palette='viridis', ax=axes[1, 0], legend='full')
+            # Create color palette for clusters
+            n_clusters = len(np.unique(self.cluster_labels))
+            palette = sns.color_palette('crest', n_colors=n_clusters)
+            
+            for i, label in enumerate(np.unique(self.cluster_labels)):
+                mask = self.cluster_labels == label
+                axes[1, 0].scatter(pca_data[mask, 0], pca_data[mask, 1], 
+                                 c=[palette[i]], label=f'Cluster {label + 1}', 
+                                 alpha=0.6, s=50, edgecolors='black', linewidth=0.5)
             
             centroids_pca = pca.transform(self.results['clustering_summary']['centroids'])
-            axes[1, 0].scatter(centroids_pca[:, 0], centroids_pca[:, 1], s=200, c='red', marker='X', label='Centroids')
+            axes[1, 0].scatter(centroids_pca[:, 0], centroids_pca[:, 1], 
+                             s=300, c='red', marker='X', label='Centroids', 
+                             edgecolors='black', linewidth=2)
             
-            axes[1, 0].set_title('Clusters in 2D PCA Space')
-            axes[1, 0].set_xlabel(f'Principal Component 1 ({pca.explained_variance_ratio_[0]:.1%})')
-            axes[1, 0].set_ylabel(f'Principal Component 2 ({pca.explained_variance_ratio_[1]:.1%})')
+            axes[1, 0].set_title('Clusters in 2D PCA Space', fontsize=12, fontweight='bold')
+            axes[1, 0].set_xlabel(f'Principal Component 1 ({pca.explained_variance_ratio_[0]:.1%})', fontsize=12)
+            axes[1, 0].set_ylabel(f'Principal Component 2 ({pca.explained_variance_ratio_[1]:.1%})', fontsize=12)
             axes[1, 0].legend()
             axes[1, 0].grid(True, alpha=0.3)
 
@@ -218,21 +237,26 @@ class KMeansAnalysis:
             angles += angles[:1]
             
             ax_radar = fig.add_subplot(224, polar=True)
+            
+            # Use color palette for radar chart
+            colors = sns.color_palette('crest', n_colors=len(centroids_norm))
+            
             for i, (name, row) in enumerate(centroids_norm.iterrows()):
                 values = row.tolist()
                 values += values[:1]
-                ax_radar.plot(angles, values, label=name)
-                ax_radar.fill(angles, values, alpha=0.25)
+                ax_radar.plot(angles, values, 'o-', linewidth=2, label=name, color=colors[i])
+                ax_radar.fill(angles, values, alpha=0.25, color=colors[i])
             
             ax_radar.set_xticks(angles[:-1])
-            ax_radar.set_xticklabels(self.feature_cols)
-            ax_radar.set_title('Cluster Profiles (Normalized)', size=12)
+            ax_radar.set_xticklabels(self.feature_cols, fontsize=10)
+            ax_radar.set_title('Cluster Profiles (Normalized)', fontsize=12, fontweight='bold', pad=20)
             ax_radar.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+            ax_radar.grid(True, alpha=0.3)
 
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
@@ -266,5 +290,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

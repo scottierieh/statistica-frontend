@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -15,6 +14,10 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
+
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
@@ -28,26 +31,108 @@ def _to_native_type(obj):
 
 def fig_to_base64(fig):
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     plt.close(fig)
     buf.seek(0)
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
-def _generate_interpretation(train_r2, test_r2):
-    interpretation = ""
-    r2_diff = train_r2 - test_r2
+def _generate_interpretation(train_r2, test_r2, train_rmse, test_rmse, alpha, n_features, n_train):
+    interpretation_sections = []
+    r2_diff = abs(train_r2 - test_r2)
+    is_overfitting = r2_diff > 0.1
     
-    if train_r2 > 0.8 and r2_diff < 0.2:
-        interpretation = "The model shows a **Good Fit**. Both training and testing R-squared scores are high and close to each other, indicating that the model generalizes well to new data."
-    elif train_r2 > 0.7 and r2_diff > 0.3:
-        interpretation = "**Overfitting Warning**. The model performs significantly better on the training data than on the test data. This suggests that the model has learned the training data's noise and may not perform well on unseen data. Consider increasing the alpha value to add more regularization."
-    elif train_r2 < 0.5 and test_r2 < 0.5:
-        interpretation = "**Underfitting Possible**. Both training and testing R-squared scores are low, suggesting the model is too simple to capture the underlying patterns in the data. The model may not be complex enough."
+    # Section 1: Overall Analysis
+    section1 = "**Overall Analysis**\n"
+    section1 += f"A Ridge regression model with L2 regularization (alpha = {alpha:.3f}) was fit on {n_train} training observations "
+    section1 += f"using {n_features} predictor variable(s).\n\n"
+    
+    if train_r2 >= 0.75:
+        section1 += f"• Training Performance: Excellent fit with R-squared = {train_r2:.4f}, explaining {train_r2*100:.1f}% of variance.\n"
+    elif train_r2 >= 0.50:
+        section1 += f"• Training Performance: Good fit with R-squared = {train_r2:.4f}, explaining {train_r2*100:.1f}% of variance.\n"
+    elif train_r2 >= 0.25:
+        section1 += f"• Training Performance: Moderate fit with R-squared = {train_r2:.4f}, explaining {train_r2*100:.1f}% of variance.\n"
     else:
-        interpretation = "The model's performance is moderate. Review the R-squared values and residuals to assess if the model is sufficient for your needs."
+        section1 += f"• Training Performance: Weak fit with R-squared = {train_r2:.4f}, explaining {train_r2*100:.1f}% of variance.\n"
+    
+    if test_r2 >= 0.75:
+        section1 += f"• Test Performance: Excellent generalization with R-squared = {test_r2:.4f}.\n"
+    elif test_r2 >= 0.50:
+        section1 += f"• Test Performance: Good generalization with R-squared = {test_r2:.4f}.\n"
+    elif test_r2 >= 0.25:
+        section1 += f"• Test Performance: Moderate generalization with R-squared = {test_r2:.4f}.\n"
+    else:
+        section1 += f"• Test Performance: Weak generalization with R-squared = {test_r2:.4f}.\n"
+    
+    section1 += f"• Prediction Error (Test RMSE): {test_rmse:.4f}"
+    
+    interpretation_sections.append(section1)
+    
+    # Section 2: Statistical Insights
+    section2 = "**Statistical Insights**\n"
+    
+    if is_overfitting:
+        section2 += f"• Overfitting Detected: The model shows a train-test R-squared gap of {r2_diff:.4f}, "
+        section2 += f"indicating the model performs {r2_diff*100:.1f}% better on training data than test data.\n"
+        section2 += f"• Impact: This suggests the model has learned training-specific patterns that don't generalize well.\n"
         
-    return interpretation.strip()
-
+        if alpha < 1.0:
+            section2 += f"• Current Regularization: Alpha = {alpha:.3f} provides weak regularization. "
+            section2 += f"Consider increasing alpha to strengthen regularization and reduce overfitting.\n"
+        else:
+            section2 += f"• Current Regularization: Alpha = {alpha:.3f}. Despite regularization, overfitting persists. "
+            section2 += f"Consider further increasing alpha or reducing model complexity.\n"
+    else:
+        section2 += f"• Good Generalization: The model shows excellent generalization with a train-test R-squared gap of only {r2_diff:.4f}.\n"
+        section2 += f"• Regularization Balance: Alpha = {alpha:.3f} provides appropriate regularization, "
+        section2 += f"effectively preventing overfitting while maintaining predictive power.\n"
+        section2 += f"• Model Stability: The close alignment between training and test performance indicates the model will likely perform consistently on new data.\n"
+    
+    # Ridge-specific explanation
+    section2 += f"\nRidge regression applies L2 penalty proportional to the square of coefficient magnitudes. "
+    section2 += f"This shrinks all coefficients toward zero (but not exactly to zero), helping to:\n"
+    section2 += f"• Reduce model variance and prevent overfitting\n"
+    section2 += f"• Handle multicollinearity by stabilizing coefficient estimates\n"
+    section2 += f"• Maintain all features in the model with reduced impact"
+    
+    interpretation_sections.append(section2)
+    
+    # Section 3: Recommendations
+    section3 = "**Recommendations**\n"
+    
+    # Performance assessment
+    if test_r2 >= 0.7 and not is_overfitting:
+        section3 += "• Model Quality: The model demonstrates strong predictive performance with good generalization.\n"
+        section3 += "• Deployment Readiness: This model appears suitable for making predictions on new data.\n"
+    elif test_r2 >= 0.5:
+        section3 += "• Model Quality: The model shows acceptable performance but has room for improvement.\n"
+        section3 += "• Enhancement Opportunities: Consider feature engineering or additional predictors to improve fit.\n"
+    else:
+        section3 += "• Model Quality: The model shows limited predictive power on test data.\n"
+        section3 += "• Action Required: Consider substantial model revision - add features, try alternative approaches, or reassess data quality.\n"
+    
+    # Alpha tuning recommendations
+    section3 += f"\nRegularization Parameter Tuning:\n"
+    if is_overfitting and alpha < 5.0:
+        section3 += f"• Increase alpha to strengthen regularization and reduce overfitting\n"
+        section3 += f"• Try alpha values in the range [{alpha*2:.3f}, {alpha*10:.3f}] for better generalization\n"
+    elif not is_overfitting and test_r2 < 0.6 and alpha > 0.1:
+        section3 += f"• Current alpha may be too high, causing underfitting\n"
+        section3 += f"• Try lower alpha values in the range [{alpha/10:.4f}, {alpha/2:.3f}] to improve fit\n"
+    else:
+        section3 += f"• Current alpha = {alpha:.3f} appears appropriate for this dataset\n"
+        section3 += f"• Use cross-validation to fine-tune if seeking optimal performance\n"
+    
+    # General recommendations
+    section3 += f"\nGeneral Recommendations:\n"
+    section3 += f"• Compare Ridge with Lasso regression to see if feature selection improves performance\n"
+    section3 += f"• Examine the regularization path plot to understand alpha's effect on coefficients\n"
+    section3 += f"• Validate the model on completely independent data when possible\n"
+    section3 += f"• Check residual plots for patterns that might indicate model misspecification"
+    
+    interpretation_sections.append(section3)
+    
+    return "\n\n".join(interpretation_sections)
 
 def main():
     try:
@@ -103,7 +188,15 @@ def main():
             'mae': mean_absolute_error(y_train, y_pred_train)
         }
         
-        interpretation = _generate_interpretation(train_metrics['r2_score'], test_metrics['r2_score'])
+        interpretation = _generate_interpretation(
+            train_metrics['r2_score'], 
+            test_metrics['r2_score'],
+            train_metrics['rmse'],
+            test_metrics['rmse'],
+            alpha,
+            len(final_features),
+            len(X_train)
+        )
         
         results = {
             'metrics': {
@@ -116,34 +209,38 @@ def main():
             'interpretation': interpretation,
         }
         
-        # --- Create 2x2 Plot ---
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        fig.suptitle(f'Ridge Regression Analysis (alpha={alpha})', fontsize=16)
-
+        # --- Create 2x2 Plot with consistent styling ---
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        
+        # Define consistent line color
+        line_color = '#C44E52'
+        
         # 1. Train set: Actual vs Predicted
-        axes[0, 0].scatter(y_train, y_pred_train, alpha=0.5, label='(Actual, Predicted)')
-        axes[0, 0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 'r--', lw=2, label='45° Line')
-        axes[0, 0].set_xlabel('Actual Values')
-        axes[0, 0].set_ylabel('Predicted Values')
-        axes[0, 0].set_title('Train Set Performance')
-        axes[0, 0].legend()
-        axes[0, 0].grid(True)
+        sns.scatterplot(x=y_train, y=y_pred_train, alpha=0.6, color='#5B9BD5', ax=axes[0, 0])
+        axes[0, 0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 
+                       '--', lw=2, color=line_color)
+        axes[0, 0].set_xlabel('Actual Values', fontsize=12)
+        axes[0, 0].set_ylabel('Predicted Values', fontsize=12)
+        axes[0, 0].set_title('Train Set Performance', fontsize=12, fontweight='bold')
         train_text = f"Train R²: {train_metrics['r2_score']:.4f}\nTrain RMSE: {train_metrics['rmse']:.4f}"
-        axes[0, 0].text(0.05, 0.95, train_text, transform=axes[0, 0].transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
+        axes[0, 0].text(0.05, 0.95, train_text, transform=axes[0, 0].transAxes, 
+                       fontsize=10, verticalalignment='top', 
+                       bbox=dict(boxstyle='round,pad=0.5', fc='white', alpha=0.8))
 
         # 2. Test set: Actual vs Predicted
-        axes[0, 1].scatter(y_test, y_pred_test, alpha=0.5, label='(Actual, Predicted)')
-        axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='45° Line')
-        axes[0, 1].set_xlabel('Actual Values')
-        axes[0, 1].set_ylabel('Predicted Values')
-        axes[0, 1].set_title('Test Set Performance')
-        axes[0, 1].legend()
-        axes[0, 1].grid(True)
+        sns.scatterplot(x=y_test, y=y_pred_test, alpha=0.6, color='#5B9BD5', ax=axes[0, 1])
+        axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 
+                       '--', lw=2, color=line_color)
+        axes[0, 1].set_xlabel('Actual Values', fontsize=12)
+        axes[0, 1].set_ylabel('Predicted Values', fontsize=12)
+        axes[0, 1].set_title('Test Set Performance', fontsize=12, fontweight='bold')
         test_text = f"Test R²: {test_metrics['r2_score']:.4f}\nTest RMSE: {test_metrics['rmse']:.4f}"
-        axes[0, 1].text(0.05, 0.95, test_text, transform=axes[0, 1].transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
+        axes[0, 1].text(0.05, 0.95, test_text, transform=axes[0, 1].transAxes, 
+                       fontsize=10, verticalalignment='top', 
+                       bbox=dict(boxstyle='round,pad=0.5', fc='white', alpha=0.8))
 
         # --- Path Plot Data Calculation ---
-        alpha_list = np.logspace(-4, 4, 200)
+        alpha_list = np.logspace(-3, 2, 100)
         coefs = []
         path_train_scores, path_test_scores = [], []
         for a in alpha_list:
@@ -154,24 +251,24 @@ def main():
             path_test_scores.append(ridge_iter.score(X_test_scaled, y_test))
 
         # 3. R-squared vs. Alpha
-        axes[1, 0].plot(alpha_list, path_train_scores, label='Train R²')
-        axes[1, 0].plot(alpha_list, path_test_scores, label='Test R²')
-        axes[1, 0].set_xlabel('Alpha')
-        axes[1, 0].set_ylabel('R-squared')
+        axes[1, 0].plot(alpha_list, path_train_scores, label='Train R²', color='#5B9BD5', linewidth=2)
+        axes[1, 0].plot(alpha_list, path_test_scores, label='Test R²', color='#F4A582', linewidth=2)
+        axes[1, 0].set_xlabel('Alpha', fontsize=12)
+        axes[1, 0].set_ylabel('R-squared', fontsize=12)
         axes[1, 0].set_xscale('log')
-        axes[1, 0].set_title('R-squared vs. Regularization Strength')
+        axes[1, 0].set_title('R-squared vs. Regularization Strength', fontsize=12, fontweight='bold')
         axes[1, 0].legend()
-        axes[1, 0].grid(True)
 
         # 4. Coefficients Path
-        axes[1, 1].plot(alpha_list, coefs)
+        coefs_array = np.array(coefs)
+        for i in range(coefs_array.shape[1]):
+            axes[1, 1].plot(alpha_list, coefs_array[:, i], linewidth=1.5)
         axes[1, 1].set_xscale('log')
-        axes[1, 1].set_xlabel('Alpha')
-        axes[1, 1].set_ylabel('Coefficients')
-        axes[1, 1].set_title('Ridge Coefficients Path')
-        axes[1, 1].grid(True)
-        
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        axes[1, 1].set_xlabel('Alpha', fontsize=12)
+        axes[1, 1].set_ylabel('Coefficients', fontsize=12)
+        axes[1, 1].set_title('Ridge Coefficients Path', fontsize=12, fontweight='bold')
+
+        plt.tight_layout()
         plot_image = fig_to_base64(fig)
 
         response = {
@@ -187,3 +284,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

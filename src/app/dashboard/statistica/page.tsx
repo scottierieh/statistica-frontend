@@ -28,8 +28,10 @@ export default function StatisticaPage() {
           </div>
           <div className="w-[180px]"/>
         </header>
-        <main className="flex-1">
-          <StatisticaApp />
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-8xl mx-auto">
+            <StatisticaApp />
+          </div>
         </main>
       </div>
     </DashboardClientLayout>

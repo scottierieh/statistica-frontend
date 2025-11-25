@@ -10,6 +10,8 @@ import seaborn as sns
 import io
 import base64
 import math
+import warnings
+warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, (int, float, str, bool)) or obj is None:
@@ -108,25 +110,50 @@ def main():
         formula = f'Q("{outcome_var}") ~ C(Q("{group_var}")) * C(Q("{time_var}"))'
         model = smf.ols(formula, data=df_clean).fit()
         
-        # --- Plotting ---
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.pointplot(data=df_clean, x=time_var, y=outcome_var, hue=group_var, ax=ax, dodge=True, errorbar='ci', capsize=.1)
+        # --- Plotting with ANOVA style ---
+        sns.set_style("darkgrid")
         
-        ax.set_title(f'Difference-in-Differences Plot')
-        ax.set_xlabel('Time')
-        ax.set_ylabel(f'Mean of {outcome_var_orig}')
+        fig, ax = plt.subplots(figsize=(6, 5))
+        
+        # Use pointplot with updated styling to match ANOVA
+        sns.pointplot(
+            data=df_clean, 
+            x=time_var, 
+            y=outcome_var, 
+            hue=group_var, 
+            ax=ax, 
+            dodge=True, 
+            errorbar='ci', 
+            capsize=0.1,
+            markers=['o', 's'],
+            linestyles=['-', '--'],
+            markersize=8,
+            linewidth=2,
+            palette='crest'
+        )
+        
+        ax.set_title('Difference-in-Differences Analysis', fontsize=14, fontweight='bold')
+        ax.set_xlabel('Time Period', fontsize=11)
+        ax.set_ylabel(f'Mean of {outcome_var_orig}', fontsize=11)
         
         # Customize ticks and legend
         ax.set_xticks([0, 1])
         ax.set_xticklabels([time_map.get(0, 'Pre'), time_map.get(1, 'Post')])
+        
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles, [group_map.get(int(float(l)), l) for l in labels], title=group_var_orig)
+        ax.legend(
+            handles, 
+            [group_map.get(int(float(l)), l) for l in labels], 
+            title=group_var_orig,
+            loc='best',
+            fontsize=10
+        )
 
-        plt.grid(True, linestyle='--', alpha=0.6)
+        ax.grid(True, linestyle='--', alpha=0.6)
         plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100)
         plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
@@ -215,5 +242,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
-    

@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -23,11 +22,12 @@ def _to_native_type(obj):
         return obj.tolist()
     elif isinstance(obj, pd.Timestamp):
         return obj.isoformat()
+    elif pd.api.types.is_categorical_dtype(obj):
+        return int(obj)
     return obj
 
 def get_rfm_segments(df):
     # Standard segmentation based on quintiles of R, F, and M scores
-    # This can be customized based on business needs
     segment_map = {
         r'555': 'Champions',
         r'[4-5][4-5][1-5]': 'Loyal Customers',
@@ -41,9 +41,10 @@ def get_rfm_segments(df):
         r'111': 'Lost'
     }
     
-    df['Segment'] = 'Others' # Default
+    df['Segment'] = 'Others'
     for pattern, segment in segment_map.items():
-        df.loc[df['RFM_Score'].str.match(pattern), 'Segment'] = segment
+        mask = df['RFM_Score'].str.match(pattern)
+        df.loc[mask, 'Segment'] = segment
         
     return df
 
@@ -62,11 +63,11 @@ def main():
         df = pd.DataFrame(data)
 
         # --- Data Cleaning and Preparation ---
-        df[invoice_date_col] = pd.to_datetime(df[invoice_date_col])
+        df[invoice_date_col] = pd.to_datetime(df[invoice_date_col], errors='coerce')
         df[unit_price_col] = pd.to_numeric(df[unit_price_col], errors='coerce')
         df[quantity_col] = pd.to_numeric(df[quantity_col], errors='coerce')
         
-        # Calculate total amount (unit_price * quantity)
+        # Calculate total amount
         df['total_amount'] = df[unit_price_col] * df[quantity_col]
         
         df.dropna(subset=[customer_id_col, invoice_date_col, 'total_amount'], inplace=True)
@@ -80,57 +81,56 @@ def main():
         
         rfm = df.groupby(customer_id_col).agg({
             invoice_date_col: lambda date: (snapshot_date - date.max()).days,
-            'invoice_no': 'nunique', # Assuming invoice_no exists for frequency
+            customer_id_col: 'count',
             'total_amount': 'sum'
         })
         
-        # Rename columns for clarity
-        rfm.rename(columns={invoice_date_col: 'Recency', 
-                             'invoice_no': 'Frequency', 
-                             'total_amount': 'Monetary'}, inplace=True)
+        rfm.rename(columns={
+            invoice_date_col: 'Recency', 
+            customer_id_col: 'Frequency', 
+            'total_amount': 'Monetary'
+        }, inplace=True)
         
-        # --- RFM Scoring (Quintiles) - FIXED VERSION ---
-        # Use qcut with duplicates='drop' and then map to 1-5 scale dynamically
-        try:
-            r_bins = pd.qcut(rfm['Recency'], 5, duplicates='drop')
-            r_labels = sorted(r_bins.cat.categories, reverse=True)
-            r_score_map = {label: score for score, label in enumerate(r_labels, 1)}
-            rfm['R_Score'] = r_bins.map(r_score_map)
-            # Reverse for Recency (lower is better)
-            rfm['R_Score'] = 6 - rfm['R_Score']
-        except ValueError:
-            # If qcut fails, use simple ranking
-            rfm['R_Score'] = pd.cut(rfm['Recency'], bins=5, labels=[5, 4, 3, 2, 1], duplicates='drop')
-            if rfm['R_Score'].isna().any():
-                rfm['R_Score'] = rfm['Recency'].rank(method='first', ascending=True)
-                rfm['R_Score'] = pd.qcut(rfm['R_Score'], 5, labels=[5, 4, 3, 2, 1], duplicates='drop')
+        # --- RFM Scoring - SIMPLIFIED AND ROBUST ---
+        def score_rfm_column(series, ascending=True):
+            """Create 1-5 scores using rank-based approach"""
+            try:
+                # Use rank to handle duplicates
+                ranked = series.rank(method='first', ascending=ascending)
+                # Use qcut on ranks
+                scores = pd.qcut(ranked, q=5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+                # Convert categorical to int
+                return scores.astype(int)
+            except Exception as e:
+                # Fallback: use percentile-based binning
+                percentiles = [0, 20, 40, 60, 80, 100]
+                bins = np.percentile(series, percentiles)
+                bins = np.unique(bins)  # Remove duplicates
+                if len(bins) < 2:
+                    return pd.Series([3] * len(series), index=series.index)
+                scores = pd.cut(series, bins=bins, labels=False, include_lowest=True, duplicates='drop')
+                if scores is None or scores.isna().all():
+                    return pd.Series([3] * len(series), index=series.index)
+                # Normalize to 1-5 scale
+                min_score = scores.min()
+                max_score = scores.max()
+                if max_score == min_score:
+                    return pd.Series([3] * len(series), index=series.index)
+                normalized = ((scores - min_score) / (max_score - min_score) * 4 + 1).round()
+                if not ascending:
+                    normalized = 6 - normalized
+                return normalized.astype(int)
         
-        try:
-            f_bins = pd.qcut(rfm['Frequency'].rank(method='first'), 5, duplicates='drop')
-            f_labels = sorted(f_bins.cat.categories)
-            f_score_map = {label: score for score, label in enumerate(f_labels, 1)}
-            rfm['F_Score'] = f_bins.map(f_score_map)
-        except ValueError:
-            rfm['F_Score'] = pd.cut(rfm['Frequency'], bins=5, labels=[1, 2, 3, 4, 5], duplicates='drop')
-            if rfm['F_Score'].isna().any():
-                rfm['F_Score'] = rfm['Frequency'].rank(method='first')
-                rfm['F_Score'] = pd.qcut(rfm['F_Score'], 5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+        # Score each metric
+        rfm['R_Score'] = score_rfm_column(rfm['Recency'], ascending=True)  # Lower recency = better
+        rfm['R_Score'] = 6 - rfm['R_Score']  # Invert so 5 is best
+        rfm['F_Score'] = score_rfm_column(rfm['Frequency'], ascending=True)
+        rfm['M_Score'] = score_rfm_column(rfm['Monetary'], ascending=True)
         
-        try:
-            m_bins = pd.qcut(rfm['Monetary'], 5, duplicates='drop')
-            m_labels = sorted(m_bins.cat.categories)
-            m_score_map = {label: score for score, label in enumerate(m_labels, 1)}
-            rfm['M_Score'] = m_bins.map(m_score_map)
-        except ValueError:
-            rfm['M_Score'] = pd.cut(rfm['Monetary'], bins=5, labels=[1, 2, 3, 4, 5], duplicates='drop')
-            if rfm['M_Score'].isna().any():
-                rfm['M_Score'] = rfm['Monetary'].rank(method='first')
-                rfm['M_Score'] = pd.qcut(rfm['M_Score'], 5, labels=[1, 2, 3, 4, 5], duplicates='drop')
-        
-        # Ensure scores are integers
-        rfm['R_Score'] = rfm['R_Score'].astype(int)
-        rfm['F_Score'] = rfm['F_Score'].astype(int)
-        rfm['M_Score'] = rfm['M_Score'].astype(int)
+        # Ensure all scores are in 1-5 range
+        rfm['R_Score'] = rfm['R_Score'].clip(1, 5).astype(int)
+        rfm['F_Score'] = rfm['F_Score'].clip(1, 5).astype(int)
+        rfm['M_Score'] = rfm['M_Score'].clip(1, 5).astype(int)
         
         rfm['RFM_Score'] = rfm['R_Score'].astype(str) + rfm['F_Score'].astype(str) + rfm['M_Score'].astype(str)
         
@@ -145,50 +145,86 @@ def main():
         
         # Segment Distribution Bar Chart
         sns.barplot(data=segment_counts, y='Segment', x='Count', ax=axes[0], palette='viridis')
-        axes[0].set_title('Customer Segment Distribution')
+        axes[0].set_title('Customer Segment Distribution', fontsize=14, fontweight='bold')
         axes[0].set_xlabel('Number of Customers')
+        axes[0].set_ylabel('Segment')
 
         # RFM Treemap
-        # For treemap, we need to create a flat dataframe
         squarify_df = rfm.groupby('Segment')['Monetary'].sum().reset_index()
+        squarify_df = squarify_df[squarify_df['Monetary'] > 0]  # Remove zero values
         
-        import squarify
-        sizes = squarify_df['Monetary']
-        labels = [f'{row.Segment}\n(${row.Monetary:,.0f})' for _, row in squarify_df.iterrows()]
-        colors = [plt.cm.viridis(i/float(len(sizes))) for i in range(len(sizes))]
-        
-        squarify.plot(sizes=sizes, label=labels, ax=axes[1], alpha=0.8, color=colors)
-        axes[1].set_title('Segment Value (Monetary)')
-        axes[1].axis('off')
+        if not squarify_df.empty:
+            import squarify
+            sizes = squarify_df['Monetary'].values
+            labels = [f'{row.Segment}\n${row.Monetary:,.0f}' for _, row in squarify_df.iterrows()]
+            colors = [plt.cm.viridis(i/float(len(sizes))) for i in range(len(sizes))]
+            
+            squarify.plot(sizes=sizes, label=labels, ax=axes[1], alpha=0.8, color=colors, text_kwargs={'fontsize': 9})
+            axes[1].set_title('Segment Value (Monetary)', fontsize=14, fontweight='bold')
+            axes[1].axis('off')
+        else:
+            axes[1].text(0.5, 0.5, 'No data to display', ha='center', va='center', fontsize=12)
+            axes[1].axis('off')
         
         plt.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
 
         # --- Final Results ---
+        rfm_reset = rfm.reset_index()
+        
+        # Convert all data to JSON-serializable types
+        rfm_data_clean = []
+        for _, row in rfm_reset.iterrows():
+            row_dict = {}
+            for col in rfm_reset.columns:
+                val = row[col]
+                if pd.isna(val):
+                    row_dict[col] = None
+                elif isinstance(val, (np.integer, np.int64, np.int32)):
+                    row_dict[col] = int(val)
+                elif isinstance(val, (np.floating, np.float64, np.float32, float)):
+                    if np.isnan(val) or np.isinf(val):
+                        row_dict[col] = None
+                    else:
+                        row_dict[col] = float(val)
+                elif isinstance(val, pd.Timestamp):
+                    row_dict[col] = val.isoformat()
+                else:
+                    row_dict[col] = str(val)
+            rfm_data_clean.append(row_dict)
+        
+        segment_dist_clean = []
+        for _, row in segment_counts.iterrows():
+            segment_dist_clean.append({
+                'Segment': str(row['Segment']),
+                'Count': int(row['Count'])
+            })
+        
         results = {
-            'rfm_data': rfm.reset_index().to_dict('records'),
-            'segment_distribution': segment_counts.to_dict('records'),
-            'plot': f"data:image/png;base64,{plot_image}"
+            'rfm_data': rfm_data_clean,
+            'segment_distribution': segment_dist_clean,
+            'plot': f"data:image/png;base64,{plot_image}",
+            'customer_id_col': customer_id_col
         }
         
-        print(json.dumps(results, default=_to_native_type))
+        print(json.dumps(results))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        error_msg = str(e)
+        print(json.dumps({"error": error_msg}), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
-    # Add squarify to requirements if it's not there
     try:
         import squarify
     except ImportError:
         import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "squarify"])
-
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "squarify", "--break-system-packages"])
+    
     main()
 
-
+    

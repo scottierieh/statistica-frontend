@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -7,6 +5,7 @@ import pandas as pd
 from sklearn.decomposition import FactorAnalysis, PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+import seaborn as sns
 import io
 import base64
 from scipy.stats import chi2
@@ -14,6 +13,10 @@ from scipy.linalg import inv
 import warnings
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 
 def _to_native_type(obj):
@@ -99,7 +102,7 @@ def _generate_interpretation(results):
 
     interpretation += (
         f"The Kaiser-Meyer-Olkin (KMO) measure of sampling adequacy was {kmo_level} ({adequacy.get('kmo', 0):.2f}), "
-        f"and Bartlett’s test of sphericity was {'statistically significant' if bartlett_sig else 'not significant'} "
+        f"and Bartlett's test of sphericity was {'statistically significant' if bartlett_sig else 'not significant'} "
         f"(χ² ≈ {bartlett_stat_text}, {p_val_text}). "
         f"These indicators suggest that the data is {'suitable' if kmo_level not in ['poor', 'unacceptable'] and bartlett_sig else 'may not be suitable'} for factor analysis.\n\n"
     )
@@ -133,17 +136,21 @@ def _generate_interpretation(results):
     return interpretation.strip()
 
 def plot_efa_results(eigenvalues, loadings, variables):
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    fig.suptitle('Exploratory Factor Analysis Results', fontsize=16)
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
 
     # Scree Plot
     n_comps = len(eigenvalues)
     ax = axes[0]
-    ax.bar(range(1, n_comps + 1), eigenvalues, alpha=0.7, align='center', label='Eigenvalues')
-    ax.axhline(y=1, color='gray', linestyle='--', label='Eigenvalue = 1 (Kaiser rule)')
-    ax.set_xlabel('Factors')
-    ax.set_ylabel('Eigenvalues')
-    ax.set_title('Scree Plot')
+    
+    # Use crest color palette
+    colors = sns.color_palette('crest', n_colors=n_comps)
+    
+    ax.bar(range(1, n_comps + 1), eigenvalues, alpha=0.7, align='center', 
+           color=colors, edgecolor='black', label='Eigenvalues')
+    ax.axhline(y=1, color='red', linestyle='--', alpha=0.7, label='Eigenvalue = 1 (Kaiser rule)')
+    ax.set_xlabel('Factors', fontsize=12)
+    ax.set_ylabel('Eigenvalues', fontsize=12)
+    ax.set_title('Scree Plot', fontsize=12, fontweight='bold')
     ax.set_xticks(range(1, n_comps + 1))
     ax.legend()
     ax.grid(True, alpha=0.3)
@@ -151,23 +158,26 @@ def plot_efa_results(eigenvalues, loadings, variables):
     # Loadings Plot for first 2 factors
     ax = axes[1]
     if loadings.shape[1] >= 2:
-        ax.scatter(loadings[:, 0], loadings[:, 1], alpha=0.8)
-        ax.axhline(0, color='grey', lw=1)
-        ax.axvline(0, color='grey', lw=1)
-        ax.set_xlabel('Factor 1 Loadings')
-        ax.set_ylabel('Factor 2 Loadings')
-        ax.set_title('Factor Loadings (F1 vs F2)')
+        ax.scatter(loadings[:, 0], loadings[:, 1], alpha=0.6, s=80, color='#5B9BD5', edgecolors='black', linewidths=0.5)
+        ax.axhline(0, color='black', linestyle='--', alpha=0.7, lw=1)
+        ax.axvline(0, color='black', linestyle='--', alpha=0.7, lw=1)
+        ax.set_xlabel('Factor 1 Loadings', fontsize=12)
+        ax.set_ylabel('Factor 2 Loadings', fontsize=12)
+        ax.set_title('Factor Loadings (F1 vs F2)', fontsize=12, fontweight='bold')
         ax.grid(True, alpha=0.3)
         for i, var in enumerate(variables):
-            ax.annotate(var, (loadings[i, 0], loadings[i, 1]), textcoords="offset points", xytext=(0,5), ha='center', fontsize=9)
+            ax.annotate(var, (loadings[i, 0], loadings[i, 1]), 
+                       textcoords="offset points", xytext=(0,5), 
+                       ha='center', fontsize=9)
     else:
-        ax.text(0.5, 0.5, 'Not enough factors to plot.', ha='center', va='center')
+        ax.text(0.5, 0.5, 'Not enough factors to plot.', 
+               ha='center', va='center', fontsize=12)
         ax.set_axis_off()
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     plt.close(fig)
     buf.seek(0)
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
@@ -276,6 +286,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-    

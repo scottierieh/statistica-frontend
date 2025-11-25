@@ -1,6 +1,5 @@
-
-
 'use client';
+
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -8,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb, Bot, AlertTriangle, MessageSquareQuote, Link2, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb, Bot, AlertTriangle, MessageSquareQuote, Link2, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube, Layers, Target, CheckCircle, BookOpen, Activity, Info, Grid3x3 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,16 +26,8 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import dynamic from 'next/dynamic';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-
-
-const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-[600px]" />,
-});
-
 
 interface CorrelationResults {
   correlation_matrix: { [key: string]: { [key: string]: number } };
@@ -61,120 +53,317 @@ interface CorrelationResults {
   };
   pairs_plot?: string;
   heatmap_plot?: string;
+  n_dropped?: number;
+  dropped_rows?: number[];
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const corrExample = exampleDatasets.find(d => d.id === 'iris');
-    return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Link2 size={36} />
-                        </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Correlation Analysis</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Measure the strength and direction of the linear relationship between two or more numeric variables.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Correlation Analysis?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Correlation analysis is a fundamental statistical method used to understand how variables move in relation to one another. It helps identify patterns in data, informs predictive modeling, and guides further investigation. A positive correlation means variables increase together, a negative correlation means one increases as the other decreases, and a zero correlation indicates no linear relationship.
-                        </p>
-                        <div className="mt-6 flex justify-center">
-                           {corrExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(corrExample)}>
-                                    <corrExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{corrExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{corrExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-                    </div>
+// Statistical Summary Cards Component
+const StatisticalSummaryCards = ({ results }: { results: CorrelationResults }) => {
+    const significantRate = (results.summary_statistics.significant_correlations / results.summary_statistics.total_pairs) * 100;
+    const hasSignificant = results.summary_statistics.significant_correlations > 0;
+    const strongestCorr = results.strongest_correlations[0];
+    
+    const getCorrelationInterpretation = (r: number) => {
+        const absR = Math.abs(r);
+        if (absR >= 0.7) return "Strong";
+        if (absR >= 0.4) return "Moderate";
+        if (absR >= 0.2) return "Weak";
+        return "Negligible";
+    };
 
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Select Variables:</strong> Choose two or more numeric variables from your dataset that you want to compare.
-                                </li>
-                                <li>
-                                    <strong>Choose Method:</strong> Select the appropriate correlation method.
-                                    <ul className="list-disc pl-5 mt-2 text-xs">
-                                        <li><strong>Pearson:</strong> For linear relationships between normally distributed variables.</li>
-                                        <li><strong>Spearman:</strong> For monotonic relationships (variables tend to move in the same direction, but not necessarily linearly). Works on ranked data and is robust to outliers.</li>
-                                        <li><strong>Kendall's Tau:</strong> Also a rank-based measure, often used for smaller datasets or data with many tied ranks.</li>
-                                    </ul>
-                                </li>
-                                 <li>
-                                    <strong>Group By (Optional):</strong> Select a categorical variable to color-code the points in the pairs plot, helping to visualize relationships within different groups.
-                                </li>
-                                <li>
-                                    <strong>Run Analysis:</strong> Click the button to calculate the correlation matrix, p-values, and generate visualizations.
-                                </li>
-                            </ol>
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Mean Correlation Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Mean |r|
+                            </p>
+                            <BarChart className="h-4 w-4 text-muted-foreground" />
                         </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Correlation Coefficient (r):</strong> Ranges from -1 to +1. Values near ±1 indicate a strong linear relationship, while values near 0 indicate a weak or non-existent linear relationship.
-                                </li>
-                                <li>
-                                    <strong>p-value:</strong> Indicates the statistical significance of the correlation. A p-value less than 0.05 typically means the observed correlation is unlikely to have occurred by chance.
-                                </li>
-                                <li>
-                                    <strong>Pairs Plot:</strong> Provides scatterplots for each pair of variables, allowing for a visual inspection of their relationship and distribution.
-                                </li>
-                                <li>
-                                    <strong>Heatmap:</strong> Offers a color-coded overview of the entire correlation matrix, making it easy to spot strong and weak relationships at a glance.
-                                </li>
-                            </ul>
-                        </div>
+                        <p className="text-2xl font-semibold">
+                            {Math.abs(results.summary_statistics.mean_correlation).toFixed(3)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {getCorrelationInterpretation(results.summary_statistics.mean_correlation)}
+                        </p>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
+            </Card>
+
+            {/* Significant Pairs Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Significant Pairs
+                            </p>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className={`text-2xl font-semibold ${!hasSignificant ? 'text-red-600 dark:text-red-400' : ''}`}>
+                            {results.summary_statistics.significant_correlations}/{results.summary_statistics.total_pairs}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {significantRate.toFixed(0)}% significant
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Strongest Correlation Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Strongest |r|
+                            </p>
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            {strongestCorr ? Math.abs(strongestCorr.correlation).toFixed(3) : 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {strongestCorr ? getCorrelationInterpretation(strongestCorr.correlation) : 'No correlations'}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Range Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Range
+                            </p>
+                            <Layers className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            [{results.summary_statistics.range[0].toFixed(2)}, {results.summary_statistics.range[1].toFixed(2)}]
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Min to Max r
+                        </p>
+                    </div>
+                </CardContent>
             </Card>
         </div>
     );
 };
 
-const InterpretationDisplay = ({ title, body }: { title: string, body: string }) => {
-    if (!title || !body) return null;
+// Overview component with clean design
+const CorrelationOverview = ({ selectedHeaders, groupVar, correlationMethod, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Variable selection status
+        if (selectedHeaders.length === 0) {
+            overview.push('Select at least 2 variables for correlation analysis');
+        } else if (selectedHeaders.length === 1) {
+            overview.push('⚠ Only 1 variable selected (need at least 2)');
+        } else {
+            overview.push(`Analyzing ${selectedHeaders.length} variables: ${selectedHeaders.slice(0, 3).join(', ')}${selectedHeaders.length > 3 ? '...' : ''}`);
+        }
 
-    const formattedBody = useMemo(() => {
-        return body
-            .replace(/\\n/g, '<br />')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<i>$1</i>');
-    }, [body]);
+        // Method info
+        overview.push(`Method: ${correlationMethod.charAt(0).toUpperCase() + correlationMethod.slice(1)}`);
+        
+        // Group variable
+        if (groupVar) {
+            overview.push(`Grouped by: ${groupVar}`);
+        }
+
+        // Sample size warnings
+        const n = data.length;
+        if (n < 10) {
+            overview.push(`Sample size: ${n} observations (⚠ Very small - correlations unreliable)`);
+        } else if (n < 30) {
+            overview.push(`Sample size: ${n} observations (⚠ Small - interpret with caution)`);
+        } else if (n < 100) {
+            overview.push(`Sample size: ${n} observations (Moderate)`);
+        } else {
+            overview.push(`Sample size: ${n} observations (Good)`);
+        }
+
+        // Number of pairs
+        const numPairs = (selectedHeaders.length * (selectedHeaders.length - 1)) / 2;
+        overview.push(`Will calculate ${numPairs} correlation coefficients`);
+        
+        // Helper function to check if value is missing
+        const isMissing = (value: any) => {
+            return value == null || value === '' || 
+                   (typeof value === 'number' && isNaN(value)) ||
+                   (typeof value === 'string' && value.toLowerCase() === 'nan');
+        };
+        
+        // Missing value check
+        if (data && data.length > 0 && selectedHeaders.length > 0) {
+            const missingCount = data.filter((row: any) => 
+                selectedHeaders.some(varName => isMissing(row[varName]))
+            ).length;
+            const validCount = data.length - missingCount;
+            
+            if (missingCount > 0) {
+                overview.push(`⚠ Missing values: ${missingCount} rows will be excluded (${validCount} valid observations)`);
+            } else {
+                overview.push(`✓ No missing values detected`);
+            }
+        }
+        
+        // Method recommendations
+        if (correlationMethod === 'pearson' && n < 30) {
+            overview.push('⚠ Consider Spearman for small samples');
+        }
+
+        return overview;
+    }, [selectedHeaders, groupVar, correlationMethod, data]);
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
-                    <Bot /> AI Interpretation
-                </CardTitle>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
             </CardHeader>
             <CardContent>
-                <Alert>
-                    <MessageSquareQuote className="h-4 w-4" />
-                    <AlertTitle>{title}</AlertTitle>
-                    <AlertDescription className="whitespace-pre-wrap font-sans" dangerouslySetInnerHTML={{ __html: formattedBody }}/>
-                </Alert>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
             </CardContent>
         </Card>
-    )
-}
+    );
+};
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const corrExample = exampleDatasets.find(d => d.id === 'iris');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Link2 className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Correlation Analysis</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Measure the strength and direction of relationships between variables
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Link2 className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Relationship Strength</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Quantify how strongly variables are related (r from -1 to +1)
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <TestTube className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Multiple Methods</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Choose Pearson, Spearman, or Kendall based on your data
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Target className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Pattern Discovery</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Identify which variables move together in your data
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use correlation analysis to explore relationships between numeric variables before building 
+                            predictive models, understand which factors are associated, or identify redundant variables. 
+                            Positive correlations mean variables increase together, negative correlations mean one increases 
+                            as the other decreases, and correlations near zero indicate no linear relationship.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Variables:</strong> Two or more numeric variables</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Sample size:</strong> At least 10 observations (30+ recommended)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Method:</strong> Pearson for linear, Spearman for monotonic</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>r near ±1:</strong> Strong linear relationship</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>r near 0:</strong> Weak or no linear relationship</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>P &lt; 0.05:</strong> Statistically significant correlation</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {corrExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(corrExample)} size="lg">
+                                {corrExample.icon && <corrExample.icon className="mr-2 h-5 w-5" />}
+                                Load Example Data
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
 
 const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strongest_correlations'] }) => {
     const chartData = data.map(item => ({
@@ -232,12 +421,16 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
   const [isLoading, setIsLoading] = useState(false);
   const [correlationMethod, setCorrelationMethod] = useState<'pearson' | 'spearman' | 'kendall'>('pearson');
 
+  const canRun = useMemo(() => {
+    return data.length > 0 && numericHeaders.length >= 2;
+  }, [data, numericHeaders]);
+
   useEffect(() => {
     setSelectedHeaders(numericHeaders.slice(0, 8));
     setGroupVar(undefined);
     setResults(null);
-    setView(data.length > 0 ? 'main' : 'intro');
-  }, [numericHeaders, data]);
+    setView(canRun ? 'main' : 'intro');
+  }, [numericHeaders, data, canRun]);
 
   const handleSelectionChange = (header: string, checked: boolean) => {
     setSelectedHeaders(prev => 
@@ -282,24 +475,13 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     }
   }, [data, selectedHeaders, groupVar, toast, correlationMethod]);
   
-  const canRun = useMemo(() => {
-    return data.length > 0 && numericHeaders.length >= 2;
-  }, [data, numericHeaders]);
-
   if (!canRun && view === 'main') {
-        const corrExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('correlation'));
-        return (
-             <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />
-        )
-    }
+    return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+  }
     
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-
-  const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
-  const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
-
+  if (view === 'intro') {
+    return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -311,9 +493,9 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
           </div>
           <CardDescription>Select variables and choose a correlation method.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-            <div className="grid md:grid-cols-2 gap-4">
-                 <div>
+        <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+                 <div className="md:col-span-2">
                     <Label>Variables for Correlation</Label>
                     <ScrollArea className="h-40 border rounded-md p-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -332,160 +514,362 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                     </div>
                     </ScrollArea>
                 </div>
-                 <div>
-                    <Label>Group By (for coloring)</Label>
-                    <Select value={groupVar} onValueChange={(v) => setGroupVar(v === 'none' ? undefined : v)}>
-                        <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {categoricalHeaders.filter(h => h).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                 </div>
-            </div>
-           <div className="flex flex-wrap items-center justify-end gap-4">
-                <div className="flex items-center gap-2">
-                    <Label>Method:</Label>
-                    <Select value={correlationMethod} onValueChange={(v) => setCorrelationMethod(v as any)}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="pearson">Pearson</SelectItem>
-                            <SelectItem value="spearman">Spearman</SelectItem>
-                            <SelectItem value="kendall">Kendall's Tau</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="space-y-4">
+                    <div>
+                        <Label>Method</Label>
+                        <Select value={correlationMethod} onValueChange={(v) => setCorrelationMethod(v as any)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="pearson">Pearson</SelectItem>
+                                <SelectItem value="spearman">Spearman</SelectItem>
+                                <SelectItem value="kendall">Kendall's Tau</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label>Group By (Optional)</Label>
+                        <Select value={groupVar} onValueChange={(v) => setGroupVar(v === 'none' ? undefined : v)}>
+                            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {categoricalHeaders.filter(h => h).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-                 <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedHeaders.length < 2 || isLoading}>
-                    {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                </Button>
-           </div>
+            </div>
+            
+            {/* Overview component */}
+            <CorrelationOverview 
+                selectedHeaders={selectedHeaders}
+                groupVar={groupVar}
+                correlationMethod={correlationMethod}
+                data={data}
+            />
         </CardContent>
          <CardFooter className="flex justify-end gap-2">
             {results && <Button variant="ghost" onClick={() => onGenerateReport(results, null)}><Bot className="mr-2"/>AI Report</Button>}
+            <Button onClick={handleAnalysis} disabled={selectedHeaders.length < 2 || isLoading}>
+                {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
+            </Button>
         </CardFooter>
       </Card>
       
-      {isLoading && <Card><CardHeader><CardTitle>Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-96 w-full" /></CardContent></Card>}
+      {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full" /></CardContent></Card>}
 
       {results && !isLoading && (
         <div className="space-y-4">
-            {results.interpretation && <InterpretationDisplay title={results.interpretation.title} body={results.interpretation.body} />}
+            {/* Data Quality Information */}
+            {results.n_dropped !== undefined && results.n_dropped > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Data Quality</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Missing Values Detected</AlertTitle>
+                            <AlertDescription>
+                                <p className="mb-2">
+                                    {results.n_dropped} row{results.n_dropped > 1 ? 's were' : ' was'} excluded from the analysis due to missing values.
+                                </p>
+                                {results.dropped_rows && results.dropped_rows.length > 0 && (
+                                    <details className="mt-2">
+                                        <summary className="cursor-pointer font-medium text-sm hover:underline">
+                                            View excluded row indices (0-based)
+                                        </summary>
+                                        <div className="mt-2 p-2 bg-destructive/10 rounded text-xs font-mono">
+                                            {results.dropped_rows.length <= 20 
+                                                ? results.dropped_rows.join(', ')
+                                                : `${results.dropped_rows.slice(0, 20).join(', ')} ... and ${results.dropped_rows.length - 20} more`
+                                            }
+                                        </div>
+                                    </details>
+                                )}
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            )}
+            
+            {/* Statistical Summary Cards */}
+            <StatisticalSummaryCards results={results} />
+            
+            {/* Detailed Analysis - EXACTLY like ANCOVA/mediation */}
+            {results.interpretation && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-primary" />
+                            Detailed Analysis
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {(() => {
+                            const interpretation = results.interpretation;
+                            const sections: { title: string; content: string[]; icon: any }[] = [];
+                            
+                            const lines = `${interpretation.title}\n\n${interpretation.body}`.split('\n').filter(l => l.trim());
+                            let currentSection: typeof sections[0] | null = null;
+                            
+                            lines.forEach((line) => {
+                                const trimmed = line.trim();
+                                if (!trimmed) return;
+                                
+                                if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+                                    const title = trimmed.replace(/\*\*/g, '').trim();
+                                    
+                                    let icon = Grid3x3;
+                                    if (title.includes('Overall Analysis')) icon = Grid3x3;
+                                    else if (title.includes('Statistical Insights')) icon = Info;
+                                    else if (title.includes('Recommendations')) icon = TrendingUp;
+                                    
+                                    currentSection = { title, content: [], icon };
+                                    sections.push(currentSection);
+                                } else if (currentSection) {
+                                    currentSection.content.push(trimmed);
+                                }
+                            });
+                            
+                            return sections.map((section, idx) => {
+                                const Icon = section.icon;
+                                
+                                let gradientClass = '';
+                                let borderClass = '';
+                                let iconBgClass = '';
+                                let iconColorClass = '';
+                                let bulletColorClass = '';
+                                
+                                if (idx === 0) {
+                                    gradientClass = 'bg-gradient-to-br from-primary/5 to-primary/10';
+                                    borderClass = 'border-primary/40';
+                                    iconBgClass = 'bg-primary/10';
+                                    iconColorClass = 'text-primary';
+                                    bulletColorClass = 'text-primary';
+                                } else if (section.title.includes('Statistical Insights')) {
+                                    gradientClass = 'bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/10 dark:to-indigo-950/10';
+                                    borderClass = 'border-blue-300 dark:border-blue-700';
+                                    iconBgClass = 'bg-blue-500/10';
+                                    iconColorClass = 'text-blue-600 dark:text-blue-400';
+                                    bulletColorClass = 'text-blue-600 dark:text-blue-400';
+                                } else {
+                                    gradientClass = 'bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/10 dark:to-orange-950/10';
+                                    borderClass = 'border-amber-300 dark:border-amber-700';
+                                    iconBgClass = 'bg-amber-500/10';
+                                    iconColorClass = 'text-amber-600 dark:text-amber-400';
+                                    bulletColorClass = 'text-amber-600 dark:text-amber-400';
+                                }
+                                
+                                return (
+                                    <div key={idx} className={`${gradientClass} rounded-lg p-6 border ${borderClass}`}>
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className={`p-2 ${iconBgClass} rounded-md`}>
+                                                <Icon className={`h-4 w-4 ${iconColorClass}`} />
+                                            </div>
+                                            <h3 className="font-semibold text-base">{section.title}</h3>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {section.content.map((text, textIdx) => {
+                                                if (text.startsWith('→')) {
+                                                    return (
+                                                        <div key={textIdx} className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed">
+                                                            <span className={`${bulletColorClass} font-bold mt-0.5`}>→</span>
+                                                            <div dangerouslySetInnerHTML={{ __html: text.substring(1).trim().replace(/\*\*/g, '') }} />
+                                                        </div>
+                                                    );
+                                                } else if (text.startsWith('•') || text.startsWith('-')) {
+                                                    return (
+                                                        <div key={textIdx} className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed">
+                                                            <span className={`${bulletColorClass} font-bold mt-0.5`}>•</span>
+                                                            <div dangerouslySetInnerHTML={{ __html: text.substring(1).trim().replace(/\*\*/g, '') }} />
+                                                        </div>
+                                                    );
+                                                }
+                                                
+                                                return (
+                                                    <p key={textIdx} className="text-sm text-foreground/80 leading-relaxed" dangerouslySetInnerHTML={{ __html: text.replace(/\*\*/g, '') }} />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            });
+                        })()}
+                    </CardContent>
+                </Card>
+            )}
 
-            <Tabs defaultValue="pairs">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="pairs">Pairs Plot</TabsTrigger>
-                    <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
-                    <TabsTrigger value="table">Table</TabsTrigger>
-                </TabsList>
-                <TabsContent value="pairs">
-                    {pairsPlotData ? (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Pairs Plot</CardTitle>
-                                <CardDescription>A matrix of scatterplots to visualize pairwise relationships, colored by group if specified.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Plot
-                                    data={pairsPlotData.data}
-                                    layout={pairsPlotData.layout}
-                                    useResizeHandler={true}
-                                    className="w-full h-[800px]"
-                                />
-                            </CardContent>
-                        </Card>
-                    ): (
-                         <Card>
-                            <CardContent className="p-6 text-center text-muted-foreground">
-                                Pairs plot could not be generated. This can happen with a large number of variables.
-                            </CardContent>
-                        </Card>
-                    )}
-                </TabsContent>
-                <TabsContent value="heatmap">
-                    {heatmapPlotData && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
-                                <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Plot
-                                    data={heatmapPlotData.data}
-                                    layout={heatmapPlotData.layout}
-                                    useResizeHandler={true}
-                                    className="w-full h-[600px]"
-                                />
-                            </CardContent>
-                        </Card>
-                    )}
-                </TabsContent>
-                 <TabsContent value="table">
+            {/* Visualizations - Side by Side */}
+            <div className="grid md:grid-cols-2 gap-4">
+                {/* Heatmap */}
+                {results.heatmap_plot && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Correlation & P-Value Table</CardTitle>
-                            <CardDescription>Correlation coefficients with their corresponding p-values in parentheses.</CardDescription>
+                            <CardTitle>Correlation Heatmap</CardTitle>
+                            <CardDescription>Matrix showing correlation coefficients</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Variable</TableHead>
-                                        {selectedHeaders.map(header => <TableHead key={header} className="text-right">{header}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {selectedHeaders.map(rowHeader => (
-                                        <TableRow key={rowHeader}>
-                                            <TableHead>{rowHeader}</TableHead>
-                                            {selectedHeaders.map(colHeader => {
-                                                const corr = results.correlation_matrix[rowHeader]?.[colHeader];
-                                                const pVal = results.p_value_matrix[rowHeader]?.[colHeader];
-                                                return (
-                                                    <TableCell key={colHeader} className="text-right font-mono">
-                                                        {corr !== undefined ? corr.toFixed(3) : 'N/A'}
-                                                        <br/>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            (p={pVal !== undefined ? pVal.toFixed(3) : 'N/A'})
-                                                        </span>
-                                                    </TableCell>
-                                                )
-                                            })}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <Image 
+                                src={results.heatmap_plot} 
+                                alt="Correlation Heatmap" 
+                                width={800} 
+                                height={500} 
+                                className="w-full rounded-md border" 
+                            />
                         </CardContent>
                     </Card>
-                </TabsContent>
-            </Tabs>
-            
-            <div className="grid gap-4 md:grid-cols-2">
-                 <StrongestCorrelationsChart data={results.strongest_correlations} />
-                  <Card>
+                )}
+
+                {/* Pairs Plot */}
+                {results.pairs_plot ? (
+                    <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Summary Statistics</CardTitle>
+                            <CardTitle>Pairs Plot</CardTitle>
+                            <CardDescription>Pairwise relationships between variables</CardDescription>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-muted rounded-lg">
-                                <p className="text-sm font-medium text-muted-foreground">Mean Correlation</p>
-                                <p className="text-2xl font-bold">{results.summary_statistics.mean_correlation.toFixed(3)}</p>
-                            </div>
-                            <div className="p-4 bg-muted rounded-lg">
-                                <p className="text-sm font-medium text-muted-foreground">Significant Pairs</p>
-                                <p className="text-2xl font-bold">
-                                    {results.summary_statistics.significant_correlations} / {results.summary_statistics.total_pairs}
-                                </p>
-                            </div>
+                        <CardContent>
+                            <Image 
+                                src={results.pairs_plot} 
+                                alt="Pairs Plot" 
+                                width={800} 
+                                height={500} 
+                                className="w-full rounded-md border" 
+                            />
                         </CardContent>
                     </Card>
+                ) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pairs Plot</CardTitle>
+                            <CardDescription>Pairwise relationships between variables</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-center h-[500px]">
+                            <p className="text-center text-muted-foreground">
+                                Pairs plot could not be generated with this many variables
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
+
+            {/* Correlation Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Correlation Pairs Table</CardTitle>
+                    <CardDescription>Pairwise correlations with confidence intervals and significance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Variable 1</TableHead>
+                                    <TableHead>Variable 2</TableHead>
+                                    <TableHead className="text-right">Correlation (r)</TableHead>
+                                    <TableHead className="text-right">p-value</TableHead>
+                                    <TableHead className="text-right">Lower 95% CI</TableHead>
+                                    <TableHead className="text-right">Upper 95% CI</TableHead>
+                                    <TableHead className="text-center">Sig</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.strongest_correlations.map((pair, idx) => {
+                                    const n = data.length - (results.n_dropped || 0);
+                                    const r = pair.correlation;
+                                    const z = 0.5 * Math.log((1 + r) / (1 - r)); // Fisher's z transformation
+                                    const se = 1 / Math.sqrt(n - 3);
+                                    const z_lower = z - 1.96 * se;
+                                    const z_upper = z + 1.96 * se;
+                                    const ci_lower = (Math.exp(2 * z_lower) - 1) / (Math.exp(2 * z_lower) + 1);
+                                    const ci_upper = (Math.exp(2 * z_upper) - 1) / (Math.exp(2 * z_upper) + 1);
+                                    
+                                    return (
+                                        <TableRow key={idx}>
+                                            <TableCell className="font-medium">{pair.variable_1}</TableCell>
+                                            <TableCell className="font-medium">{pair.variable_2}</TableCell>
+                                            <TableCell className="text-right font-mono">{r.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {pair.p_value < 0.001 ? '<.001' : pair.p_value.toFixed(3)}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">{ci_lower.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{ci_upper.toFixed(3)}</TableCell>
+                                            <TableCell className="text-center">
+                                                {pair.significant ? (
+                                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400">
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        Yes
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline">No</Badge>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <p className='text-sm text-muted-foreground'>
+                        95% Confidence Intervals calculated using Fisher's z transformation. Significant correlations (p &lt; 0.05) highlighted in blue.
+                    </p>
+                </CardFooter>
+            </Card>
+
+            {/* Correlation Matrix Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Correlation Matrix</CardTitle>
+                    <CardDescription>Full correlation matrix with p-values</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Variable</TableHead>
+                                    {selectedHeaders.map(header => <TableHead key={header} className="text-right">{header}</TableHead>)}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {selectedHeaders.map(rowHeader => (
+                                    <TableRow key={rowHeader}>
+                                        <TableHead>{rowHeader}</TableHead>
+                                        {selectedHeaders.map(colHeader => {
+                                            const corr = results.correlation_matrix[rowHeader]?.[colHeader];
+                                            const pVal = results.p_value_matrix[rowHeader]?.[colHeader];
+                                            const isSig = pVal !== undefined && pVal < 0.05;
+                                            return (
+                                                <TableCell key={colHeader} className={`text-right font-mono`}>
+                                                    {corr !== undefined ? corr.toFixed(3) : 'N/A'}
+                                                    <br/>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        (p={pVal !== undefined ? pVal.toFixed(3) : 'N/A'})
+                                                    </span>
+                                                </TableCell>
+                                            )
+                                        })}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <p className='text-sm text-muted-foreground'>
+                        Correlation coefficients with p-values in parentheses. Significant correlations (p &lt; 0.05) highlighted in blue.
+                    </p>
+                </CardFooter>
+            </Card>
         </div>
       )}
       {!results && !isLoading && (
         <div className="text-center text-muted-foreground py-10">
-          <p>Select variables and click 'Run Analysis' to see the results.</p>
+          <Layers className="mx-auto h-12 w-12 text-gray-400" />
+          <p className="mt-2">Select variables and click 'Run Analysis' to see the results.</p>
         </div>
       )}
     </div>

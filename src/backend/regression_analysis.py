@@ -1,12 +1,10 @@
-
-
 import sys
 import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import stats
+from scipy import stats, special
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import io
@@ -138,7 +136,16 @@ class RegressionAnalysis:
         self.data.rename(columns=self.sanitized_cols, inplace=True)
         self.target_variable_clean = self.sanitized_cols[target_variable]
         
+        # Track original indices before any dropping
+        self.original_indices = self.data.index.tolist()
+        self.original_length = len(self.data)
+        
         self.data[self.target_variable_clean] = pd.to_numeric(self.data[self.target_variable_clean], errors='coerce')
+        
+        # Track dropped rows from target variable
+        target_na_mask = self.data[self.target_variable_clean].isna()
+        self.dropped_rows = self.data.index[target_na_mask].tolist()
+        
         self.data.dropna(subset=[self.target_variable_clean], inplace=True)
 
         self.y = self.data[self.target_variable_clean]
@@ -273,6 +280,51 @@ class RegressionAnalysis:
 
         return intro + equation + coeff_interp + r2_text + conclusion
 
+    def plot_function_comparison(self):
+        """Plot comparison of logistic, error function, and hyperbolic tangent"""
+        # Reset to default and set custom style
+        plt.rcdefaults()
+        
+        # Set style parameters to match the third image
+        plt.style.use('seaborn-v0_8-darkgrid')
+        plt.rcParams['figure.facecolor'] = '#d3d3d3'
+        plt.rcParams['axes.facecolor'] = '#EAEAF2'
+        plt.rcParams['axes.edgecolor'] = 'gray'
+        plt.rcParams['grid.color'] = 'white'
+        plt.rcParams['grid.linestyle'] = '-'
+        plt.rcParams['grid.linewidth'] = 1.2
+        
+        # Generate data
+        xx = np.linspace(-5, 5, 1000)
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Plot three functions using seaborn
+        sns.lineplot(x=xx, y=1/(1+np.exp(-xx)), color='red', linestyle='-', 
+                     linewidth=2, label='Logistic Function', ax=ax)
+        sns.lineplot(x=xx, y=special.erf(0.5*np.sqrt(np.pi)*xx), color='green', 
+                     linestyle=':', linewidth=2, label='Error Function', ax=ax)
+        sns.lineplot(x=xx, y=np.tanh(xx), color='blue', linestyle='--', 
+                     linewidth=2, label='Hyperbolic Tangent', ax=ax)
+        
+        # Set limits and labels
+        ax.set_ylim([-1.1, 1.1])
+        ax.set_xlabel("x", fontsize=12)
+        ax.legend(loc=2, frameon=True, fancybox=True, shadow=False, fontsize=10)
+        
+        # Customize grid
+        ax.grid(True, alpha=0.7)
+        ax.set_axisbelow(True)
+        
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='#d3d3d3')
+        plt.close(fig)
+        plt.rcdefaults()  # Reset to default after plotting
+        buf.seek(0)
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+
     def run(self, model_type, **kwargs):
         if not HAS_STATSMODELS:
             raise ImportError("Statsmodels library is required for this analysis but is not installed in the environment.")
@@ -281,6 +333,12 @@ class RegressionAnalysis:
         selection_method = kwargs.get('selectionMethod', 'none')
         
         X_selected = self.X[self._get_clean_feature_names(features)].dropna()
+        
+        # Track additional dropped rows from feature selection
+        feature_na_indices = self.X.index.difference(X_selected.index)
+        additional_dropped = feature_na_indices.tolist()
+        all_dropped_rows = list(set(self.dropped_rows + additional_dropped))
+        
         y_aligned, X_selected = self.y.align(X_selected, join='inner', axis=0)
 
         stepwise_log = []
@@ -289,29 +347,65 @@ class RegressionAnalysis:
             if not final_features: raise ValueError("No features were selected by the stepwise method.")
             X_selected = X_selected[final_features]
 
-        X_final = self._scale_data(X_selected, standardize=True)
-        self.X_final = X_final # Store for interpretation
+        # Store original X_selected for standardization calculation
+        X_original = X_selected.copy()
+        
+        # Keep original X for unstandardized coefficients
+        X_unstandardized = X_selected.copy()
+        self.X_final = X_unstandardized
         
         if model_type == 'polynomial':
             degree = kwargs.get('degree', 2)
             poly = PolynomialFeatures(degree=degree, include_bias=False)
-            X_poly = poly.fit_transform(X_final)
-            poly_feature_names = poly.get_feature_names_out(X_final.columns)
-            X_final = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_final.index)
+            X_poly = poly.fit_transform(X_unstandardized)
+            poly_feature_names = poly.get_feature_names_out(X_unstandardized.columns)
+            X_unstandardized = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_unstandardized.index)
 
-        X_with_const = sm.add_constant(X_final)
+        # Fit unstandardized model
+        X_with_const = sm.add_constant(X_unstandardized)
         sm_model = sm.OLS(y_aligned, X_with_const).fit()
+        
+        # Calculate standardized coefficients using original X (before polynomial)
+        # Standardize X and y (excluding polynomial features)
+        standardized_coeffs = {}
+        if model_type != 'polynomial':
+            # Standardize using zscore
+            X_standardized = X_original.apply(stats.zscore)
+            y_standardized = stats.zscore(y_aligned)
+            
+            X_std_const = sm.add_constant(X_standardized)
+            sm_model_std = sm.OLS(y_standardized, X_std_const).fit()
+            
+            # Apply clean_name to match the main model's coefficient names
+            def clean_name_helper(name):
+                name = re.sub(r'Q\("([^"]+)"\)', r'\1', name.strip())
+                return self.original_names.get(name, name)
+            
+            standardized_coeffs = {clean_name_helper(k): v for k, v in sm_model_std.params.to_dict().items()}
+            
+            # Debug: Print standardized coefficients
+            print("DEBUG: Standardized coefficients:", standardized_coeffs, file=sys.stderr)
         
         y_pred = sm_model.predict(X_with_const)
 
-        metrics = self._calculate_metrics(y_aligned, y_pred, X_final.shape[1])
-        diagnostics = self._calculate_diagnostics(X_final, sm_model)
+        metrics = self._calculate_metrics(y_aligned, y_pred, X_unstandardized.shape[1])
+        diagnostics = self._calculate_diagnostics(X_unstandardized, sm_model)
+        
+        # Add standardized coefficients to diagnostics
+        diagnostics['standardized_coefficients'] = standardized_coeffs
+        
+        # Debug: Print diagnostics keys
+        print("DEBUG: Diagnostics keys:", list(diagnostics.keys()), file=sys.stderr)
+        print("DEBUG: standardized_coefficients in diagnostics:", diagnostics.get('standardized_coefficients'), file=sys.stderr)
         
         results = {
             'metrics': {'all_data': metrics},
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(metrics, diagnostics, stepwise_log, model_type)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, stepwise_log, model_type),
+            'n_dropped': len(all_dropped_rows),
+            'dropped_rows': sorted(all_dropped_rows),
+            'standardized_coefficients_debug': standardized_coeffs  # DEBUG: Direct in results
         }
         
         self.y_true_plot, self.y_pred_plot = y_aligned, y_pred
@@ -319,37 +413,74 @@ class RegressionAnalysis:
 
         return results
 
-    def plot_results(self, model_name):
+    def plot_statsmodels(self, model_name):
+        # Reset to default and set custom style
+        plt.rcdefaults()
+        
+        # Set style parameters - using seaborn's default colors
+        plt.style.use('seaborn-v0_8-darkgrid')
+        # axes.facecolor는 seaborn 스타일의 기본값 사용
+        plt.rcParams['figure.facecolor'] = 'white'
+        plt.rcParams['axes.edgecolor'] = 'gray'
+        plt.rcParams['axes.linewidth'] = 1.5  # Axes border thickness
+        plt.rcParams['grid.color'] = 'white'
+        plt.rcParams['grid.linestyle'] = '-'
+        plt.rcParams['grid.linewidth'] = 1.2  # Thicker grid lines
+        plt.rcParams['grid.alpha'] = 0.8  # More opaque grid
+        plt.rcParams['font.size'] = 10
+        plt.rcParams['lines.linewidth'] = 2  # Default line width for all plots
+        plt.rcParams['xtick.major.width'] = 1.5  # X-axis tick width
+        plt.rcParams['ytick.major.width'] = 1.5  # Y-axis tick width
+        
         residuals = self.sm_model.resid
-        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
         fig.suptitle(f'{model_name.title()} Regression Diagnostics', fontsize=16)
         
+        # Plot 1: Actual vs Predicted
         ax = axes[0, 0]
-        ax.scatter(self.y_true_plot, self.y_pred_plot, alpha=0.6)
-        ax.plot([self.y_true_plot.min(), self.y_true_plot.max()], [self.y_true_plot.min(), self.y_true_plot.max()], 'r--', lw=2)
-        ax.set_xlabel('Actual Values'); ax.set_ylabel('Predicted Values')
+        sns.scatterplot(x=self.y_true_plot, y=self.y_pred_plot, alpha=0.6, ax=ax)
+        ax.plot([self.y_true_plot.min(), self.y_true_plot.max()], 
+                [self.y_true_plot.min(), self.y_true_plot.max()], 
+                'r--', linewidth=2.5)
+        ax.set_xlabel('Actual Values')
+        ax.set_ylabel('Predicted Values')
         ax.set_title(f"Actual vs Predicted (R² = {self.sm_model.rsquared:.4f})")
-        ax.grid(True, alpha=0.3)
         
+        # Plot 2: Residuals vs Fitted
         ax = axes[0, 1]
-        ax.scatter(self.y_pred_plot, residuals, alpha=0.6)
-        ax.axhline(y=0, color='red', linestyle='--'); ax.set_xlabel('Fitted Values'); ax.set_ylabel('Residuals')
-        ax.set_title('Residuals vs Fitted'); ax.grid(True, alpha=0.3)
+        sns.scatterplot(x=self.y_pred_plot, y=residuals, alpha=0.6, ax=ax)
+        ax.axhline(y=0, color='red', linestyle='--', linewidth=2.5)
+        ax.set_xlabel('Fitted Values')
+        ax.set_ylabel('Residuals')
+        ax.set_title('Residuals vs Fitted')
         
-        ax = axes[1, 0]; sm.qqplot(residuals, line='s', ax=ax)
-        ax.set_title('Q-Q Plot (Normality Check)'); ax.grid(True, alpha=0.3)
+        # Plot 3: Q-Q Plot
+        ax = axes[1, 0]
+        sm.qqplot(residuals, line='s', ax=ax)
+        # Make Q-Q plot line thicker
+        for line in ax.get_lines():
+            if line.get_linestyle() == '-':
+                line.set_linewidth(2.5)
+        ax.set_title('Q-Q Plot (Normality Check)')
+        ax.grid(True)  # Ensure grid is visible
         
+        # Plot 4: Scale-Location Plot
         ax = axes[1, 1]
         std_resid = self.sm_model.get_influence().resid_studentized_internal
         sqrt_abs_std_resid = np.sqrt(np.abs(std_resid))
-        ax.scatter(self.y_pred_plot, sqrt_abs_std_resid, alpha=0.6)
-        sns.regplot(x=self.y_pred_plot, y=sqrt_abs_std_resid, scatter=False, lowess=True, line_kws={'color': 'red', 'lw': 2}, ax=ax)
-        ax.set_xlabel('Fitted Values'); ax.set_ylabel('√|Standardized Residuals|')
-        ax.set_title('Scale-Location Plot'); ax.grid(True, alpha=0.3)
+        sns.scatterplot(x=self.y_pred_plot, y=sqrt_abs_std_resid, alpha=0.6, ax=ax)
+        sns.regplot(x=self.y_pred_plot, y=sqrt_abs_std_resid, 
+                    scatter=False, lowess=True, 
+                    line_kws={'color': 'red', 'linewidth': 2.5}, ax=ax)
+        ax.set_xlabel('Fitted Values')
+        ax.set_ylabel('√|Standardized Residuals|')
+        ax.set_title('Scale-Location Plot')
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         buf = io.BytesIO()
-        plt.savefig(buf, format='png'); plt.close(fig)
+        plt.savefig(buf, format='png', dpi=100)
+        plt.close(fig)
+        plt.rcdefaults()  # Reset to default after plotting
         buf.seek(0)
         return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
@@ -367,8 +498,16 @@ def main():
             'results': results,
             'model_name': payload['modelType'],
             'model_type': 'regression',
-            'plot': reg_analysis.plot_results(payload['modelType'])
+            'plot': reg_analysis.plot_statsmodels(payload['modelType'])
         }
+        
+        # Debug output
+        print("="*50, file=sys.stderr)
+        print("DEBUG: standardized_coefficients_debug in results:", file=sys.stderr)
+        print(results.get('standardized_coefficients_debug'), file=sys.stderr)
+        print("DEBUG: diagnostics keys:", list(results.get('diagnostics', {}).keys()), file=sys.stderr)
+        print("="*50, file=sys.stderr)
+        
         print(json.dumps(response, default=_to_native_type, indent=2))
 
     except Exception as e:
@@ -377,3 +516,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

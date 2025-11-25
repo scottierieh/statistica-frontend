@@ -1,359 +1,818 @@
-
 'use client';
-
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network, CheckCircle, XCircle, HelpCircle, MoveRight, Settings, FileSearch, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, CheckCircle2, AlertTriangle, HelpCircle, Settings, FileSearch, Bot, Download, Activity, Info, TrendingUp, GitBranch, Lightbulb, BookOpen } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Badge } from '../ui/badge';
 import Image from 'next/image';
+import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
+import { Badge } from '../ui/badge';
+import { CheckCircle } from 'lucide-react';
+import Papa from 'papaparse';
 
-interface PathResult {
-    coef: number;
-    se: number;
-    t_stat: number;
-    p_value: number;
-    r_squared?: number;
-}
-
-interface SobelResult {
-    effect: number;
-    se: number;
-    z_stat: number;
-    p_value: number;
-}
-
-interface BootstrapResult {
-    mean_effect: number;
-    se: number;
-    ci_lower: number;
-    ci_upper: number;
-    n_bootstrap: number;
-    significant: boolean;
-}
-
-interface MediationResults {
+interface MediationResult {
     baron_kenny: {
-        path_c: PathResult;
-        path_a: PathResult;
-        path_b: PathResult;
-        path_c_prime: PathResult;
+        path_a: any;
+        path_b: any;
+        path_c: any;
+        path_c_prime: any;
         indirect_effect: number;
-        sobel_test: SobelResult;
+        sobel_test: any;
     };
-    bootstrap?: BootstrapResult;
+    bootstrap?: {
+        mean_effect: number;
+        se: number;
+        ci_lower: number;
+        ci_upper: number;
+        n_bootstrap: number;
+        significant: boolean;
+    };
     mediation_type: string;
     interpretation: string;
 }
 
-interface FullAnalysisResponse {
-    results: MediationResults;
-    plot: string; // base64 image string
+interface AnalysisResponse {
+    results: MediationResult;
+    plot: string;
+    interpretations?: {
+        overall_analysis: string;
+        path_insights: string[];
+        recommendations: string;
+    };
 }
 
-const getSignificanceStars = (p: number | undefined) => {
-    if (p === undefined || p === null) return '';
-    if (p < 0.001) return '***';
-    if (p < 0.01) return '**';
-    if (p < 0.05) return '*';
-    return '';
-};
-
-
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const mediationExample = exampleDatasets.find(d => d.id === 'work-stress');
+// Statistical Summary Cards Component
+const StatisticalSummaryCards = ({ results }: { results: MediationResult }) => {
+    const bk = results.baron_kenny;
+    const boot = results.bootstrap;
+    
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Network size={36} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Mediation Type Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Mediation Type
+                            </p>
+                            {results.mediation_type === "Full Mediation" ? 
+                                <CheckCircle2 className="h-4 w-4 text-green-600" /> :
+                                results.mediation_type === "Partial Mediation" ?
+                                <AlertTriangle className="h-4 w-4 text-yellow-600" /> :
+                                <Info className="h-4 w-4 text-gray-600" />
+                            }
                         </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Mediation Analysis</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Explore how a third variable (the mediator) explains the relationship between an independent variable and a dependent variable.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Mediation Analysis?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Mediation analysis helps you understand the 'how' and 'why' behind an observed relationship. It tests whether the effect of an independent variable on a dependent variable is transmitted through a third, intermediary variable (the mediator). It's a powerful tool for uncovering causal mechanisms.
+                        <p className="text-xl font-semibold">
+                            {results.mediation_type}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {results.mediation_type === "Full Mediation" ? 'Complete indirect effect' :
+                             results.mediation_type === "Partial Mediation" ? 'Both direct & indirect' :
+                             'No significant mediation'}
                         </p>
                     </div>
-                     <div className="flex justify-center">
-                        {mediationExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(mediationExample)}>
-                                <mediationExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{mediationExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{mediationExample.description}</p>
-                                </div>
-                            </Card>
-                        )}
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Independent Variable (X):</strong> The initial predictor variable.</li>
-                                <li><strong>Mediator Variable (M):</strong> The variable that is hypothesized to transmit the effect from X to Y.</li>
-                                <li><strong>Dependent Variable (Y):</strong> The final outcome variable.</li>
-                                <li><strong>Run Analysis:</strong> The tool will perform regressions for each path in the mediation model.</li>
-                            </ol>
+                </CardContent>
+            </Card>
+
+            {/* Indirect Effect Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Indirect Effect
+                            </p>
+                            <GitBranch className="h-4 w-4 text-muted-foreground" />
                         </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Indirect Effect (a*b):</strong> This is the key result. It represents the portion of the X-Y relationship that is explained by the mediator (M). A significant bootstrap confidence interval that does not contain zero indicates significant mediation.</li>
-                                <li><strong>Direct Effect (c'):</strong> The effect of X on Y after controlling for the mediator. If this is non-significant, it suggests full mediation. If it remains significant, it's partial mediation.</li>
-                                 <li><strong>Total Effect (c):</strong> The overall effect of X on Y without considering the mediator.</li>
-                            </ul>
-                        </div>
+                        <p className="text-2xl font-semibold font-mono">
+                            {bk.indirect_effect.toFixed(3)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            a × b pathway
+                        </p>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
+            </Card>
+
+            {/* Bootstrap CI Card */}
+            {boot && (
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    95% CI
+                                </p>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <p className={`text-lg font-semibold font-mono ${boot.significant ? 'text-green-600' : 'text-gray-600'}`}>
+                                [{boot.ci_lower.toFixed(3)}, {boot.ci_upper.toFixed(3)}]
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {boot.significant ? 'Does not include 0' : 'Includes 0'}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Direct Effect Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Direct Effect
+                            </p>
+                            <Activity className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold font-mono">
+                            {bk.path_c_prime.coef.toFixed(3)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            c' pathway (p = {bk.path_c_prime.p_value < 0.001 ? '<.001' : bk.path_c_prime.p_value.toFixed(3)})
+                        </p>
+                    </div>
+                </CardContent>
             </Card>
         </div>
     );
 };
 
+// Analysis Overview Component
+const MediationOverview = ({ xVar, mVar, yVar, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Variable selection status
+        if (!xVar || !mVar || !yVar) {
+            overview.push('Select independent (X), mediator (M), and dependent (Y) variables');
+        } else {
+            overview.push(`Independent variable (X): ${xVar}`);
+            overview.push(`Mediator (M): ${mVar}`);
+            overview.push(`Dependent variable (Y): ${yVar}`);
+        }
 
-interface MediationPageProps {
+        // Data characteristics
+        if (data.length < 30) {
+            overview.push(`⚠ Limited data (${data.length} points) - results may be less reliable`);
+        } else {
+            overview.push(`${data.length} data points available`);
+        }
+
+        // Analysis information
+        overview.push('Method: Baron & Kenny + Bootstrap analysis');
+        overview.push('Bootstrap samples: 1,000 iterations');
+        overview.push('Variables are standardized before analysis');
+        overview.push('Confidence level: 95%');
+        overview.push('Best for: Testing causal mechanisms, process models');
+
+        return overview;
+    }, [xVar, mVar, yVar, data]);
+
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+    );
+};
+
+// Generate interpretations based on mediation results
+const generateMediationInterpretations = (results: MediationResult) => {
+    const insights: string[] = [];
+    const bk = results.baron_kenny;
+    const boot = results.bootstrap;
+    
+    let overall = '';
+    if (results.mediation_type === "Full Mediation") {
+        overall = '<strong>Full mediation detected.</strong> The relationship between the independent variable and dependent variable is completely explained by the mediator. The direct path becomes non-significant when the mediator is included, indicating that the effect operates entirely through the mediator.';
+    } else if (results.mediation_type === "Partial Mediation") {
+        overall = '<strong>Partial mediation detected.</strong> The mediator explains part of the relationship between the independent and dependent variables, but a significant direct effect remains. Both direct and indirect pathways contribute to the overall effect.';
+    } else {
+        overall = '<strong>No significant mediation detected.</strong> The indirect effect through the mediator is not statistically significant. The relationship between the independent and dependent variables does not operate through the proposed mediator.';
+    }
+    
+    // Path a insight
+    insights.push(`<strong>Path a (X → M):</strong> β = ${bk.path_a.coef.toFixed(3)}, p ${bk.path_a.p_value < 0.001 ? '< .001' : `= ${bk.path_a.p_value.toFixed(3)}`}. The independent variable ${bk.path_a.p_value < 0.05 ? 'significantly predicts' : 'does not significantly predict'} the mediator.`);
+    
+    // Path b insight
+    insights.push(`<strong>Path b (M → Y):</strong> β = ${bk.path_b.coef.toFixed(3)}, p ${bk.path_b.p_value < 0.001 ? '< .001' : `= ${bk.path_b.p_value.toFixed(3)}`}. The mediator ${bk.path_b.p_value < 0.05 ? 'significantly predicts' : 'does not significantly predict'} the dependent variable when controlling for X.`);
+    
+    // Path c' insight
+    insights.push(`<strong>Path c' (X → Y direct):</strong> β = ${bk.path_c_prime.coef.toFixed(3)}, p ${bk.path_c_prime.p_value < 0.001 ? '< .001' : `= ${bk.path_c_prime.p_value.toFixed(3)}`}. The direct effect is ${bk.path_c_prime.p_value < 0.05 ? 'significant' : 'not significant'} after accounting for the mediator.`);
+    
+    // Path c insight
+    insights.push(`<strong>Path c (Total effect):</strong> β = ${bk.path_c.coef.toFixed(3)}, p ${bk.path_c.p_value < 0.001 ? '< .001' : `= ${bk.path_c.p_value.toFixed(3)}`}. The total effect of X on Y is ${bk.path_c.p_value < 0.05 ? 'significant' : 'not significant'}.`);
+    
+    // Bootstrap insight
+    if (boot) {
+        insights.push(`<strong>Bootstrap Analysis:</strong> Based on ${boot.n_bootstrap.toLocaleString()} bootstrap samples, the indirect effect is ${boot.mean_effect.toFixed(3)} with 95% CI [${boot.ci_lower.toFixed(3)}, ${boot.ci_upper.toFixed(3)}]. The confidence interval ${boot.significant ? 'does not include zero, confirming' : 'includes zero, suggesting no'} significant mediation.`);
+    }
+    
+    // Recommendations
+    let recommendations = '';
+    if (results.mediation_type === "Full Mediation") {
+        recommendations = 'The full mediation model suggests that interventions should target the mediator to influence the outcome. Consider: (1) Investigating why the direct path is non-significant, (2) Testing alternative models with multiple mediators, (3) Examining boundary conditions or moderators, (4) Replicating findings with independent samples. Report both the indirect effect and the non-significant direct effect in publications.';
+    } else if (results.mediation_type === "Partial Mediation") {
+        recommendations = 'Partial mediation indicates multiple pathways of influence. Consider: (1) Identifying additional mediators that might explain the remaining direct effect, (2) Testing for moderated mediation (conditional indirect effects), (3) Examining if the direct effect represents an independent causal pathway or unmeasured mediators, (4) Using longitudinal data to establish temporal precedence. Both direct and indirect effects should be reported and interpreted.';
+    } else {
+        recommendations = 'The absence of mediation suggests reconsidering the theoretical model. Consider: (1) Testing alternative mediators that might better explain the relationship, (2) Checking measurement validity of the mediator, (3) Examining if the relationship is direct rather than mediated, (4) Testing for moderation instead of mediation, (5) Considering reversed causal direction. Review the theoretical rationale and existing literature before proceeding.';
+    }
+    
+    return {
+        overall_analysis: overall,
+        path_insights: insights,
+        recommendations: recommendations
+    };
+};
+
+// Enhanced Intro Page
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <GitBranch className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Mediation Analysis</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Test whether a variable mediates the relationship between X and Y
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Activity className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Direct Effect</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    X → Y pathway (c')
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <GitBranch className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Indirect Effect</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    X → M → Y pathway (a×b)
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <TrendingUp className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Total Effect</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Combined influence (c)
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use Mediation Analysis
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Mediation analysis tests whether the effect of an independent variable (X) on a dependent 
+                            variable (Y) operates through a third variable called a mediator (M). This helps understand 
+                            the mechanism or process by which X influences Y. Use this when you want to explain "how" 
+                            or "why" a relationship exists, not just whether it exists.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>X Variable:</strong> Independent/predictor</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>M Variable:</strong> Mediator/mechanism</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Y Variable:</strong> Dependent/outcome</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Min Points:</strong> 100+ recommended</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Full:</strong> Only indirect effect significant</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Partial:</strong> Both effects significant</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Bootstrap CI:</strong> More robust than Sobel</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Path Diagram:</strong> Visualizes relationships</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center pt-2">
+                        <Button 
+                            onClick={() => {
+                                const example = exampleDatasets.find(d => d.id === 'mediation') || exampleDatasets[0];
+                                onLoadExample(example);
+                            }} 
+                            size="lg"
+                        >
+                            <GitBranch className="mr-2 h-5 w-5" />
+                            Load Example Dataset
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+interface MediationAnalysisPageProps {
     data: DataSet;
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    onGenerateReport?: (stats: any, viz: string | null) => void;
 }
 
-export default function MediationPage({ data, numericHeaders, onLoadExample }: MediationPageProps) {
+export default function MediationAnalysisPage({ data, numericHeaders, onLoadExample, onGenerateReport }: MediationAnalysisPageProps) {
     const { toast } = useToast();
-    const [xVar, setXVar] = useState<string | undefined>(numericHeaders[0]);
-    const [mVar, setMVar] = useState<string | undefined>(numericHeaders[1]);
-    const [yVar, setYVar] = useState<string | undefined>(numericHeaders[2]);
-
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [view, setView] = useState('intro');
-
-    useEffect(() => {
-        setXVar(numericHeaders[0] || undefined);
-        setMVar(numericHeaders[1] || undefined);
-        setYVar(numericHeaders[2] || undefined);
-        setAnalysisResult(null);
-        setView(data.length > 0 ? 'main' : 'intro');
-    }, [numericHeaders, data]);
+    const [xVar, setXVar] = useState<string | undefined>();
+    const [mVar, setMVar] = useState<string | undefined>();
+    const [yVar, setYVar] = useState<string | undefined>();
     
-    const canRun = useMemo(() => {
-        return data.length > 0 && numericHeaders.length >= 3;
-    }, [data, numericHeaders]);
+    const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
+    
+    useEffect(() => {
+        if (numericHeaders.length >= 3) {
+            setXVar(numericHeaders[0]);
+            setMVar(numericHeaders[1]);
+            setYVar(numericHeaders[2]);
+        }
+        setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!xVar || !mVar || !yVar) {
-            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select an Independent, Mediator, and Dependent variable.'});
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select X, M, and Y variables.' });
             return;
         }
-        if (new Set([xVar, mVar, yVar]).size < 3) {
-            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Independent, Mediator, and Dependent variables must be unique.'});
+
+        if (xVar === mVar || xVar === yVar || mVar === yVar) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'X, M, and Y must be different variables.' });
             return;
         }
 
         setIsLoading(true);
         setAnalysisResult(null);
-        
+
         try {
             const response = await fetch('/api/analysis/mediation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, xVar, mVar, yVar })
+                body: JSON.stringify({ 
+                    data: data, 
+                    xVar, 
+                    mVar, 
+                    yVar
+                })
             });
 
             if (!response.ok) {
                 const errorResult = await response.json();
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
+
+            const result: AnalysisResponse = await response.json();
+            if ((result as any).error) throw new Error((result as any).error);
             
-            const result = await response.json();
-            if (result.error) throw new Error(result.error);
+            // Generate interpretations
+            const interpretations = generateMediationInterpretations(result.results);
+            result.interpretations = interpretations;
             
             setAnalysisResult(result);
 
-        } catch(e: any) {
-            console.error('Analysis error:', e);
-            toast({variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.'})
-            setAnalysisResult(null);
+        } catch (e: any) {
+            console.error('Mediation Analysis error:', e);
+            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
         }
     }, [data, xVar, mVar, yVar, toast]);
-    
-    if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-    
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
 
-    const availableForM = numericHeaders.filter(h => h !== xVar);
-    const availableForY = numericHeaders.filter(h => h !== xVar && h !== mVar);
+    const handleDownloadResults = useCallback(() => {
+        if (!analysisResult) {
+            toast({ title: "No Data to Download", description: "Analysis results are not available." });
+            return;
+        }
+        
+        const bk = analysisResult.results.baron_kenny;
+        const boot = analysisResult.results.bootstrap;
+        
+        const resultsData = [{
+            mediation_type: analysisResult.results.mediation_type,
+            path_a_coef: bk.path_a.coef,
+            path_a_p: bk.path_a.p_value,
+            path_b_coef: bk.path_b.coef,
+            path_b_p: bk.path_b.p_value,
+            path_c_coef: bk.path_c.coef,
+            path_c_p: bk.path_c.p_value,
+            path_c_prime_coef: bk.path_c_prime.coef,
+            path_c_prime_p: bk.path_c_prime.p_value,
+            indirect_effect: bk.indirect_effect,
+            ...(boot && {
+                bootstrap_mean: boot.mean_effect,
+                bootstrap_ci_lower: boot.ci_lower,
+                bootstrap_ci_upper: boot.ci_upper,
+                bootstrap_significant: boot.significant
+            })
+        }];
+        
+        const csv = Papa.unparse(resultsData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'mediation_analysis_results.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Download Started", description: "Analysis results are being downloaded." });
+    }, [analysisResult, toast]);
+
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
     
     const results = analysisResult?.results;
     const bk = results?.baron_kenny;
-    const boot = results?.bootstrap;
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="space-y-4">
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">Mediation Analysis Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
-                    <CardDescription>Select your Independent (X), Mediator (M), and Dependent (Y) variables. Analysis uses standardized variables.</CardDescription>
+                    <CardDescription>Select the independent variable (X), mediator (M), and dependent variable (Y).</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4">
+                <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-sm font-medium mb-1 block">Independent Variable (X)</label>
-                            <Select value={xVar} onValueChange={setXVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                            <Label>Independent Variable (X)</Label>
+                            <Select value={xVar} onValueChange={setXVar}>
+                                <SelectTrigger><SelectValue placeholder="Select X"/></SelectTrigger>
+                                <SelectContent>
+                                    {numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
-                         <div>
-                            <label className="text-sm font-medium mb-1 block">Mediator Variable (M)</label>
-                            <Select value={mVar} onValueChange={setMVar} disabled={!xVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableForM.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        <div>
+                            <Label>Mediator (M)</Label>
+                            <Select value={mVar} onValueChange={setMVar}>
+                                <SelectTrigger><SelectValue placeholder="Select M"/></SelectTrigger>
+                                <SelectContent>
+                                    {numericHeaders.filter(h => h !== xVar).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
-                         <div>
-                            <label className="text-sm font-medium mb-1 block">Dependent Variable (Y)</label>
-                            <Select value={yVar} onValueChange={setYVar} disabled={!mVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{availableForY.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        <div>
+                            <Label>Dependent Variable (Y)</Label>
+                            <Select value={yVar} onValueChange={setYVar}>
+                                <SelectTrigger><SelectValue placeholder="Select Y"/></SelectTrigger>
+                                <SelectContent>
+                                    {numericHeaders.filter(h => h !== xVar && h !== mVar).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
-                     <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={!xVar || !mVar || !yVar || isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                    </Button>
+                    
+                    {/* Analysis Overview */}
+                    <MediationOverview 
+                        xVar={xVar}
+                        mVar={mVar}
+                        yVar={yVar}
+                        data={data}
+                    />
                 </CardContent>
+                <CardFooter className="flex justify-between">
+                    <div className="flex gap-2">
+                        {results && (
+                            <>
+                                {onGenerateReport && (
+                                    <Button variant="ghost" onClick={() => onGenerateReport(analysisResult, null)}>
+                                        <Bot className="mr-2"/>AI Report
+                                    </Button>
+                                )}
+                                <Button variant="outline" onClick={handleDownloadResults}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export Results
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                    <Button onClick={handleAnalysis} disabled={isLoading || !xVar || !mVar || !yVar}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Analyzing...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                    </Button>
+                </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
-
-            {analysisResult && results && bk && (
-                <>
+            {isLoading && (
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Analysis Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className='grid md:grid-cols-2 gap-4'>
-                         <Image src={analysisResult.plot} alt="Mediation Plot" width={1200} height={500} className="w-full rounded-md border" />
-                         <div className='space-y-4'>
-                            <Alert variant={results.mediation_type !== "No Mediation" ? 'default' : 'destructive'}>
-                                {results.mediation_type !== "No Mediation" ? <CheckCircle className='mr-2 h-4 w-4' /> : <XCircle className='mr-2 h-4 w-4' />}
-                                <AlertTitle>Mediation Result</AlertTitle>
-                                <AlertDescription>The analysis suggests a <span className="font-bold">{results.mediation_type}</span> effect.</AlertDescription>
-                            </Alert>
-                             <Card>
-                                <CardHeader className="pb-2"><CardTitle className="text-base">Interpretation</CardTitle></CardHeader>
-                                <CardContent>
-                                    <p className='text-sm text-muted-foreground whitespace-pre-wrap' dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
-                                </CardContent>
-                            </Card>
-                         </div>
+                    <CardContent className="p-6 flex flex-col items-center gap-4">
+                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                        <p className="text-muted-foreground">Running mediation analysis...</p>
+                        <Skeleton className="h-[400px] w-full" />
                     </CardContent>
                 </Card>
-
-                <div className='grid lg:grid-cols-2 gap-4'>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Effect Decomposition</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Total Effect (c)</dt><dd className="text-xl font-bold font-mono">{bk.path_c.coef.toFixed(4)}</dd></div>
-                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Direct Effect (c')</dt><dd className="text-xl font-bold font-mono">{bk.path_c_prime.coef.toFixed(4)}</dd></div>
-                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect (a*b)</dt><dd className="text-xl font-bold font-mono">{bk.indirect_effect.toFixed(4)}</dd></div>
-                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Percent Mediated</dt><dd className="text-xl font-bold font-mono">{Math.abs(bk.indirect_effect / bk.path_c.coef * 100).toFixed(2)}%</dd></div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                    {boot ? (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Bootstrap Results</CardTitle>
-                                <CardDescription>A robust test of the indirect effect using {boot.n_bootstrap} samples.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect</dt><dd className="text-xl font-bold font-mono">{boot.mean_effect.toFixed(4)}</dd></div>
-                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Bootstrap SE</dt><dd className="text-xl font-bold font-mono">{boot.se.toFixed(4)}</dd></div>
-                                    <div className="col-span-2 space-y-1"><dt className="font-medium text-muted-foreground">95% Confidence Interval</dt><dd className="text-xl font-bold font-mono">[{boot.ci_lower.toFixed(4)}, {boot.ci_upper.toFixed(4)}]</dd></div>
-                                </dl>
-                                 <div className="mt-4">
-                                    {boot.significant ? (
-                                        <div className='flex items-center text-green-600'><CheckCircle className='mr-2' /> The confidence interval does not contain zero, indicating a significant indirect effect.</div>
-                                    ) : (
-                                        <div className='flex items-center text-destructive'><XCircle className='mr-2' /> The confidence interval contains zero, indicating the indirect effect is not significant.</div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Sobel Test</CardTitle>
-                                 <CardDescription>A traditional test of the indirect effect.</CardDescription>
-                            </CardHeader>
-                             <CardContent>
-                                <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect (a*b)</dt><dd className="text-xl font-bold font-mono">{bk.sobel_test.effect.toFixed(4)}</dd></div>
-                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Sobel Z-statistic</dt><dd className="text-xl font-bold font-mono">{bk.sobel_test.z_stat.toFixed(3)}</dd></div>
-                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Standard Error</dt><dd className="text-lg font-mono">{bk.sobel_test.se.toFixed(4)}</dd></div>
-                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-mono">{bk.sobel_test.p_value.toFixed(4)} {getSignificanceStars(bk.sobel_test.p_value)}</dd></div>
-                                </dl>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-                
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Path Coefficients Details (Baron & Kenny)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Path</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">Coefficient</TableHead>
-                                    <TableHead className="text-right">Std. Error</TableHead>
-                                    <TableHead className="text-right">t-value</TableHead>
-                                    <TableHead className="text-right">p-value</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow><TableCell>c</TableCell><TableCell>Total Effect (X → Y)</TableCell><TableCell className="text-right font-mono">{bk.path_c.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.p_value.toFixed(4)} {getSignificanceStars(bk.path_c.p_value)}</TableCell></TableRow>
-                                <TableRow><TableCell>a</TableCell><TableCell>X → M</TableCell><TableCell className="text-right font-mono">{bk.path_a.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.p_value.toFixed(4)} {getSignificanceStars(bk.path_a.p_value)}</TableCell></TableRow>
-                                <TableRow><TableCell>b</TableCell><TableCell>M → Y (controlling for X)</TableCell><TableCell className="text-right font-mono">{bk.path_b.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.p_value.toFixed(4)} {getSignificanceStars(bk.path_b.p_value)}</TableCell></TableRow>
-                                <TableRow><TableCell>c'</TableCell><TableCell>Direct Effect (X → Y, controlling for M)</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.p_value.toFixed(4)} {getSignificanceStars(bk.path_c_prime.p_value)}</TableCell></TableRow>
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-                
-                </>
             )}
 
+            {analysisResult && results && bk && (
+                <div className="space-y-6">
+                    {/* Statistical Summary Cards */}
+                    <StatisticalSummaryCards results={results} />
+
+                    {/* Detailed Analysis - 그래프 위에 배치 */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-primary" />
+                                Detailed Analysis
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Overall Analysis - Primary Color */}
+                            <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-6 border border-primary/40">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="p-2 bg-primary/10 rounded-md">
+                                        <GitBranch className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <h3 className="font-semibold text-base">Overall Summary</h3>
+                                </div>
+                                <div 
+                                    className="text-sm text-foreground/80 leading-relaxed"
+                                    dangerouslySetInnerHTML={{ __html: analysisResult.interpretations?.overall_analysis || '' }}
+                                />
+                            </div>
+
+                            {/* Path Insights - Blue Color */}
+                            {analysisResult.interpretations?.path_insights && analysisResult.interpretations.path_insights.length > 0 && (
+                                <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/10 dark:to-indigo-950/10 rounded-lg p-6 border border-blue-300 dark:border-blue-700">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="p-2 bg-blue-500/10 rounded-md">
+                                            <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <h3 className="font-semibold text-base">Statistical Insights</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {analysisResult.interpretations.path_insights.map((insight, idx) => (
+                                            <div 
+                                                key={idx}
+                                                className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed"
+                                            >
+                                                <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                <div dangerouslySetInnerHTML={{ __html: insight }} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recommendations - Amber Color */}
+                            <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/10 dark:to-orange-950/10 rounded-lg p-6 border border-amber-300 dark:border-amber-700">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="p-2 bg-amber-500/10 rounded-md">
+                                        <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <h3 className="font-semibold text-base">Recommendations</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {analysisResult.interpretations?.recommendations.split(/(?:\(\d+\)|\d+\.)/).filter(Boolean).map((rec, idx) => (
+                                        <div 
+                                            key={idx}
+                                            className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed"
+                                        >
+                                            <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                            <span>{rec.trim()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Visualization - 그래프 */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Mediation Model Visualization</CardTitle>
+                            <CardDescription>
+                                Path diagram, effect decomposition, bootstrap distribution, and coefficient summary
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Image src={analysisResult.plot} alt="Mediation Analysis Plot" width={1400} height={1000} className="w-full rounded-md border"/>
+                        </CardContent>
+                    </Card>
+
+                    {/* Path Coefficients Table */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Path Coefficients Summary</CardTitle>
+                            <CardDescription>
+                                Standardized coefficients for all mediation pathways
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Path</TableHead>
+                                        <TableHead>Description</TableHead>
+                                        <TableHead className="text-right">Coefficient</TableHead>
+                                        <TableHead className="text-right">SE</TableHead>
+                                        <TableHead className="text-right">t/z</TableHead>
+                                        <TableHead className="text-right">p-value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="font-semibold">a</TableCell>
+                                        <TableCell className="text-muted-foreground">X → M</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_a.coef.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_a.se.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_a.t_stat.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant={bk.path_a.p_value < 0.05 ? 'default' : 'secondary'}>
+                                                {bk.path_a.p_value < 0.001 ? '<.001' : bk.path_a.p_value.toFixed(3)}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-semibold">b</TableCell>
+                                        <TableCell className="text-muted-foreground">M → Y</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_b.coef.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_b.se.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_b.t_stat.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant={bk.path_b.p_value < 0.05 ? 'default' : 'secondary'}>
+                                                {bk.path_b.p_value < 0.001 ? '<.001' : bk.path_b.p_value.toFixed(3)}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-semibold">c'</TableCell>
+                                        <TableCell className="text-muted-foreground">X → Y (direct)</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_c_prime.coef.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_c_prime.se.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_c_prime.t_stat.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant={bk.path_c_prime.p_value < 0.05 ? 'default' : 'secondary'}>
+                                                {bk.path_c_prime.p_value < 0.001 ? '<.001' : bk.path_c_prime.p_value.toFixed(3)}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-semibold">c</TableCell>
+                                        <TableCell className="text-muted-foreground">X → Y (total)</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_c.coef.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_c.se.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.path_c.t_stat.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant={bk.path_c.p_value < 0.05 ? 'default' : 'secondary'}>
+                                                {bk.path_c.p_value < 0.001 ? '<.001' : bk.path_c.p_value.toFixed(3)}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow className="bg-muted/50">
+                                        <TableCell className="font-semibold">a×b</TableCell>
+                                        <TableCell className="text-muted-foreground">Indirect effect</TableCell>
+                                        <TableCell className="font-mono text-right">{bk.indirect_effect.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">
+                                            {results.bootstrap ? results.bootstrap.se.toFixed(3) : bk.sobel_test.se.toFixed(3)}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-right">
+                                            {results.bootstrap ? '—' : bk.sobel_test.z_stat.toFixed(2)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {results.bootstrap ? (
+                                                <Badge variant={results.bootstrap.significant ? 'default' : 'secondary'}>
+                                                    Bootstrap
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant={bk.sobel_test.p_value < 0.05 ? 'default' : 'secondary'}>
+                                                    {bk.sobel_test.p_value < 0.001 ? '<.001' : bk.sobel_test.p_value.toFixed(3)}
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+
+                            {/* Bootstrap Results Section */}
+                            {results.bootstrap && (
+                                <div className="mt-6 p-4 bg-muted/30 rounded-lg border">
+                                    <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                        <TrendingUp className="h-4 w-4 text-primary" />
+                                        Bootstrap Analysis Results
+                                    </h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground">Mean Effect</p>
+                                            <p className="font-mono font-semibold">{results.bootstrap.mean_effect.toFixed(4)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Standard Error</p>
+                                            <p className="font-mono font-semibold">{results.bootstrap.se.toFixed(4)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">95% CI</p>
+                                            <p className={`font-mono font-semibold ${results.bootstrap.significant ? 'text-green-600' : 'text-gray-600'}`}>
+                                                [{results.bootstrap.ci_lower.toFixed(4)}, {results.bootstrap.ci_upper.toFixed(4)}]
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Significance</p>
+                                            <Badge variant={results.bootstrap.significant ? 'default' : 'secondary'}>
+                                                {results.bootstrap.significant ? 'Significant' : 'Not Significant'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-3">
+                                        Based on {results.bootstrap.n_bootstrap.toLocaleString()} bootstrap samples. 
+                                        CI {results.bootstrap.significant ? 'does not include' : 'includes'} zero.
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                        <CardFooter>
+                            <p className="text-xs text-muted-foreground">
+                                All coefficients are standardized. Bootstrap confidence interval: 95%
+                            </p>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
+            
             {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
-                    <p>Select variables and click 'Run Analysis' to see the results.</p>
+                    <GitBranch className="mx-auto h-12 w-12 text-gray-400"/>
+                    <p className="mt-2">Select variables and click &apos;Run Analysis&apos; to test mediation.</p>
                 </div>
             )}
         </div>

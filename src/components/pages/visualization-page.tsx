@@ -471,7 +471,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
       { id: 'grouped-bar', label: 'Grouped Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
       { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
       { id: 'stacked-column', label: 'Stacked Column', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
-      { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
+      { id: 'pie', label: 'Pie Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
       { id: 'donut', label: 'Donut Chart', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },
       { id: 'treemap', label: 'Treemap', icon: GanttChart, disabled: categoricalHeaders.length === 0 },
       { id: 'sunburst', label: 'Sunburst', icon: PieChartIcon, disabled: categoricalHeaders.length === 0 },

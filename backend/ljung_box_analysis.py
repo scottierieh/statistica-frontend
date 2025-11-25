@@ -1,15 +1,19 @@
-
 import sys
 import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from statsmodels.stats.diagnostic import acorr_ljungbox
 import io
 import base64
 import warnings
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally (consistent with other analyses)
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -46,19 +50,25 @@ def main():
         lags_range = range(1, lags + 1)
         lb_range_result = acorr_ljungbox(series, lags=lags_range, return_df=True)
 
-        # Plotting p-values
-        plt.figure(figsize=(10, 5))
-        plt.plot(lb_range_result.index, lb_range_result['lb_pvalue'], marker='o', linestyle='-')
-        plt.axhline(y=0.05, color='r', linestyle='--', label='Significance Level (0.05)')
-        plt.title('Ljung-Box Test P-Values for Different Lags')
-        plt.xlabel('Lags')
-        plt.ylabel('P-Value')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
+        # Plotting p-values with consistent style
+        fig, ax = plt.subplots(figsize=(10, 5))
+        
+        ax.plot(lb_range_result.index, lb_range_result['lb_pvalue'], 
+                marker='o', linestyle='-', color='#1f77b4', linewidth=2, 
+                markersize=6, alpha=0.8, label='P-Value')
+        ax.axhline(y=0.05, color='#d62728', linestyle='--', linewidth=2, 
+                   label='Significance Level (0.05)')
+        
+        ax.set_xlabel('Lags', fontsize=12)
+        ax.set_ylabel('P-Value', fontsize=12)
+        ax.legend()
+        ax.grid(True)
+        
+        plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
@@ -81,3 +91,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

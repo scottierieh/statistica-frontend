@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { type DataSet } from '@/lib/stats';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import { exampleDatasets } from '@/lib/example-datasets';
 import { Button } from '@/components/ui/button';
-import { Sigma, FlaskConical, MoveRight, BarChart as BarChartIcon, Settings, FileSearch, Users, Repeat, CheckCircle, XCircle, AlertTriangle, HelpCircle, Bot, Loader2, TrendingUp } from 'lucide-react';
+import { Sigma, FlaskConical, MoveRight, BarChart as BarChartIcon, Settings, FileSearch, Users, Repeat, CheckCircle, XCircle, AlertTriangle, HelpCircle, Bot, Loader2, TrendingUp, Target, Layers, BookOpen, Zap, Lightbulb } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
@@ -43,7 +42,13 @@ interface RegressionResultsData {
             pvalues: { [key: string]: number };
             bse: { [key: string]: number };
             tvalues: { [key: string]: number };
-        },
+        };
+        standardized_coefficients?: {
+            params: { [key: string]: number };
+            pvalues: { [key: string]: number };
+            bse: { [key: string]: number };
+            tvalues: { [key: string]: number };
+        };
         normality_tests?: {
             jarque_bera: { statistic: number; p_value: number; };
             shapiro_wilk: { statistic: number; p_value: number; };
@@ -59,6 +64,8 @@ interface RegressionResultsData {
     };
     stepwise_log?: string[];
     interpretation?: string;
+    n_dropped?: number;
+    dropped_rows?: number[];
     prediction?: {
         x_value: number,
         y_value: number,
@@ -81,103 +88,435 @@ const getSignificanceStars = (p: number | undefined) => {
     return '';
 };
 
+// Statistical Summary Cards Component
+const StatisticalSummaryCards = ({ results, modelType }: { results: RegressionResultsData, modelType: string }) => {
+    const metrics = results.metrics.all_data;
+    const fTestPValue = results.diagnostics?.f_pvalue;
+    const isModelSignificant = fTestPValue !== undefined && fTestPValue < 0.05;
 
-const SimpleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    const getR2Interpretation = (r2: number) => {
+        if (r2 >= 0.75) return 'Excellent fit';
+        if (r2 >= 0.50) return 'Good fit';
+        if (r2 >= 0.25) return 'Moderate fit';
+        return 'Weak fit';
+    };
+
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-4xl">
-                <CardHeader className="text-center p-8">
-                    <CardTitle className="font-headline text-4xl font-bold">Simple Linear Regression</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground">Model the relationship between two continuous variables.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Simple Linear Regression?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">This is the simplest form of regression, used to understand the relationship between a single independent variable (predictor) and a single dependent variable (outcome). It's perfect for finding a linear trend and making basic predictions.</p>
-                    </div>
-                     <div className="flex justify-center">
-                           {regressionExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(regressionExample)}>
-                                    <regressionExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{regressionExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{regressionExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* R-squared Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                R-squared
+                            </p>
+                            <Target className="h-4 w-4 text-muted-foreground" />
                         </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> The outcome you want to predict.</li>
-                                <li><strong>Feature Variable (X):</strong> The single variable you believe influences the target.</li>
-                            </ol>
-                        </div>
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Equation:</strong> Y = b0 + b1X. b1 is the slope, showing how much Y changes for a one-unit change in X.</li>
-                                <li><strong>R-squared (R²):</strong> The percentage of variance in Y explained by X.</li>
-                            </ul>
-                        </div>
+                        <p className="text-2xl font-semibold">
+                            {metrics.r2.toFixed(4)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {getR2Interpretation(metrics.r2)}
+                        </p>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
+            </Card>
+
+            {/* Adjusted R-squared Card */}
+            {modelType !== 'simple' && (
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Adjusted R²
+                                </p>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <p className="text-2xl font-semibold">
+                                {metrics.adj_r2.toFixed(4)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Accounts for predictors
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* RMSE Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                RMSE
+                            </p>
+                            <BarChartIcon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            {metrics.rmse.toFixed(4)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Prediction error
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* F-test Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Model Significance
+                            </p>
+                            <Sigma className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className={`text-2xl font-semibold ${!isModelSignificant ? 'text-red-600 dark:text-red-400' : ''}`}>
+                            {fTestPValue !== undefined ? (fTestPValue < 0.001 ? '<0.001' : fTestPValue.toFixed(4)) : 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {fTestPValue !== undefined ? (isModelSignificant ? 'Significant' : 'Not Significant') : 'p-value'}
+                        </p>
+                    </div>
+                </CardContent>
             </Card>
         </div>
     );
 };
+
+// Overview component with missing value check
+const RegressionOverview = ({ modelType, targetVar, features, data, selectionMethod }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Helper function to check if value is missing
+        const isMissing = (value: any) => {
+            return value == null || value === '' || 
+                   (typeof value === 'number' && isNaN(value)) ||
+                   (typeof value === 'string' && value.toLowerCase() === 'nan');
+        };
+        
+        // Model type and variables
+        if (targetVar) {
+            const modelTypeLabel = modelType === 'simple' ? 'Simple Linear' : 
+                                  modelType === 'multiple' ? 'Multiple Linear' : 
+                                  'Polynomial';
+            overview.push(`Model: ${modelTypeLabel} Regression`);
+            overview.push(`Predicting ${targetVar} using ${features.length} feature${features.length > 1 ? 's' : ''}`);
+        }
+
+        // Missing value check
+        if (data && data.length > 0 && targetVar && features.length > 0) {
+            const allVars = [targetVar, ...features];
+            const missingCount = data.filter((row: any) => 
+                allVars.some(v => isMissing(row[v]))
+            ).length;
+            const validCount = data.length - missingCount;
+            
+            if (missingCount > 0) {
+                overview.push(`⚠ Missing values: ${missingCount} row${missingCount > 1 ? 's' : ''} will be excluded (${validCount} valid observations)`);
+            } else {
+                overview.push(`✓ No missing values detected`);
+            }
+        }
+
+        // Sample size with warnings
+        const effectiveSize = data.length;
+        if (effectiveSize < 30) {
+            overview.push(`Sample size: ${effectiveSize} observations (⚠ Small sample)`);
+        } else if (effectiveSize < 100) {
+            overview.push(`Sample size: ${effectiveSize} observations (Moderate)`);
+        } else {
+            overview.push(`Sample size: ${effectiveSize} observations (Good)`);
+        }
+
+        // Selection method for multiple regression
+        if (modelType === 'multiple' && selectionMethod !== 'none') {
+            const methodLabels: { [key: string]: string } = {
+                'forward': 'Forward Selection',
+                'backward': 'Backward Elimination',
+                'stepwise': 'Stepwise Regression'
+            };
+            overview.push(`Variable selection: ${methodLabels[selectionMethod]}`);
+        }
+
+        // Sample size vs predictors ratio for multiple regression
+        if (modelType === 'multiple' && features.length > 0) {
+            const ratio = Math.floor(effectiveSize / features.length);
+            if (ratio < 10) {
+                overview.push(`⚠ Only ${ratio} observations per predictor (low)`);
+            } else if (ratio < 20) {
+                overview.push(`${ratio} observations per predictor (moderate)`);
+            } else {
+                overview.push(`${ratio} observations per predictor (good)`);
+            }
+        }
+
+        return overview;
+    }, [modelType, targetVar, features, data, selectionMethod]);
+
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+    );
+};
+
+const SimpleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <TrendingUp className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Simple Linear Regression</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Model the linear relationship between two continuous variables
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <TrendingUp className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Linear Relationship</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Find the best-fit straight line through your data points
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Target className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Single Predictor</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Use one independent variable to predict an outcome
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <BarChartIcon className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Straight Line Fit</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Y = b₀ + b₁X equation describes the relationship
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use Simple Linear Regression when you want to understand the relationship between two 
+                            continuous variables and make predictions. Perfect for finding linear trends and basic 
+                            predictions, like predicting sales based on advertising spend or temperature based on altitude.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Target variable (Y):</strong> Continuous outcome</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Feature variable (X):</strong> One predictor</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Relationship:</strong> Linear pattern expected</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Slope (b₁):</strong> Change in Y per unit X</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>R²:</strong> % of variance explained</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>p-value:</strong> Relationship significance</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {regressionExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(regressionExample)} size="lg">
+                                {regressionExample.icon && <regressionExample.icon className="mr-2 h-5 w-5" />}
+                                Load Regression Data
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
 const MultipleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
+        <div className="flex flex-1 items-center justify-center p-6">
             <Card className="w-full max-w-4xl">
-                 <CardHeader className="text-center p-8">
-                    <CardTitle className="font-headline text-4xl font-bold">Multiple Linear Regression</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground">Predict an outcome based on the linear relationship with two or more predictor variables.</CardDescription>
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Layers className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Multiple Linear Regression</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Predict outcomes using multiple predictor variables
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Multiple Linear Regression?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">This is an extension of simple linear regression. It allows you to model a single outcome variable using multiple predictor variables, assessing the independent contribution of each predictor while controlling for the others.</p>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Users className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Multiple Predictors</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Use two or more variables to predict an outcome
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Target className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Control Effects</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Assess each predictor's unique contribution
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Bot className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Variable Selection</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Automatic selection of most important predictors
+                                </p>
+                            </CardContent>
+                        </Card>
                     </div>
-                     <div className="flex justify-center">
-                           {regressionExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(regressionExample)}>
-                                    <regressionExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{regressionExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{regressionExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> The single outcome variable to predict.</li>
-                                <li><strong>Feature Variables (X):</strong> Select two or more predictor variables.</li>
-                                <li><strong>Variable Selection:</strong> Optionally use Forward, Backward, or Stepwise methods to automatically select the most impactful features.</li>
-                            </ol>
-                        </div>
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Coefficients:</strong> Each coefficient represents the change in Y for a one-unit change in its corresponding X, holding all other predictors constant.</li>
-                                <li><strong>Adjusted R-squared:</strong> A modified version of R² that accounts for the number of predictors, providing a more accurate measure of model fit.</li>
-                                <li><strong>VIF (Variance Inflation Factor):</strong> Checks for multicollinearity. Values above 5 or 10 suggest a predictor is highly correlated with others and may be redundant.</li>
-                            </ul>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use Multiple Linear Regression when you want to model a single outcome using multiple 
+                            predictor variables. It assesses each predictor's independent contribution while controlling 
+                            for others, helping you understand which variables are most important.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Target variable:</strong> One continuous outcome</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Features:</strong> Two or more predictors</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Sample size:</strong> More cases than predictors</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Coefficients:</strong> Unique contribution of each</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Adjusted R²:</strong> Accounts for predictors</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>VIF:</strong> Check multicollinearity</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
+
+                    {regressionExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(regressionExample)} size="lg">
+                                {regressionExample.icon && <regressionExample.icon className="mr-2 h-5 w-5" />}
+                                Load Regression Data
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
             </Card>
         </div>
     );
@@ -185,51 +524,121 @@ const MultipleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => vo
 
 const PolynomialIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
+        <div className="flex flex-1 items-center justify-center p-6">
             <Card className="w-full max-w-4xl">
-                 <CardHeader className="text-center p-8">
-                    <CardTitle className="font-headline text-4xl font-bold">Polynomial Regression</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground">Model a non-linear relationship between variables by fitting a polynomial equation.</CardDescription>
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Repeat className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Polynomial Regression</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Model non-linear relationships with curved patterns
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Polynomial Regression?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">When your data shows a curved or U-shaped pattern, a straight line (linear regression) won't fit well. Polynomial regression can capture these non-linear trends by adding polynomial terms (like X², X³) to the model, creating a more flexible curve.</p>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Repeat className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Non-Linear Fit</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Capture curved and U-shaped relationships in data
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <TrendingUp className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Curved Patterns</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Add polynomial terms (X², X³) for flexibility
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <BarChartIcon className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Flexible Models</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Control curve complexity with degree parameter
+                                </p>
+                            </CardContent>
+                        </Card>
                     </div>
-                     <div className="flex justify-center">
-                           {regressionExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(regressionExample)}>
-                                    <regressionExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{regressionExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{regressionExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> The outcome variable.</li>
-                                <li><strong>Feature Variable(s) (X):</strong> One or more predictor variables.</li>
-                                <li><strong>Degree:</strong> The degree of the polynomial. A degree of 2 creates a quadratic model (e.g., Y = B₀ + B₁X + B₂X²). A degree of 3 creates a cubic model.</li>
-                            </ol>
-                        </div>
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>R-squared (R²):</strong> Measures how well the curve fits the data. Be cautious, as higher degrees can easily overfit the data.</li>
-                                <li><strong>Coefficients:</strong> Interpreting individual polynomial coefficients is complex. It's often better to focus on the overall model fit and the shape of the curve in the diagnostic plot.</li>
-                                <li><strong>Actual vs. Predicted Plot:</strong> This is key to seeing if the generated curve accurately captures the trend in your data points.</li>
-                            </ul>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use Polynomial Regression when data shows curved or U-shaped patterns that a straight 
+                            line can't capture. It adds polynomial terms (X², X³) to create more flexible curves, 
+                            perfect for modeling growth curves, diminishing returns, or any non-linear relationship.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Target variable:</strong> Continuous outcome</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Feature(s):</strong> One or more predictors</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Degree:</strong> 2 (quadratic) to 5 (quintic)</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>R²:</strong> Curve fit quality measure</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Plot:</strong> Visual check of curve fit</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Caution:</strong> High degrees may overfit</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
+
+                    {regressionExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(regressionExample)} size="lg">
+                                {regressionExample.icon && <regressionExample.icon className="mr-2 h-5 w-5" />}
+                                Load Regression Data
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
             </Card>
         </div>
     );
@@ -241,7 +650,6 @@ interface RegressionPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
     activeAnalysis: string; 
 }
-
 
 const renderSetupUI = (modelType: string, props: any) => {
     const { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, handleMultiFeatureSelectionChange, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod } = props;
@@ -324,7 +732,6 @@ const renderSetupUI = (modelType: string, props: any) => {
     }
 }
 
-
 export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
@@ -350,6 +757,11 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const allHeaders = useMemo(() => numericHeaders, [numericHeaders]);
 
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== targetVar), [numericHeaders, targetVar]);
+    
+    const currentFeatures = useMemo(() => {
+        if (modelType === 'simple') return simpleFeatureVar ? [simpleFeatureVar] : [];
+        return multipleFeatureVars;
+    }, [modelType, simpleFeatureVar, multipleFeatureVars]);
     
     useEffect(() => {
         const newTarget = numericHeaders[numericHeaders.length - 1];
@@ -488,9 +900,21 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         <CardTitle className="font-headline">{modelType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())} Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
+                    <CardDescription>
+                        Configure your regression model and run the analysis
+                    </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     {renderSetupUI(modelType, { numericHeaders, availableFeatures, targetVar, setTargetVar, simpleFeatureVar, setSimpleFeatureVar, multipleFeatureVars, handleMultiFeatureSelectionChange, polyDegree, setPolyDegree, selectionMethod, setSelectionMethod })}
+                    
+                    {/* Overview Component */}
+                    <RegressionOverview 
+                        modelType={modelType}
+                        targetVar={targetVar}
+                        features={currentFeatures}
+                        data={data}
+                        selectionMethod={selectionMethod}
+                    />
                 </CardContent>
                  <CardFooter className="flex justify-end">
                     <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar}>
@@ -503,79 +927,423 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
             {analysisResult && results && (
                 <div className="space-y-4">
-                     {results.interpretation && (
+                    {/* Statistical Summary Cards */}
+                    <StatisticalSummaryCards results={results} modelType={modelType} />
+                    
+                    {/* Data Quality Information */}
+                    {results.n_dropped !== undefined && results.n_dropped > 0 && (
                         <Card>
-                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Data Quality</CardTitle>
+                            </CardHeader>
                             <CardContent>
-                               <Alert>
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>AI Generated Summary</AlertTitle>
-                                  <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
-                               </Alert>
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Missing Values Detected</AlertTitle>
+                                    <AlertDescription>
+                                        <p className="mb-2">
+                                            {results.n_dropped} row{results.n_dropped > 1 ? 's were' : ' was'} excluded from the analysis due to missing values.
+                                        </p>
+                                        {results.dropped_rows && results.dropped_rows.length > 0 && (
+                                            <details className="mt-2">
+                                                <summary className="cursor-pointer font-medium text-sm hover:underline">
+                                                    View excluded row indices (0-based)
+                                                </summary>
+                                                <div className="mt-2 p-2 bg-destructive/10 rounded text-xs font-mono">
+                                                    {results.dropped_rows.length <= 20 
+                                                        ? results.dropped_rows.join(', ')
+                                                        : `${results.dropped_rows.slice(0, 20).join(', ')} ... and ${results.dropped_rows.length - 20} more`
+                                                    }
+                                                </div>
+                                            </details>
+                                        )}
+                                    </AlertDescription>
+                                </Alert>
                             </CardContent>
                         </Card>
                     )}
-                    {analysisResult.plot && (
+
+                    {/* Detailed Analysis - Crosstab 스타일 적용 */}
+                    {results.interpretation && (
                         <Card>
-                            <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
-                            <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
+                            <CardHeader>
+                                <CardTitle className="font-headline flex items-center gap-2">
+                                    <TrendingUp className="h-5 w-5 text-primary" />
+                                    Detailed Analysis
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {(() => {
+                                    const interpretation = results.interpretation;
+                                    const sections: { title: string; content: string[]; icon: any }[] = [];
+                                    
+                                    const lines = interpretation.split('\n').filter(l => l.trim());
+                                    let currentSection: typeof sections[0] | null = null;
+                                    
+                                    lines.forEach((line) => {
+                                        const trimmed = line.trim();
+                                        if (!trimmed) return;
+                                        
+                                        if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+                                            const title = trimmed.replace(/\*\*/g, '').trim();
+                                            
+                                            let icon = Target;
+                                            if (title.includes('Overall')) icon = Target;
+                                            else if (title.includes('Key Findings') || title.includes('Statistical')) icon = Lightbulb;
+                                            else if (title.includes('Recommendations') || title.includes('Next Steps')) icon = BookOpen;
+                                            
+                                            currentSection = { title, content: [], icon };
+                                            sections.push(currentSection);
+                                        } else if (currentSection) {
+                                            currentSection.content.push(trimmed);
+                                        }
+                                    });
+                                    
+                                    return sections.map((section, idx) => {
+                                        const Icon = section.icon;
+                                        
+                                        let gradientClass = '';
+                                        let borderClass = '';
+                                        let iconBgClass = '';
+                                        let iconColorClass = '';
+                                        let bulletColorClass = '';
+                                        
+                                        if (idx === 0) {
+                                            gradientClass = 'bg-gradient-to-br from-primary/5 to-primary/10';
+                                            borderClass = 'border-primary/40';
+                                            iconBgClass = 'bg-primary/10';
+                                            iconColorClass = 'text-primary';
+                                            bulletColorClass = 'text-primary';
+                                        } else if (section.title.includes('Key Findings') || section.title.includes('Statistical')) {
+                                            gradientClass = 'bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/10 dark:to-indigo-950/10';
+                                            borderClass = 'border-blue-300 dark:border-blue-700';
+                                            iconBgClass = 'bg-blue-500/10';
+                                            iconColorClass = 'text-blue-600 dark:text-blue-400';
+                                            bulletColorClass = 'text-blue-600 dark:text-blue-400';
+                                        } else {
+                                            gradientClass = 'bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/10 dark:to-orange-950/10';
+                                            borderClass = 'border-amber-300 dark:border-amber-700';
+                                            iconBgClass = 'bg-amber-500/10';
+                                            iconColorClass = 'text-amber-600 dark:text-amber-400';
+                                            bulletColorClass = 'text-amber-600 dark:text-amber-400';
+                                        }
+                                        
+                                        return (
+                                            <div key={idx} className={`${gradientClass} rounded-lg p-6 border ${borderClass}`}>
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <div className={`p-2 ${iconBgClass} rounded-md`}>
+                                                        <Icon className={`h-4 w-4 ${iconColorClass}`} />
+                                                    </div>
+                                                    <h3 className="font-semibold text-base">{section.title}</h3>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {section.content.map((text, textIdx) => {
+                                                        if (text.startsWith('→')) {
+                                                            return (
+                                                                <div key={textIdx} className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed">
+                                                                    <span className={`${bulletColorClass} font-bold mt-0.5`}>→</span>
+                                                                    <div dangerouslySetInnerHTML={{ __html: text.substring(1).trim().replace(/\*\*/g, '') }} />
+                                                                </div>
+                                                            );
+                                                        } else if (text.startsWith('•') || text.startsWith('-')) {
+                                                            return (
+                                                                <div key={textIdx} className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed">
+                                                                    <span className={`${bulletColorClass} font-bold mt-0.5`}>•</span>
+                                                                    <div dangerouslySetInnerHTML={{ __html: text.substring(1).trim().replace(/\*\*/g, '') }} />
+                                                                </div>
+                                                            );
+                                                        }
+                                                        
+                                                        return (
+                                                            <p key={textIdx} className="text-sm text-foreground/80 leading-relaxed" dangerouslySetInnerHTML={{ __html: text.replace(/\*\*/g, '') }} />
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </CardContent>
                         </Card>
                     )}
+
+                    {/* Visualization */}
                     <Card>
-                        <CardHeader><CardTitle>Coefficients</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Visualization</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {analysisResult.plot && (
+                                <div className="max-w-5xl mx-auto">
+                                    <Image 
+                                        src={analysisResult.plot} 
+                                        alt="Regression Diagnostics" 
+                                        width={1000}
+                                        height={833}
+                                        className="w-full h-auto rounded-md border"
+                                    />
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Model Performance */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Model Performance</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="font-medium">R-squared</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                    {modelType !== 'simple' && (
+                                        <TableRow>
+                                            <TableCell className="font-medium">Adjusted R²</TableCell>
+                                            <TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell>
+                                        </TableRow>
+                                    )}
+                                    <TableRow>
+                                        <TableCell className="font-medium">RMSE</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-medium">MAE</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.all_data.mae.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                        <CardFooter className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
+                            <p><strong>R²:</strong> 0-1 scale | &gt;0.75 Excellent | 0.50-0.75 Good | 0.25-0.50 Moderate | &lt;0.25 Weak</p>
+                            {modelType !== 'simple' && (
+                                <p><strong>Adjusted R²:</strong> R² adjusted for number of predictors (penalizes overfitting)</p>
+                            )}
+                            <p><strong>RMSE:</strong> Root Mean Squared Error | Lower is better | Same units as target variable</p>
+                            <p><strong>MAE:</strong> Mean Absolute Error | Lower is better | More robust to outliers than RMSE</p>
+                        </CardFooter>
+                    </Card>
+
+                    {/* Coefficients Table */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Coefficients</CardTitle>
+                            <CardDescription>Model parameters and their statistical significance</CardDescription>
+                        </CardHeader>
                         <CardContent>
                              <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Variable</TableHead>
-                                        <TableHead className="text-right">Coefficient</TableHead>
+                                        <TableHead className="text-right">B (Unstandardized)</TableHead>
+                                        {modelType !== 'polynomial' && (
+                                            <TableHead className="text-right">β (Standardized)</TableHead>
+                                        )}
                                         <TableHead className="text-right">Std. Error</TableHead>
                                         <TableHead className="text-right">t-value</TableHead>
                                         <TableHead className="text-right">p-value</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {coefficientTableData.map(row => (
-                                        <TableRow key={row.key}>
-                                            <TableCell>{row.key}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.coefficient.toFixed(4)}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.stdError?.toFixed(4)}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.tValue?.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">
-                                                {row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4)}
-                                                {getSignificanceStars(row.pValue)}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {coefficientTableData.map(row => {
+                                        const standardizedCoeff = results?.diagnostics?.standardized_coefficients?.params?.[row.key];
+                                        return (
+                                            <TableRow key={row.key}>
+                                                <TableCell className="font-medium">{row.key}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.coefficient.toFixed(4)}</TableCell>
+                                                {modelType !== 'polynomial' && (
+                                                    <TableCell className="text-right font-mono">
+                                                        {row.key === 'const' ? '-' : 
+                                                         standardizedCoeff !== undefined ? standardizedCoeff.toFixed(4) : 'N/A'}
+                                                    </TableCell>
+                                                )}
+                                                <TableCell className="text-right font-mono">{row.stdError?.toFixed(4)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.tValue?.toFixed(3)}</TableCell>
+                                                <TableCell className="text-right font-mono">
+                                                    {row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4)}
+                                                    {getSignificanceStars(row.pValue)}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </CardContent>
+                        <CardFooter className="flex flex-col items-start gap-2">
+                            <p className='text-sm text-muted-foreground'>
+                                <strong>B (Unstandardized):</strong> Original scale coefficients showing actual unit changes
+                            </p>
+                            {modelType !== 'polynomial' && (
+                                <p className='text-sm text-muted-foreground'>
+                                    <strong>β (Standardized):</strong> Standardized coefficients for comparing relative importance across predictors
+                                </p>
+                            )}
+                            <p className='text-sm text-muted-foreground'>
+                                Significance: *** p &lt; 0.001, ** p &lt; 0.01, * p &lt; 0.05
+                            </p>
+                        </CardFooter>
                     </Card>
+
+                    {/* VIF (Multicollinearity) Table - Only for multiple/polynomial regression */}
+                    {(modelType === 'multiple' || modelType === 'polynomial') && results?.diagnostics?.vif && Object.keys(results.diagnostics.vif).length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Multicollinearity Check (VIF)</CardTitle>
+                                <CardDescription>Variance Inflation Factor - values above 10 indicate high multicollinearity</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Variable</TableHead>
+                                            <TableHead className="text-right">VIF</TableHead>
+                                            <TableHead className="text-right">Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results.diagnostics.vif)
+                                            .filter(([key]) => key !== 'const')
+                                            .map(([key, value]) => {
+                                                const vif = value as number;
+                                                const hasIssue = vif > 10;
+                                                const isModerate = vif > 5 && vif <= 10;
+                                                return (
+                                                    <TableRow key={key}>
+                                                        <TableCell className="font-medium">{key}</TableCell>
+                                                        <TableCell className="text-right font-mono">{vif.toFixed(3)}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Badge variant={hasIssue ? 'destructive' : isModerate ? 'outline' : 'default'}>
+                                                                {hasIssue ? 'High' : isModerate ? 'Moderate' : 'Low'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                            <CardFooter>
+                                <p className='text-sm text-muted-foreground'>
+                                    VIF &lt; 5: Low multicollinearity | VIF 5-10: Moderate | VIF &gt; 10: High multicollinearity (problematic)
+                                </p>
+                            </CardFooter>
+                        </Card>
+                    )}
+
+                    {/* Model Fit & Assumptions */}
                     <Card>
-                        <CardHeader><CardTitle>Assumption Checks</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Model Fit & Assumptions</CardTitle>
+                            <CardDescription>Overall model fit and diagnostic tests for regression assumptions</CardDescription>
+                        </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Test</TableHead>
-                                        <TableHead>Assumption</TableHead>
+                                        <TableHead>Purpose</TableHead>
                                         <TableHead className="text-right">Statistic</TableHead>
                                         <TableHead className="text-right">p-value</TableHead>
                                         <TableHead className="text-right">Result</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {fTestPValue !== undefined && <TableRow><TableCell>F-test</TableCell><TableCell>Overall Model Significance</TableCell><TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{fTestPValue.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={fTestMet ? 'default' : 'destructive'}>{fTestMet ? "Significant" : "Not Significant"}</Badge></TableCell></TableRow>}
-                                    {durbinWatson !== undefined && <TableRow><TableCell>Durbin-Watson</TableCell><TableCell>Independence of Residuals</TableCell><TableCell className="font-mono text-right">{durbinWatson.toFixed(3)}</TableCell><TableCell className="text-right">-</TableCell><TableCell className="text-right"><Badge variant={dwMet ? 'default' : 'destructive'}>{dwMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
-                                    {bpTest && <TableRow><TableCell>Breusch-Pagan</TableCell><TableCell>Homoscedasticity</TableCell><TableCell className="font-mono text-right">{bpTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{bpTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={bpMet ? 'default' : 'destructive'}>{bpMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
-                                    {swTest && <TableRow><TableCell>Shapiro-Wilk</TableCell><TableCell>Normality of Residuals</TableCell><TableCell className="font-mono text-right">{swTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{swTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={swMet ? 'default' : 'destructive'}>{swMet ? "Met" : "Not Met"}</Badge></TableCell></TableRow>}
-                                    {resetTest && <TableRow><TableCell>Ramsey RESET</TableCell><TableCell>Model Specification</TableCell><TableCell className="font-mono text-right">{resetTest.statistic.toFixed(3)}</TableCell><TableCell className="font-mono text-right">{resetTest.p_value.toFixed(4)}</TableCell><TableCell className="text-right"><Badge variant={resetMet ? 'default' : 'destructive'}>{resetMet ? "Correct" : "Incorrect"}</Badge></TableCell></TableRow>}
+                                    {fTestPValue !== undefined && (
+                                        <TableRow className="bg-muted/50">
+                                            <TableCell className="font-semibold">F-test</TableCell>
+                                            <TableCell className="font-medium">Overall Model Fit</TableCell>
+                                            <TableCell className="font-mono text-right">{results?.diagnostics?.f_statistic?.toFixed(3)}</TableCell>
+                                            <TableCell className="font-mono text-right">{fTestPValue < 0.001 ? '<.001' : fTestPValue.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant={fTestMet ? 'default' : 'destructive'}>
+                                                    {fTestMet ? "Significant" : "Not Significant"}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {durbinWatson !== undefined && (
+                                        <TableRow>
+                                            <TableCell className="font-medium">Durbin-Watson</TableCell>
+                                            <TableCell>Independence of Residuals</TableCell>
+                                            <TableCell className="font-mono text-right">{durbinWatson.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right">-</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant={dwMet ? 'default' : 'destructive'}>
+                                                    {dwMet ? "Met" : "Not Met"}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {bpTest && (
+                                        <TableRow>
+                                            <TableCell className="font-medium">Breusch-Pagan</TableCell>
+                                            <TableCell>Homoscedasticity</TableCell>
+                                            <TableCell className="font-mono text-right">{bpTest.statistic.toFixed(3)}</TableCell>
+                                            <TableCell className="font-mono text-right">{bpTest.p_value < 0.001 ? '<.001' : bpTest.p_value.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant={bpMet ? 'default' : 'destructive'}>
+                                                    {bpMet ? "Met" : "Not Met"}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {swTest && (
+                                        <TableRow>
+                                            <TableCell className="font-medium">Shapiro-Wilk</TableCell>
+                                            <TableCell>Normality of Residuals</TableCell>
+                                            <TableCell className="font-mono text-right">{swTest.statistic.toFixed(3)}</TableCell>
+                                            <TableCell className="font-mono text-right">{swTest.p_value < 0.001 ? '<.001' : swTest.p_value.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant={swMet ? 'default' : 'destructive'}>
+                                                    {swMet ? "Met" : "Not Met"}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {resetTest && (
+                                        <TableRow>
+                                            <TableCell className="font-medium">Ramsey RESET</TableCell>
+                                            <TableCell>Model Specification</TableCell>
+                                            <TableCell className="font-mono text-right">{resetTest.statistic.toFixed(3)}</TableCell>
+                                            <TableCell className="font-mono text-right">{resetTest.p_value < 0.001 ? '<.001' : resetTest.p_value.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant={resetMet ? 'default' : 'destructive'}>
+                                                    {resetMet ? "Correct" : "Incorrect"}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
+                        <CardFooter className="flex flex-col items-start gap-2 text-sm text-muted-foreground">
+                            <div className="space-y-1">
+                                <p><strong>F-test:</strong> p &lt; 0.05 means the model explains significant variance (at least one predictor is meaningful)</p>
+                                <p><strong>Durbin-Watson:</strong> 1.5-2.5 = No autocorrelation | &lt;1.5 = Positive autocorrelation | &gt;2.5 = Negative autocorrelation</p>
+                                <p><strong>Breusch-Pagan:</strong> p &gt; 0.05 = Equal variance (homoscedasticity) | p &lt; 0.05 = Unequal variance (heteroscedasticity)</p>
+                                <p><strong>Shapiro-Wilk:</strong> p &gt; 0.05 = Residuals are normally distributed | p &lt; 0.05 = Non-normal residuals</p>
+                                <p><strong>Ramsey RESET:</strong> p &gt; 0.05 = Correct model specification | p &lt; 0.05 = Missing variables or wrong functional form</p>
+                            </div>
+                        </CardFooter>
                     </Card>
+                </div>
+            )}
+
+            {!isLoading && !analysisResult && (
+                <div className="text-center text-muted-foreground py-10">
+                    <Layers className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2">Configure your model and click 'Run Analysis' to see results.</p>
                 </div>
             )}
         </div>
     );
 }
+

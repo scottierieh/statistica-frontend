@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -14,14 +12,19 @@ from sklearn.decomposition import PCA
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -208,55 +211,80 @@ class HierarchicalClusterAnalysis:
         return interpretations
 
     def plot_results(self):
+        # Ensure seaborn style is applied
+        sns.set_theme(style="darkgrid")
+        sns.set_context("notebook", font_scale=1.1)
+        
         fig, axes = plt.subplots(3, 2, figsize=(15, 18))
-        fig.suptitle('Hierarchical Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Dendrogram
-        ax1 = fig.add_subplot(plt.subplot2grid((3, 2), (0, 0), colspan=2))
+        ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2, fig=fig)
         cut_height = 0
-        if self.n_clusters > 1 and len(self.linkage_matrix) >= self.n_clusters -1 :
+        if self.n_clusters > 1 and len(self.linkage_matrix) >= self.n_clusters - 1:
             cut_height = self.linkage_matrix[-(self.n_clusters - 1), 2]
         dendrogram(self.linkage_matrix, ax=ax1, color_threshold=cut_height, above_threshold_color='gray')
-        ax1.axhline(y=cut_height, c='red', linestyle='--', label=f'Cut for {self.n_clusters} clusters')
-        ax1.set_title('Hierarchical Clustering Dendrogram', fontsize=14, fontweight='bold')
-        ax1.set_xlabel('Sample Index')
-        ax1.set_ylabel('Distance')
+        ax1.axhline(y=cut_height, c='red', linestyle='--', linewidth=2, label=f'Cut for {self.n_clusters} clusters')
+        ax1.set_title('Hierarchical Clustering Dendrogram', fontsize=12, fontweight='bold')
+        ax1.set_xlabel('Sample Index', fontsize=12)
+        ax1.set_ylabel('Distance', fontsize=12)
         ax1.legend()
+        ax1.grid(False)
         
         # 2. PCA Plot
-        ax2 = axes[1,0]
+        ax2 = axes[1, 0]
         if self.n_features > 1:
             pca = PCA(n_components=2)
             pca_data = pca.fit_transform(self.cluster_data_scaled)
-            sns.scatterplot(x=pca_data[:, 0], y=pca_data[:, 1], hue=self.cluster_labels, palette='viridis', ax=ax2, legend='full')
-            ax2.set_title('Clusters in PCA Space')
-            ax2.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.1%})')
-            ax2.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.1%})')
+            
+            # Use crest palette
+            n_clusters = len(np.unique(self.cluster_labels))
+            palette = sns.color_palette('crest', n_colors=n_clusters)
+            
+            for i, label in enumerate(np.unique(self.cluster_labels)):
+                mask = self.cluster_labels == label
+                ax2.scatter(pca_data[mask, 0], pca_data[mask, 1], 
+                          c=[palette[i]], label=f'Cluster {label}', 
+                          alpha=0.6, s=50, edgecolors='black', linewidth=0.5)
+            
+            ax2.set_title('Clusters in PCA Space', fontsize=12, fontweight='bold')
+            ax2.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.1%})', fontsize=12)
+            ax2.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.1%})', fontsize=12)
             ax2.legend(title='Cluster')
             ax2.grid(True, alpha=0.3)
+            ax2.tick_params(axis='both', which='major', width=1.5)
 
         # 3. Silhouette Score Plot
-        ax3 = axes[1,1]
+        ax3 = axes[1, 1]
         if 'validation_scores' in self.results:
             opt_k_res = self.results['validation_scores']
-            sns.lineplot(x=opt_k_res['k_range'], y=opt_k_res['silhouette'], ax=ax3, marker='o')
-            ax3.set_title('Silhouette Scores by Number of Clusters')
-            ax3.set_xlabel('Number of Clusters (k)')
-            ax3.set_ylabel('Average Silhouette Score')
+            ax3.plot(opt_k_res['k_range'], opt_k_res['silhouette'], 'o-', 
+                    color='#5B9BD5', linewidth=2, markersize=8)
+            ax3.set_title('Silhouette Scores by Number of Clusters', fontsize=12, fontweight='bold')
+            ax3.set_xlabel('Number of Clusters (k)', fontsize=12)
+            ax3.set_ylabel('Average Silhouette Score', fontsize=12)
             ax3.grid(True, alpha=0.3)
+            ax3.tick_params(axis='both', which='major', width=1.5)
             if 'optimal_k_recommendation' in self.results and 'silhouette' in self.results['optimal_k_recommendation']:
                 rec_k = self.results['optimal_k_recommendation']['silhouette']
-                ax3.axvline(x=rec_k, color='red', linestyle='--', label=f'Recommended k = {rec_k}')
+                ax3.axvline(x=rec_k, color='red', linestyle='--', linewidth=2, label=f'Recommended k = {rec_k}')
                 ax3.legend()
-
 
         # 4. Cluster Size Distribution
         ax4 = axes[2, 0]
         cluster_sizes = pd.Series(self.cluster_labels).value_counts().sort_index()
-        sns.barplot(x=cluster_sizes.index, y=cluster_sizes.values, ax=ax4, palette='viridis')
-        ax4.set_title('Cluster Size Distribution')
-        ax4.set_xlabel('Cluster')
-        ax4.set_ylabel('Number of Samples')
+        
+        # Use crest palette for bars
+        colors = sns.color_palette('crest', n_colors=len(cluster_sizes))
+        
+        ax4.bar(range(len(cluster_sizes)), cluster_sizes.values, 
+               color=colors, alpha=0.7, edgecolor='black')
+        ax4.set_title('Cluster Size Distribution', fontsize=12, fontweight='bold')
+        ax4.set_xlabel('Cluster', fontsize=12)
+        ax4.set_ylabel('Number of Samples', fontsize=12)
+        ax4.set_xticks(range(len(cluster_sizes)))
+        ax4.set_xticklabels(cluster_sizes.index)
+        ax4.grid(True, alpha=0.3)
+        ax4.tick_params(axis='both', which='major', width=1.5)
 
         # 5. Centroid Heatmap
         ax5 = axes[2, 1]
@@ -270,15 +298,15 @@ class HierarchicalClusterAnalysis:
 
             if centroids_scaled:
                 centroid_df = pd.DataFrame(centroids_scaled, columns=self.feature_cols, index=cluster_names)
-                sns.heatmap(centroid_df, annot=True, cmap='viridis', ax=ax5)
-                ax5.set_title('Scaled Centroid Heatmap')
+                sns.heatmap(centroid_df, annot=True, cmap='crest', ax=ax5, fmt='.2f')
+                ax5.set_title('Scaled Centroid Heatmap', fontsize=12, fontweight='bold')
                 ax5.tick_params(axis='x', rotation=45)
+                ax5.tick_params(axis='both', which='major', width=1.5)
         
-
         plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
@@ -315,5 +343,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
+import { Sigma, Loader2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch, BarChart, BookOpen, CheckCircle, Zap, Activity, TrendingUp, Target } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -27,55 +26,185 @@ interface FullAnalysisResponse {
     interpretation: string;
 }
 
+// Overview component with clean design
+const VariabilityOverview = ({ selectedVars, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Variable selection status
+        if (selectedVars.length === 0) {
+            overview.push('Select at least 2 variables to compare variability');
+        } else if (selectedVars.length === 1) {
+            overview.push('⚠ Only 1 variable selected (need at least 2 for comparison)');
+        } else {
+            overview.push(`Comparing ${selectedVars.length} variables: ${selectedVars.slice(0, 3).join(', ')}${selectedVars.length > 3 ? '...' : ''}`);
+        }
+
+        // Sample size
+        const n = data.length;
+        if (n < 10) {
+            overview.push(`Sample size: ${n} observations (⚠ Very small - measures unreliable)`);
+        } else if (n < 30) {
+            overview.push(`Sample size: ${n} observations (Small)`);
+        } else if (n < 100) {
+            overview.push(`Sample size: ${n} observations (Moderate)`);
+        } else {
+            overview.push(`Sample size: ${n} observations (Good)`);
+        }
+
+        // Check for missing values
+        const missingCount = selectedVars.reduce((count: number, varName: string) => {
+            return count + data.filter((row: any) => row[varName] == null || row[varName] === '').length;
+        }, 0);
+        
+        if (missingCount > 0) {
+            overview.push(`⚠ ${missingCount} missing values will be excluded`);
+        }
+        
+        // Measures
+        overview.push('Calculating Range, IQR, and Coefficient of Variation (CV)');
+        overview.push('Lower CV indicates more consistency relative to mean');
+
+        return overview;
+    }, [selectedVars, data]);
+
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+    );
+};
+
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const example = exampleDatasets.find(d => d.id === 'ipa-restaurant');
+    
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <CardTitle className="font-headline text-4xl font-bold">Variability Analysis</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Compare the dispersion and consistency of multiple numeric variables.
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Activity className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Variability Analysis</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Compare dispersion and consistency across multiple variables
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Variability Analysis?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Understanding variability is key to assessing the consistency and predictability of a process or dataset. This analysis provides several measures of dispersion, helping you identify which variables are more stable and which have more diverse values. It's particularly useful for comparing variables on different scales using the Coefficient of Variation (CV).
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <TrendingUp className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Range & IQR</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Measure spread with range and interquartile range
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Target className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Coefficient of Variation</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Standardized measure for comparing different scales
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <BarChart className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Consistency Check</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Identify which variables are most stable
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use variability analysis to assess the consistency and predictability of different variables. 
+                            It's especially useful for comparing variables on different scales using the Coefficient of 
+                            Variation (CV). Lower variability indicates more predictable, stable processes, while higher 
+                            variability suggests more diverse or inconsistent values.
                         </p>
-                    </div>
-                     <div className="flex justify-center">
-                        {example && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(example)}>
-                                <example.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{example.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{example.description}</p>
-                                </div>
-                            </Card>
-                        )}
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Select Variables:</strong> Choose two or more numeric variables from your dataset to compare their variability.</li>
-                                <li><strong>Run Analysis:</strong> The tool will calculate the Range, Interquartile Range (IQR), and Coefficient of Variation (CV) for each selected variable.</li>
-                            </ol>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Variables:</strong> Two or more numeric variables</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Sample size:</strong> At least 10 observations</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Comparison:</strong> Use CV for different scales</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Range:</strong> Max minus min (sensitive to outliers)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>IQR:</strong> Middle 50% spread (robust measure)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>CV:</strong> Lower = more consistent</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Range:</strong> The difference between the maximum and minimum values. Sensitive to outliers.</li>
-                                <li><strong>Interquartile Range (IQR):</strong> The range of the middle 50% of the data. More robust to outliers than the range.</li>
-                                <li><strong>Coefficient of Variation (CV):</strong> The ratio of the standard deviation to the mean, expressed as a percentage. It's a standardized measure of dispersion, perfect for comparing variables with different units or scales. A lower CV indicates more consistency.</li>
-                            </ul>
-                        </div>
                     </div>
+
+                    {example && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(example)} size="lg">
+                                {example.icon && <example.icon className="mr-2 h-5 w-5" />}
+                                Load Example Data
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                </CardFooter>
             </Card>
         </div>
     );
@@ -140,7 +269,11 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
         }
     }, [data, selectedVars, toast]);
     
-    if (view === 'intro' || !canRun) {
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -151,12 +284,12 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Variability Analysis</CardTitle>
+                        <CardTitle className="font-headline">Variability Analysis Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>Compare measures of dispersion across multiple variables.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <div>
                         <Label>Variables to Analyze</Label>
                         <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
@@ -174,10 +307,17 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
                             </div>
                         </ScrollArea>
                     </div>
+                    
+                    {/* Overview component */}
+                    <VariabilityOverview 
+                        selectedVars={selectedVars}
+                        data={data}
+                    />
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.length < 2}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Analyze Variability</>}
+                       {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Zap className="mr-2 h-4 w-4"/>Run Analysis</>}
+                                                                                              
                     </Button>
                 </CardFooter>
             </Card>
@@ -222,6 +362,13 @@ export default function VariabilityAnalysisPage({ data, numericHeaders, onLoadEx
                         )}
                     </CardContent>
                 </Card>
+            )}
+            
+            {!results && !isLoading && (
+                <div className="text-center text-muted-foreground py-10">
+                    <Activity className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2">Select variables and click 'Analyze Variability' to compare dispersion.</p>
+                </div>
             )}
         </div>
     );

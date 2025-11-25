@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -11,6 +10,10 @@ from scipy import stats
 import warnings
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -72,20 +75,21 @@ def main():
 
             # --- Plotting ---
             fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-            fig.suptitle(f"Normality Analysis for '{var}'", fontsize=14)
 
-            # Histogram
-            sns.histplot(series, kde=True, ax=axes[0])
-            axes[0].set_title('Histogram with Density Curve')
+            # Histogram with KDE
+            sns.histplot(series, kde=True, ax=axes[0], color='#5B9BD5')
+            axes[0].set_xlabel('Value', fontsize=12)
+            axes[0].set_ylabel('Frequency', fontsize=12)
             
             # Q-Q Plot
             stats.probplot(series, dist="norm", plot=axes[1])
-            axes[1].set_title('Q-Q Plot')
+            axes[1].set_xlabel('Theoretical Quantiles', fontsize=12)
+            axes[1].set_ylabel('Sample Quantiles', fontsize=12)
 
-            plt.tight_layout(rect=[0, 0, 1, 0.96])
+            plt.tight_layout()
             
             buf = io.BytesIO()
-            plt.savefig(buf, format='png')
+            plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
             plt.close(fig)
             buf.seek(0)
             plot_image = base64.b64encode(buf.read()).decode('utf-8')

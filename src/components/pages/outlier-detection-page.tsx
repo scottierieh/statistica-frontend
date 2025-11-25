@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, Filter } from 'lucide-react';
+import { Sigma, Loader2, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, Filter, BookOpen, CheckCircle, Target, Activity, Zap } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -30,57 +29,184 @@ interface FullAnalysisResponse {
     results: { [variable: string]: OutlierResult | { error: string } };
 }
 
+// Overview component with clean design
+const OutlierOverview = ({ selectedVars, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Variable selection status
+        if (selectedVars.length === 0) {
+            overview.push('Select at least one numeric variable to check for outliers');
+        } else if (selectedVars.length === 1) {
+            overview.push(`Checking 1 variable: ${selectedVars[0]}`);
+        } else {
+            overview.push(`Checking ${selectedVars.length} variables: ${selectedVars.slice(0, 3).join(', ')}${selectedVars.length > 3 ? '...' : ''}`);
+        }
+
+        // Sample size
+        const n = data.length;
+        if (n < 10) {
+            overview.push(`Sample size: ${n} observations (⚠ Very small - outlier detection unreliable)`);
+        } else if (n < 30) {
+            overview.push(`Sample size: ${n} observations (Small)`);
+        } else if (n < 100) {
+            overview.push(`Sample size: ${n} observations (Moderate)`);
+        } else {
+            overview.push(`Sample size: ${n} observations (Good)`);
+        }
+
+        // Check for missing values
+        const missingCount = selectedVars.reduce((count: number, varName: string) => {
+            return count + data.filter((row: any) => row[varName] == null || row[varName] === '').length;
+        }, 0);
+        
+        if (missingCount > 0) {
+            overview.push(`⚠ ${missingCount} missing values will be excluded`);
+        }
+        
+        // Methods
+        overview.push('Methods: Z-score (|Z| > 3) and IQR (Q1-1.5×IQR to Q3+1.5×IQR)');
+        overview.push('Z-score works best for normally distributed data');
+
+        return overview;
+    }, [selectedVars, data]);
+
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+    );
+};
+
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const example = exampleDatasets.find(d => d.analysisTypes.includes('stats'));
+    
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Filter className="w-8 h-8 text-primary" />
+                        </div>
                     </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Outlier Detection</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Identify data points that deviate significantly from other observations using Z-score and IQR methods.
+                    <CardTitle className="font-headline text-3xl">Outlier Detection</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Identify data points that deviate significantly from the norm
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Detect Outliers?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Outliers can significantly affect statistical analyses and machine learning models, leading to biased results and poor performance. Identifying them is a crucial step in data cleaning and preparation. This tool helps you find these unusual data points using two common methods.
-                        </p>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Target className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Z-Score Method</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Find points more than 3 standard deviations from mean
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Activity className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">IQR Method</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Robust detection using interquartile range
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Zap className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Data Quality</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Improve analysis by identifying unusual values
+                                </p>
+                            </CardContent>
+                        </Card>
                     </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use outlier detection to identify unusual data points that could be errors, rare events, or 
+                            special cases requiring separate analysis. Outliers can significantly affect statistical 
+                            analyses and machine learning models, so detecting them is crucial for data quality and 
+                            choosing appropriate analysis methods.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Data type:</strong> Numeric continuous variables</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Sample size:</strong> At least 10 observations</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Methods:</strong> Z-score for normal, IQR for skewed data</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Z-score:</strong> |Z| &gt; 3 indicates extreme values</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>IQR:</strong> Points beyond box plot whiskers</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Action:</strong> Investigate before removing outliers</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     {example && (
-                        <div className="flex justify-center">
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(example)}>
-                                <example.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{example.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{example.description}</p>
-                                </div>
-                            </Card>
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(example)} size="lg">
+                                {example.icon && <example.icon className="mr-2 h-5 w-5" />}
+                                Load Example Data
+                            </Button>
                         </div>
                     )}
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Methods Used</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Z-score:</strong> Measures how many standard deviations a data point is from the mean. A Z-score greater than 3 (or less than -3) is typically considered an outlier. Best for normally distributed data.
-                                </li>
-                                <li>
-                                    <strong>IQR (Interquartile Range):</strong> A robust method that is less sensitive to extreme values. It defines outliers as points that fall below Q1 - 1.5*IQR or above Q3 + 1.5*IQR.
-                                </li>
-                            </ul>
-                        </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Box Plot:</strong> The primary visualization. Points plotted individually beyond the "whiskers" of the box plot are identified as outliers by the IQR method.</li>
-                                <li><strong>Outlier Tables:</strong> The tables provide the exact index and value of the data points flagged as outliers by each method, allowing for easy inspection and removal if necessary.</li>
-                            </ul>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -140,7 +266,11 @@ export default function OutlierDetectionPage({ data, numericHeaders, onLoadExamp
         }
     }, [data, selectedVars, toast]);
 
-    if (view === 'intro' || !canRun) {
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
+    if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -152,11 +282,12 @@ export default function OutlierDetectionPage({ data, numericHeaders, onLoadExamp
                         <CardTitle className="font-headline">Outlier Detection Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
+                    <CardDescription>Select variables to check for unusual values.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-2">
+                <CardContent className="space-y-4">
+                    <div>
                         <Label>Variables to Check</Label>
-                        <ScrollArea className="h-40 border rounded-lg p-4">
+                        <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {numericHeaders.map(header => (
                                     <div key={header} className="flex items-center space-x-2">
@@ -167,6 +298,12 @@ export default function OutlierDetectionPage({ data, numericHeaders, onLoadExamp
                             </div>
                         </ScrollArea>
                     </div>
+                    
+                    {/* Overview component */}
+                    <OutlierOverview 
+                        selectedVars={selectedVars}
+                        data={data}
+                    />
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.length === 0}>
@@ -232,7 +369,13 @@ export default function OutlierDetectionPage({ data, numericHeaders, onLoadExamp
                     ))}
                 </div>
             )}
+            
+            {!analysisResult && !isLoading && (
+                <div className="text-center text-muted-foreground py-10">
+                    <Filter className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2">Select variables and click 'Detect Outliers' to identify unusual values.</p>
+                </div>
+            )}
         </div>
     );
 }
-

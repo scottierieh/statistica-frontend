@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,15 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, ScanSearch, Bot, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
+import { Sigma, Loader2, ScanSearch, Bot, HelpCircle, MoveRight, Settings, FileSearch, BookOpen, Network, Sparkles, AlertCircle, Download, Hash, Users, TrendingUp, Activity, Info, CheckCircle, BarChart3, Lightbulb } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
-import { getClusteringInterpretation } from '@/app/actions';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Badge } from '../ui/badge';
+import Papa from 'papaparse';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface DbscanResults {
     n_clusters: number;
@@ -32,6 +32,12 @@ interface DbscanResults {
             centroid: { [key: string]: number };
         }
     };
+    interpretations?: {
+        overall_quality: string;
+        cluster_profiles: string[];
+        cluster_distribution: string;
+    };
+    clustered_data?: DataSet;
 }
 
 interface FullAnalysisResponse {
@@ -39,111 +45,364 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const dbscanExample = exampleDatasets.find(d => d.id === 'customer-segments');
+// Statistical Summary Cards Component
+const StatisticalSummaryCards = ({ results }: { results: DbscanResults }) => {
+    const nClusters = results.n_clusters;
+    const nNoise = results.n_noise;
+    const noisePercentage = (nNoise / results.n_samples) * 100;
+    const avgClusterSize = Math.floor((results.n_samples - nNoise) / Math.max(nClusters, 1));
+    
+    const getNoiseInterpretation = (percent: number) => {
+        if (percent <= 5) return 'Very clean';
+        if (percent <= 15) return 'Clean';
+        if (percent <= 30) return 'Moderate noise';
+        return 'High noise';
+    };
+
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                     <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <ScanSearch size={36} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Clusters Count Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Clusters Found
+                            </p>
+                            <Hash className="h-4 w-4 text-muted-foreground" />
                         </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">DBSCAN Clustering</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        A density-based clustering algorithm that groups together points that are closely packed, marking as outliers points that lie alone in low-density regions.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use DBSCAN?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Unlike K-Means, DBSCAN does not require you to specify the number of clusters beforehand. It excels at finding arbitrarily shaped clusters and identifying noise or outliers in the data, making it a great tool for anomaly detection and for datasets where clusters are not spherical.
+                        <p className="text-2xl font-semibold">
+                            {nClusters}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Auto-detected groups
                         </p>
                     </div>
-                     <div className="flex justify-center">
-                        {dbscanExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(dbscanExample)}>
-                                <dbscanExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{dbscanExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{dbscanExample.description}</p>
-                                </div>
-                            </Card>
-                        )}
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Select Variables:</strong> Choose two or more numeric variables for clustering.</li>
-                                <li><strong>Epsilon (eps):</strong> Set the maximum distance between two samples for one to be considered as in the neighborhood of the other. Smaller values create more dense clusters.</li>
-                                <li><strong>Min Samples:</strong> The number of samples in a neighborhood for a point to be considered a core point. Higher values result in more points being classified as noise.</li>
-                                <li><strong>Run Analysis:</strong> The algorithm will identify clusters and noise points based on data density.</li>
-                            </ol>
+                </CardContent>
+            </Card>
+
+            {/* Noise Points Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Noise Points
+                            </p>
+                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
                         </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Clusters Found:</strong> The number of distinct groups identified by the algorithm.
-                                </li>
-                                 <li>
-                                    <strong>Noise Points:</strong> The number of data points that did not belong to any cluster. A high percentage of noise may indicate that the data is not well-structured for density-based clustering or that parameters need tuning.
-                                </li>
-                                <li>
-                                    <strong>Cluster Plot:</strong> Visualizes the clusters. Noise points are typically marked differently (e.g., with an 'x'), allowing for easy identification of outliers.
-                                </li>
-                                <li>
-                                    <strong>Cluster Profiles:</strong> The mean values (centroids) for each cluster help you understand the defining characteristics of each group.
-                                </li>
-                            </ul>
-                        </div>
+                        <p className="text-2xl font-semibold">
+                            {nNoise}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {noisePercentage.toFixed(1)}% of data
+                        </p>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
+            </Card>
+
+            {/* Average Cluster Size Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Avg. Cluster Size
+                            </p>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            {avgClusterSize}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Points per cluster
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Data Quality Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Data Quality
+                            </p>
+                            <Activity className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            {100 - noisePercentage < 70 ? 'Low' : 100 - noisePercentage < 85 ? 'Medium' : 'High'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {getNoiseInterpretation(noisePercentage)}
+                        </p>
+                    </div>
+                </CardContent>
             </Card>
         </div>
     );
 };
 
+// Analysis Overview Component
+const DbscanOverview = ({ selectedItems, eps, minSamples, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Variable selection status
+        if (selectedItems.length === 0) {
+            overview.push('Select at least 2 variables for clustering');
+        } else if (selectedItems.length < 2) {
+            overview.push(`⚠ Only ${selectedItems.length} variable selected (minimum 2 required)`);
+        } else {
+            overview.push(`Clustering on ${selectedItems.length} variables: ${selectedItems.slice(0,3).join(', ')}${selectedItems.length > 3 ? '...' : ''}`);
+        }
 
-const InterpretationDisplay = ({ promise }: { promise: Promise<string | null> | null }) => {
-    const [interpretation, setInterpretation] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+        // Parameters
+        overview.push(`Epsilon (ε): ${eps} - neighborhood radius`);
+        overview.push(`Min samples: ${minSamples} - minimum points for core`);
 
-    useEffect(() => {
-        if (!promise) {
-            setInterpretation(null);
-            setLoading(false);
-            return;
-        };
-        let isMounted = true;
-        setLoading(true);
-        promise.then((desc) => {
-            if (isMounted && desc) {
-                setInterpretation(desc);
-            }
-            if (isMounted) setLoading(false);
-        });
-        return () => { isMounted = false; };
-    }, [promise]);
+        // Sample size considerations
+        if (data.length < 50) {
+            overview.push(`⚠ Small dataset (${data.length} points) - may not form dense clusters`);
+        } else {
+            overview.push(`Dataset size: ${data.length} points`);
+        }
 
-    if (loading) return <Skeleton className="h-24 w-full" />;
-    if (!interpretation) return null;
+        // Method info
+        overview.push('Algorithm: Density-Based Spatial Clustering');
+        overview.push('Automatically determines number of clusters');
+        overview.push('Identifies outliers as noise points');
+        overview.push('Can find arbitrary-shaped clusters');
+        overview.push('Best for: Non-spherical clusters, outlier detection');
+
+        return overview;
+    }, [selectedItems, eps, minSamples, data]);
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation }} />
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
             </CardContent>
         </Card>
+    );
+};
+
+// Generate interpretations based on DBSCAN results
+const generateDBSCANInterpretations = (results: DbscanResults, selectedItems: string[]) => {
+    const noisePercent = (results.n_noise / results.n_samples) * 100;
+    const profiles: string[] = [];
+    
+    // Overall quality assessment
+    let overall = '';
+    if (results.n_clusters === 0) {
+        overall = 'No clusters found. All points are classified as noise. Consider adjusting parameters (increase eps or decrease min_samples).';
+    } else if (results.n_clusters === 1) {
+        overall = 'Single cluster detected. The data forms one dense region. Consider decreasing eps for finer granularity.';
+    } else {
+        overall = `${results.n_clusters} distinct clusters identified. `;
+        if (noisePercent < 5) {
+            overall += 'Very low noise indicates well-defined, dense clusters.';
+        } else if (noisePercent < 20) {
+            overall += 'Moderate noise level suggests clear cluster boundaries with some outliers.';
+        } else if (noisePercent < 40) {
+            overall += 'Significant noise indicates sparse data or need for parameter tuning.';
+        } else {
+            overall += 'High noise level. Consider increasing eps or decreasing min_samples.';
+        }
+    }
+    
+    // Cluster profiles
+    Object.entries(results.profiles).forEach(([clusterName, profile]) => {
+        if (clusterName !== 'Noise') {
+            let description = `<strong>${clusterName}</strong>: ${profile.size} points (${profile.percentage.toFixed(1)}%). `;
+            
+            // Find dominant features
+            const centroid = profile.centroid;
+            const sortedFeatures = Object.entries(centroid)
+                .sort(([,a], [,b]) => Math.abs(b as number) - Math.abs(a as number))
+                .slice(0, 2);
+            
+            if (sortedFeatures.length > 0) {
+                description += `Key features: ${sortedFeatures.map(([k, v]) => 
+                    `${k} (${(v as number).toFixed(2)})`).join(', ')}.`;
+            }
+            
+            profiles.push(description);
+        }
+    });
+    
+    // Distribution analysis
+    let distribution = '';
+    if (results.n_clusters > 0) {
+        const sizes = Object.values(results.profiles)
+            .filter(p => !Object.keys(p).includes('Noise'))
+            .map(p => p.size);
+        
+        if (sizes.length > 0) {
+            const maxSize = Math.max(...sizes);
+            const minSize = Math.min(...sizes);
+            
+            if (maxSize / minSize > 5) {
+                distribution = 'Highly imbalanced cluster sizes. The largest cluster is significantly bigger than the smallest.';
+            } else if (maxSize / minSize > 2) {
+                distribution = 'Moderately imbalanced cluster sizes. Some clusters are notably larger than others.';
+            } else {
+                distribution = 'Relatively balanced cluster sizes across all groups.';
+            }
+        }
+    }
+    
+    if (results.n_noise > 0) {
+        distribution += ` ${results.n_noise} points (${noisePercent.toFixed(1)}%) classified as noise/outliers.`;
+    }
+    
+    return {
+        overall_quality: overall,
+        cluster_profiles: profiles,
+        cluster_distribution: distribution
+    };
+};
+
+// Enhanced Intro Page
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const dbscanExample = exampleDatasets.find(d => d.id === 'customer-segments');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <ScanSearch className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">DBSCAN Clustering</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Density-based clustering that finds arbitrary shapes and outliers
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Network className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Auto-Discovery</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    No need to specify cluster count
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Sparkles className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Any Shape</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Finds non-spherical clusters
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <AlertCircle className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Outlier Detection</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Identifies noise points automatically
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use DBSCAN
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use DBSCAN when you don&apos;t know the number of clusters beforehand and your data may 
+                            contain outliers or noise. It&apos;s excellent for datasets with clusters of varying densities 
+                            and non-spherical shapes. Perfect for anomaly detection, spatial data analysis, and 
+                            exploratory data analysis where traditional methods like K-Means fail.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Variables:</strong> 2+ numeric features</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Epsilon (ε):</strong> Neighborhood radius</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Min samples:</strong> Core point threshold</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Density:</strong> Works with varying densities</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Clusters:</strong> Auto-detected groups</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Noise:</strong> Outliers marked as -1</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Profiles:</strong> Cluster characteristics</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Export:</strong> Download with labels</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {dbscanExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(dbscanExample)} size="lg">
+                                <Users className="mr-2 h-5 w-5" />
+                                Load Example Data
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 
@@ -151,9 +410,10 @@ interface DbscanPageProps {
     data: DataSet;
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    onGenerateReport?: (stats: any, viz: string | null) => void;
 }
 
-export default function DbscanPage({ data, numericHeaders, onLoadExample }: DbscanPageProps) {
+export default function DbscanPage({ data, numericHeaders, onLoadExample, onGenerateReport }: DbscanPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
@@ -161,7 +421,6 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
     const [minSamples, setMinSamples] = useState<number>(5);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [aiPromise, setAiPromise] = useState<Promise<string | null> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -169,7 +428,6 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
-        setAiPromise(null);
         setView(canRun ? 'main' : 'intro');
     }, [data, numericHeaders, canRun]);
 
@@ -185,7 +443,6 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
 
         setIsLoading(true);
         setAnalysisResult(null);
-        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/dbscan', {
@@ -207,17 +464,24 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
             const result: FullAnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
             
-            setAnalysisResult(result);
+            // Add cluster labels to data for export
+            const cleanData = data.filter(row => selectedItems.every(item => row[item] !== null && row[item] !== undefined && row[item] !== ''));
+            const dataWithClusters = cleanData.map((row, index) => ({
+                ...row,
+                'Cluster': result.results.labels[index] === -1 ? 'Noise' : `Cluster ${result.results.labels[index] + 1}`
+            }));
             
-            const aiInterpretationPromise = getClusteringInterpretation({
-                modelType: 'DBSCAN',
-                nClusters: result.results.n_clusters,
-                nNoise: result.results.n_noise,
-                totalSamples: result.results.n_samples,
-                clusterProfiles: JSON.stringify(result.results.profiles),
-            }).then(res => res.success ? res.interpretation : `AI Error: ${res.error}`);
-            setAiPromise(aiInterpretationPromise);
-
+            // Generate interpretations
+            const interpretations = generateDBSCANInterpretations(result.results, selectedItems);
+            
+            setAnalysisResult({ 
+                ...result, 
+                results: { 
+                    ...result.results, 
+                    interpretations,
+                    clustered_data: dataWithClusters 
+                } 
+            });
 
         } catch (e: any) {
             console.error('DBSCAN error:', e);
@@ -227,8 +491,24 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
         }
     }, [data, selectedItems, eps, minSamples, toast]);
     
+    const handleDownloadClusteredData = useCallback(() => {
+        if (!analysisResult?.results.clustered_data) {
+            toast({ title: "No Data to Download", description: "Clustered data is not available." });
+            return;
+        }
+        
+        const csv = Papa.unparse(analysisResult.results.clustered_data);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'dbscan_clustered_data.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Download Started", description: "DBSCAN clustered data is being downloaded." });
+    }, [analysisResult, toast]);
+
     if (view === 'intro' || !canRun) {
-        const dbscanExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('dbscan'));
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -273,7 +553,7 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
                                 step="0.1"
                                 min="0.1"
                             />
-                             <p className="text-xs text-muted-foreground mt-1">Max distance between two samples for one to be considered as in the neighborhood of the other.</p>
+                             <p className="text-xs text-muted-foreground mt-1">Max distance between two samples for neighborhood.</p>
                         </div>
                         <div>
                             <Label htmlFor="min_samples">Min Samples</Label>
@@ -284,99 +564,248 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
                                 onChange={e => setMinSamples(parseInt(e.target.value))}
                                 min="1"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">The number of samples in a neighborhood for a point to be considered as a core point.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Minimum points to form a core point.</p>
                         </div>
                     </div>
+                    
+                    {/* Analysis Overview */}
+                    <DbscanOverview 
+                        selectedItems={selectedItems}
+                        eps={eps}
+                        minSamples={minSamples}
+                        data={data}
+                    />
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                <CardFooter className="flex justify-between">
+                    <div className="flex gap-2">
+                        {results && (
+                            <>
+                                {onGenerateReport && (
+                                    <Button variant="ghost" onClick={() => onGenerateReport(results, analysisResult?.plot || null)}>
+                                        <Bot className="mr-2"/>AI Report
+                                    </Button>
+                                )}
+                                <Button variant="outline" onClick={handleDownloadClusteredData}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export Clustered Data
+                                </Button>
+                            </>
+                        )}
+                    </div>
                     <Button onClick={handleAnalysis} disabled={isLoading || selectedItems.length < 2}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                     </Button>
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
+            {isLoading && (
+                <Card>
+                    <CardContent className="p-6 flex flex-col items-center gap-4">
+                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                        <p className="text-muted-foreground">Running DBSCAN Analysis...</p>
+                        <Skeleton className="h-[600px] w-full" />
+                    </CardContent>
+                </Card>
+            )}
 
             {analysisResult && results && (
-                 <div className="space-y-4">
-                    <div className="grid lg:grid-cols-2 gap-4">
+                 <div className="space-y-6">
+                    {/* Statistical Summary Cards */}
+                    <StatisticalSummaryCards results={results} />
+
+                    {/* Detailed Analysis - 그래프 위에 배치 */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline flex items-center gap-2">
+                                <ScanSearch className="h-5 w-5 text-primary" />
+                                Detailed Analysis
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Overall Summary - Primary Color */}
+                            <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-6 border border-primary/40">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="p-2 bg-primary/10 rounded-md">
+                                        <ScanSearch className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <h3 className="font-semibold text-base">Overall Summary</h3>
+                                </div>
+                                <div className="text-sm text-foreground/80 leading-relaxed">
+                                    <strong>DBSCAN clustering completed with ε={results.eps} and min_samples={results.min_samples}.</strong>{' '}
+                                    {results.interpretations?.overall_quality}
+                                </div>
+                            </div>
+
+                            {/* Statistical Insights - Blue Color */}
+                            <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/10 dark:to-indigo-950/10 rounded-lg p-6 border border-blue-300 dark:border-blue-700">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="p-2 bg-blue-500/10 rounded-md">
+                                        <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <h3 className="font-semibold text-base">Statistical Insights</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {(() => {
+                                        const insights = [];
+                                        const noisePercent = (results.n_noise / results.n_samples) * 100;
+                                        const avgClusterSize = Math.floor((results.n_samples - results.n_noise) / Math.max(results.n_clusters, 1));
+                                        
+                                        // Cluster count insight
+                                        insights.push(`<strong>Clusters Detected:</strong> ${results.n_clusters} distinct density-based clusters found automatically without pre-specifying k.`);
+                                        
+                                        // Noise insight
+                                        const noiseQuality = noisePercent <= 5 ? 'excellent' : noisePercent <= 15 ? 'good' : noisePercent <= 30 ? 'moderate' : 'high';
+                                        insights.push(`<strong>Noise Analysis:</strong> ${results.n_noise} points (${noisePercent.toFixed(1)}%) classified as noise/outliers - ${noiseQuality} data quality for clustering.`);
+                                        
+                                        // Cluster size insight
+                                        insights.push(`<strong>Cluster Sizes:</strong> Average of ${avgClusterSize} points per cluster. ${results.interpretations?.cluster_distribution}`);
+                                        
+                                        // Parameter insight
+                                        insights.push(`<strong>Parameters Used:</strong> ε=${results.eps} defines neighborhood radius, min_samples=${results.min_samples} sets core point threshold.`);
+                                        
+                                        return insights.map((insight, idx) => (
+                                            <div key={idx} className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed">
+                                                <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                <div dangerouslySetInnerHTML={{ __html: insight }} />
+                                            </div>
+                                        ));
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Recommendations - Amber Color */}
+                            <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/10 dark:to-orange-950/10 rounded-lg p-6 border border-amber-300 dark:border-amber-700">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="p-2 bg-amber-500/10 rounded-md">
+                                        <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <h3 className="font-semibold text-base">Recommendations</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {(() => {
+                                        const recs = [];
+                                        const noisePercent = (results.n_noise / results.n_samples) * 100;
+                                        
+                                        // Noise-based recommendations
+                                        if (noisePercent > 30) {
+                                            recs.push('High noise percentage detected. Consider increasing ε (epsilon) or decreasing min_samples to include more points in clusters.');
+                                        } else if (noisePercent < 5) {
+                                            recs.push('Very low noise indicates well-defined clusters. Current parameters work well for this data.');
+                                        }
+                                        
+                                        // Cluster count recommendations
+                                        if (results.n_clusters === 0) {
+                                            recs.push('No clusters found - all points classified as noise. Significantly increase ε or decrease min_samples.');
+                                        } else if (results.n_clusters === 1) {
+                                            recs.push('Only one cluster found. Try decreasing ε for finer granularity or verify if data naturally forms a single group.');
+                                        } else if (results.n_clusters > 10) {
+                                            recs.push('Many clusters detected. Consider increasing ε to merge nearby clusters if too fragmented.');
+                                        }
+                                        
+                                        // General recommendations
+                                        recs.push('Noise points may represent outliers or anomalies worth investigating separately.');
+                                        recs.push('Use the "Export Clustered Data" feature to analyze cluster assignments and noise points in detail.');
+                                        recs.push('Compare with K-Means results if clusters appear spherical - K-Means may be more appropriate.');
+                                        recs.push('For spatial or geographic data, DBSCAN is particularly effective at finding natural density-based groupings.');
+                                        
+                                        return recs.map((rec, idx) => (
+                                            <div key={idx} className="flex items-start gap-3 text-sm text-foreground/80 leading-relaxed">
+                                                <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                <span>{rec}</span>
+                                            </div>
+                                        ));
+                                    })()}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Visual Summary */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Visual Summary</CardTitle>
+                            <CardDescription>
+                                Comprehensive overview including cluster visualization using PCA projection. Noise points are marked with 'x'.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Image src={analysisResult.plot} alt="Comprehensive DBSCAN Plots" width={1200} height={1000} className="w-3/4 mx-auto rounded-md border"/>
+                        </CardContent>
+                    </Card>
+
+                    {/* Cluster Profiles Table */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
+                            <CardDescription>Mean values of each variable for the identified clusters. Noise points are excluded from profiles.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Cluster</TableHead>
+                                            <TableHead>Size (%)</TableHead>
+                                            {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results.profiles)
+                                            .filter(([name]) => name !== 'Noise')
+                                            .map(([clusterName, profile]) => (
+                                            <TableRow key={clusterName}>
+                                                <TableCell className="font-semibold">{clusterName}</TableCell>
+                                                <TableCell>
+                                                    {profile.size}
+                                                    <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                                                </TableCell>
+                                                {selectedItems.map(item => (
+                                                    <TableCell key={item} className="text-right font-mono">
+                                                        {profile.centroid[item]?.toFixed(2) || '—'}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-4">
+                                Compare centroid values across clusters to identify distinguishing features. Noise points ({results.n_noise}) are not included in profiles.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    {/* Cluster Interpretations */}
+                    {results.interpretations?.cluster_profiles && results.interpretations.cluster_profiles.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle className="font-headline">DBSCAN Results</CardTitle>
+                                <CardTitle className="font-headline">Cluster Interpretations</CardTitle>
+                                <CardDescription>Descriptions of each cluster based on their centroid profiles.</CardDescription>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-2 gap-4 text-center">
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Clusters Found</p><p className="text-2xl font-bold">{results.n_clusters}</p></div>
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Noise Points</p><p className="text-2xl font-bold">{results.n_noise}</p></div>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {results.interpretations.cluster_profiles.map((profile, index) => (
+                                        <Alert key={index} variant="default">
+                                            <Info className="h-4 w-4" />
+                                            <AlertDescription dangerouslySetInnerHTML={{ __html: profile }} />
+                                        </Alert>
+                                    ))}
+                                </div>
                             </CardContent>
                         </Card>
-                        <InterpretationDisplay promise={aiPromise} />
-                    </div>
-                    
-                    <Tabs defaultValue="visuals" className="w-full">
-                        <TabsList>
-                            <TabsTrigger value="visuals">Visualizations</TabsTrigger>
-                            <TabsTrigger value="data">Cluster Profiles</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="visuals">
-                            {analysisResult.plot && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="font-headline">Cluster Visualization</CardTitle>
-                                        <CardDescription>Clusters are visualized using the first two principal components.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Image src={analysisResult.plot} alt="DBSCAN Cluster Plot" width={1500} height={1200} className="w-full rounded-md border"/>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </TabsContent>
-                        <TabsContent value="data">
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Cluster Profiles</CardTitle>
-                                    <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                <div className="overflow-x-auto">
-                                   <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Cluster</TableHead>
-                                                <TableHead>Size (%)</TableHead>
-                                                {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {Object.entries(results.profiles).map(([clusterName, profile]) => (
-                                                <TableRow key={clusterName}>
-                                                    <TableCell className="font-semibold">{clusterName}</TableCell>
-                                                    <TableCell>
-                                                        {profile.size}
-                                                        <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
-                                                    </TableCell>
-                                                    {selectedItems.map(item => (
-                                                        <TableCell key={item} className="text-right font-mono">
-                                                            {profile.centroid[item].toFixed(2)}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
-
+                    )}
                 </div>
             )}
             
             {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
-                    <p>Select variables and click 'Run Analysis' to perform DBSCAN clustering.</p>
+                    <ScanSearch className="mx-auto h-12 w-12 text-gray-400"/>
+                    <p className="mt-2">Select variables and click &apos;Run Analysis&apos; to perform DBSCAN clustering.</p>
                 </div>
             )}
         </div>
     );
 }
+
+
+

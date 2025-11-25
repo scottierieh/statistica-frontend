@@ -98,7 +98,6 @@ import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import GlmPage from './pages/glm-page';
 import EfaPage from './pages/efa-page';
-import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import KMeansPage from './pages/kmeans-page';
@@ -109,15 +108,18 @@ import HdbscanPage from './pages/hdbscan-page';
 import PcaPage from './pages/pca-page';
 import MdsPage from './pages/mds-page';
 import DiscriminantPage from './pages/discriminant-page';
-import NonParametricPage from './pages/nonparametric-page';
+import FriedmanPage from './pages/friedman-page';
+import MannwhitneyPage from './pages/mann-whitney-page';
+import KruskalPage from './pages/kruskal-wallis-page';
+import WilcoxonPage from './pages/wilcoxon-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
+import FunnelPage from './pages/funnel-analysis-page';
 import GbmPage from './pages/gbm-page';
 import SentimentAnalysisPage from './pages/sentiment-analysis-page';
-import MetaAnalysisPage from './pages/meta-analysis-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import TopicModelingPage from './pages/topic-modeling-page';
 import TrendAnalysisPage from './pages/trend-analysis-page';
@@ -132,7 +134,6 @@ import LjungBoxPage from './pages/ljung-box-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import TTestPage from './pages/t-test-page';
 import { cn } from '@/lib/utils';
-import OneSampleTTestPage from './pages/one-sample-ttest-page';
 import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import HistoryPage from './pages/history-page';
@@ -144,7 +145,6 @@ import RddPage from './pages/rdd-page';
 import GuidePage from './pages/guide-page';
 import VariabilityAnalysisPage from './pages/variability-analysis-page';
 import NpsPage from './pages/nps-page';
-import RoiAnalysisPage from './pages/roi-analysis-page';
 import LinearProgrammingPage from './pages/linear-programming-page';
 import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
@@ -156,7 +156,6 @@ import RandomForestPage from './pages/random-forest-page';
 import LassoRegressionPage from './pages/lasso-regression-page';
 import RidgeRegressionPage from './pages/ridge-regression-page';
 import ClassifierComparisonPage from './pages/classifier-comparison-page';
-import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
 import OutlierDetectionPage from './pages/outlier-detection-page';
 import DecisionTreePage from './pages/decision-tree-page';
 import RobustRegressionPage from './pages/robust-regression-page';
@@ -165,14 +164,27 @@ import { Separator } from '@/components/ui/separator';
 import SnaPage from './pages/sna-page';
 import { Input } from '@/components/ui/input';
 import VisualizationPage from './pages/visualization-page';
+import SqcPage from '@/components/pages/sqc-page';
+import ProcessCapabilityPage from  '@/components/pages/process-capability-page';
+import AttributeControlChartsPage from  '@/components/pages/attribute-control-charts-page';
+import LtvPage from '@/components/pages/ltv-page';
+import ParetoAnalysisPage from '@/components/pages/pareto-analysis-page';
+import GageRrPage from '@/components/pages/gage-rr-page';
+import AssociationPage from './pages/association-rule-page';
+import AcceptanceSamplingPage from './pages/acceptance-sampling-page';
+import NonlinearPage from '@/components/pages/nonlinear-programming-page';
+import OneSampleTTestPage from '@/components/pages/OneSampleTTestPage';
+import IndependentSamplesTTestPage from '@/components/pages/IndependentSamplesTTestPage';
+import PairedSamplesTTestPage from '@/components/pages/PairedSamplesTTestPage';
+
 
 const analysisCategories = [
     {
-      name: 'Guide',
+      name: 'Overview',
       icon: BookOpen,
       isSingle: true,
       items: [
-        { id: 'guide', label: 'Guide', icon: BookOpen, component: GuidePage },
+        { id: 'guide', label: 'Overview', icon: BookOpen, component: GuidePage },
       ]
     },
     {
@@ -201,9 +213,9 @@ const analysisCategories = [
           {
             name: 'T-Tests',
             items: [
-                { id: 't-test-one-sample', label: 'One-Sample T-Test', icon: Target, component: TTestPage },
-                { id: 't-test-independent-samples', label: 'Independent Samples', icon: Users, component: TTestPage },
-                { id: 't-test-paired-samples', label: 'Paired Samples', icon: Repeat, component: TTestPage },
+                { id: 'one-sample-ttest', label: 'One-Sample', icon: Target, component: OneSampleTTestPage },
+                { id: 'independent-samples-ttest', label: 'Independent Samples', icon: Users, component: IndependentSamplesTTestPage },
+                { id: 'paired-samples-ttest', label: 'Paired Samples', icon: Repeat, component: PairedSamplesTTestPage },
             ]
           },
           {
@@ -211,19 +223,18 @@ const analysisCategories = [
             items: [
                 { id: 'one-way-anova', label: 'One-Way ANOVA', icon: Users, component: AnovaPage },
                 { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Users, component: TwoWayAnovaPage },
-                { id: 'ancova', label: 'ANCOVA', icon: Layers, component: AncovaPage },
-                { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
-                { id: 'repeated-measures-anova', label: 'Repeated Measures ANOVA', icon: Repeat, component: RepeatedMeasuresAnovaPage },
+                { id: 'ancova', label: 'Analysis of Covariance (ANCOVA)', icon: Layers, component: AncovaPage },
+                { id: 'manova', label: 'One-Way MANOVA', icon: Layers, component: ManovaPage },
+                { id: 'repeated-measures-anova', label: 'One-Way RM Measures ANOVA', icon: Repeat, component: RepeatedMeasuresAnovaPage },
             ]
           },
           {
             name: 'Non-Parametric',
             items: [
-                { id: 'nonparametric-mann-whitney', label: 'Mann-Whitney U Test', icon: Users, component: NonParametricPage },
-                { id: 'nonparametric-wilcoxon', label: 'Wilcoxon Signed-Rank', icon: Repeat, component: NonParametricPage },
-                { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: NonParametricPage },
-                { id: 'nonparametric-friedman', label: 'Friedman Test', icon: Repeat, component: NonParametricPage },
-                { id: 'nonparametric-mcnemar', label: 'McNemar\'s Test', icon: CheckSquare, component: NonParametricPage },
+                { id: 'mann-whitney', label: 'Mann-Whitney U Test', icon: Users, component: MannwhitneyPage },
+                { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank', icon: Repeat, component: WilcoxonPage },
+                { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: KruskalPage },
+                { id: 'nonparametric-friedman', label: 'Friedman Test', icon: Repeat, component: FriedmanPage },
             ]
           }
       ]
@@ -242,10 +253,10 @@ const analysisCategories = [
           {
               name: 'Regression Analysis',
               items: [
-                  { id: 'regression-simple', label: 'Simple Linear', icon: TrendingUp, component: RegressionPage },
-                  { id: 'regression-multiple', label: 'Multiple Linear', icon: TrendingUp, component: RegressionPage },
-                  { id: 'regression-polynomial', label: 'Polynomial', icon: TrendingUp, component: RegressionPage },
-                  { id: 'logistic-regression', label: 'Logistic', icon: TrendingUp, component: LogisticRegressionPage },
+                  { id: 'regression-simple', label: 'Simple Linear Regression', icon: TrendingUp, component: RegressionPage },
+                  { id: 'regression-multiple', label: 'Multiple Linear Regression', icon: TrendingUp, component: RegressionPage },
+                  { id: 'regression-polynomial', label: 'Polynomial Regression', icon: TrendingUp, component: RegressionPage },
+                  { id: 'logistic-regression', label: 'Logistic Regression', icon: TrendingUp, component: LogisticRegressionPage },
                   { id: 'lasso-regression', label: 'Lasso Regression', icon: TrendingUp, component: LassoRegressionPage },
                   { id: 'ridge-regression', label: 'Ridge Regression', icon: TrendingUp, component: RidgeRegressionPage },
                   { id: 'robust-regression', label: 'Robust Regression', icon: TrendingUp, component: RobustRegressionPage },
@@ -264,13 +275,12 @@ const analysisCategories = [
       icon: Brain,
       items: [
           { id: 'glm', label: 'Generalized Linear Model (GLM)', icon: Scaling, component: GlmPage },
-          { id: 'discriminant', label: 'Discriminant Analysis', icon: Users, component: DiscriminantPage },
+          { id: 'discriminant', label: 'Linear Discriminant Analysis (LDA)', icon: Users, component: DiscriminantPage },
           { id: 'survival', label: 'Survival Analysis', icon: HeartPulse, component: SurvivalAnalysisPage },
           { id: 'decision-tree', label: 'Decision Tree', icon: GitBranch, component: DecisionTreePage },
           { id: 'gbm', label: 'Gradient Boosting (GBM)', icon: BrainCircuit, component: GbmPage },
           { id: 'random-forest', label: 'Random Forest', icon: GitBranch, component: RandomForestPage },
           { id: 'classifier-comparison', label: 'Classifier Comparison', icon: Users, component: ClassifierComparisonPage },
-          { id: 'meta-analysis', label: 'Meta-Analysis', icon: Layers, component: MetaAnalysisPage },
       ]
     },
      {
@@ -283,7 +293,6 @@ const analysisCategories = [
               { id: 'reliability', label: 'Reliability (Cronbach)', icon: ShieldCheck, component: ReliabilityPage },
               { id: 'efa', label: 'Exploratory (EFA)', icon: FileSearch, component: EfaPage },
               { id: 'pca', label: 'Principal Component (PCA)', icon: Component, component: PcaPage },
-              { id: 'pca-lda-comparison', label: 'PCA vs. LDA', icon: Component, component: PcaLdaComparisonPage },
             ]
           },
           {
@@ -376,13 +385,34 @@ const analysisCategories = [
         name: 'Marketing',
         icon: Target,
         items: [
-            { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
-            { id: 'nps', label: 'NPS Analysis', icon: Share2, component: NpsPage },
-            { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
+            { id: 'Importance Performance Analysis', label: 'Importance Performance Analysis (IPA)', icon: Target, component: IpaPage },
+            { id: 'Funnel Analysis', label: 'Funnel Analysis', icon: Target, component: FunnelPage },
+            { id: 'Net promoter Score', label: 'Net Pomoter Score (NPS)', icon: Share2, component: NpsPage },
+            { id: 'ltv-prediction', label: 'LTV Prediction', icon: DollarSign, component: LtvPage },
+            { id: 'association-rule', label: 'Association rule', icon: DollarSign, component: AssociationPage },
+            { id: 'dea', label: 'Data Envelopment Analysis (DEA)', icon: Building, component: DeaPage },
+
+
+
         ],
     },
     {
-      name: 'Panel & Econometrics',
+      name: 'Quality Control',
+      icon: CheckSquare,
+      items: [
+        { id: 'sqc', label: 'Control Charts', icon: TrendingUp, component: SqcPage },
+        { id: 'process-capability', label: 'Process Capability', icon: TrendingUp, component: ProcessCapabilityPage },
+        { id: 'attribute-control-charts', label: 'Attribute Control Charts', icon: TrendingUp, component: AttributeControlChartsPage },
+        { id: 'pareto-analysis', label: 'Pareto Analysis', icon: BarChart, component: ParetoAnalysisPage },
+        { id: 'gage-rr', label: 'Gage R&R', icon: ShieldCheck, component: GageRrPage },
+        { id: 'acceptance-sampling', label: 'Acceptance Sampling', icon: CheckSquare, component: AcceptanceSamplingPage },
+
+
+
+      ],
+  },
+    {
+      name: 'Econometrics',
       icon: Sigma,
       subCategories: [
           {
@@ -410,12 +440,13 @@ const analysisCategories = [
     },
      {
       name: 'Optimization',
-      icon: Target,
+      icon: Share2,
       items: [
         { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp, component: LinearProgrammingPage },
         { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
         { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
-        { id: 'dea', label: 'Data Envelopment Analysis', icon: Building, component: DeaPage },
+        { id: 'nonlinear-programming', label: 'Nonlinear Programming', icon: Truck, component: NonlinearPage },
+
       ]
     },
 ];

@@ -1,15 +1,19 @@
-
 import sys
 import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 import io
 import base64
 import warnings
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally (consistent with other analyses)
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -92,34 +96,38 @@ def main():
         forecast_df = forecast.summary_frame(alpha=0.05)
         forecast_df.index.name = 'forecast_date'
 
-        # --- Plotting ---
-        fig, axes = plt.subplots(2, 1, figsize=(15, 12))
+        # --- Plotting with consistent style ---
+        fig, ax1 = plt.subplots(1, 1, figsize=(15, 6))
         
         # Forecast plot
-        ax1 = axes[0]
-        series.plot(ax=ax1, label='Original')
-        forecast_df['mean'].plot(ax=ax1, label='Forecast')
+        ax1.plot(series.index, series.values, label='Original', color='#1f77b4', 
+                linewidth=2, alpha=0.8)
+        ax1.plot(forecast_df.index, forecast_df['mean'].values, label='Forecast', 
+                color='#ff7f0e', linewidth=2.5, alpha=0.9)
         ax1.fill_between(forecast_df.index,
                          forecast_df['mean_ci_lower'],
-                         forecast_df['mean_ci_upper'], color='k', alpha=.15)
-        ax1.set_title('Forecast vs Actuals')
+                         forecast_df['mean_ci_upper'], color='#ff7f0e', alpha=0.2,
+                         label='95% Confidence Interval')
+        ax1.set_xlabel('Time', fontsize=12)
+        ax1.set_ylabel(value_col, fontsize=12)
         ax1.legend()
-
-        # Diagnostic plots
-        # We cannot pass axes to plot_diagnostics, so we generate a separate figure for it and combine.
-        # This part is now handled on the frontend to display two separate images.
-        diag_fig = model_fit.plot_diagnostics(figsize=(15, 12))
+        ax1.grid(True)
         
+        plt.tight_layout()
+
         # Save forecast plot
         buf_forecast = io.BytesIO()
-        fig.savefig(buf_forecast, format='png')
+        fig.savefig(buf_forecast, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf_forecast.seek(0)
         forecast_plot_image = base64.b64encode(buf_forecast.read()).decode('utf-8')
 
+        # Diagnostic plots - use default statsmodels styling but apply seaborn theme
+        diag_fig = model_fit.plot_diagnostics(figsize=(15, 12))
+        
         # Save diagnostics plot
         buf_diag = io.BytesIO()
-        diag_fig.savefig(buf_diag, format='png')
+        diag_fig.savefig(buf_diag, format='png', dpi=100, bbox_inches='tight')
         plt.close(diag_fig)
         buf_diag.seek(0)
         diag_plot_image = base64.b64encode(buf_diag.read()).decode('utf-8')

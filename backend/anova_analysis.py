@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -8,11 +6,15 @@ from scipy import stats
 from itertools import combinations
 import matplotlib.pyplot as plt
 import seaborn as sns
+import statsmodels.api as sm
 import io
 import base64
 import warnings
 import math
 warnings.filterwarnings('ignore')
+
+
+
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -209,43 +211,47 @@ class OneWayANOVA:
         if not self.results:
             return None
 
-        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        sns.set_style("darkgrid")
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
         fig.suptitle('One-Way ANOVA Results', fontsize=16, fontweight='bold')
 
-        sns.boxplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[0, 0])
-        axes[0, 0].set_title('Box Plot by Group')
-        axes[0, 0].grid(True, alpha=0.3)
-        
+        # Plot 1: Point plot with error bars (similar to interaction plot style)
         means = [self.results['descriptives'][group]['mean'] for group in self.groups]
         ses = [self.results['descriptives'][group]['se'] for group in self.groups]
-        x_pos = range(len(self.groups))
+        
+        axes[0, 0].errorbar(range(len(self.groups)), means, yerr=[1.96 * se for se in ses], 
+                           marker='o', markersize=8, linestyle='-', linewidth=2, 
+                           capsize=5, capthick=2, label='Mean ± 95% CI')
+        axes[0, 0].set_title('Group Means')
+        axes[0, 0].set_xlabel(self.group_col)
+        axes[0, 0].set_ylabel(f'Mean of {self.value_col}')
+        axes[0, 0].set_xticks(range(len(self.groups)))
+        axes[0, 0].set_xticklabels(self.groups)
+        axes[0, 0].legend()
+        axes[0, 0].grid(True, linestyle='--', alpha=0.6)
 
-        axes[0, 1].bar(x_pos, means, yerr=[1.96 * se for se in ses], capsize=5, alpha=0.7, color='skyblue', edgecolor='black')
-        axes[0, 1].set_title('Group Means with 95% CI')
-        axes[0, 1].set_ylabel('Mean Values')
-        axes[0, 1].set_xticks(x_pos)
-        axes[0, 1].set_xticklabels(self.groups)
-        axes[0, 1].grid(True, alpha=0.3)
+        # Plot 2: Box plot (matching Two-Way ANOVA style)
+        sns.boxplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[0, 1], palette='crest')
+        axes[0, 1].set_title(f'Distribution by {self.group_col}')
+        axes[0, 1].set_xlabel(self.group_col)
+        axes[0, 1].set_ylabel(self.value_col)
 
+        # Plot 3: Violin plot for distribution visualization
+        sns.violinplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[1, 0], palette='crest')
+        axes[1, 0].set_title(f'Violin Plot by {self.group_col}')
+        axes[1, 0].set_xlabel(self.group_col)
+        axes[1, 0].set_ylabel(self.value_col)
+        
+        # Plot 4: Q-Q Plot (matching Two-Way ANOVA style using statsmodels - NO GRID)
         all_residuals = []
-        fitted_values = []
         for group in self.groups:
             group_data = self.group_data[group]
             group_mean = self.results['descriptives'][group]['mean']
             residuals = group_data - group_mean
             all_residuals.extend(residuals)
-            fitted_values.extend([group_mean] * len(group_data))
         
-        axes[1, 0].scatter(fitted_values, all_residuals, alpha=0.6)
-        axes[1, 0].axhline(y=0, color='red', linestyle='--', alpha=0.7)
-        axes[1, 0].set_title('Residuals vs Fitted Values')
-        axes[1, 0].set_xlabel('Fitted Values')
-        axes[1, 0].set_ylabel('Residuals')
-        axes[1, 0].grid(True, alpha=0.3)
-        
-        stats.probplot(np.concatenate(list(self.group_data.values())), dist="norm", plot=axes[1, 1])
-        axes[1, 1].set_title('Q-Q Plot of All Residuals')
-        axes[1, 1].grid(True, alpha=0.3)
+        sm.qqplot(np.array(all_residuals), line='s', ax=axes[1, 1])
+        axes[1, 1].set_title('Q-Q Plot of Residuals')
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
@@ -284,8 +290,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
-
-    
-

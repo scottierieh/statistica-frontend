@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, CheckCircle2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
+import { Sigma, Loader2, CheckCircle2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Activity, TrendingUp, Info, BookOpen, CheckCircle, Scale, Target } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
@@ -18,6 +18,8 @@ interface HomogeneityTestResult {
     levene_test: {
         statistic: number;
         p_value: number;
+        df_between: number;
+        df_within: number;
     };
     descriptives: {
         [group: string]: {
@@ -30,6 +32,7 @@ interface HomogeneityTestResult {
     assumption_met: boolean;
     interpretation: string;
     plot: string;
+    effect_size?: number;
     error?: string;
 }
 
@@ -37,65 +40,292 @@ interface FullAnalysisResponse {
     results: HomogeneityTestResult;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const homogeneityExample = exampleDatasets.find(d => d.id === 'tips');
+// Statistical Summary Cards Component
+// Overview component with clean design
+const HomogeneityOverview = ({ valueVar, groupVar, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        // Variable selection status
+        if (valueVar) {
+            overview.push(`Value variable: ${valueVar}`);
+        } else {
+            overview.push('Select a value variable to test');
+        }
+
+        if (groupVar) {
+            const groups = new Set(data.map((row: any) => row[groupVar]).filter((v: any) => v != null)).size;
+            overview.push(`Grouping variable: ${groupVar} with ${groups} groups`);
+            
+            // Check minimum samples per group
+            const groupCounts = data.reduce((acc: any, row: any) => {
+                const group = row[groupVar];
+                if (group != null) {
+                    acc[group] = (acc[group] || 0) + 1;
+                }
+                return acc;
+            }, {});
+            
+            const minGroupSize = Math.min(...Object.values(groupCounts) as number[]);
+            const maxGroupSize = Math.max(...Object.values(groupCounts) as number[]);
+            
+            if (minGroupSize < 3) {
+                overview.push(`⚠ Smallest group has ${minGroupSize} observations (very small)`);
+            } else if (minGroupSize < 10) {
+                overview.push(`Smallest group has ${minGroupSize} observations (small)`);
+            } else {
+                overview.push(`Group sizes range from ${minGroupSize} to ${maxGroupSize} observations`);
+            }
+        } else {
+            overview.push('Select a grouping variable');
+        }
+
+        // Sample size
+        const n = data.length;
+        if (n < 20) {
+            overview.push(`Total sample size: ${n} observations (⚠ Very small)`);
+        } else if (n < 50) {
+            overview.push(`Total sample size: ${n} observations (Small)`);
+        } else if (n < 100) {
+            overview.push(`Total sample size: ${n} observations (Moderate)`);
+        } else {
+            overview.push(`Total sample size: ${n} observations (Good)`);
+        }
+        
+        // Test info
+        overview.push('Test: Levene\'s test for homogeneity of variances');
+
+        return overview;
+    }, [valueVar, groupVar, data]);
+
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <CardTitle className="font-headline text-4xl font-bold">Homogeneity of Variances Test</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Use Levene's test to check if the variances are equal across two or more groups, a key assumption for ANOVA.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Test for Homogeneity?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Many parametric statistical tests, like ANOVA, work best when the variability within each group being compared is similar. If one group's data is much more spread out than another's, it can violate the test's assumptions and lead to inaccurate conclusions. Levene's test is a robust way to check this assumption before you proceed with your main analysis.
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+    );
+};
+
+const StatisticalSummaryCards = ({ results }: { results: HomogeneityTestResult }) => {
+    const getInterpretationStatus = (pValue: number) => {
+        if (pValue > 0.05) return "Variances Equal";
+        return "Variances Unequal";
+    };
+
+    const status = getInterpretationStatus(results.levene_test.p_value);
+    const isSignificant = results.levene_test.p_value <= 0.05;
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Levene's Statistic Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Levene's Statistic (F)
+                            </p>
+                            <BarChart className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            {results.levene_test.statistic.toFixed(3)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Test Statistic</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* P-value Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                P-value
+                            </p>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className={`text-2xl font-semibold ${isSignificant ? 'text-red-600 dark:text-red-400' : ''}`}>
+                            {results.levene_test.p_value < 0.001 ? 
+                                '<0.001' : 
+                                results.levene_test.p_value.toFixed(4)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{status}</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Total Sample Size Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Total Sample Size
+                            </p>
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">
+                            {Object.values(results.descriptives).reduce((sum, group) => sum + group.n, 0)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {Object.keys(results.descriptives).length} Groups
                         </p>
                     </div>
-                    {homogeneityExample && (  /* 조건부 렌더링 추가 */
-                        <div className="flex justify-center">
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(homogeneityExample)}>
-                                <homogeneityExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{homogeneityExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{homogeneityExample.description}</p>
-                                </div>
-                            </Card>
+                </CardContent>
+            </Card>
+
+            {/* Degrees of Freedom Card */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Degrees of Freedom
+                            </p>
+                            <Layers className="h-4 w-4 text-muted-foreground" />
                         </div>
-                    )}
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Value Variable:</strong> Select the continuous numeric variable you want to check (e.g., 'Tip Amount').
-                                </li>
-                                <li>
-                                    <strong>Grouping Variable:</strong> Choose the categorical variable that defines your groups (e.g., 'Day of the Week').
-                                </li>
-                                <li>
-                                    <strong>Run Test:</strong> The tool will perform Levene's test and provide a clear pass/fail result.
-                                </li>
-                            </ol>
-                        </div>
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Passed (p &gt; 0.05):</strong> The variances are equal across groups. You can proceed with standard tests like ANOVA.
-                                </li>
-                                <li>
-                                    <strong>Failed (p &lt;= 0.05):</strong> The variances are unequal. You should use a statistical test that does not assume equal variances (e.g., Welch's ANOVA).
-                                </li>
-                                <li>
-                                    <strong>Box Plot:</strong> Visually inspect the plot. If the boxes for each group have roughly the same height (Interquartile Range), it supports the assumption of homogeneity.
-                                </li>
-                            </ul>
+                        <p className="text-2xl font-semibold">
+                            {results.levene_test.df_between || Object.keys(results.descriptives).length - 1}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Between Groups
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const homogeneityExample = exampleDatasets.find(d => d.id === 'tips');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Scale className="w-8 h-8 text-primary" />
                         </div>
                     </div>
+                    <CardTitle className="font-headline text-3xl">Homogeneity of Variances</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Test if variances are equal across groups using Levene's test
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Target className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Equal Variances</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Verify that groups have similar spread in their data
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Activity className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Robust Test</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Levene's test works well even with non-normal data
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <BarChart className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">ANOVA Assumption</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Essential check before running parametric tests
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            When to Use
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use this test before running ANOVA or t-tests to verify that variance (spread) is similar 
+                            across groups. If variances are unequal, the results of standard parametric tests may be 
+                            unreliable. This test helps you choose between standard ANOVA and alternatives like 
+                            Welch's ANOVA.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Value variable:</strong> One continuous numeric variable</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Grouping variable:</strong> One categorical variable</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Sample size:</strong> At least 2 observations per group</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <FileSearch className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>P &gt; 0.05:</strong> Variances are equal (assumption met)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>P ≤ 0.05:</strong> Variances differ (use Welch's test)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Box plot:</strong> Visual check of variance equality</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {homogeneityExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(homogeneityExample)} size="lg">
+                                {homogeneityExample.icon && <homogeneityExample.icon className="mr-2 h-5 w-5" />}
+                                Load Example Data
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -180,7 +410,7 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Homogeneity of Variances Test (Levene's Test)</CardTitle>
+                        <CardTitle className="font-headline">Homogeneity of Variances Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>Select a numeric variable and a categorical grouping variable to test if the variances are equal across groups.</CardDescription>
@@ -202,6 +432,13 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
                             </Select>
                         </div>
                     </div>
+                    
+                    {/* Overview component */}
+                    <HomogeneityOverview 
+                        valueVar={valueVar}
+                        groupVar={groupVar}
+                        data={data}
+                    />
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !valueVar || !groupVar}>
@@ -214,16 +451,19 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
 
             {results && (
                 <div className="space-y-4">
+                    {/* Statistical Summary Cards Section */}
+                    <StatisticalSummaryCards results={results} />
+                    
                     <Card>
                         <CardHeader>
-                            <CardTitle>Levene's Test Results</CardTitle>
+                            <CardTitle>Test Results & Visualization</CardTitle>
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <Alert variant={results.assumption_met ? 'default' : 'destructive'}>
-                                  {results.assumption_met ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4"/>}
-                                  <AlertTitle>Assumption of Homogeneity {results.assumption_met ? "Met" : "Violated"}</AlertTitle>
-                                  <AlertDescription>{results.interpretation}</AlertDescription>
+                                    {results.assumption_met ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4"/>}
+                                    <AlertTitle>Assumption of Homogeneity {results.assumption_met ? "Met" : "Violated"}</AlertTitle>
+                                    <AlertDescription>{results.interpretation}</AlertDescription>
                                 </Alert>
                                 
                                 <Table>
@@ -242,12 +482,21 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
                                             <TableCell>p-value</TableCell>
                                             <TableCell className="font-mono text-right">{results.levene_test.p_value < 0.001 ? '<.001' : results.levene_test.p_value.toFixed(4)}</TableCell>
                                         </TableRow>
+                                        <TableRow>
+                                            <TableCell>Degrees of Freedom (Between)</TableCell>
+                                            <TableCell className="font-mono text-right">{results.levene_test.df_between || Object.keys(results.descriptives).length - 1}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Degrees of Freedom (Within)</TableCell>
+                                            <TableCell className="font-mono text-right">{results.levene_test.df_within || Object.values(results.descriptives).reduce((sum, g) => sum + g.n, 0) - Object.keys(results.descriptives).length}</TableCell>
+                                        </TableRow>
                                     </TableBody>
                                 </Table>
                             </div>
                             <Image src={results.plot} alt={`Box plot of ${valueVar} by ${groupVar}`} width={800} height={600} className="w-full rounded-md border" />
                         </CardContent>
                     </Card>
+                    
                     <Card>
                         <CardHeader><CardTitle>Descriptive Statistics by Group</CardTitle></CardHeader>
                         <CardContent>

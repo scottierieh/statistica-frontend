@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -7,6 +6,7 @@ from scipy import stats
 from itertools import combinations
 import matplotlib.pyplot as plt
 import seaborn as sns
+import statsmodels.api as sm
 import io
 import base64
 import warnings
@@ -41,7 +41,6 @@ class OneWayANOVA:
     def _prepare_data_from_df(self):
         self.clean_data = self.data[[self.group_col, self.value_col]].dropna()
         
-        # Ensure value column is numeric
         self.clean_data[self.value_col] = pd.to_numeric(self.clean_data[self.value_col], errors='coerce')
         self.clean_data.dropna(subset=[self.value_col], inplace=True)
         
@@ -147,9 +146,47 @@ class OneWayANOVA:
                                          alpha=0.05)
 
         results_df = pd.DataFrame(data=tukey_result._results_table.data[1:], columns=tukey_result._results_table.data[0])
-        results_df.rename(columns={'p-adj': 'p_adj'}, inplace=True) # Rename p-adj to p_adj
+        results_df.rename(columns={'p-adj': 'p_adj'}, inplace=True) 
         self.results['post_hoc_tukey'] = results_df.to_dict('records')
         return self.results['post_hoc_tukey']
+
+    def _generate_interpretation(self):
+        anova_res = self.results['anova']
+        desc_res = self.results['descriptives']
+        
+        sig_text = "statistically significant" if anova_res['significant'] else "not statistically significant"
+        p_val_text = f"p < .001" if anova_res['p_value'] < 0.001 else f"p = {anova_res['p_value']:.3f}"
+        
+        interpretation = (
+            f"A one-way ANOVA was conducted to determine if there was a {sig_text} difference in '{self.value_col}' scores between groups of '{self.group_col}'.\n"
+            f"The results indicated a {sig_text} difference, *F*({anova_res['df_between']}, {anova_res['df_within']}) = {anova_res['f_statistic']:.2f}, {p_val_text}."
+        )
+
+        if anova_res['significant'] and 'post_hoc_tukey' in self.results:
+            post_hoc_interp = []
+            non_sig_pairs = []
+            
+            for res in self.results['post_hoc_tukey']:
+                g1 = res['group1']
+                g2 = res['group2']
+                m1, std1 = desc_res[g1]['mean'], desc_res[g1]['std']
+                m2, std2 = desc_res[g2]['mean'], desc_res[g2]['std']
+
+                if res['reject']: # If significant
+                    higher_group = g1 if m1 > m2 else g2
+                    lower_group = g2 if m1 > m2 else g1
+                    comp_text = (f"the mean score for the {higher_group} group (*M* = {max(m1, m2):.2f}, *SD* = {std1 if m1 > m2 else std2:.2f}) was significantly higher "
+                                 f"than the {lower_group} group (*M* = {min(m1, m2):.2f}, *SD* = {std2 if m1 > m2 else std1:.2f})")
+                    post_hoc_interp.append(comp_text)
+                else:
+                    non_sig_pairs.append(f"'{g1}' and '{g2}' (*p* = {res['p_adj']:.3f})")
+
+            if post_hoc_interp:
+                interpretation += "\nA Tukey post-hoc test revealed that " + ", and that ".join(post_hoc_interp) + "."
+            if non_sig_pairs:
+                interpretation += "\nNo statistically significant differences were found between " + ", and ".join(non_sig_pairs) + "."
+        
+        self.results['interpretation'] = interpretation.strip()
 
     def analyze(self):
         self.descriptive_statistics()
@@ -165,51 +202,52 @@ class OneWayANOVA:
         else: interp = "Negligible effect"
         self.results['effect_size_interpretation'] = {'eta_squared_interpretation': interp}
 
+        self._generate_interpretation()
+
     def plot_results(self):
         if not self.results:
             return None
 
-        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
         fig.suptitle('One-Way ANOVA Results', fontsize=16, fontweight='bold')
 
-        # 1. Box plot
-        sns.boxplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[0, 0])
-        axes[0, 0].set_title('Box Plot by Group')
-        axes[0, 0].grid(True, alpha=0.3)
-        
-        # 2. Mean plot with error bars
+        # Plot 1: Point plot with error bars (similar to interaction plot style)
         means = [self.results['descriptives'][group]['mean'] for group in self.groups]
         ses = [self.results['descriptives'][group]['se'] for group in self.groups]
-        x_pos = range(len(self.groups))
+        
+        axes[0, 0].errorbar(range(len(self.groups)), means, yerr=[1.96 * se for se in ses], 
+                           marker='o', markersize=8, linestyle='-', linewidth=2, 
+                           capsize=5, capthick=2, label='Mean ± 95% CI')
+        axes[0, 0].set_title('Group Means')
+        axes[0, 0].set_xlabel(self.group_col)
+        axes[0, 0].set_ylabel(f'Mean of {self.value_col}')
+        axes[0, 0].set_xticks(range(len(self.groups)))
+        axes[0, 0].set_xticklabels(self.groups)
+        axes[0, 0].legend()
+        axes[0, 0].grid(True, linestyle='--', alpha=0.6)
 
-        axes[0, 1].bar(x_pos, means, yerr=[1.96 * se for se in ses], capsize=5, alpha=0.7, color='skyblue', edgecolor='black')
-        axes[0, 1].set_title('Group Means with 95% CI')
-        axes[0, 1].set_ylabel('Mean Values')
-        axes[0, 1].set_xticks(x_pos)
-        axes[0, 1].set_xticklabels(self.groups)
-        axes[0, 1].grid(True, alpha=0.3)
+        # Plot 2: Box plot (matching Two-Way ANOVA style)
+        sns.boxplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[0, 1])
+        axes[0, 1].set_title(f'Distribution by {self.group_col}')
+        axes[0, 1].set_xlabel(self.group_col)
+        axes[0, 1].set_ylabel(self.value_col)
 
-        # 3. Residual plot
+        # Plot 3: Violin plot for distribution visualization
+        sns.violinplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[1, 0])
+        axes[1, 0].set_title(f'Violin Plot by {self.group_col}')
+        axes[1, 0].set_xlabel(self.group_col)
+        axes[1, 0].set_ylabel(self.value_col)
+        
+        # Plot 4: Q-Q Plot (matching Two-Way ANOVA style using statsmodels)
         all_residuals = []
-        fitted_values = []
         for group in self.groups:
             group_data = self.group_data[group]
             group_mean = self.results['descriptives'][group]['mean']
             residuals = group_data - group_mean
             all_residuals.extend(residuals)
-            fitted_values.extend([group_mean] * len(group_data))
         
-        axes[1, 0].scatter(fitted_values, all_residuals, alpha=0.6)
-        axes[1, 0].axhline(y=0, color='red', linestyle='--', alpha=0.7)
-        axes[1, 0].set_title('Residuals vs Fitted Values')
-        axes[1, 0].set_xlabel('Fitted Values')
-        axes[1, 0].set_ylabel('Residuals')
-        axes[1, 0].grid(True, alpha=0.3)
-        
-        # 4. Q-Q plot for normality check
-        stats.probplot(np.concatenate(list(self.group_data.values())), dist="norm", plot=axes[1, 1])
-        axes[1, 1].set_title('Q-Q Plot of All Residuals')
-        axes[1, 1].grid(True, alpha=0.3)
+        sm.qqplot(np.array(all_residuals), line='s', ax=axes[1, 1])
+        axes[1, 1].set_title('Q-Q Plot of Residuals')
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
@@ -248,5 +286,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    

@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -15,8 +13,11 @@ import warnings
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
@@ -36,11 +37,19 @@ class LogisticRegressionAnalysis:
         self.test_size = test_size
         self.random_state = random_state
         self.results = {}
+        self.n_dropped = 0
+        self.dropped_rows = []
         self._prepare_data()
 
     def _prepare_data(self):
         all_vars = [self.dependent_var] + self.independent_vars
+        
+        # Track dropped rows
+        original_indices = self.data.index.tolist()
         self.clean_data = self.data[all_vars].dropna()
+        clean_indices = self.clean_data.index.tolist()
+        self.dropped_rows = [idx for idx in original_indices if idx not in clean_indices]
+        self.n_dropped = len(self.dropped_rows)
         
         if self.clean_data.empty:
             raise ValueError("No valid data remaining after removing rows with missing values.")
@@ -68,13 +77,11 @@ class LogisticRegressionAnalysis:
              # Fallback if stratification fails (e.g., very small class sizes)
              self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state)
 
-
         self.scaler = StandardScaler()
         self.X_train_scaled = self.scaler.fit_transform(self.X_train)
         self.X_test_scaled = self.scaler.transform(self.X_test)
         
         self._check_multicollinearity()
-
 
     def _check_multicollinearity(self):
         if self.X_train.shape[1] < 2:
@@ -100,7 +107,6 @@ class LogisticRegressionAnalysis:
         if not high_vif.empty:
             offending_vars = ", ".join(high_vif[high_vif['feature'] != 'const']['feature'].tolist())
             raise ValueError(f"High multicollinearity detected (VIF > 10) for variables: {offending_vars}. Please remove one or more of these variables to proceed.")
-
 
     def run_analysis(self):
         # Create DataFrames with matching indices for statsmodels
@@ -148,6 +154,10 @@ class LogisticRegressionAnalysis:
             'llr_pvalue': self.model_fit.llr_pvalue, 'prsquared': self.model_fit.prsquared,
             'df_model': self.model_fit.df_model, 'df_resid': self.model_fit.df_resid
         }
+        
+        # Add dropped rows info
+        self.results['n_dropped'] = self.n_dropped
+        self.results['dropped_rows'] = self.dropped_rows
     
     def _generate_interpretation(self):
         res = self.results
@@ -158,27 +168,41 @@ class LogisticRegressionAnalysis:
         p_val = summary['llr_pvalue']
         pseudo_r2 = summary['prsquared']
         accuracy = res['metrics']['accuracy']
+        auc_score = res['roc_data']['auc']
+        cm = np.array(res['metrics']['confusion_matrix'])
 
-        # Introduction
-        interpretation = (
-            f"A logistic regression was performed to ascertain the effects of {', '.join(self.independent_vars)} "
-            f"on the likelihood of '{self.dependent_var}'.\n"
-        )
+        interpretation_sections = []
         
-        # Model Significance
-        model_sig_text = "statistically significant" if p_val < 0.05 else "not statistically significant"
-        p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
-        interpretation += (
-            f"The logistic regression model was {model_sig_text}, χ²({df:.0f}, N = {len(self.clean_data)}) = {chi2:.2f}, {p_val_text}. "
-        )
-
-        # Variance and Accuracy
-        interpretation += (
-            f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} "
-            f"and correctly classified {accuracy*100:.1f}% of cases.\n\n"
-        )
+        # Section 1: Overall Analysis
+        model_sig = p_val < 0.05
+        p_val_text = "p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
-        # Coefficients
+        section1 = "**Overall Analysis**\n"
+        section1 += f"A binary logistic regression was conducted to predict {self.dependent_var} based on {len(self.feature_names)} predictor variable(s). "
+        section1 += f"The model was fit on {len(self.clean_data)} complete observations.\n\n"
+        
+        if model_sig:
+            section1 += f"• Model Significance: The overall model was statistically significant, chi-squared({df:.0f}) = {chi2:.2f}, {p_val_text}, "
+            section1 += f"indicating that the predictors collectively explain a significant portion of the variance in the outcome.\n"
+        else:
+            section1 += f"• Model Significance: The overall model was not statistically significant, chi-squared({df:.0f}) = {chi2:.2f}, {p_val_text}. "
+            section1 += f"The predictors do not collectively provide significant explanatory power.\n"
+        
+        section1 += f"• Explained Variance: The model explained {pseudo_r2*100:.1f}% of the variance (McFadden's Pseudo R-squared) in {self.dependent_var}.\n"
+        section1 += f"• Classification Performance: The model correctly classified {accuracy*100:.1f}% of all cases"
+        
+        if auc_score >= 0.9:
+            section1 += f" with excellent discrimination (AUC = {auc_score:.3f})."
+        elif auc_score >= 0.8:
+            section1 += f" with good discrimination (AUC = {auc_score:.3f})."
+        elif auc_score >= 0.7:
+            section1 += f" with fair discrimination (AUC = {auc_score:.3f})."
+        else:
+            section1 += f" with poor discrimination (AUC = {auc_score:.3f})."
+        
+        interpretation_sections.append(section1)
+        
+        # Section 2: Statistical Insights
         odds_ratios = res['odds_ratios']
         odds_ratios_ci = res['odds_ratios_ci']
         p_values = res['p_values']
@@ -188,49 +212,116 @@ class LogisticRegressionAnalysis:
 
         for var in self.feature_names:
             p = p_values.get(var)
-            if p is not None and p < 0.05:
-                odds = odds_ratios.get(var)
-                ci = odds_ratios_ci.get(var)
-                if odds is not None and ci is not None:
-                     sig_preds_info.append(
-                         f"increasing {var.replace('_', ' ')} was associated with an increase in the likelihood of being in the target group "
-                         f"(OR={odds:.2f}, 95%CI [{ci['2.5%']:.2f}, {ci['97.5%']:.2f}])"
-                     )
-            else:
-                nonsig_preds.append(var.replace('_', ' '))
+            odds = odds_ratios.get(var)
+            ci = odds_ratios_ci.get(var)
+            
+            if p is not None and odds is not None and ci is not None:
+                if p < 0.05:
+                    sig_preds_info.append({
+                        'var': var.replace('_', ' '),
+                        'odds': odds,
+                        'ci_low': ci['2.5%'],
+                        'ci_high': ci['97.5%'],
+                        'p': p
+                    })
+                else:
+                    nonsig_preds.append(var.replace('_', ' '))
 
+        section2 = "**Statistical Insights**\n"
+        
         if sig_preds_info:
-            interpretation += "Of the predictor variables, " + ", and ".join(sig_preds_info) + ".\n"
+            section2 += "The following variables showed statistically significant associations with the outcome:\n\n"
+            for info in sig_preds_info:
+                p_text = "p < .001" if info['p'] < 0.001 else f"p = {info['p']:.3f}"
+                
+                if info['odds'] > 1:
+                    # Positive association
+                    percent_change = (info['odds'] - 1) * 100
+                    section2 += f"• {info['var']}: Each unit increase is associated with a {percent_change:.1f}% increase in the odds of the outcome "
+                    section2 += f"(OR = {info['odds']:.3f}, 95% CI [{info['ci_low']:.3f}, {info['ci_high']:.3f}], {p_text}). "
+                    section2 += f"This represents a positive effect on the likelihood of {self.dependent_var}.\n"
+                else:
+                    # Negative association
+                    percent_change = (1 - info['odds']) * 100
+                    section2 += f"• {info['var']}: Each unit increase is associated with a {percent_change:.1f}% decrease in the odds of the outcome "
+                    section2 += f"(OR = {info['odds']:.3f}, 95% CI [{info['ci_low']:.3f}, {info['ci_high']:.3f}], {p_text}). "
+                    section2 += f"This represents a protective effect against {self.dependent_var}.\n"
+        else:
+            section2 += "No predictor variables achieved statistical significance at the α = 0.05 level. "
+            section2 += "This suggests that none of the included predictors have a significant independent association with the outcome.\n"
         
         if nonsig_preds:
-            interpretation += f"The variables {', '.join(nonsig_preds)} were not significantly associated with the outcome."
+            section2 += f"\nNon-significant predictors: {', '.join(nonsig_preds)}. "
+            section2 += "These variables did not show significant associations when controlling for other predictors in the model."
+        
+        interpretation_sections.append(section2.strip())
+        
+        # Section 3: Recommendations
+        section3 = "**Recommendations**\n"
+        
+        # Classification metrics
+        if len(cm) == 2:
+            tn, fp, fn, tp = cm.ravel()
+            sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+            specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+            ppv = tp / (tp + fp) if (tp + fp) > 0 else 0
+            npv = tn / (tn + fn) if (tn + fn) > 0 else 0
+            
+            section3 += f"• Sensitivity (Recall): {sensitivity*100:.1f}% - The model correctly identifies {sensitivity*100:.1f}% of actual positive cases.\n"
+            section3 += f"• Specificity: {specificity*100:.1f}% - The model correctly identifies {specificity*100:.1f}% of actual negative cases.\n"
+            section3 += f"• Positive Predictive Value: {ppv*100:.1f}% - When the model predicts positive, it is correct {ppv*100:.1f}% of the time.\n"
+            section3 += f"• Negative Predictive Value: {npv*100:.1f}% - When the model predicts negative, it is correct {npv*100:.1f}% of the time.\n\n"
+        
+        # Recommendations
+        section3 += "Interpretation Guidelines:\n"
+        section3 += "• Odds ratios represent multiplicative effects on the odds of the outcome occurring.\n"
+        section3 += "• A 95% confidence interval that does not include 1.0 indicates statistical significance.\n"
+        section3 += "• Consider the practical significance of odds ratios in addition to statistical significance.\n"
+        
+        if auc_score < 0.7:
+            section3 += "• The low AUC suggests limited discriminative ability. Consider adding more predictors or using alternative modeling approaches.\n"
+        
+        if pseudo_r2 < 0.2:
+            section3 += "• The low Pseudo R-squared indicates substantial unexplained variance. Additional predictors may improve model fit.\n"
+        
+        if not model_sig:
+            section3 += "• Given the non-significant overall model, interpret individual predictor effects with caution.\n"
+        
+        section3 += "• Validate findings with independent samples when possible to assess generalizability."
+        
+        interpretation_sections.append(section3)
 
-        self.results['interpretation'] = interpretation.strip()
+        self.results['interpretation'] = "\n\n".join(interpretation_sections)
 
     def plot_results(self):
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
         
+        # Define consistent line color
+        line_color = '#4C72B0'
+        
+        # Plot 1: ROC Curve
         roc = self.results['roc_data']
-        axes[0].plot(roc['fpr'], roc['tpr'], color='darkorange', lw=2, label=f'ROC curve (area = {roc["auc"]:.2f})')
-        axes[0].plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        axes[0].plot(roc['fpr'], roc['tpr'], color=line_color, lw=2, label=f'ROC curve (area = {roc["auc"]:.2f})')
+        axes[0].plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--', alpha=0.7)
         axes[0].set_xlim([0.0, 1.0])
         axes[0].set_ylim([0.0, 1.05])
-        axes[0].set_xlabel('False Positive Rate')
-        axes[0].set_ylabel('True Positive Rate')
-        axes[0].set_title('Receiver Operating Characteristic (ROC) Curve')
+        axes[0].set_xlabel('False Positive Rate', fontsize=12)
+        axes[0].set_ylabel('True Positive Rate', fontsize=12)
+        axes[0].set_title('ROC Curve', fontsize=12, fontweight='bold')
         axes[0].legend(loc="lower right")
-        axes[0].grid(True, alpha=0.3)
 
+        # Plot 2: Confusion Matrix
         cm = np.array(self.results['metrics']['confusion_matrix'])
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[1], 
-                    xticklabels=self.dependent_classes, yticklabels=self.dependent_classes)
-        axes[1].set_xlabel('Predicted Label')
-        axes[1].set_ylabel('True Label')
-        axes[1].set_title('Confusion Matrix')
+        sns.heatmap(cm, annot=True, fmt='d', cmap='vlag', ax=axes[1], 
+                    xticklabels=self.dependent_classes, yticklabels=self.dependent_classes,
+                    cbar_kws={'label': 'Count'})
+        axes[1].set_xlabel('Predicted Label', fontsize=12)
+        axes[1].set_ylabel('True Label', fontsize=12)
+        axes[1].set_title('Confusion Matrix', fontsize=12, fontweight='bold')
         
         plt.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
@@ -264,7 +355,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-
-
-
+    

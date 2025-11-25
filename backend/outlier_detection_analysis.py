@@ -41,10 +41,11 @@ def detect_outliers(series):
     return z_outlier_details, iqr_outlier_details
 
 def create_plot(series, variable_name):
+    sns.set_theme(style="darkgrid")
+    sns.set_context("notebook", font_scale=1.1)
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.boxplot(y=series, ax=ax, width=0.4, palette="pastel")
+    sns.boxplot(y=series, ax=ax, width=0.4, palette="crest")
     sns.stripplot(y=series, ax=ax, color=".25", size=4, jitter=True)
-    ax.set_title(f'Box Plot of {variable_name}', fontsize=14)
     ax.set_ylabel(variable_name)
     plt.tight_layout()
     
@@ -100,3 +101,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

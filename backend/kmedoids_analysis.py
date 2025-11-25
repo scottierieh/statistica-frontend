@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -11,14 +10,19 @@ from sklearn.decomposition import PCA
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -202,24 +206,36 @@ class KMedoidsAnalysis:
         return interpretations
 
     def plot_results(self):
+        # Ensure seaborn style is applied
+        sns.set_theme(style="darkgrid")
+        sns.set_context("notebook", font_scale=1.1)
+        
         fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-        fig.suptitle('K-Medoids Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Cluster Scatter Plot (PCA)
         if self.n_features >= 2:
             pca = PCA(n_components=2)
             pca_data = pca.fit_transform(self.cluster_data_scaled)
             
-            sns.scatterplot(x=pca_data[:, 0], y=pca_data[:, 1], hue=self.cluster_labels, 
-                            palette='viridis', ax=axes[0], legend='full', s=50, alpha=0.7)
+            # Create color palette for clusters
+            n_clusters = len(np.unique(self.cluster_labels))
+            palette = sns.color_palette('crest', n_colors=n_clusters)
+            
+            for i, label in enumerate(np.unique(self.cluster_labels)):
+                mask = self.cluster_labels == label
+                axes[0].scatter(pca_data[mask, 0], pca_data[mask, 1], 
+                              c=[palette[i]], label=f'Cluster {label + 1}', 
+                              alpha=0.6, s=50, edgecolors='black', linewidth=2)
             
             medoids_pca = pca.transform(self.cluster_data_scaled.iloc[self.medoid_indices])
             
-            axes[0].scatter(medoids_pca[:, 0], medoids_pca[:, 1], s=200, c='red', marker='X', label='Medoids', edgecolors='black')
+            axes[0].scatter(medoids_pca[:, 0], medoids_pca[:, 1], 
+                          s=300, c='red', marker='X', label='Medoids', 
+                          edgecolors='black', linewidth=2)
             
-            axes[0].set_title('Clusters in 2D PCA Space')
-            axes[0].set_xlabel(f'Principal Component 1 ({pca.explained_variance_ratio_[0]:.1%})')
-            axes[0].set_ylabel(f'Principal Component 2 ({pca.explained_variance_ratio_[1]:.1%})')
+            axes[0].set_title('Clusters in 2D PCA Space', fontsize=12, fontweight='bold')
+            axes[0].set_xlabel(f'Principal Component 1 ({pca.explained_variance_ratio_[0]:.1%})', fontsize=12)
+            axes[0].set_ylabel(f'Principal Component 2 ({pca.explained_variance_ratio_[1]:.1%})', fontsize=12)
             axes[0].legend()
             axes[0].grid(True, alpha=0.3)
 
@@ -238,21 +254,26 @@ class KMedoidsAnalysis:
                 angles += angles[:1]
                 
                 ax_radar = fig.add_subplot(122, polar=True)
+                
+                # Use color palette for radar chart
+                colors = sns.color_palette('crest', n_colors=len(medoids_norm))
+                
                 for i, (idx, row) in enumerate(medoids_norm.iterrows()):
                     values = row.tolist()
                     values += values[:1]
-                    ax_radar.plot(angles, values, label=f'Cluster {i+1}')
-                    ax_radar.fill(angles, values, alpha=0.25)
+                    ax_radar.plot(angles, values, 'o-', linewidth=2, label=f'Cluster {i+1}', color=colors[i])
+                    ax_radar.fill(angles, values, alpha=0.25, color=colors[i])
                 
                 ax_radar.set_xticks(angles[:-1])
-                ax_radar.set_xticklabels(self.feature_cols)
-                ax_radar.set_title('Cluster Medoids (Normalized)', size=12)
+                ax_radar.set_xticklabels(self.feature_cols, fontsize=10)
+                ax_radar.set_title('Cluster Medoids (Normalized)', fontsize=12, fontweight='bold', pad=20)
                 ax_radar.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+                ax_radar.grid(True, alpha=0.3)
 
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
@@ -285,6 +306,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
-    

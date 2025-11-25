@@ -1,244 +1,458 @@
-
-
 import sys
 import json
 import numpy as np
 import pandas as pd
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from scipy import stats
 import io
 import base64
-from scipy.linalg import inv
-from scipy.stats import f as f_dist, chi2
 import warnings
 
 warnings.filterwarnings('ignore')
 
+sns.set_theme(style="whitegrid")
+
 def _to_native_type(obj):
-    if isinstance(obj, np.integer):
+    if isinstance(obj, (np.integer,)):
         return int(obj)
-    elif isinstance(obj, (float, np.floating)):
+    if isinstance(obj, (np.floating,)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
-    elif isinstance(obj, np.ndarray):
+    if isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, np.bool_):
+    if isinstance(obj, np.bool_):
         return bool(obj)
     return obj
 
-def box_m_test(X, y):
-    groups = np.unique(y)
-    n_groups = len(groups)
-    n_features = X.shape[1]
+def clean_json(obj):
+    if isinstance(obj, dict):
+        return {k: clean_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_json(v) for v in obj]
+    else:
+        return _to_native_type(obj)
+
+def fig_to_base64(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def _generate_interpretation(results, group_var, n_obs, n_predictors):
+    """Generate detailed interpretation for Discriminant Analysis results in APA format."""
     
-    for i in groups:
-        if len(X[y == i]) <= n_features:
-            return {'statistic': np.nan, 'p_value': np.nan, 'warning': f"Group {i} has too few samples to compute a valid covariance matrix."}
-
-    try:
-        pooled_cov = np.cov(X, rowvar=False)
-        if np.linalg.det(pooled_cov) == 0:
-             return {'statistic': np.nan, 'p_value': np.nan, 'warning': "Pooled covariance matrix is singular."}
-             
-        M_stat = 0
-        df_sum = 0
-        for i in groups:
-            group_data = X[y == i]
-            n_i = len(group_data)
-            df_i = n_i - 1
-            df_sum += df_i
+    interpretation_parts = []
+    
+    wilks_lambda = results['wilks_lambda']['lambda']
+    f_stat = results['wilks_lambda']['F']
+    df1 = results['wilks_lambda']['df1']
+    df2 = results['wilks_lambda']['df2']
+    p_value = results['wilks_lambda']['p_value']
+    accuracy = results['classification_metrics']['accuracy']
+    n_groups = len(results['meta']['groups'])
+    canonical_corr = results['canonical_correlations'][0] if results['canonical_correlations'] else 0
+    
+    is_significant = p_value < 0.05
+    
+    eta_squared = 1 - wilks_lambda
+    if eta_squared >= 0.14:
+        effect_size = "large"
+    elif eta_squared >= 0.06:
+        effect_size = "medium"
+    elif eta_squared >= 0.01:
+        effect_size = "small"
+    else:
+        effect_size = "negligible"
+    
+    # --- Overall Assessment (APA Format) ---
+    interpretation_parts.append("**Overall Assessment**")
+    
+    interpretation_parts.append(
+        f"→ A linear discriminant analysis was conducted to predict {group_var} membership "
+        f"from {n_predictors} predictor variable(s) across {n_groups} groups (N = {n_obs})."
+    )
+    
+    if is_significant:
+        p_str = "p < .001" if p_value < 0.001 else f"p = {p_value:.3f}"
+        interpretation_parts.append(
+            f"→ The discriminant function was statistically significant, Λ = {wilks_lambda:.3f}, "
+            f"F({df1:.0f}, {df2:.0f}) = {f_stat:.2f}, {p_str}, representing a {effect_size} effect size (η² = {eta_squared:.3f})."
+        )
+    else:
+        interpretation_parts.append(
+            f"→ The discriminant function was not statistically significant, Λ = {wilks_lambda:.3f}, "
+            f"F({df1:.0f}, {df2:.0f}) = {f_stat:.2f}, p = {p_value:.3f}."
+        )
+    
+    if canonical_corr > 0:
+        interpretation_parts.append(
+            f"→ The canonical correlation of {canonical_corr:.3f} indicates that "
+            f"{(canonical_corr**2)*100:.1f}% of variance in discriminant scores is explained by group membership."
+        )
+    
+    if accuracy >= 0.90:
+        acc_desc = "excellent"
+    elif accuracy >= 0.75:
+        acc_desc = "good"
+    elif accuracy >= 0.60:
+        acc_desc = "fair"
+    else:
+        acc_desc = "poor"
+    
+    interpretation_parts.append(
+        f"→ Overall classification accuracy was {accuracy*100:.1f}%, indicating {acc_desc} predictive performance."
+    )
+    
+    # --- Statistical Insights ---
+    interpretation_parts.append("")
+    interpretation_parts.append("**Statistical Insights**")
+    
+    interpretation_parts.append(
+        f"→ Wilks' Lambda (Λ = {wilks_lambda:.3f}) represents the proportion of total variance "
+        f"in discriminant scores not explained by group differences."
+    )
+    
+    if 'standardized_coeffs' in results and results['standardized_coeffs']:
+        coeffs = np.array(results['standardized_coeffs'])
+        if coeffs.size > 0:
+            predictor_vars = results['meta']['predictor_vars']
+            abs_coeffs = np.abs(coeffs[:, 0]) if coeffs.ndim > 1 else np.abs(coeffs)
+            top_idx = np.argsort(abs_coeffs)[::-1][:3]
             
-            cov_i = np.cov(group_data, rowvar=False)
-            det_cov_i = np.linalg.det(cov_i)
-
-            if det_cov_i <= 0:
-                 return {'statistic': np.nan, 'p_value': np.nan, 'warning': f"Covariance matrix for group {i} is singular."}
-            
-            M_stat += df_i * np.log(det_cov_i)
-
-        M_stat = df_sum * np.log(np.linalg.det(pooled_cov)) - M_stat
-
-        c1_num = (2 * n_features**2 + 3 * n_features - 1)
-        c1_den = 6 * (n_groups - 1) * (n_features + 1)
-        c1_sum_term = np.sum(1.0 / (len(X[y == i]) - 1) for i in groups) - (1.0 / df_sum)
-        c1 = c1_num / c1_den * c1_sum_term
-
-        df1 = 0.5 * n_features * (n_features + 1) * (n_groups - 1)
-        
-        chi2_stat = M_stat * (1 - c1)
-        p_value = chi2.sf(chi2_stat, df1)
-        
-        return {'statistic': chi2_stat, 'p_value': p_value, 'warning': None}
-
-    except np.linalg.LinAlgError:
-         return {'statistic': np.nan, 'p_value': np.nan, 'warning': "A linear algebra error occurred, likely due to singular covariance matrices."}
-
+            interpretation_parts.append("→ Most influential predictors (by standardized coefficient magnitude):")
+            for idx in top_idx:
+                if idx < len(predictor_vars):
+                    coef_val = coeffs[idx, 0] if coeffs.ndim > 1 else coeffs[idx]
+                    direction = "positive" if coef_val > 0 else "negative"
+                    interpretation_parts.append(
+                        f"  • {predictor_vars[idx]}: {coef_val:.4f} ({direction} contribution)"
+                    )
+    
+    precision = results['classification_metrics']['precision']
+    recall = results['classification_metrics']['recall']
+    f1 = results['classification_metrics']['f1_score']
+    
+    interpretation_parts.append(
+        f"→ Classification metrics: Precision = {precision*100:.1f}%, Recall = {recall*100:.1f}%, F1-Score = {f1*100:.1f}%"
+    )
+    
+    obs_per_group = n_obs / n_groups
+    if obs_per_group < 20:
+        interpretation_parts.append(
+            f"→ Warning: Average {obs_per_group:.0f} observations per group is below recommended minimum of 20."
+        )
+    else:
+        interpretation_parts.append(
+            f"→ Sample size adequate with {obs_per_group:.0f} observations per group on average."
+        )
+    
+    # --- Recommendations ---
+    interpretation_parts.append("")
+    interpretation_parts.append("**Recommendations**")
+    
+    if not is_significant:
+        interpretation_parts.append(
+            "→ The model is not statistically significant. Consider adding more discriminating predictors or increasing sample size."
+        )
+    elif accuracy < 0.70:
+        interpretation_parts.append(
+            "→ Classification accuracy is modest. Consider feature engineering or trying quadratic discriminant analysis (QDA)."
+        )
+    else:
+        interpretation_parts.append(
+            "→ The model shows good discrimination. Validate with cross-validation or holdout sample."
+        )
+    
+    if 'box_m_test' in results and results['box_m_test'] and results['box_m_test'].get('statistic'):
+        if not results['box_m_test'].get('homogeneous', True):
+            interpretation_parts.append(
+                "→ Box's M test indicates unequal covariance matrices. Consider using QDA instead of LDA."
+            )
+    
+    interpretation_parts.append(
+        "→ Examine the scatter plot to visually assess group separation in discriminant space."
+    )
+    
+    interpretation_parts.append(
+        "→ Report standardized coefficients and structure matrix for variable interpretation."
+    )
+    
+    return "\n".join(interpretation_parts)
 
 def main():
     try:
         payload = json.load(sys.stdin)
-        
         data = payload.get('data')
         group_var = payload.get('groupVar')
         predictor_vars = payload.get('predictorVars')
 
         if not all([data, group_var, predictor_vars]):
-            raise ValueError("Missing 'data', 'groupVar', or 'predictorVars'")
+            raise ValueError("Missing data, groupVar, or predictorVars")
 
         df = pd.DataFrame(data)
         
+        # Clean data
         all_vars = [group_var] + predictor_vars
-        df_clean = df[all_vars].dropna().copy()
+        df_clean = df[all_vars].dropna()
+        
+        if len(df_clean) < 10:
+            raise ValueError("Not enough valid observations after removing missing values")
+        
+        X = df_clean[predictor_vars].values.astype(float)
         
         le = LabelEncoder()
-        df_clean[group_var + '_encoded'] = le.fit_transform(df_clean[group_var])
+        y = le.fit_transform(df_clean[group_var])
+        group_names = le.classes_.tolist()
+        n_groups = len(group_names)
         
-        X = df_clean[predictor_vars].values
-        y = df_clean[group_var + '_encoded'].values
+        if n_groups < 2:
+            raise ValueError("Need at least 2 groups for discriminant analysis")
         
+        n_components = min(n_groups - 1, len(predictor_vars))
+        
+        # Fit LDA
+        lda = LinearDiscriminantAnalysis(n_components=n_components, store_covariance=True)
+        lda.fit(X, y)
+        
+        y_pred = lda.predict(X)
+        X_lda = lda.transform(X)
+        
+        # Classification metrics
+        accuracy = accuracy_score(y, y_pred)
+        precision = precision_score(y, y_pred, average='weighted', zero_division=0)
+        recall = recall_score(y, y_pred, average='weighted', zero_division=0)
+        f1 = f1_score(y, y_pred, average='weighted', zero_division=0)
+        conf_matrix = confusion_matrix(y, y_pred)
+        
+        # Wilks' Lambda
+        n = len(y)
+        p = len(predictor_vars)
+        k = n_groups
+        
+        eigenvalues = lda.explained_variance_ratio_ * np.sum(lda.explained_variance_ratio_) if hasattr(lda, 'explained_variance_ratio_') else []
+        
+        # Calculate Wilks' Lambda from eigenvalues
+        if len(lda.explained_variance_ratio_) > 0:
+            lambda_vals = 1 / (1 + lda.explained_variance_ratio_ * (n - k) / (k - 1))
+            wilks_lambda = np.prod(lambda_vals)
+        else:
+            wilks_lambda = 1.0
+        
+        # F approximation for Wilks' Lambda
+        df1 = p * (k - 1)
+        df2 = n - k - p + 1
+        
+        if wilks_lambda < 1 and df2 > 0:
+            f_stat = ((1 - wilks_lambda) / wilks_lambda) * (df2 / df1)
+            p_value = 1 - stats.f.cdf(f_stat, df1, df2)
+        else:
+            f_stat = 0
+            p_value = 1.0
+        
+        # Canonical correlations
+        canonical_corrs = np.sqrt(lda.explained_variance_ratio_).tolist() if hasattr(lda, 'explained_variance_ratio_') else []
+        
+        # Standardized coefficients
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
-
-        groups = le.classes_.tolist()
-        n_groups = len(groups)
-        n_features = X_scaled.shape[1]
+        lda_scaled = LinearDiscriminantAnalysis(n_components=n_components)
+        lda_scaled.fit(X_scaled, y)
+        std_coeffs = lda_scaled.scalings_.tolist()
         
-        if n_groups <= 1:
-            raise ValueError("The grouping variable must have at least 2 distinct groups.")
-
-
-        # --- LDA Implementation ---
-        n_components = min(n_groups - 1, n_features)
-        if n_components == 0:
-            raise ValueError("Cannot perform LDA. The number of components must be at least 1.")
-
-        lda = LinearDiscriminantAnalysis(n_components=n_components, store_covariance=True)
+        # Structure matrix (correlations between predictors and discriminant functions)
+        structure_matrix = []
+        for i in range(X.shape[1]):
+            corrs = []
+            for j in range(X_lda.shape[1]):
+                corr = np.corrcoef(X[:, i], X_lda[:, j])[0, 1]
+                corrs.append(corr if not np.isnan(corr) else 0)
+            structure_matrix.append(corrs)
         
-        try:
-             X_lda = lda.fit_transform(X_scaled, y)
-             y_pred = lda.predict(X_scaled)
-        except Exception as e:
-            raise ValueError(f"Failed to fit LDA model. This can happen with very small group sizes. Original error: {e}")
-
+        # Group centroids
+        centroids = []
+        for g in range(n_groups):
+            centroid = X_lda[y == g].mean(axis=0).tolist()
+            centroids.append(centroid)
         
-        # --- Classification Metrics ---
-        accuracy = accuracy_score(y, y_pred)
-        conf_matrix = confusion_matrix(y, y_pred).tolist()
+        # Eigenvalue details
+        eigenvalue_details = []
+        cumulative = 0
+        for i, ev in enumerate(lda.explained_variance_ratio_):
+            cumulative += ev
+            eigenvalue_details.append({
+                'function': f'LD{i+1}',
+                'eigenvalue': float(ev * (n - k) / (k - 1)),
+                'variance_explained': float(ev),
+                'cumulative_variance': float(cumulative),
+                'canonical_correlation': float(np.sqrt(ev)) if ev > 0 else 0
+            })
         
-        # --- Group Statistics ---
+        # Group statistics
         group_stats = {}
-        group_covariances = {}
-        for i, group_name in enumerate(groups):
-            group_data = X_scaled[y == i]
-            group_stats[group_name] = {
-                'mean': group_data.mean(axis=0).tolist(),
-                'std': group_data.std(axis=0, ddof=1).tolist(),
-                'n': len(group_data)
+        for i, gname in enumerate(group_names):
+            mask = y == i
+            group_stats[str(gname)] = {
+                'n': int(np.sum(mask)),
+                'means': X[mask].mean(axis=0).tolist(),
+                'stds': X[mask].std(axis=0).tolist(),
+                'predictor_names': predictor_vars
             }
-            if len(group_data) > n_features:
-                 group_covariances[group_name] = np.cov(group_data, rowvar=False).tolist()
-            else:
-                 group_covariances[group_name] = None
-
-
-        # --- Eigenvalues and Canonical Correlation ---
-        eigenvalues = lda.explained_variance_ratio_ * n_components  # Approximate eigenvalues
-        canonical_correlations = [np.sqrt(e / (1 + e)) if (1 + e) > 0 else 0 for e in eigenvalues]
-
-        # --- Wilks' Lambda ---
-        wilks_lambda = np.prod([1 / (1 + e) for e in eigenvalues])
         
-        n = len(X_scaled)
-        p = n_features
-        m = n - 1 - (p + n_groups) / 2
-        s = 1
-        if (p**2 + (n_groups-1)**2 - 5) > 0:
-             s = np.sqrt((p**2 * (n_groups - 1)**2 - 4) / (p**2 + (n_groups - 1)**2 - 5))
+        # Prior probabilities
+        priors = lda.priors_.tolist()
         
-        df1 = p * (n_groups - 1)
-        df2 = m * s - (p * (n_groups - 1) / 2) + 1 if (m * s - (p * (n_groups - 1) / 2) + 1) > 0 else 1
+        # Classification function coefficients
+        class_func_coeffs = {}
+        class_func_intercepts = {}
+        for i, gname in enumerate(group_names):
+            class_func_coeffs[str(gname)] = lda.coef_[i].tolist() if len(lda.coef_) > i else lda.coef_[0].tolist()
+            class_func_intercepts[str(gname)] = float(lda.intercept_[i]) if len(lda.intercept_) > i else float(lda.intercept_[0])
         
-        F_approx = 0
-        if wilks_lambda > 0 and s > 0 and df1 > 0 and df2 > 0:
-             F_approx = ((1 - wilks_lambda**(1/s)) / (wilks_lambda**(1/s))) * (df2 / df1)
-        p_value_f = 1 - f_dist.cdf(F_approx, df1, df2) if F_approx > 0 else 1.0
-
-
-        # --- Standardized Coefficients & Structure Matrix ---
-        std_coeffs = lda.scalings_
-        
-        # Structure Matrix (Loadings)
-        pooled_cov = lda.covariance_
-        structure_matrix = pooled_cov @ std_coeffs
-
-        # --- Group Centroids ---
-        centroids = lda.transform(lda.means_)
-        
-        # --- Classification Functions ---
-        classification_coeffs = {str(cls): lda.coef_[i] for i, cls in enumerate(le.classes_)}
-        classification_intercepts = {str(cls): lda.intercept_[i] for i, cls in enumerate(le.classes_)}
-
+        # Box's M test (simplified approximation)
+        try:
+            cov_matrices = []
+            for i in range(n_groups):
+                cov_matrices.append(np.cov(X[y == i].T))
+            
+            pooled_cov = np.zeros_like(cov_matrices[0])
+            ns = [np.sum(y == i) for i in range(n_groups)]
+            for i, cov in enumerate(cov_matrices):
+                pooled_cov += (ns[i] - 1) * cov
+            pooled_cov /= (n - n_groups)
+            
+            M = 0
+            for i, cov in enumerate(cov_matrices):
+                if ns[i] > 1:
+                    det_ratio = np.linalg.det(cov) / np.linalg.det(pooled_cov)
+                    if det_ratio > 0:
+                        M += (ns[i] - 1) * np.log(det_ratio)
+            
+            box_df = (n_groups - 1) * p * (p + 1) / 2
+            box_p = 1 - stats.chi2.cdf(abs(M), box_df) if box_df > 0 else 1
+            
+            box_m_test = {
+                'statistic': float(abs(M)),
+                'df': float(box_df),
+                'p_value': float(box_p),
+                'homogeneous': box_p > 0.05
+            }
+        except:
+            box_m_test = {'statistic': None, 'df': None, 'p_value': None, 'homogeneous': None}
         
         results = {
-            'meta': {'groups': groups, 'n_components': n_components, 'predictor_vars': predictor_vars},
-            'classification_metrics': {'accuracy': accuracy, 'confusion_matrix': conf_matrix},
-            'eigenvalues': eigenvalues.tolist(),
-            'canonical_correlations': canonical_correlations,
-            'wilks_lambda': {'lambda': wilks_lambda, 'F': F_approx, 'df1': df1, 'df2': df2, 'p_value': p_value_f},
-            'standardized_coeffs': std_coeffs.tolist(),
-            'structure_matrix': structure_matrix.tolist(),
-            'classification_function_coeffs': classification_coeffs,
-            'classification_function_intercepts': classification_intercepts,
-            'group_stats': group_stats,
-            'group_covariances': group_covariances,
-            'pooled_covariance': pooled_cov.tolist(),
-            'box_m_test': box_m_test(X_scaled, y),
-            'group_centroids': centroids.tolist(),
+            'meta': {
+                'groups': [str(g) for g in group_names],
+                'n_components': n_components,
+                'predictor_vars': predictor_vars
+            },
+            'classification_metrics': {
+                'accuracy': accuracy,
+                'precision': precision,
+                'recall': recall,
+                'f1_score': f1,
+                'confusion_matrix': conf_matrix.tolist(),
+                'true_labels': y.tolist(),
+                'predicted_labels': y_pred.tolist()
+            },
+            'eigenvalues': lda.explained_variance_ratio_.tolist(),
+            'eigenvalue_details': eigenvalue_details,
+            'canonical_correlations': canonical_corrs,
+            'wilks_lambda': {
+                'lambda': wilks_lambda,
+                'F': f_stat,
+                'df1': df1,
+                'df2': df2,
+                'p_value': p_value
+            },
+            'standardized_coeffs': std_coeffs,
+            'structure_matrix': structure_matrix,
+            'group_centroids': centroids,
             'lda_transformed_data': X_lda.tolist(),
-            'true_labels': y.tolist(),
+            'true_labels_full': y.tolist(),
+            'group_stats': group_stats,
+            'priors': priors,
+            'classification_function_coeffs': class_func_coeffs,
+            'classification_function_intercepts': class_func_intercepts,
+            'box_m_test': box_m_test
         }
         
-        # --- Plotting ---
-        fig, axes = plt.subplots(1, 1, figsize=(8, 6))
+        # Generate interpretation
+        interpretation = _generate_interpretation(
+            results=results,
+            group_var=group_var,
+            n_obs=len(df_clean),
+            n_predictors=len(predictor_vars)
+        )
+        results['interpretation'] = interpretation
         
-        plot_df = pd.DataFrame(X_lda, columns=[f'LD{i+1}' for i in range(n_components)])
-        plot_df['group'] = le.inverse_transform(y)
+        # Create visualization
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
         
-        y_axis = 'LD2' if n_components > 1 else np.zeros(len(plot_df))
+        # 1. Scatter plot of first two discriminant functions
+        ax1 = axes[0, 0]
+        colors = plt.cm.Set1(np.linspace(0, 1, n_groups))
+        for i, gname in enumerate(group_names):
+            mask = y == i
+            if n_components >= 2:
+                ax1.scatter(X_lda[mask, 0], X_lda[mask, 1], c=[colors[i]], label=str(gname), alpha=0.6, s=50)
+            else:
+                ax1.scatter(X_lda[mask, 0], np.zeros(np.sum(mask)), c=[colors[i]], label=str(gname), alpha=0.6, s=50)
         
-        sns.scatterplot(data=plot_df, x='LD1', y=y_axis, hue='group', ax=axes, palette='viridis', s=50, alpha=0.7)
-        for i, group in enumerate(groups):
-            centroid_y = centroids[i, 1] if n_components > 1 else 0
-            axes.scatter(centroids[i, 0], centroid_y, marker='X', s=150, color='red', label=f'{group} Centroid' if i==0 else '')
-        axes.set_title('Discriminant Function Scatterplot')
-        axes.set_xlabel('Discriminant Function 1')
-        axes.set_ylabel('Discriminant Function 2' if n_components > 1 else '')
-        axes.grid(True, alpha=0.3)
-        if n_components == 1:
-            axes.get_yaxis().set_visible(False)
+        ax1.set_xlabel('LD1', fontsize=12)
+        ax1.set_ylabel('LD2' if n_components >= 2 else '', fontsize=12)
+        ax1.set_title('Discriminant Function Scores', fontsize=14, fontweight='bold')
+        ax1.legend()
+        
+        # 2. Group centroids
+        ax2 = axes[0, 1]
+        centroid_df = pd.DataFrame(centroids, columns=[f'LD{i+1}' for i in range(n_components)], index=group_names)
+        centroid_df.plot(kind='bar', ax=ax2, colormap='Set2')
+        ax2.set_title('Group Centroids', fontsize=14, fontweight='bold')
+        ax2.set_xlabel('Group', fontsize=12)
+        ax2.set_ylabel('Centroid Value', fontsize=12)
+        ax2.tick_params(axis='x', rotation=45)
+        ax2.legend(title='Function')
+        
+        # 3. Confusion matrix
+        ax3 = axes[1, 0]
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', ax=ax3,
+                    xticklabels=group_names, yticklabels=group_names)
+        ax3.set_title('Confusion Matrix', fontsize=14, fontweight='bold')
+        ax3.set_xlabel('Predicted', fontsize=12)
+        ax3.set_ylabel('Actual', fontsize=12)
+        
+        # 4. Structure matrix heatmap
+        ax4 = axes[1, 1]
+        struct_df = pd.DataFrame(structure_matrix, 
+                                  index=predictor_vars, 
+                                  columns=[f'LD{i+1}' for i in range(n_components)])
+        sns.heatmap(struct_df, annot=True, fmt='.3f', cmap='RdBu_r', center=0, ax=ax4)
+        ax4.set_title('Structure Matrix (Loadings)', fontsize=14, fontweight='bold')
         
         plt.tight_layout()
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close(fig)
+        plot_image = fig_to_base64(fig)
         
-        final_response = {
-            'results': results,
-            'plot': f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+        response = {
+            'results': clean_json(results),
+            'plots': {
+                'lda_analysis': plot_image
+            }
         }
-
-        print(json.dumps(final_response, default=_to_native_type))
+        
+        print(json.dumps(response))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        import traceback
+        print(json.dumps({"error": str(e), "traceback": traceback.format_exc()}), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
     main()
 
-
-
+    

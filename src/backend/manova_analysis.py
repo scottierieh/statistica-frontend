@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -17,6 +16,10 @@ import io
 import base64
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -42,7 +45,20 @@ class MultivariateANOVA:
 
     def _prepare_data(self):
         all_vars = self.dependent_vars + self.factor_vars
-        self.clean_data = self.data[all_vars].dropna().copy()
+        
+        # Track original indices
+        original_data = self.data[all_vars].copy()
+        original_data['original_index'] = range(len(original_data))
+        
+        # Drop NA and track which rows were dropped
+        self.clean_data = original_data.dropna().copy()
+        dropped_indices = list(set(range(len(original_data))) - set(self.clean_data['original_index']))
+        
+        self.dropped_rows = sorted(dropped_indices)
+        self.n_dropped = len(dropped_indices)
+        
+        # Remove the original_index column
+        self.clean_data = self.clean_data.drop(columns=['original_index'])
         
         self.encoders = {}
         for factor in self.factor_vars:
@@ -100,7 +116,11 @@ class MultivariateANOVA:
             'method': 'one_way_manova', 'factor': factor, 'groups': groups, 'n_groups': k,
             'test_statistics': test_stats, 'effect_size': eta_squared,
             'univariate_results': univariate_results, 'posthoc_results': posthoc_results,
-            'significant': any(ts['p_value'] < self.alpha for ts in test_stats.values())
+            'significant': any(ts['p_value'] < self.alpha for ts in test_stats.values()),
+            'dropped_rows': self.dropped_rows,
+            'n_dropped': self.n_dropped,
+            'n_used': len(self.clean_data),
+            'n_original': len(self.data)
         }
         return self.results['one_way']
 
@@ -191,10 +211,9 @@ class MultivariateANOVA:
 
     def plot_results(self, result):
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-        fig.suptitle(f'One-way MANOVA: {result["factor"]}', fontsize=16, fontweight='bold')
 
         factor, groups = result['factor'], result['groups']
-        colors = plt.cm.Set2(np.linspace(0, 1, len(groups)))
+        colors = sns.color_palette('crest', n_colors=len(groups))
         
         # 1. Group means plot
         group_means = np.array([self.clean_data[self.clean_data[factor] == g][self.dependent_vars].mean() for g in groups])
@@ -207,8 +226,8 @@ class MultivariateANOVA:
         
         axes[0, 0].set_xticks(x)
         axes[0, 0].set_xticklabels(self.dependent_vars, rotation=45, ha='right')
-        axes[0, 0].set_title('Group Means on Dependent Variables')
-        axes[0, 0].set_ylabel('Mean Value')
+        axes[0, 0].set_title('Group Means on Dependent Variables', fontsize=12, fontweight='bold')
+        axes[0, 0].set_ylabel('Mean Value', fontsize=12)
         axes[0, 0].legend()
 
         # 2. Box plots for first two DVs
@@ -216,21 +235,24 @@ class MultivariateANOVA:
         for i, dv in enumerate(dvs_to_plot):
             ax = axes[0, 1] if i == 0 else axes[1, 0]
             sns.boxplot(x=factor, y=dv, data=self.clean_data, ax=ax, palette=colors)
-            ax.set_title(f'Distribution of {dv}')
+            ax.set_title(f'Distribution of {dv}', fontsize=12, fontweight='bold')
+            ax.set_xlabel(factor, fontsize=12)
+            ax.set_ylabel(dv, fontsize=12)
 
         # 3. p-values of multivariate tests
         test_names = list(result['test_statistics'].keys())
         p_values = [res['p_value'] for res in result['test_statistics'].values()]
-        bars = axes[1, 1].bar(test_names, p_values, color='skyblue')
+        bars = axes[1, 1].bar(test_names, p_values, color='#5B9BD5')
         axes[1, 1].axhline(y=self.alpha, color='r', linestyle='--', label=f'alpha={self.alpha}')
-        axes[1, 1].set_title('Multivariate Test p-values')
-        axes[1, 1].set_ylabel('p-value')
+        axes[1, 1].set_title('Multivariate Test p-values', fontsize=12, fontweight='bold')
+        axes[1, 1].set_xlabel('Test', fontsize=12)
+        axes[1, 1].set_ylabel('p-value', fontsize=12)
         axes[1, 1].legend()
 
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"

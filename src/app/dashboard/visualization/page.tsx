@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart, Box, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch, Play, ArrowLeft } from 'lucide-react';
+import { GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch, Play, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DataSet } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';

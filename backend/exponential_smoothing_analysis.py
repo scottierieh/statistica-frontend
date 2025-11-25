@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -11,6 +10,10 @@ import base64
 import warnings
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally (consistent with other analyses)
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -88,21 +91,24 @@ def main():
         result_df = df.copy()
         result_df['fitted'] = fitted_values
 
-        # --- Plotting ---
-        plt.figure(figsize=(12, 6))
-        plt.plot(df.index, series, label='Original Series', color='skyblue')
-        plt.plot(fitted_values.index, fitted_values, label='Fitted Values', color='orange', linewidth=2.5)
+        # --- Plotting with consistent style ---
+        fig, ax = plt.subplots(figsize=(12, 6))
         
-        plt.title(f'Exponential Smoothing ({smoothing_type.replace("_", " ").title()})')
-        plt.xlabel(time_col)
-        plt.ylabel(value_col)
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.6)
+        ax.plot(df.index, series, label='Original Series', color='#1f77b4', 
+                linewidth=2, alpha=0.6)
+        ax.plot(fitted_values.index, fitted_values, label='Fitted Values', 
+                color='#ff7f0e', linewidth=2.5, alpha=0.9)
+        
+        ax.set_xlabel(time_col, fontsize=12)
+        ax.set_ylabel(value_col, fontsize=12)
+        ax.legend()
+        ax.grid(True)
+        
         plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
@@ -132,3 +138,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

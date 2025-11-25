@@ -12,6 +12,10 @@ import base64
 import warnings
 warnings.filterwarnings('ignore')
 
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
+
 # Helper to convert numpy types to native Python types for JSON serialization
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -254,32 +258,122 @@ class ModerationAnalysis:
         model = self.results.get('step2')
         if not model: return None
 
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # Define consistent colors
+        line_color = '#C44E52'
+        primary_color = '#5B9BD5'
+        colors = [primary_color, '#2ECC71', line_color]
         
         m_std = np.std(self.M_raw)
         mod_levels = [-m_std, 0, m_std]
         mod_labels = ['Low (-1 SD)', 'Mean', 'High (+1 SD)']
-        colors = ['blue', 'green', 'red']
         
         x_min, x_max = np.min(self.X), np.max(self.X)
         x_range = np.linspace(x_min, x_max, 50)
         
         b0, b1, b2, b3 = model['coefficients']
 
+        # 1. Interaction Plot (Top Left)
         for i, (mod_val, label) in enumerate(zip(mod_levels, mod_labels)):
             y_pred = (b0 + b2*mod_val) + (b1 + b3*mod_val) * x_range
-            ax.plot(x_range, y_pred, label=f"{self.M_name} = {label}", color=colors[i], linewidth=2)
+            axes[0, 0].plot(x_range, y_pred, label=f"{self.M_name} = {label}", 
+                          color=colors[i], linewidth=2.5)
         
-        ax.set_xlabel(f"Centered {self.X_name}")
-        ax.set_ylabel(self.Y_name)
-        ax.set_title('Interaction Plot')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        axes[0, 0].set_xlabel(f"Centered {self.X_name}", fontsize=12)
+        axes[0, 0].set_ylabel(self.Y_name, fontsize=12)
+        axes[0, 0].set_title('Interaction Plot', fontsize=12, fontweight='bold')
+        axes[0, 0].legend()
+
+        # 2. Simple Slopes (Top Right)
+        if 'simple_slopes' in self.results:
+            slopes_data = self.results['simple_slopes']
+            slope_values = [s['slope'] for s in slopes_data]
+            slope_errors = [s['std_error'] for s in slopes_data]
+            
+            bars = axes[0, 1].bar(mod_labels, slope_values, yerr=slope_errors, 
+                                 capsize=5, alpha=0.7, color=colors, edgecolor='black', linewidth=1.5)
+            axes[0, 1].axhline(y=0, color='grey', linestyle='-', lw=1)
+            axes[0, 1].set_xlabel(f'{self.M_name} Level', fontsize=12)
+            axes[0, 1].set_ylabel('Simple Slope', fontsize=12)
+            axes[0, 1].set_title('Simple Slopes at Different Moderator Levels', fontsize=12, fontweight='bold')
+            
+            # Add value labels and significance markers
+            for i, (bar, slope_info) in enumerate(zip(bars, slopes_data)):
+                height = bar.get_height()
+                sig_marker = '***' if slope_info['p_value'] < 0.001 else '*' if slope_info['p_value'] < 0.05 else 'ns'
+                axes[0, 1].text(bar.get_x() + bar.get_width()/2., height,
+                              f'{height:.3f}{sig_marker}', ha='center', 
+                              va='bottom' if height > 0 else 'top', fontsize=9)
+
+        # 3. R² Change (Bottom Left)
+        step1_r2 = self.results['step1']['r_squared']
+        step2_r2 = self.results['step2']['r_squared']
+        delta_r2 = self.results['r_squared_change']['delta_r2']
         
+        bars = axes[1, 0].bar(['Step 1\n(Main Effects)', 'Step 2\n(+ Interaction)'], 
+                             [step1_r2, step2_r2], alpha=0.7, color=[primary_color, line_color], 
+                             edgecolor='black', linewidth=1.5)
+        
+        # Add delta R² annotation
+        axes[1, 0].annotate('', xy=(1, step2_r2), xytext=(1, step1_r2),
+                          arrowprops=dict(arrowstyle='<->', lw=2, color='black'))
+        axes[1, 0].text(1.1, (step1_r2 + step2_r2) / 2, f'ΔR² = {delta_r2:.3f}', 
+                       fontsize=10, fontweight='bold')
+        
+        axes[1, 0].set_ylabel('R²', fontsize=12)
+        axes[1, 0].set_title('Hierarchical Regression R² Change', fontsize=12, fontweight='bold')
+        axes[1, 0].set_ylim([0, max(step2_r2 * 1.2, 0.1)])
+        
+        # Add value labels
+        for bar in bars:
+            height = bar.get_height()
+            axes[1, 0].text(bar.get_x() + bar.get_width()/2., height,
+                          f'{height:.3f}', ha='center', va='bottom', fontsize=9)
+
+        # 4. Regression Coefficients (Bottom Right)
+        ax = axes[1, 1]
+        ax.axis('off')
+        
+        # Create coefficient table
+        table_data = [
+            ['Term', 'B', 'SE', 't', 'p-value'],
+            ['Intercept', f"{model['coefficients'][0]:.3f}", f"{model['std_errors'][0]:.3f}", 
+             f"{model['t_stats'][0]:.2f}", f"{model['p_values'][0]:.3f}" if model['p_values'][0] >= 0.001 else '<.001'],
+            [f'{self.X_name}', f"{model['coefficients'][1]:.3f}", f"{model['std_errors'][1]:.3f}", 
+             f"{model['t_stats'][1]:.2f}", f"{model['p_values'][1]:.3f}" if model['p_values'][1] >= 0.001 else '<.001'],
+            [f'{self.M_name}', f"{model['coefficients'][2]:.3f}", f"{model['std_errors'][2]:.3f}", 
+             f"{model['t_stats'][2]:.2f}", f"{model['p_values'][2]:.3f}" if model['p_values'][2] >= 0.001 else '<.001'],
+            [f'{self.X_name} × {self.M_name}', f"{model['coefficients'][3]:.3f}", f"{model['std_errors'][3]:.3f}", 
+             f"{model['t_stats'][3]:.2f}", f"{model['p_values'][3]:.3f}" if model['p_values'][3] >= 0.001 else '<.001'],
+        ]
+        
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center', 
+                        colWidths=[0.35, 0.15, 0.15, 0.15, 0.2])
+        table.auto_set_font_size(False)
+        table.set_fontsize(9)
+        table.scale(1, 2)
+        
+        # Style header row
+        for i in range(5):
+            table[(0, i)].set_facecolor('#E8E8E8')
+            table[(0, i)].set_text_props(weight='bold')
+        
+        # Highlight interaction term
+        for i in range(5):
+            table[(4, i)].set_facecolor('#FFF3CD')
+        
+        ax.set_title('Regression Coefficients (Step 2)', fontsize=12, fontweight='bold', pad=20)
+        
+        # Add model statistics text
+        p_text = '< .001' if model['f_p_value'] < 0.001 else f"= {model['f_p_value']:.3f}"
+        ax.text(0.5, 0.05, f"R² = {model['r_squared']:.3f}, Adj. R² = {model['adj_r_squared']:.3f}, F({model['k']}, {model['df']:.0f}) = {model['f_stat']:.2f}, p {p_text}", 
+               ha='center', fontsize=9, transform=ax.transAxes)
+
         plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         image_base64 = base64.b64encode(buf.read()).decode('utf-8')
@@ -316,3 +410,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

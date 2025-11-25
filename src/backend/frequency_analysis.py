@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -8,6 +7,10 @@ import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import entropy
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -85,17 +88,21 @@ def main():
                 })
 
             # --- Plotting ---
-            plt.figure(figsize=(8, 5))
+            fig, ax = plt.subplots(figsize=(10, 6))
             plot_data = freq_table.head(20)
-            sns.barplot(x='Frequency', y='Value', data=plot_data, orient='h', palette='viridis')
-            plt.title(f'Frequency Distribution of {var}')
-            plt.xlabel('Frequency')
-            plt.ylabel(var)
+            
+            # Use seaborn barplot with custom color
+            sns.barplot(x='Frequency', y='Value', data=plot_data, ax=ax, color='#82ca9d', orient='h')
+            
+            ax.set_title(f'Frequency Distribution of {var}', fontsize=14, fontweight='bold', pad=20)
+            ax.set_xlabel('Frequency', fontsize=12)
+            ax.set_ylabel(var, fontsize=12)
+            
             plt.tight_layout()
             
             buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            plt.close()
+            plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+            plt.close(fig)
             buf.seek(0)
             plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
@@ -121,3 +128,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

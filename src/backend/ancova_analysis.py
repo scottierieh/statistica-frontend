@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -15,6 +14,10 @@ import base64
 import math
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -41,7 +44,20 @@ class AncovaAnalysis:
 
     def _prepare_data(self):
         all_vars = [self.dependent_var, self.factor_var] + self.covariate_vars
-        self.clean_data = self.data[all_vars].dropna().copy()
+        
+        # Track original indices
+        original_data = self.data[all_vars].copy()
+        original_data['original_index'] = range(len(original_data))
+        
+        # Drop NA and track which rows were dropped
+        self.clean_data = original_data.dropna().copy()
+        dropped_indices = list(set(range(len(original_data))) - set(self.clean_data['original_index']))
+        
+        self.dropped_rows = sorted(dropped_indices)
+        self.n_dropped = len(dropped_indices)
+        
+        # Remove the original_index column
+        self.clean_data = self.clean_data.drop(columns=['original_index'])
         
         # Sanitize column names for formula
         self.dependent_var_clean = self.dependent_var.replace(' ', '_').replace('.', '')
@@ -80,12 +96,17 @@ class AncovaAnalysis:
              original_cov_name = self.covariate_vars[self.covariate_vars_clean.index(cov)]
              cleaned_index[interaction_key] = f'{self.factor_var} * {original_cov_name}'
 
-
         anova_table = anova_table.rename(index=cleaned_index)
 
         # Replace NaN with None before converting to dict
         self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p_value'}).replace({np.nan: None}).to_dict('records')
         self.results['residuals'] = model.resid.tolist()
+        
+        # Add dropped rows info
+        self.results['dropped_rows'] = self.dropped_rows
+        self.results['n_dropped'] = self.n_dropped
+        self.results['n_used'] = len(self.clean_data)
+        self.results['n_original'] = len(self.data)
         
         self._test_assumptions(model)
 
@@ -105,50 +126,46 @@ class AncovaAnalysis:
         }
 
     def plot_results(self):
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-        fig.suptitle('ANCOVA Results', fontsize=16)
-
-        # Interaction plot
-        if self.covariate_vars_clean:
-            # Use original names for plotting
-            original_cov_name_to_plot = self.covariate_vars[0]
-            clean_cov_name_to_plot = self.covariate_vars_clean[0]
+        if not self.covariate_vars_clean:
+            return None
             
-            temp_plot_data = self.clean_data.rename(columns={
-                self.dependent_var_clean: self.dependent_var,
-                self.factor_var_clean: self.factor_var,
-                clean_cov_name_to_plot: original_cov_name_to_plot
-            })
+        # Use original names for plotting
+        original_cov_name_to_plot = self.covariate_vars[0]
+        clean_cov_name_to_plot = self.covariate_vars_clean[0]
+        
+        temp_plot_data = self.clean_data.rename(columns={
+            self.dependent_var_clean: self.dependent_var,
+            self.factor_var_clean: self.factor_var,
+            clean_cov_name_to_plot: original_cov_name_to_plot
+        })
 
-            sns.lmplot(
+        # Create figure with seaborn styling
+        fig = plt.figure(figsize=(10, 6))
+        
+        # Create the regression plot for each group
+        for group_name, group_data in temp_plot_data.groupby(self.factor_var):
+            sns.regplot(
                 x=original_cov_name_to_plot, 
                 y=self.dependent_var, 
-                hue=self.factor_var, 
-                data=temp_plot_data, 
-                ci=None
+                data=group_data,
+                label=str(group_name),
+                scatter_kws={'alpha': 0.6},
+                line_kws={'linewidth': 2}
             )
-            plt.title(f'Interaction Plot: {self.dependent_var} vs {original_cov_name_to_plot} by {self.factor_var}')
-            
-            # Need to capture lmplot to a buffer as it creates its own figure
-            lmplot_buf = io.BytesIO()
-            plt.savefig(lmplot_buf, format='png', bbox_inches='tight')
-            plt.close() # Close the figure created by lmplot
-            lmplot_buf.seek(0)
-            
-            # Use a single buffer for all plots
-            buf = io.BytesIO()
-            final_fig, final_ax = plt.subplots(1,1, figsize=(8,6))
-            final_ax.imshow(plt.imread(lmplot_buf))
-            final_ax.axis('off')
-            final_fig.suptitle(f'Interaction Plot', fontsize=14)
-
-            plt.tight_layout()
-            plt.savefig(buf, format='png')
-            plt.close(final_fig)
-            buf.seek(0)
-            
-            return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-        return None
+        
+        plt.title(f'Interaction Plot', fontsize=12, fontweight='bold')
+        plt.xlabel(original_cov_name_to_plot, fontsize=12)
+        plt.ylabel(self.dependent_var, fontsize=12)
+        plt.legend(title=self.factor_var)
+        
+        plt.tight_layout()
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        buf.seek(0)
+        
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
 def main():
     try:

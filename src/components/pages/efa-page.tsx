@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -7,16 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, AlertTriangle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace, Bot, CheckCircle2, FileSearch, MoveRight, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace, FileSearch, HelpCircle, Layers, Lightbulb, TrendingUp, CheckCircle, Target, Percent, Users, BookOpen } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
-import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 // Type definitions for the EFA results
 interface EfaResults {
@@ -38,98 +35,159 @@ interface EfaResults {
         bartlett_significant: boolean;
     };
     interpretation: { [key: string]: { variables: string[], loadings: number[] } };
-    full_interpretation: string;
+    full_interpretation?: string;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const efaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+// Statistical Summary Cards Component for EFA
+const StatisticalSummaryCards = ({ results }: { results: EfaResults }) => {
+    const totalVarianceExplained = results.variance_explained.cumulative[results.n_factors - 1];
+    const avgCommunality = results.communalities.reduce((a, b) => a + b, 0) / results.communalities.length;
+    const strongLoadings = results.factor_loadings.flat().filter(l => Math.abs(l) > 0.4).length;
+    const totalLoadings = results.factor_loadings.flat().length;
+    
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <BrainCircuit size={36} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">KMO Score</p>
+                            <Target className="h-4 w-4 text-muted-foreground" />
                         </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Exploratory Factor Analysis (EFA)</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Uncover the underlying structure of a set of variables and reduce a large number of variables into fewer, more manageable factors.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use EFA?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                           EFA is a powerful exploratory technique used in the early stages of research to identify the latent constructs (or factors) that underlie a set of observed variables. It's perfect for developing theories, simplifying complex datasets, and constructing new scales by grouping together variables that are highly correlated.
-                        </p>
-                    </div>
-                     <div className="flex justify-center">
-                        {efaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(efaExample)}>
-                                <efaExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{efaExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{efaExample.description}</p>
-                                </div>
-                            </Card>
-                        )}
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Select Items:</strong> Choose all the numeric variables you believe may be related to one or more underlying factors (e.g., all items from a psychological scale).</li>
-                                <li><strong>Number of Factors:</strong> Specify how many underlying factors you hypothesize. The Scree Plot and Kaiser criterion (eigenvalues > 1) can help you determine the optimal number to extract.</li>
-                                <li><strong>Rotation Method:</strong> Choose a rotation to make the factor structure more interpretable. 'Varimax' is a common orthogonal rotation, while 'Promax' is an oblique rotation for correlated factors.</li>
-                                <li><strong>Run Analysis:</strong> The tool will perform the analysis and provide factor loadings and key metrics.</li>
-                            </ol>
-                        </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>KMO & Bartlett's Test:</strong> These tests assess if your data is suitable for factor analysis. Look for a KMO value > 0.6 and a significant p-value for Bartlett's test.</li>
-                                <li><strong>Scree Plot:</strong> The 'elbow' in this plot suggests the optimal number of factors to retain.</li>
-                                <li><strong>Factor Loadings:</strong> These are the correlations between each variable and the extracted factors. A high loading (e.g., > 0.4) indicates that the variable is strongly associated with that factor. Use these loadings to interpret and name your factors.</li>
-                                <li><strong>Explained Variance:</strong> Shows how much of the total information (variance) from the original variables is captured by the extracted factors. The cumulative percentage tells you the total variance captured by the selected number of components.</li>
-                            </ul>
-                        </div>
+                        <p className="text-2xl font-semibold">{results.adequacy.kmo.toFixed(3)}</p>
+                        <Badge className="text-xs">{results.adequacy.kmo_interpretation}</Badge>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
+            </Card>
+
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">Variance Explained</p>
+                            <Percent className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">{totalVarianceExplained.toFixed(1)}%</p>
+                        <p className="text-xs text-muted-foreground">
+                            By {results.n_factors} factor{results.n_factors !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">Avg Communality</p>
+                            <Layers className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">{avgCommunality.toFixed(3)}</p>
+                        <p className="text-xs text-muted-foreground">
+                            {avgCommunality > 0.6 ? 'Good' : avgCommunality > 0.4 ? 'Moderate' : 'Low'}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground">Strong Loadings</p>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-2xl font-semibold">{strongLoadings}/{totalLoadings}</p>
+                        <p className="text-xs text-muted-foreground">
+                            {((strongLoadings/totalLoadings)*100).toFixed(0)}% &gt; 0.4
+                        </p>
+                    </div>
+                </CardContent>
             </Card>
         </div>
     );
 };
 
-const InterpretationDisplay = ({ results }: { results: EfaResults | undefined }) => {
-    if (!results?.full_interpretation) return null;
-    
-    const isSuitable = results.adequacy.kmo >= 0.6 && results.adequacy.bartlett_significant;
+// Analysis Overview Component
+const EfaOverview = ({ selectedItems, nFactors, rotationMethod, extractionMethod, data }: any) => {
+    const items = useMemo(() => {
+        const overview = [];
+        
+        if (selectedItems.length === 0) {
+            overview.push('Select at least 3 variables for factor analysis');
+        } else if (selectedItems.length < 3) {
+            overview.push(`⚠ Only ${selectedItems.length} variables selected (minimum 3 required)`);
+        } else if (selectedItems.length <= 5) {
+            overview.push(`Analyzing ${selectedItems.length} variables (minimal for EFA)`);
+        } else if (selectedItems.length <= 10) {
+            overview.push(`Analyzing ${selectedItems.length} variables (good for EFA)`);
+        } else {
+            overview.push(`Analyzing ${selectedItems.length} variables (excellent for EFA)`);
+        }
 
-    const formattedInterpretation = useMemo(() => {
-        return results.full_interpretation
-            .replace(/\\n/g, '<br />')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    }, [results.full_interpretation]);
+        const n = data.length;
+        const ratio = n / selectedItems.length;
+        if (n < 50) {
+            overview.push(`Sample size: ${n} observations (⚠ Very small - results may be unstable)`);
+        } else if (n < 100) {
+            overview.push(`Sample size: ${n} observations (Small - interpret with caution)`);
+        } else if (n < 300) {
+            overview.push(`Sample size: ${n} observations (Adequate)`);
+        } else {
+            overview.push(`Sample size: ${n} observations (Good)`);
+        }
+        
+        if (selectedItems.length >= 3) {
+            if (ratio < 3) {
+                overview.push(`⚠ Subject-to-variable ratio: ${ratio.toFixed(1)}:1 (Very low)`);
+            } else if (ratio < 5) {
+                overview.push(`Subject-to-variable ratio: ${ratio.toFixed(1)}:1 (Low)`);
+            } else if (ratio < 10) {
+                overview.push(`Subject-to-variable ratio: ${ratio.toFixed(1)}:1 (Adequate)`);
+            } else {
+                overview.push(`Subject-to-variable ratio: ${ratio.toFixed(1)}:1 (Good)`);
+            }
+        }
+
+        overview.push(`Extracting ${nFactors} factor${nFactors !== 1 ? 's' : ''}`);
+        
+        if (rotationMethod === 'varimax') {
+            overview.push('Varimax rotation: Orthogonal (uncorrelated factors)');
+        } else if (rotationMethod === 'promax') {
+            overview.push('Promax rotation: Oblique (allows correlated factors)');
+        } else if (rotationMethod === 'none') {
+            overview.push('No rotation applied');
+        } else {
+            overview.push(`${rotationMethod.charAt(0).toUpperCase() + rotationMethod.slice(1)} rotation`);
+        }
+
+        if (extractionMethod === 'principal') {
+            overview.push('Principal Axis Factoring (true factor analysis)');
+        } else {
+            overview.push('Principal Component Analysis (variance maximization)');
+        }
+
+        return overview;
+    }, [selectedItems, nFactors, rotationMethod, extractionMethod, data]);
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Analysis Overview</CardTitle>
             </CardHeader>
             <CardContent>
-                <Alert variant={isSuitable ? 'default' : 'destructive'}>
-                    {isSuitable ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                    <AlertTitle>{isSuitable ? "Data Suitable for Factor Analysis" : "Data May Not Be Suitable"}</AlertTitle>
-                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
-                </Alert>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                    {items.map((item, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
             </CardContent>
         </Card>
     );
-}
+};
 
 const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: string[], selectedItems: string[], setSelectedItems: (items: string[]) => void }) => {
     const [highlightedAvailable, setHighlightedAvailable] = useState<string[]>([]);
@@ -192,7 +250,6 @@ const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: 
 
     return (
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-            {/* Available Items */}
             <div className="flex flex-col gap-2">
                 <Label>Available Items ({availableItems.length})</Label>
                 <ScrollArea className="h-40 border rounded-md p-1">
@@ -202,7 +259,6 @@ const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: 
                 </ScrollArea>
             </div>
             
-            {/* Controls */}
             <div className="flex flex-col gap-2">
                 <Button variant="outline" size="icon" onClick={moveAll} aria-label="Move all to selected"><ChevronsRight /></Button>
                 <Button variant="outline" size="icon" onClick={moveSelected} disabled={highlightedAvailable.length === 0} aria-label="Move selected to right"><ChevronRight /></Button>
@@ -210,7 +266,6 @@ const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: 
                 <Button variant="outline" size="icon" onClick={removeAll} aria-label="Move all to available"><ChevronsLeft /></Button>
             </div>
 
-            {/* Selected Items */}
             <div className="flex flex-col gap-2">
                 <Label>Selected for Analysis ({selectedItems.length})</Label>
                 <ScrollArea className="h-40 border rounded-md p-1">
@@ -219,6 +274,136 @@ const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: 
                     ))}
                 </ScrollArea>
             </div>
+        </div>
+    );
+};
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const efaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <BrainCircuit className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Exploratory Factor Analysis (EFA)</CardTitle>
+                    <CardDescription className="text-base mt-2">
+                        Uncover hidden patterns and reduce complexity in your data
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Layers className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Dimension Reduction</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Transform many variables into fewer meaningful factors
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <Lightbulb className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Pattern Discovery</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Identify underlying constructs in your measurements
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader>
+                                <TrendingUp className="w-6 h-6 text-primary mb-2" />
+                                <CardTitle className="text-lg">Scale Development</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Build and validate measurement instruments
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-6">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <FileSearch className="w-5 h-5" />
+                            When to Use 
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Use EFA when you want to explore relationships among variables without a predetermined 
+                            structure. It&apos;s perfect for developing theories, understanding survey data, and identifying 
+                            which items belong together in psychological scales or questionnaires.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-primary" />
+                                    Requirements
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Variables:</strong> At least 3, ideally 10+ numeric items</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Sample size:</strong> 5-10 cases per variable minimum</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>KMO:</strong> Should be &gt; 0.6 for adequacy</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Bartlett&apos;s test:</strong> Should be significant (p &lt; .05)</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <RotateCw className="w-4 h-4 text-primary" />
+                                    Understanding Results
+                                </h4>
+                                <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Factor loadings:</strong> &gt; 0.4 indicates meaningful association</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Eigenvalues:</strong> &gt; 1 suggests factor retention (Kaiser criterion)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Scree plot:</strong> Look for the &quot;elbow&quot; point</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span><strong>Variance:</strong> Aim for 60%+ cumulative explained</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {efaExample && (
+                        <div className="flex justify-center pt-2">
+                            <Button onClick={() => onLoadExample(efaExample)} size="lg">
+                                <BrainCircuit className="mr-2 h-5 w-5" />
+                                Load Example Data
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 };
@@ -232,7 +417,7 @@ interface EfaPageProps {
 export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [nFactors, setNFactors] = useState<number>(3);
     const [rotationMethod, setRotationMethod] = useState('varimax');
     const [extractionMethod, setExtractionMethod] = useState('principal');
@@ -241,20 +426,37 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setSelectedItems(numericHeaders);
+        if (numericHeaders.length > 0) {
+            setSelectedItems(numericHeaders);
+            const safeNFactors = Math.min(3, Math.max(1, Math.floor(numericHeaders.length / 2)));
+            setNFactors(safeNFactors);
+        } else {
+            setSelectedItems([]);
+            setNFactors(1);
+        }
         setAnalysisResult(null);
         setView(data.length > 0 ? 'main' : 'intro');
     }, [numericHeaders, data]);
+
+    useEffect(() => {
+        if (selectedItems.length > 0) {
+            if (nFactors >= selectedItems.length) {
+                const safeNFactors = Math.max(1, Math.floor(selectedItems.length / 2));
+                setNFactors(safeNFactors);
+            }
+        }
+    }, [selectedItems.length]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (selectedItems.length < 3) {
-            toast({variant: 'destructive', title: 'Selection Error', description: 'Please select at least 3 variables for EFA.'});
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select at least 3 variables for EFA.' });
             return;
         }
-        if (nFactors < 1 || nFactors >= selectedItems.length) {
-            toast({variant: 'destructive', title: 'Factor Number Error', description: `Number of factors must be between 1 and ${selectedItems.length - 1}.`});
+        
+        if (isNaN(nFactors) || nFactors < 1 || nFactors >= selectedItems.length) {
+            toast({ variant: 'destructive', title: 'Factor Number Error', description: `Number of factors must be between 1 and ${selectedItems.length - 1}.` });
             return;
         }
 
@@ -265,45 +467,40 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
             const response = await fetch('/api/analysis/efa', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    data,
-                    items: selectedItems,
-                    nFactors,
-                    rotation: rotationMethod,
-                    method: extractionMethod,
-                })
+                body: JSON.stringify({ data, items: selectedItems, nFactors, rotation: rotationMethod, method: extractionMethod })
             });
 
             if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try { const errorResult = await response.json(); errorMessage = errorResult.error || errorMessage; } catch {}
+                throw new Error(errorMessage);
             }
             
             const result = await response.json();
-
-            if (result.error) {
-              throw new Error(result.error);
-            }
+            if (result.error) throw new Error(result.error);
+            
             setAnalysisResult(result);
 
         } catch (e: any) {
             console.error('Analysis error:', e);
-            toast({variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.'})
+            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.' });
             setAnalysisResult(null);
         } finally {
             setIsLoading(false);
         }
     }, [data, selectedItems, nFactors, rotationMethod, extractionMethod, toast]);
+
+    const handleNFactorsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val >= 1) setNFactors(val);
+        else if (e.target.value === '') setNFactors(1);
+    };
     
-    if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-    
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
+    if (!canRun && view === 'main') return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    if (view === 'intro') return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
 
     const results = analysisResult;
+    const maxFactors = selectedItems.length > 0 ? selectedItems.length - 1 : 1;
 
     return (
         <div className="flex flex-col gap-4">
@@ -325,14 +522,8 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
                             <div>
                                 <Label htmlFor="nFactors" className="mb-2 block">Number of Factors</Label>
-                                <Input 
-                                    id="nFactors"
-                                    type="number"
-                                    value={nFactors}
-                                    onChange={e => setNFactors(parseInt(e.target.value, 10))}
-                                    min="1"
-                                    max={selectedItems.length > 1 ? selectedItems.length - 1 : 1}
-                                />
+                                <Input id="nFactors" type="number" value={nFactors} onChange={handleNFactorsChange} min="1" max={maxFactors} />
+                                <p className="text-xs text-muted-foreground mt-1">Must be between 1 and {maxFactors}</p>
                             </div>
                              <div>
                                 <Label htmlFor="rotationMethod" className="mb-2 block flex items-center gap-1"><RotateCw className="w-4 h-4"/> Rotation Method</Label>
@@ -359,9 +550,11 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                             </div>
                         </CardContent>
                     </Card>
+                    
+                    <EfaOverview selectedItems={selectedItems} nFactors={nFactors} rotationMethod={rotationMethod} extractionMethod={extractionMethod} data={data} />
                 </CardContent>
                  <CardFooter className="flex justify-end">
-                     <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedItems.length < 3 || isLoading}>
+                     <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedItems.length < 3 || isLoading || nFactors >= selectedItems.length}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
                     </Button>
                 </CardFooter>
@@ -379,69 +572,287 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
 
             {results && (
                 <>
-                {results.plot && (
+                    {/* Statistical Summary Cards */}
+                    <StatisticalSummaryCards results={results} />
+                    
+                    {/* Detailed Analysis - 3 Section Format with APA Content */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Visual Summary</CardTitle>
+                            <CardTitle className="font-headline flex items-center gap-2">
+                                <BrainCircuit className="h-5 w-5 text-primary" />
+                                Detailed Analysis
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <Image src={results.plot} alt="EFA Visual Summary" width={1400} height={600} className="w-full rounded-md border" />
+                        <CardContent className="space-y-6">
+                            {(() => {
+                                const totalVariance = results.variance_explained.cumulative[results.n_factors - 1];
+                                const avgCommunality = results.communalities.reduce((a, b) => a + b, 0) / results.communalities.length;
+                                const strongLoadings = results.factor_loadings.flat().filter(l => Math.abs(l) > 0.4).length;
+                                const totalLoadings = results.factor_loadings.flat().length;
+                                const rotationName = rotationMethod === 'varimax' ? 'Varimax' : rotationMethod === 'promax' ? 'Promax' : rotationMethod === 'quartimax' ? 'Quartimax' : rotationMethod === 'oblimin' ? 'Direct Oblimin' : 'no';
+                                const extractionName = extractionMethod === 'principal' ? 'Principal Axis Factoring (PAF)' : 'Principal Component Analysis (PCA)';
+                                const isOrthogonal = ['varimax', 'quartimax', 'none'].includes(rotationMethod);
+                                
+                                // Get factor interpretations with loadings
+                                const factorInterpretations = [];
+                                for (let f = 0; f < results.n_factors; f++) {
+                                    const loadingsForFactor = results.variables.map((v, i) => ({
+                                        variable: v,
+                                        loading: results.factor_loadings[i][f]
+                                    })).filter(item => Math.abs(item.loading) >= 0.4)
+                                      .sort((a, b) => Math.abs(b.loading) - Math.abs(a.loading));
+                                    
+                                    factorInterpretations.push({
+                                        factorNum: f + 1,
+                                        eigenvalue: results.eigenvalues[f],
+                                        variance: results.variance_explained.per_factor[f],
+                                        items: loadingsForFactor
+                                    });
+                                }
+                                
+                                return (
+                                    <>
+                                        {/* Overall Summary - Primary Color */}
+                                        <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-6 border border-primary/40">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="p-2 bg-primary/10 rounded-md">
+                                                    <BrainCircuit className="h-4 w-4 text-primary" />
+                                                </div>
+                                                <h3 className="font-semibold text-base">Overall Summary</h3>
+                                            </div>
+                                            <div className="text-sm text-foreground/80 leading-relaxed space-y-3">
+                                                <p>
+                                                    An exploratory factor analysis (EFA) was conducted on {selectedItems.length} variables using <strong>{extractionName}</strong> with <strong>{rotationName} rotation</strong> ({isOrthogonal ? 'orthogonal' : 'oblique'}). 
+                                                    {extractionMethod === 'principal' 
+                                                        ? ' PAF focuses on shared variance among variables, making it suitable for identifying latent constructs.'
+                                                        : ' PCA maximizes variance explained, treating all variance as common variance.'}
+                                                </p>
+                                                <p>
+                                                    The analysis yielded a <strong>{results.n_factors}-factor solution</strong> explaining <strong>{totalVariance.toFixed(1)}%</strong> of total variance. 
+                                                    Prior to extraction, data adequacy was confirmed: KMO = {results.adequacy.kmo.toFixed(3)} ({results.adequacy.kmo_interpretation.toLowerCase()}), 
+                                                    Bartlett&apos;s test χ² = {results.adequacy.bartlett_statistic.toFixed(2)}, <em>p</em> {results.adequacy.bartlett_p_value < 0.001 ? '< .001' : `= ${results.adequacy.bartlett_p_value.toFixed(3)}`}.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Statistical Insights - Blue Color */}
+                                        <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/10 dark:to-indigo-950/10 rounded-lg p-6 border border-blue-300 dark:border-blue-700">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="p-2 bg-blue-500/10 rounded-md">
+                                                    <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <h3 className="font-semibold text-base">Statistical Insights</h3>
+                                            </div>
+                                            <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
+                                                {/* Factor Extraction Criteria */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                    <span>
+                                                        <strong>Factor Extraction:</strong> {results.n_factors} factor{results.n_factors !== 1 ? 's were' : ' was'} retained based on Kaiser&apos;s criterion (eigenvalues {'>'} 1.0) and scree plot examination. 
+                                                        Eigenvalues: {results.eigenvalues.slice(0, results.n_factors).map(e => e.toFixed(2)).join(', ')}.
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Variance Explained */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                    <span>
+                                                        <strong>Variance Explained:</strong> {totalVariance.toFixed(1)}% cumulative variance
+                                                        {totalVariance >= 60 ? ' (exceeds 60% threshold - good)' : totalVariance >= 50 ? ' (acceptable for exploratory research)' : ' (below recommended 60% threshold)'}.
+                                                        {results.variance_explained.per_factor.map((v, i) => ` Factor ${i+1}: ${v.toFixed(1)}%`).join(';')}.
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Sampling Adequacy */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                    <span>
+                                                        <strong>KMO ({results.adequacy.kmo.toFixed(3)}):</strong> {results.adequacy.kmo_interpretation}
+                                                        {results.adequacy.kmo >= 0.8 ? ', exceeding the recommended .80 threshold' : 
+                                                         results.adequacy.kmo >= 0.7 ? ', above the acceptable .70 threshold' :
+                                                         results.adequacy.kmo >= 0.6 ? ', meeting the minimum .60 threshold' :
+                                                         ', below the minimum .60 threshold'}.
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Bartlett's Test */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                    <span>
+                                                        <strong>Bartlett&apos;s Test:</strong> χ²({selectedItems.length * (selectedItems.length - 1) / 2}) = {results.adequacy.bartlett_statistic.toFixed(2)}, 
+                                                        <em> p</em> {results.adequacy.bartlett_p_value < 0.001 ? '< .001' : `= ${results.adequacy.bartlett_p_value.toFixed(3)}`} — 
+                                                        {results.adequacy.bartlett_significant ? ' significant correlations exist among variables.' : ' correlations may be insufficient.'}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Communalities */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                    <span>
+                                                        <strong>Average Communality ({avgCommunality.toFixed(3)}):</strong>
+                                                        {avgCommunality >= 0.6 ? ' Good shared variance — variables are well-represented by extracted factors.' :
+                                                         avgCommunality >= 0.4 ? ' Moderate shared variance — most variables fit the factor structure adequately.' :
+                                                         ' Low shared variance — some variables may not belong in this factor structure.'}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Factor Loadings Summary */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-blue-600 dark:text-blue-400 font-bold mt-0.5">→</span>
+                                                    <span>
+                                                        <strong>Factor Loadings:</strong> {strongLoadings} of {totalLoadings} loadings ({((strongLoadings/totalLoadings)*100).toFixed(0)}%) exceed |.40| threshold, 
+                                                        indicating {(strongLoadings/totalLoadings) >= 0.5 ? 'clear' : 'moderate'} factor-variable associations.
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Factor Interpretation */}
+                                                <div className="mt-4 space-y-2">
+                                                    <p className="font-medium text-blue-700 dark:text-blue-300">Factor Loadings by Factor (|loading| ≥ .40):</p>
+                                                    {factorInterpretations.map((factor, idx) => (
+                                                        <div key={idx} className="bg-white/50 dark:bg-gray-800/30 rounded-md p-3 border border-blue-200 dark:border-blue-800 ml-4">
+                                                            <p className="font-medium mb-1">
+                                                                Factor {factor.factorNum}: Eigenvalue = {factor.eigenvalue.toFixed(2)}, {factor.variance.toFixed(1)}% variance
+                                                            </p>
+                                                            {factor.items.length > 0 ? (
+                                                                <p className="text-muted-foreground">
+                                                                    {factor.items.map(item => `${item.variable} (${item.loading.toFixed(3)})`).join(', ')}
+                                                                </p>
+                                                            ) : (
+                                                                <p className="text-muted-foreground italic">No loadings ≥ |.40|</p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Recommendations - Amber Color */}
+                                        <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/10 dark:to-orange-950/10 rounded-lg p-6 border border-amber-300 dark:border-amber-700">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="p-2 bg-amber-500/10 rounded-md">
+                                                    <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                                </div>
+                                                <h3 className="font-semibold text-base">Recommendations</h3>
+                                            </div>
+                                            <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
+                                                {/* Conditional recommendations based on results */}
+                                                {totalVariance < 60 && (
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                        <span>Consider extracting additional factors or revising the variable set to improve variance explained (current: {totalVariance.toFixed(1)}%, target: ≥60%).</span>
+                                                    </div>
+                                                )}
+                                                {results.adequacy.kmo < 0.7 && (
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                        <span>Review items with low individual KMO values and consider removal to improve sampling adequacy (current KMO: {results.adequacy.kmo.toFixed(3)}).</span>
+                                                    </div>
+                                                )}
+                                                {avgCommunality < 0.5 && (
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                        <span>Variables with communalities below .40 may not share sufficient variance and could be candidates for removal.</span>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Standard recommendations */}
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                    <span><strong>Confirm factor structure:</strong> Use Confirmatory Factor Analysis (CFA) in an independent sample to validate the {results.n_factors}-factor solution.</span>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                    <span><strong>Assess reliability:</strong> Calculate Cronbach&apos;s α for items loading on each factor to evaluate internal consistency of subscales.</span>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                    <span><strong>Review cross-loadings:</strong> Items with loadings {'>'}.30 on multiple factors may be candidates for revision or removal to achieve simple structure.</span>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                    <span><strong>Name factors:</strong> Label each factor based on the theoretical meaning of its high-loading items to facilitate interpretation and communication.</span>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-amber-600 dark:text-amber-400 font-bold mt-0.5">→</span>
+                                                    <span><strong>Report in APA format:</strong> Include extraction method, rotation, KMO, Bartlett&apos;s test, eigenvalues, variance explained, and factor loadings table in publications.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </CardContent>
                     </Card>
-                )}
-                <InterpretationDisplay results={results} />
-                <div className="grid lg:grid-cols-3 gap-4">
-                    <Card className="lg:col-span-1">
-                        <CardHeader>
-                            <CardTitle className="font-headline">Data Adequacy</CardTitle>
-                        </CardHeader>
-                         <CardContent>
-                            <dl className="space-y-4 text-sm">
-                                <div>
-                                    <dt className="font-medium">Kaiser-Meyer-Olkin (KMO) Test</dt>
-                                    <dd className="font-mono text-lg">{results.adequacy.kmo.toFixed(3)} <Badge>{results.adequacy.kmo_interpretation}</Badge></dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium">Bartlett's Test of Sphericity</dt>
-                                    <dd>
-                                        <span className="font-mono">
-                                            χ² ≈ {results.adequacy.bartlett_statistic?.toFixed(2) ?? 'N/A'}, p {results.adequacy.bartlett_p_value < 0.001 ? '< .001' : results.adequacy.bartlett_p_value?.toFixed(3) ?? 'N/A'}
-                                        </span>
-                                        {results.adequacy.bartlett_significant ? <Badge>Significant</Badge> : <Badge variant="secondary">Not Significant</Badge>}
-                                    </dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle className="font-headline">Total Variance Explained</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Factor</TableHead>
-                                        <TableHead className="text-right">Eigenvalue</TableHead>
-                                        <TableHead className="text-right">% of Variance</TableHead>
-                                        <TableHead className="text-right">Cumulative %</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {results.eigenvalues.slice(0, results.n_factors).map((ev, i) => (
-                                         <TableRow key={i}>
-                                            <TableCell>Factor {i+1}</TableCell>
-                                            <TableCell className="text-right font-mono">{ev.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{results.variance_explained.per_factor[i].toFixed(2)}%</TableCell>
-                                            <TableCell className="text-right font-mono">{results.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
+                
+                    {/* Visual Summary */}
+                    {results.plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Visual Summary</CardTitle>
+                                <CardDescription>Scree plot, factor loadings heatmap, and communalities</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={results.plot} alt="EFA Visual Summary" width={1400} height={600} className="w-full rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    )}
+                
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-1">
+                            <CardHeader>
+                                <CardTitle className="font-headline">Data Adequacy</CardTitle>
+                            </CardHeader>
+                             <CardContent>
+                                <dl className="space-y-4 text-sm">
+                                    <div>
+                                        <dt className="font-medium mb-1">Kaiser-Meyer-Olkin (KMO) Test</dt>
+                                        <dd className="flex items-center gap-2">
+                                            <span className="font-mono text-lg">{results.adequacy.kmo.toFixed(3)}</span>
+                                            <Badge>{results.adequacy.kmo_interpretation}</Badge>
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="font-medium mb-1">Bartlett&apos;s Test of Sphericity</dt>
+                                        <dd className="space-y-1">
+                                            <div className="font-mono text-sm">χ² = {results.adequacy.bartlett_statistic?.toFixed(2) ?? 'N/A'}</div>
+                                            <div className="font-mono text-sm">p {results.adequacy.bartlett_p_value < 0.001 ? '< .001' : `= ${results.adequacy.bartlett_p_value?.toFixed(3) ?? 'N/A'}`}</div>
+                                            <div>{results.adequacy.bartlett_significant ? <Badge>Significant</Badge> : <Badge variant="secondary">Not Significant</Badge>}</div>
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </CardContent>
+                        </Card>
+                        
+                        <Card className="lg:col-span-2">
+                            <CardHeader>
+                                <CardTitle className="font-headline">Total Variance Explained</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Factor</TableHead>
+                                            <TableHead className="text-right">Eigenvalue</TableHead>
+                                            <TableHead className="text-right">% of Variance</TableHead>
+                                            <TableHead className="text-right">Cumulative %</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </div>
-                 <Card>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.eigenvalues.slice(0, results.n_factors).map((ev, i) => (
+                                             <TableRow key={i}>
+                                                <TableCell>Factor {i+1}</TableCell>
+                                                <TableCell className="text-right font-mono">{ev.toFixed(3)}</TableCell>
+                                                <TableCell className="text-right font-mono">{results.variance_explained.per_factor[i].toFixed(2)}%</TableCell>
+                                                <TableCell className="text-right font-mono">{results.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                
+                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Factor Loadings (Rotated)</CardTitle>
                             <CardDescription>Indicates how much each variable is associated with each factor. Loadings &gt; 0.4 are highlighted.</CardDescription>
@@ -451,7 +862,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Variable</TableHead>
+                                            <TableHead className="sticky left-0 bg-background">Variable</TableHead>
                                             {Array.from({length: results.n_factors}, (_, i) => (
                                                 <TableHead key={i} className="text-right">Factor {i+1}</TableHead>
                                             ))}
@@ -460,12 +871,9 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                     <TableBody>
                                         {results.variables.map((variable, varIndex) => (
                                             <TableRow key={variable}>
-                                                <TableCell className="font-medium">{variable}</TableCell>
+                                                <TableCell className="font-medium sticky left-0 bg-background">{variable}</TableCell>
                                                 {results.factor_loadings[varIndex].map((loading, factorIndex) => (
-                                                    <TableCell 
-                                                        key={factorIndex} 
-                                                        className={`text-right font-mono ${Math.abs(loading) >= 0.4 ? 'font-bold text-primary' : ''}`}
-                                                    >
+                                                    <TableCell key={factorIndex} className={`text-right font-mono ${Math.abs(loading) >= 0.4 ? 'font-bold text-primary' : ''}`}>
                                                         {loading.toFixed(3)}
                                                     </TableCell>
                                                 ))}
@@ -478,9 +886,11 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                     </Card>
                 </>
             )}
+            
             {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
-                    <p>Select variables and click 'Run Analysis' to see EFA results.</p>
+                    <BrainCircuit className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2">Select variables and click &apos;Run Analysis&apos; to see EFA results.</p>
                 </div>
             )}
         </div>

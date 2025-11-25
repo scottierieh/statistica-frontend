@@ -1,11 +1,10 @@
-
-
 import sys
 import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 from scipy import stats
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
@@ -13,6 +12,10 @@ import io
 import base64
 import warnings
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 class MediationAnalysis:
     """
@@ -235,45 +238,179 @@ class MediationAnalysis:
         interp += conclusion
         self.results['interpretation'] = interp
 
-
     def plot_results(self):
         if 'baron_kenny' not in self.results:
             return None
 
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # Define consistent colors
+        line_color = '#C44E52'
+        primary_color = '#5B9BD5'
+        significant_color = '#2E7D32'
+        nonsig_color = '#757575'
+        
         bk = self.results['baron_kenny']
+        boot = self.results.get('bootstrap')
 
-        # Path Model
-        ax_path = axes[0]
-        nodes = {'X': (0.1, 0.5), 'M': (0.5, 0.8), 'Y': (0.9, 0.5)}
-        for var, (x, y) in nodes.items():
-            name = getattr(self, f'{var}_name')
-            ax_path.text(x, y, name, ha='center', va='center', fontweight='bold', fontsize=12,
-                         bbox=dict(boxstyle="round,pad=0.5", fc="skyblue", ec="b", lw=2, alpha=0.5))
+        # 1. Path Diagram (Top Left)
+        ax = axes[0, 0]
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+        
+        # Node positions
+        x_pos = (1.5, 5)
+        m_pos = (5, 8)
+        y_pos = (8.5, 5)
+        
+        # Draw boxes
+        box_width, box_height = 1.8, 1.3
+        
+        # X box - light blue
+        x_box = FancyBboxPatch((x_pos[0]-box_width/2, x_pos[1]-box_height/2), 
+                               box_width, box_height, boxstyle="round,pad=0.15", 
+                               facecolor='#E3F2FD', edgecolor='#1976D2', linewidth=2.5)
+        ax.add_patch(x_box)
+        ax.text(x_pos[0], x_pos[1], self.X_name, ha='center', va='center',
+                fontsize=10, fontweight='bold', wrap=True)
+        
+        # M box - light green
+        m_box = FancyBboxPatch((m_pos[0]-box_width/2, m_pos[1]-box_height/2), 
+                               box_width, box_height, boxstyle="round,pad=0.15", 
+                               facecolor='#E8F5E9', edgecolor='#388E3C', linewidth=2.5)
+        ax.add_patch(m_box)
+        ax.text(m_pos[0], m_pos[1], self.M_name, ha='center', va='center',
+                fontsize=10, fontweight='bold', wrap=True)
+        
+        # Y box - light red
+        y_box = FancyBboxPatch((y_pos[0]-box_width/2, y_pos[1]-box_height/2), 
+                               box_width, box_height, boxstyle="round,pad=0.15", 
+                               facecolor='#FFEBEE', edgecolor='#D32F2F', linewidth=2.5)
+        ax.add_patch(y_box)
+        ax.text(y_pos[0], y_pos[1], self.Y_name, ha='center', va='center',
+                fontsize=10, fontweight='bold', wrap=True)
+        
+        # Draw arrows with coefficients
+        # X -> M (path a)
+        a_sig = bk['path_a']['p_value'] < 0.05
+        arrow_a_color = significant_color if a_sig else nonsig_color
+        arrow_a = FancyArrowPatch((x_pos[0]+box_width/2+0.1, x_pos[1]+0.4), 
+                                 (m_pos[0]-box_width/2-0.1, m_pos[1]-0.4),
+                                 arrowstyle='->', lw=2.5 if a_sig else 1.5, 
+                                 color=arrow_a_color, mutation_scale=20)
+        ax.add_patch(arrow_a)
+        # Label for path a
+        ax.text(2.8, 7, f'a = {bk["path_a"]["coef"]:.3f}{"*" if a_sig else ""}',
+                fontsize=9, fontweight='bold', 
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor=arrow_a_color, linewidth=1.5))
+        
+        # M -> Y (path b)
+        b_sig = bk['path_b']['p_value'] < 0.05
+        arrow_b_color = significant_color if b_sig else nonsig_color
+        arrow_b = FancyArrowPatch((m_pos[0]+box_width/2+0.1, m_pos[1]-0.4), 
+                                 (y_pos[0]-box_width/2-0.1, y_pos[1]+0.4),
+                                 arrowstyle='->', lw=2.5 if b_sig else 1.5, 
+                                 color=arrow_b_color, mutation_scale=20)
+        ax.add_patch(arrow_b)
+        # Label for path b
+        ax.text(7.2, 7, f'b = {bk["path_b"]["coef"]:.3f}{"*" if b_sig else ""}',
+                fontsize=9, fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor=arrow_b_color, linewidth=1.5))
+        
+        # X -> Y (path c')
+        c_prime_sig = bk['path_c_prime']['p_value'] < 0.05
+        arrow_c_color = significant_color if c_prime_sig else nonsig_color
+        arrow_c = FancyArrowPatch((x_pos[0]+box_width/2+0.1, x_pos[1]), 
+                                 (y_pos[0]-box_width/2-0.1, y_pos[1]),
+                                 arrowstyle='->', lw=2.5 if c_prime_sig else 1.5, 
+                                 color=arrow_c_color, mutation_scale=20,
+                                 connectionstyle="arc3,rad=0.3")
+        ax.add_patch(arrow_c)
+        # Label for path c'
+        ax.text(5, 3.5, f"c' = {bk['path_c_prime']['coef']:.3f}{'*' if c_prime_sig else ''}",
+                fontsize=9, fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor=arrow_c_color, linewidth=1.5))
+        
+        # Add legend for significance
+        ax.text(0.5, 0.8, '* p < .05', fontsize=8, style='italic')
+        ax.text(0.5, 0.3, f'Indirect Effect = {bk["indirect_effect"]:.3f}', 
+                fontsize=9, fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#FFF9C4', edgecolor='#F57F17', linewidth=2))
+        
+        ax.set_title('Mediation Path Diagram', fontsize=13, fontweight='bold', pad=10)
 
-        ax_path.annotate(f"a = {bk['path_a']['coef']:.3f}", xy=(0.3, 0.65), xytext=(0.3, 0.65))
-        ax_path.annotate('', xy=(0.44, 0.74), xytext=(0.16, 0.56), arrowprops=dict(arrowstyle='->', lw=2))
-        
-        ax_path.annotate(f"b = {bk['path_b']['coef']:.3f}", xy=(0.7, 0.65), xytext=(0.7, 0.65))
-        ax_path.annotate('', xy=(0.84, 0.56), xytext=(0.56, 0.74), arrowprops=dict(arrowstyle='->', lw=2))
-        
-        ax_path.annotate(f"c' = {bk['path_c_prime']['coef']:.3f}", xy=(0.5, 0.35), xytext=(0.5, 0.35))
-        ax_path.annotate('', xy=(0.8, 0.45), xytext=(0.2, 0.45), arrowprops=dict(arrowstyle='->', lw=2))
-        
-        ax_path.set_xlim(0, 1); ax_path.set_ylim(0, 1)
-        ax_path.set_title('Path Model', fontweight='bold'); ax_path.axis('off')
-
-        # Effects Bar Chart
+        # 2. Effect Decomposition (Top Right)
         effects = [bk['path_c']['coef'], bk['path_c_prime']['coef'], bk['indirect_effect']]
-        effect_names = ['Total (c)', 'Direct (c\')', 'Indirect (ab)']
-        axes[1].bar(effect_names, effects, color=['#3498db', '#2ecc71', '#f39c12'])
-        axes[1].set_title('Effect Decomposition', fontweight='bold')
-        axes[1].set_ylabel('Effect Size')
+        effect_names = ['Total Effect\n(c)', 'Direct Effect\n(c\')', 'Indirect Effect\n(a×b)']
+        colors = [primary_color, line_color, '#F4A582']
+        
+        bars = axes[0, 1].bar(effect_names, effects, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+        axes[0, 1].axhline(y=0, color='grey', linestyle='-', lw=1)
+        axes[0, 1].set_ylabel('Standardized Coefficient', fontsize=12)
+        axes[0, 1].set_title('Effect Decomposition', fontsize=13, fontweight='bold')
+        
+        # Add value labels
+        for bar, effect in zip(bars, effects):
+            height = bar.get_height()
+            axes[0, 1].text(bar.get_x() + bar.get_width()/2., height,
+                          f'{effect:.3f}', ha='center', va='bottom' if height > 0 else 'top', fontsize=9)
+
+        # 3. Bootstrap Distribution (Bottom Left)
+        if boot:
+            axes[1, 0].hist(boot['indirect_effects'], bins=50, alpha=0.7, color=primary_color, edgecolor='black')
+            axes[1, 0].axvline(boot['mean_effect'], color=line_color, linestyle='--', lw=2, label=f"Mean: {boot['mean_effect']:.3f}")
+            axes[1, 0].axvline(boot['ci_lower'], color='green', linestyle=':', lw=2, label=f"95% CI: [{boot['ci_lower']:.3f}, {boot['ci_upper']:.3f}]")
+            axes[1, 0].axvline(boot['ci_upper'], color='green', linestyle=':', lw=2)
+            axes[1, 0].axvline(0, color='red', linestyle='-', lw=2, alpha=0.5, label='Null')
+            axes[1, 0].set_xlabel('Indirect Effect', fontsize=12)
+            axes[1, 0].set_ylabel('Frequency', fontsize=12)
+            axes[1, 0].set_title('Bootstrap Distribution of Indirect Effect', fontsize=13, fontweight='bold')
+            axes[1, 0].legend(fontsize=9)
+        else:
+            axes[1, 0].text(0.5, 0.5, 'Bootstrap analysis\nnot available', 
+                          ha='center', va='center', fontsize=12)
+            axes[1, 0].set_title('Bootstrap Distribution', fontsize=13, fontweight='bold')
+            axes[1, 0].axis('off')
+
+        # 4. Path Coefficients Summary Table (Bottom Right)
+        ax = axes[1, 1]
+        ax.axis('off')
+        
+        # Create summary table
+        table_data = [
+            ['Path', 'Coefficient', 'SE', 't/z', 'p-value'],
+            ['a (X→M)', f"{bk['path_a']['coef']:.3f}", f"{bk['path_a']['se']:.3f}", 
+             f"{bk['path_a']['t_stat']:.2f}", f"{bk['path_a']['p_value']:.3f}" if bk['path_a']['p_value'] >= 0.001 else '<.001'],
+            ['b (M→Y)', f"{bk['path_b']['coef']:.3f}", f"{bk['path_b']['se']:.3f}", 
+             f"{bk['path_b']['t_stat']:.2f}", f"{bk['path_b']['p_value']:.3f}" if bk['path_b']['p_value'] >= 0.001 else '<.001'],
+            ["c' (X→Y)", f"{bk['path_c_prime']['coef']:.3f}", f"{bk['path_c_prime']['se']:.3f}", 
+             f"{bk['path_c_prime']['t_stat']:.2f}", f"{bk['path_c_prime']['p_value']:.3f}" if bk['path_c_prime']['p_value'] >= 0.001 else '<.001'],
+            ['c (Total)', f"{bk['path_c']['coef']:.3f}", f"{bk['path_c']['se']:.3f}", 
+             f"{bk['path_c']['t_stat']:.2f}", f"{bk['path_c']['p_value']:.3f}" if bk['path_c']['p_value'] >= 0.001 else '<.001'],
+        ]
+        
+        if boot:
+            table_data.append(['Indirect (a×b)', f"{boot['mean_effect']:.3f}", f"{boot['se']:.3f}", 
+                             '—', 'Bootstrap CI'])
+        
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center', 
+                        colWidths=[0.2, 0.2, 0.2, 0.15, 0.25])
+        table.auto_set_font_size(False)
+        table.set_fontsize(9)
+        table.scale(1, 2)
+        
+        # Style header row
+        for i in range(5):
+            table[(0, i)].set_facecolor('#E8E8E8')
+            table[(0, i)].set_text_props(weight='bold')
+        
+        ax.set_title('Path Coefficients Summary', fontsize=13, fontweight='bold', pad=20)
 
         plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         image_base64 = base64.b64encode(buf.read()).decode('utf-8')

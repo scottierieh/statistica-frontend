@@ -67,7 +67,7 @@ export default function GuidePage() {
     <div className="space-y-6">
       <Card className="bg-gradient-to-br from-primary/10 to-background">
         <CardHeader>
-          <CardTitle className="font-headline text-3xl">Statistica Guide</CardTitle>
+          <CardTitle className="font-headline text-3xl">Statistica Overview</CardTitle>
           <CardDescription>A comprehensive reference for all available statistical analysis methods.</CardDescription>
         </CardHeader>
       </Card>
@@ -75,7 +75,7 @@ export default function GuidePage() {
       <Tabs defaultValue="mindmap">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
-          <TabsTrigger value="byCategory">By Field</TabsTrigger>
+          <TabsTrigger value="byCategory">By Categories</TabsTrigger>
           <TabsTrigger value="byAnalysis">By Analysis</TabsTrigger>
         </TabsList>
         <TabsContent value="mindmap">
@@ -92,7 +92,7 @@ export default function GuidePage() {
         <TabsContent value="byCategory">
           <Card>
             <CardHeader>
-              <CardTitle>Analysis Methods by Field</CardTitle>
+              <CardTitle>Analysis Methods by Categories</CardTitle>
               <CardDescription>Find the right tool for your research question, grouped by statistical area.</CardDescription>
             </CardHeader>
             <CardContent>

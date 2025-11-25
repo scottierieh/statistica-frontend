@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import pandas as pd
@@ -74,8 +72,32 @@ def main():
 
         df = pd.DataFrame(data)
         
+        # Track original indices before any operations
+        original_length = len(df)
+        df['__original_index__'] = range(original_length)
+        
+        # Select relevant columns
+        df_subset = df[[row_var, col_var, '__original_index__']].copy()
+        
+        # Track missing data
+        missing_mask = df_subset[[row_var, col_var]].isnull().any(axis=1)
+        dropped_indices = df_subset.loc[missing_mask, '__original_index__'].tolist()
+        
+        # Drop missing values
+        df_clean = df_subset.dropna(subset=[row_var, col_var])
+        
+        # Store dropped row information
+        n_dropped = len(dropped_indices)
+        dropped_rows = sorted(dropped_indices)
+        
+        # Remove tracking column
+        df_clean = df_clean.drop(columns=['__original_index__'])
+        
+        if len(df_clean) < 2:
+            raise ValueError("Not enough valid data points for analysis after removing missing values")
+        
         # Create contingency table
-        contingency_table = pd.crosstab(df[row_var], df[col_var])
+        contingency_table = pd.crosstab(df_clean[row_var], df_clean[col_var])
         
         # --- Chi-squared test ---
         chi2_stat, p_val, dof, expected = chi2_contingency(contingency_table)
@@ -98,16 +120,17 @@ def main():
         interpretation = get_full_interpretation(chi2_stat, p_val, dof, cramers_v, total, row_var, col_var, standardized_residuals)
 
         # --- Plotting ---
-        plt.figure(figsize=(10, 6))
-        sns.countplot(data=df, x=row_var, hue=col_var, palette='viridis')
-        plt.title(f'Grouped Bar Chart: {row_var} vs {col_var}')
-        plt.xlabel(row_var)
-        plt.ylabel('Count')
-        plt.xticks(rotation=45, ha='right')
+        plt.figure(figsize=(8, 5))
+        sns.countplot(data=df_clean, x=row_var, hue=col_var, palette='viridis')
+        plt.title(f'Grouped Bar Chart: {row_var} vs {col_var}', fontsize=12)
+        plt.xlabel(row_var, fontsize=10)
+        plt.ylabel('Count', fontsize=10)
+        plt.xticks(rotation=45, ha='right', fontsize=9)
+        plt.legend(title=col_var, fontsize=9)
         plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close()
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
@@ -127,7 +150,10 @@ def main():
                 'row_var': row_var,
                 'col_var': col_var,
                 'row_levels': contingency_table.index.tolist(),
-                'col_levels': contingency_table.columns.tolist()
+                'col_levels': contingency_table.columns.tolist(),
+                'expected_frequencies': expected.tolist(),
+                'n_dropped': n_dropped,
+                'dropped_rows': dropped_rows
             },
             'plot': f"data:image/png;base64,{plot_image}"
         }

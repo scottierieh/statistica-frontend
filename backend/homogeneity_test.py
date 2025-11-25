@@ -71,9 +71,10 @@ def main():
             interpretation_text = f"The test is significant (p <= {alpha}), indicating that the variances are not equal across groups. The assumption of homogeneity of variances is violated."
 
         # --- Plotting ---
-        plt.figure(figsize=(8, 6))
-        sns.boxplot(x=group_var, y=value_var, data=clean_data, palette='viridis')
-        plt.title(f'Distribution of {value_var} by {group_var}')
+        sns.set_theme(style="darkgrid")
+        sns.set_context("notebook", font_scale=1.1)
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x=group_var, y=value_var, data=clean_data, palette='crest')
         plt.xlabel(group_var)
         plt.ylabel(value_var)
         plt.tight_layout()
@@ -104,3 +105,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

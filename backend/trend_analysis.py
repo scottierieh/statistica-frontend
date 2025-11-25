@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -11,6 +10,10 @@ import base64
 import warnings
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally (consistent with other analyses)
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -57,24 +60,33 @@ def main():
         seasonal = decomposition.seasonal.dropna()
         resid = decomposition.resid.dropna()
 
-        # --- Plotting ---
+        # --- Plotting with consistent style ---
         fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
         
-        df[value_col].plot(ax=ax1, title='Original Series')
-        ax1.set_ylabel('Value')
+        # Original Series
+        ax1.plot(df.index, df[value_col], color='#1f77b4', linewidth=2, alpha=0.8)
+        ax1.set_ylabel('Value', fontsize=12)
+        ax1.grid(True)
 
-        trend.plot(ax=ax2, title='Trend')
-        ax2.set_ylabel('Trend')
+        # Trend
+        ax2.plot(trend.index, trend.values, color='#ff7f0e', linewidth=2, alpha=0.8)
+        ax2.set_ylabel('Trend', fontsize=12)
+        ax2.grid(True)
         
-        seasonal.plot(ax=ax3, title='Seasonality')
-        ax3.set_ylabel('Seasonal')
+        # Seasonality
+        ax3.plot(seasonal.index, seasonal.values, color='#2ca02c', linewidth=2, alpha=0.8)
+        ax3.set_ylabel('Seasonal', fontsize=12)
+        ax3.grid(True)
         
-        resid.plot(ax=ax4, title='Residuals', marker='o', linestyle='None', alpha=0.5)
-        ax4.set_ylabel('Residual')
+        # Residuals
+        ax4.scatter(resid.index, resid.values, alpha=0.5, color='#d62728', s=20)
+        ax4.set_ylabel('Residual', fontsize=12)
+        ax4.set_xlabel(time_col, fontsize=12)
+        ax4.grid(True)
         
         plt.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')

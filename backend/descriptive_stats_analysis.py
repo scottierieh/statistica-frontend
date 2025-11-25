@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -8,6 +7,10 @@ import seaborn as sns
 import io
 import base64
 from scipy.stats import skew, kurtosis, mode
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -20,8 +23,35 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
+def get_numeric_insights(stats):
+    insights = []
+    
+    # Skewness interpretation
+    skewness_val = stats.get('skewness', 0)
+    if abs(skewness_val) < 0.5:
+        insights.append(f"The data appears to be roughly symmetrical (skewness = {skewness_val:.2f}).")
+    elif abs(skewness_val) < 1:
+        insights.append(f"The data is moderately skewed (skewness = {skewness_val:.2f}).")
+    else:
+        insights.append(f"The data is highly skewed (skewness = {skewness_val:.2f}).")
+        
+    # Coefficient of Variation (CV)
+    mean_val = stats.get('mean', 0)
+    std_dev = stats.get('stdDev', 0)
+    if mean_val != 0:
+        cv = (std_dev / mean_val) * 100
+        if cv < 15:
+            insights.append(f"The standard deviation ({std_dev:.2f}) is low relative to the mean, indicating low variability (CV = {cv:.1f}%).")
+        elif cv < 30:
+            insights.append(f"The standard deviation ({std_dev:.2f}) indicates moderate variability relative to the mean (CV = {cv:.1f}%).")
+        else:
+            insights.append(f"The standard deviation ({std_dev:.2f}) is high relative to the mean, indicating high variability (CV = {cv:.1f}%).")
+    
+    return insights
+
+
 def get_numeric_stats(series):
-    if series.empty: return None
+    if series.empty: return None, []
     stats = {
         'count': int(series.count()),
         'missing': int(series.isnull().sum()),
@@ -35,10 +65,11 @@ def get_numeric_stats(series):
         'skewness': float(skew(series)),
         'kurtosis': float(kurtosis(series)),
     }
-    return stats
+    insights = get_numeric_insights(stats)
+    return stats, insights
 
 def get_categorical_stats(series):
-    if series.empty: return None
+    if series.empty: return None, []
     freq_table = series.value_counts().reset_index()
     freq_table.columns = ['Value', 'Frequency']
     total = freq_table['Frequency'].sum()
@@ -50,24 +81,136 @@ def get_categorical_stats(series):
         'unique': int(series.nunique()),
         'mode': series.mode().iloc[0] if not series.mode().empty else None,
     }
-    return {'table': freq_table.to_dict('records'), 'summary': summary}
 
-def create_plot(series, is_numeric, var_name):
-    fig, ax = plt.subplots(figsize=(10, 6))
-    if is_numeric:
-        sns.histplot(series, kde=True, ax=ax)
-        ax.set_title(f'Distribution of {var_name}')
-    else:
-        top_n = series.value_counts().nlargest(20)
-        sns.barplot(x=top_n.values, y=top_n.index, ax=ax, orient='h')
-        ax.set_title(f'Frequency of {var_name}')
+    insights = []
+    if not freq_table.empty:
+        top_category_pct = freq_table['Percentage'].iloc[0]
+        if top_category_pct > 50:
+            insights.append(f"The category '{freq_table['Value'].iloc[0]}' is dominant, making up {top_category_pct:.1f}% of the data.")
+    
+    return {'table': freq_table.to_dict('records'), 'summary': summary}, insights
+
+def create_histogram(series, var_name):
+    """Create histogram with KDE for numeric data"""
+    fig, ax = plt.subplots(figsize=(10,8))
+    sns.histplot(series, kde=True, ax=ax, color='#5B9BD5')
+    ax.set_xlabel(var_name, fontsize=12)
+    ax.set_ylabel('Frequency', fontsize=12)
     plt.tight_layout()
     
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.read()).decode('utf-8')
+
+def create_boxplot(series, var_name):
+    """Create boxplot for numeric data"""
+    fig, ax = plt.subplots(figsize=(10, 8))
+    bp = sns.boxplot(y=series, ax=ax, palette='Set2')  # Beau blue
+    
+    # Apply alpha (transparency) to the box patches
+    for patch in ax.artists:
+        r, g, b, a = patch.get_facecolor()
+        patch.set_facecolor((r, g, b, 0.7))  # Set alpha to 0.7
+    
+    ax.set_ylabel(var_name, fontsize=12)
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def create_bar_chart(series, var_name):
+    """Create bar chart for categorical data"""
+    fig, ax = plt.subplots(figsize=(10, 8))
+    top_n = series.value_counts().nlargest(20)
+    sns.barplot(x=top_n.values, y=top_n.index, ax=ax, orient='h', palette='crest')
+    ax.set_xlabel('Frequency', fontsize=12)
+    ax.set_ylabel(var_name, fontsize=12)
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def create_pie_chart(series, var_name):
+    """Create pie chart for categorical data"""
+    fig, ax = plt.subplots(figsize=(10, 4))
+    value_counts = series.value_counts().nlargest(10)  # Top 10 categories
+    colors = sns.color_palette('iridis', n_colors=len(value_counts))
+    
+    # Create pie without labels on the chart
+    wedges, texts, autotexts = ax.pie(
+        value_counts.values, 
+        autopct='%1.1f%%',
+        colors=colors, 
+        startangle=90
+    )
+    
+    # Add legend with labels
+    ax.legend(wedges, value_counts.index, 
+              title="Categories",
+              loc="center left",
+              bbox_to_anchor=(1, 0, 0.5, 1))
+    
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def create_donut_chart(series, var_name):
+    """Create donut chart for categorical data"""
+    fig, ax = plt.subplots(figsize=(10, 55))
+    value_counts = series.value_counts().nlargest(10)  # Top 10 categories
+    colors = sns.color_palette('vlag', n_colors=len(value_counts))
+    
+    # Create donut without labels on the chart
+    wedges, texts, autotexts = ax.pie(
+        value_counts.values, 
+        autopct='%1.1f%%', 
+        colors=colors, 
+        startangle=90
+    )
+    
+    # Draw circle in center to create donut effect
+    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+    ax.add_artist(centre_circle)
+    
+    # Add legend with labels
+    ax.legend(wedges, value_counts.index, 
+              title="Categories",
+              loc="center left",
+              bbox_to_anchor=(1, 0, 0.5, 1))
+    
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def create_plots(series, is_numeric, var_name):
+    """Create all relevant plots for the data type"""
+    plots = {}
+    
+    if is_numeric:
+        plots['histogram'] = create_histogram(series, var_name)
+        plots['boxplot'] = create_boxplot(series, var_name)
+    else:
+        plots['bar'] = create_bar_chart(series, var_name)
+        plots['pie'] = create_pie_chart(series, var_name)
+        plots['donut'] = create_donut_chart(series, var_name)
+    
+    return plots
 
 def main():
     try:
@@ -83,7 +226,31 @@ def main():
             if group_by_var and group_by_var not in df.columns:
                 all_results[var] = {"error": f"Group By variable '{group_by_var}' not found"}
                 continue
+            
+            # --- Overall (non-grouped) analysis ---
+            series = df[var].dropna()
+            is_numeric = pd.api.types.is_numeric_dtype(df[var])
+            var_result = {}
 
+            if is_numeric:
+                numeric_series = pd.to_numeric(series, errors='coerce').dropna()
+                if not numeric_series.empty:
+                    stats, insights = get_numeric_stats(numeric_series)
+                    plots = create_plots(numeric_series, True, var)
+                    var_result = {'type': 'numeric', 'stats': stats, 'plots': plots, 'insights': insights}
+                else:
+                    var_result = {'error': 'No numeric data to analyze.'}
+            else:
+                if not series.empty:
+                    stats, insights = get_categorical_stats(series)
+                    plots = create_plots(series, False, var)
+                    var_result = {'type': 'categorical', **stats, 'plots': plots, 'insights': insights}
+                else:
+                    var_result = {'error': 'No categorical data to analyze.'}
+            
+            all_results[var] = var_result
+
+            # --- Grouped analysis if requested ---
             if group_by_var:
                 grouped = df.groupby(group_by_var)
                 grouped_stats = {}
@@ -91,64 +258,21 @@ def main():
                 
                 for name, group in grouped:
                     group_series = group[var].dropna()
-                    is_numeric = pd.api.types.is_numeric_dtype(group[var])
                     
                     if is_numeric:
-                        numeric_series = pd.to_numeric(group_series, errors='coerce').dropna()
-                        if not numeric_series.empty:
-                            grouped_stats[str(name)] = get_numeric_stats(numeric_series)
+                        numeric_group_series = pd.to_numeric(group_series, errors='coerce').dropna()
+                        if not numeric_group_series.empty:
+                            stats, _ = get_numeric_stats(numeric_group_series)
+                            grouped_stats[str(name)] = stats
                     else:
                         if not group_series.empty:
-                            stats = get_categorical_stats(group_series)
+                            stats, _ = get_categorical_stats(group_series)
                             grouped_table[str(name)] = stats['table']
-
-                # Grouped results structure
-                is_numeric = pd.api.types.is_numeric_dtype(df[var])
                 
                 if is_numeric:
-                    all_results[var] = {'type': 'numeric', 'groupedStats': grouped_stats}
+                    all_results[var]['groupedStats'] = grouped_stats
                 else:
-                    all_results[var] = {'type': 'categorical', 'groupedTable': grouped_table}
-                
-                # Fallback to overall stats and plot for visualization if needed (optional, but good practice)
-                series = df[var].dropna()
-                if not series.empty:
-                    if is_numeric:
-                        numeric_series = pd.to_numeric(series, errors='coerce').dropna()
-                        if not numeric_series.empty:
-                            all_results[var]['stats'] = get_numeric_stats(numeric_series)
-                            all_results[var]['plot'] = create_plot(numeric_series, True, var)
-                    else:
-                        stats = get_categorical_stats(series)
-                        all_results[var]['table'] = stats['table']
-                        all_results[var]['summary'] = stats['summary']
-                        all_results[var]['plot'] = create_plot(series, False, var)
-                
-                continue # Skip the non-grouped logic
-
-            # Original non-grouped logic starts here
-            if var not in df.columns:
-                all_results[var] = {"error": f"Variable '{var}' not found"}
-                continue
-            
-            series = df[var].dropna()
-            is_numeric = pd.api.types.is_numeric_dtype(df[var])
-
-            if is_numeric:
-                numeric_series = pd.to_numeric(series, errors='coerce').dropna()
-                if not numeric_series.empty:
-                    stats = get_numeric_stats(numeric_series)
-                    plot_img = create_plot(numeric_series, True, var)
-                    all_results[var] = {'type': 'numeric', 'stats': stats, 'plot': plot_img}
-                else:
-                    all_results[var] = {'error': 'No numeric data to analyze.'}
-            else:
-                if not series.empty:
-                    stats = get_categorical_stats(series)
-                    plot_img = create_plot(series, False, var)
-                    all_results[var] = {'type': 'categorical', **stats, 'plot': plot_img}
-                else:
-                    all_results[var] = {'error': 'No categorical data to analyze.'}
+                    all_results[var]['groupedTable'] = grouped_table
 
         print(json.dumps({'results': all_results}, default=_to_native_type))
 
@@ -158,4 +282,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
