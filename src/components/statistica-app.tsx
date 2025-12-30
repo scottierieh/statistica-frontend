@@ -110,7 +110,9 @@ import { cn } from '@/lib/utils';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import DescriptiveStatisticsPage from '@/components/pages/descriptive-stats-page';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
+
 
 // Default page to show when no data is loaded or for the overview.
 const GuidePage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelected: (file: File) => void; onLoadExample: (example: ExampleDataSet) => void; isUploading: boolean; }) => {
