@@ -30,3 +30,4 @@ import '@/ai/flows/interpret-frequency.ts';
 import '@/ai/flows/interpret-clustering.ts';
 import '@/ai/flows/interpret-pca-3d.ts';
 import '@/ai/flows/interpret-did.ts';
+import '@/ai/flows/chat-about-analysis.ts';

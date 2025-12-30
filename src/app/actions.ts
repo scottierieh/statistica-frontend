@@ -6,6 +6,7 @@ import { generateSummaryReport, GenerateSummaryReportInput } from "@/ai/flows/ge
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
 import { interpretClustering, InterpretClusteringInput } from "@/ai/flows/interpret-clustering";
 import { interpretPca3d, InterpretPca3dInput } from "@/ai/flows/interpret-pca-3d";
+import { chatAboutAnalysis, type ChatAboutAnalysisInput } from "@/ai/flows/chat-about-analysis";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -54,5 +55,16 @@ export async function getPca3dInterpretation(input: InterpretPca3dInput) {
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate 3D PCA interpretation." };
+    }
+}
+
+
+export async function getAiChatResponse(input: ChatAboutAnalysisInput) {
+    try {
+        const result = await chatAboutAnalysis(input);
+        return { success: true, message: result.responseMessage };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to get AI chat response." };
     }
 }

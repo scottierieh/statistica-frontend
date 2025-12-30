@@ -157,6 +157,8 @@ import KMedoidsPage from './pages/kmedoids-page';
 import DbscanPage from './pages/dbscan-page';
 import HdbscanPage from './pages/hdbscan-page';
 import HcaPage from './pages/hca-page';
+import { getSummaryReport } from '@/app/actions';
+import AIInteractionController from './AIInteractionController';
 
 const analysisCategories = [
   {
