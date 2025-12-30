@@ -16,7 +16,7 @@ const tools = [
     href: "/dashboard/statistica",
     icon: Calculator,
     title: "Statistica",
-    description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",
+    description: "Statistical analysis with AI insights.",
     disabled: false,
   },
   {
@@ -32,7 +32,7 @@ const tools = [
     href: "/dashboard/data-preprocessing",
     icon: DatabaseZap,
     title: "DataPrep",
-    description: "Prepare your data for analysis with tools for handling missing values, variable transformation, and outlier detection.",
+    description: "Clean, transform, and prepare data.",
     disabled: false,
   },
   {
@@ -40,7 +40,7 @@ const tools = [
     href: "/dashboard/visualization",
     icon: Paintbrush,
     title: "Visualization",
-    description: "Visually explore your data and discover insights through a variety of charts and graphs.",
+    description: "Create insightful charts and graphs.",
     disabled: false,
   },
   {
@@ -48,7 +48,7 @@ const tools = [
     href: "/dashboard/dashboards",
     icon: Monitor,
     title: "Dashboards",
-    description: "Real-time monitoring and analytics dashboards for various industries and domains.",
+    description: "Build and monitor custom dashboards.",
     disabled: false,
   },
   // Coming Soon
