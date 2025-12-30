@@ -60,4 +60,3 @@ const recommendAnalysisFlow = ai.defineFlow(
     return output!;
   }
 );
-

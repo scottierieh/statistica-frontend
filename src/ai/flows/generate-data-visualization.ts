@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -15,7 +14,7 @@ import {z} from 'zod';
 const GenerateDataVisualizationInputSchema = z.object({
   dataDescription: z
     .string()
-    .describe("The description of the data, and the columns it has."),
+    .describe('The description of the data, and the columns it has.'),
   chartType: z.string().describe('The type of chart to generate.'),
   chartTitle: z.string().describe('The title of the chart.'),
   xAxisLabel: z.string().describe('The label for the x-axis.'),
