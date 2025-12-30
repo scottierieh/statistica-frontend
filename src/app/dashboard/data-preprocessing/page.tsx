@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -42,6 +43,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
+import Link from 'next/link';
 
 // Types
 type CellValue = string | number | null;
@@ -775,431 +777,445 @@ export default function DataPreprocessingPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100" onDragOver={e => { e.preventDefault(); setIsDragOver(true); }} onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }} onDrop={handleDrop}>
-      
-      {/* Drag overlay */}
-      <AnimatePresence>
-        {isDragOver && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border-2 border-dashed border-primary">
-              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">Drop files here</h3>
-              <p className="text-muted-foreground">Each file opens in a new tab</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
+        <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+                <Link href="/dashboard">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Workspace
+                </Link>
+            </Button>
+        </div>
+        <div className="flex-1 flex justify-center">
+            <Link href="/" className="flex items-center justify-center gap-2">
+                <Database className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-headline font-bold">DataPrep Studio</h1>
+            </Link>
+        </div>
+        <div className="w-[220px]" />
+      </header>
 
-      {/* Sidebar */}
-      <AnimatePresence mode="wait">
-        {!sidebarCollapsed && (
-          <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="border-r border-slate-200 bg-white shadow-lg flex flex-col overflow-hidden">
-            <div className="p-5 border-b bg-gradient-to-r from-primary to-primary/80">
-              <div className="flex items-center gap-3 text-white">
-                <Database className="w-5 h-5" />
-                <div>
-                  <h2 className="font-semibold text-lg">Data Studio</h2>
-                  <p className="text-xs text-primary-foreground/70">Multi-file Editor</p>
-                </div>
+      <div className="flex flex-1 overflow-hidden" onDragOver={e => { e.preventDefault(); setIsDragOver(true); }} onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }} onDrop={handleDrop}>
+        
+        {/* Drag overlay */}
+        <AnimatePresence>
+          {isDragOver && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center">
+              <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border-2 border-dashed border-primary">
+                <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+                <h3 className="text-2xl font-bold mb-2">Drop files here</h3>
+                <p className="text-muted-foreground">Each file opens in a new tab</p>
               </div>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-4">
-                {/* File Operations */}
-                <Card>
-                  <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><FileSpreadsheet className="w-4 h-4" />Import / Export</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button onClick={() => fileInputRef.current?.click()} className="w-full" size="sm"><Upload className="mr-2 w-4 h-4" />Upload Files</Button>
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv,.txt,.tsv,.xlsx,.xls,.json" multiple />
-                    <Button variant="outline" onClick={createSampleData} className="w-full" size="sm"><Sparkles className="mr-2 w-4 h-4" />Sample Data</Button>
-                    <Separator className="my-2" />
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button variant="outline" onClick={() => downloadFile('csv')} disabled={!activeTab} size="sm"><Download className="mr-1 w-3 h-3" />CSV</Button>
-                      <Button variant="outline" onClick={() => downloadFile('xlsx')} disabled={!activeTab} size="sm"><Download className="mr-1 w-3 h-3" />Excel</Button>
-                      <Button variant="outline" onClick={() => downloadFile('json')} disabled={!activeTab} size="sm"><Download className="mr-1 w-3 h-3" />JSON</Button>
-                    </div>
-                  </CardContent>
-                </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                {/* Row Operations */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2"><Rows className="w-4 h-4" />Rows</CardTitle>
-                    {selectedRows.size > 0 && <Badge variant="secondary" className="text-xs">{selectedRows.size} selected</Badge>}
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" onClick={addRowAbove} disabled={selectedRows.size === 0}><ArrowUp className="mr-1 w-3 h-3" />Above</Button>
-                      <Button variant="outline" size="sm" onClick={addRowBelow} disabled={selectedRows.size === 0}><ArrowDown className="mr-1 w-3 h-3" />Below</Button>
-                    </div>
-                    <Button variant="outline" size="sm" className="w-full text-red-600" onClick={deleteSelectedRows} disabled={selectedRows.size === 0}><Trash2 className="mr-2 w-3 h-3" />Delete</Button>
-                  </CardContent>
-                </Card>
-
-                {/* Column Operations */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2"><Columns className="w-4 h-4" />Columns</CardTitle>
-                    {selectedCols.size > 0 && <Badge variant="secondary" className="text-xs">{selectedCols.size} selected</Badge>}
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" onClick={addColLeft} disabled={selectedCols.size === 0}><ArrowLeft className="mr-1 w-3 h-3" />Left</Button>
-                      <Button variant="outline" size="sm" onClick={addColRight} disabled={selectedCols.size === 0}><ArrowRight className="mr-1 w-3 h-3" />Right</Button>
-                    </div>
-                    <Button variant="outline" size="sm" className="w-full text-red-600" onClick={deleteSelectedCols} disabled={selectedCols.size === 0}><Trash2 className="mr-2 w-3 h-3" />Delete</Button>
-                  </CardContent>
-                </Card>
-
-                {/* Data Quality */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4" />Data Quality</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Select value={fillMethod} onValueChange={setFillMethod}>
-                      <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mean">Mean</SelectItem>
-                        <SelectItem value="median">Median</SelectItem>
-                        <SelectItem value="mode">Mode</SelectItem>
-                        <SelectItem value="zero">Zero</SelectItem>
-                        <SelectItem value="forward">Forward Fill</SelectItem>
-                        <SelectItem value="backward">Backward Fill</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button onClick={fillMissing} className="w-full" size="sm" disabled={selectedCols.size === 0}><Eraser className="mr-2 w-3 h-3" />Fill Missing</Button>
-                    <Separator />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" onClick={findDuplicates} disabled={!activeTab}><Search className="mr-1 w-3 h-3" />Find</Button>
-                      <Button variant="outline" size="sm" onClick={removeDuplicates} disabled={!activeTab}><XCircle className="mr-1 w-3 h-3" />Remove</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Transform */}
-                <Card>
-                  <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Wand2 className="w-4 h-4" />Transform</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <Select value={transformType} onValueChange={setTransformType}>
-                      <SelectTrigger className="h-8"><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="log">ln</SelectItem>
-                        <SelectItem value="log10">log10</SelectItem>
-                        <SelectItem value="sqrt">√</SelectItem>
-                        <SelectItem value="square">x²</SelectItem>
-                        <SelectItem value="zscore">Z-Score</SelectItem>
-                        <SelectItem value="minmax">Min-Max</SelectItem>
-                        <SelectItem value="abs">Abs</SelectItem>
-                        <SelectItem value="round">Round</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button onClick={applyTransform} disabled={!transformType || selectedCols.size === 0} size="sm" className="w-full"><Sparkles className="mr-2 w-3 h-3" />Apply</Button>
-                    <Separator />
-                    <Button variant="outline" onClick={openEncodingDialog} disabled={selectedCols.size === 0} size="sm" className="w-full"><Hash className="mr-2 w-3 h-3" />One-Hot Encoding</Button>
-                  </CardContent>
-                </Card>
-
-                {/* History */}
-                <Card>
-                  <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><RefreshCw className="w-4 h-4" />History</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0}><Undo className="mr-1 w-3 h-3" />Undo</Button>
-                      <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1}><RefreshCw className="mr-1 w-3 h-3" />Redo</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Merge (if multiple tabs) */}
-                {tabs.length > 1 && activeTabId && (
+        {/* Sidebar */}
+        <AnimatePresence mode="wait">
+          {!sidebarCollapsed && (
+            <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="border-r border-slate-200 bg-white shadow-lg flex flex-col overflow-hidden">
+               <div className="p-4 border-b">
+                 <h2 className="font-semibold text-lg">Tools</h2>
+              </div>
+              
+              <ScrollArea className="flex-1">
+                <div className="p-4 space-y-4">
+                  {/* File Operations */}
                   <Card>
-                    <CardHeader className="pb-3"><CardTitle className="text-sm">Merge Tabs</CardTitle></CardHeader>
-                    <CardContent>
-                      <Button variant="outline" size="sm" className="w-full" onClick={() => openMergeDialog(activeTabId)}>Merge into this tab</Button>
+                    <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><FileSpreadsheet className="w-4 h-4" />Import / Export</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      <Button onClick={() => fileInputRef.current?.click()} className="w-full" size="sm"><Upload className="mr-2 w-4 h-4" />Upload Files</Button>
+                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv,.txt,.tsv,.xlsx,.xls,.json" multiple />
+                      <Button variant="outline" onClick={createSampleData} className="w-full" size="sm"><Sparkles className="mr-2 w-4 h-4" />Sample Data</Button>
+                      <Separator className="my-2" />
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button variant="outline" onClick={() => downloadFile('csv')} disabled={!activeTab} size="sm"><Download className="mr-1 w-3 h-3" />CSV</Button>
+                        <Button variant="outline" onClick={() => downloadFile('xlsx')} disabled={!activeTab} size="sm"><Download className="mr-1 w-3 h-3" />Excel</Button>
+                        <Button variant="outline" onClick={() => downloadFile('json')} disabled={!activeTab} size="sm"><Download className="mr-1 w-3 h-3" />JSON</Button>
+                      </div>
                     </CardContent>
                   </Card>
-                )}
+
+                  {/* Row Operations */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2"><Rows className="w-4 h-4" />Rows</CardTitle>
+                      {selectedRows.size > 0 && <Badge variant="secondary" className="text-xs">{selectedRows.size} selected</Badge>}
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={addRowAbove} disabled={selectedRows.size === 0}><ArrowUp className="mr-1 w-3 h-3" />Above</Button>
+                        <Button variant="outline" size="sm" onClick={addRowBelow} disabled={selectedRows.size === 0}><ArrowDown className="mr-1 w-3 h-3" />Below</Button>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full text-red-600" onClick={deleteSelectedRows} disabled={selectedRows.size === 0}><Trash2 className="mr-2 w-3 h-3" />Delete</Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Column Operations */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2"><Columns className="w-4 h-4" />Columns</CardTitle>
+                      {selectedCols.size > 0 && <Badge variant="secondary" className="text-xs">{selectedCols.size} selected</Badge>}
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={addColLeft} disabled={selectedCols.size === 0}><ArrowLeft className="mr-1 w-3 h-3" />Left</Button>
+                        <Button variant="outline" size="sm" onClick={addColRight} disabled={selectedCols.size === 0}><ArrowRight className="mr-1 w-3 h-3" />Right</Button>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full text-red-600" onClick={deleteSelectedCols} disabled={selectedCols.size === 0}><Trash2 className="mr-2 w-3 h-3" />Delete</Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Data Quality */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4" />Data Quality</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Select value={fillMethod} onValueChange={setFillMethod}>
+                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mean">Mean</SelectItem>
+                          <SelectItem value="median">Median</SelectItem>
+                          <SelectItem value="mode">Mode</SelectItem>
+                          <SelectItem value="zero">Zero</SelectItem>
+                          <SelectItem value="forward">Forward Fill</SelectItem>
+                          <SelectItem value="backward">Backward Fill</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={fillMissing} className="w-full" size="sm" disabled={selectedCols.size === 0}><Eraser className="mr-2 w-3 h-3" />Fill Missing</Button>
+                      <Separator />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={findDuplicates} disabled={!activeTab}><Search className="mr-1 w-3 h-3" />Find</Button>
+                        <Button variant="outline" size="sm" onClick={removeDuplicates} disabled={!activeTab}><XCircle className="mr-1 w-3 h-3" />Remove</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Transform */}
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Wand2 className="w-4 h-4" />Transform</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      <Select value={transformType} onValueChange={setTransformType}>
+                        <SelectTrigger className="h-8"><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="log">ln</SelectItem>
+                          <SelectItem value="log10">log10</SelectItem>
+                          <SelectItem value="sqrt">√</SelectItem>
+                          <SelectItem value="square">x²</SelectItem>
+                          <SelectItem value="zscore">Z-Score</SelectItem>
+                          <SelectItem value="minmax">Min-Max</SelectItem>
+                          <SelectItem value="abs">Abs</SelectItem>
+                          <SelectItem value="round">Round</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={applyTransform} disabled={!transformType || selectedCols.size === 0} size="sm" className="w-full"><Sparkles className="mr-2 w-3 h-3" />Apply</Button>
+                      <Separator />
+                      <Button variant="outline" onClick={openEncodingDialog} disabled={selectedCols.size === 0} size="sm" className="w-full"><Hash className="mr-2 w-3 h-3" />One-Hot Encoding</Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* History */}
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><RefreshCw className="w-4 h-4" />History</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0}><Undo className="mr-1 w-3 h-3" />Undo</Button>
+                        <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1}><RefreshCw className="mr-1 w-3 h-3" />Redo</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Merge (if multiple tabs) */}
+                  {tabs.length > 1 && activeTabId && (
+                    <Card>
+                      <CardHeader className="pb-3"><CardTitle className="text-sm">Merge Tabs</CardTitle></CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full" onClick={() => openMergeDialog(activeTabId)}>Merge into this tab</Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </ScrollArea>
+              
+              <div className="p-3 border-t bg-slate-50">
+                <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => setShowKeyboardShortcuts(true)}><Keyboard className="mr-2 w-3 h-3" />Press ? for shortcuts</Button>
               </div>
-            </ScrollArea>
-            
-            <div className="p-3 border-t bg-slate-50">
-              <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => setShowKeyboardShortcuts(true)}><Keyboard className="mr-2 w-3 h-3" />Press ? for shortcuts</Button>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
-      {/* Sidebar toggle */}
-      <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="absolute top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-r-lg shadow-lg z-20 transition-all" style={{ left: sidebarCollapsed ? 0 : 320 }}>
-        {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-      </button>
+        {/* Sidebar toggle */}
+        <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="absolute top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-r-lg shadow-lg z-20 transition-all" style={{ left: sidebarCollapsed ? 0 : 320 }}>
+          {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Tabs */}
-        <div className="bg-white border-b flex items-center px-2 gap-1 overflow-x-auto">
-          {tabs.map(tab => (
-            <div key={tab.id} onClick={() => switchTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 cursor-pointer border-b-2 transition-colors ${tab.id === activeTabId ? 'border-primary bg-primary/5 text-primary' : 'border-transparent hover:bg-slate-50'}`}>
-              <FileSpreadsheet className="w-4 h-4" />
-              <span className="text-sm font-medium truncate max-w-[120px]">{tab.fileName}</span>
-              <button onClick={e => { e.stopPropagation(); closeTab(tab.id); }} className="ml-1 p-0.5 hover:bg-slate-200 rounded"><X className="w-3 h-3" /></button>
-            </div>
-          ))}
-          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="ml-2"><Plus className="w-4 h-4" /></Button>
-        </div>
-
-        {/* Header */}
-        {activeTab && (
-          <header className="bg-white border-b px-6 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h1 className="text-xl font-bold text-primary">{activeTab.fileName}</h1>
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  {activeTab.rows.length} rows × {activeTab.headers.length} columns
-                  {totalMissing > 0 && <Badge variant="destructive" className="text-xs">{totalMissing} missing</Badge>}
-                </p>
+        {/* Main */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Tabs */}
+          <div className="bg-white border-b flex items-center px-2 gap-1 overflow-x-auto">
+            {tabs.map(tab => (
+              <div key={tab.id} onClick={() => switchTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 cursor-pointer border-b-2 transition-colors ${tab.id === activeTabId ? 'border-primary bg-primary/5 text-primary' : 'border-transparent hover:bg-slate-50'}`}>
+                <FileSpreadsheet className="w-4 h-4" />
+                <span className="text-sm font-medium truncate max-w-[120px]">{tab.fileName}</span>
+                <button onClick={e => { e.stopPropagation(); closeTab(tab.id); }} className="ml-1 p-0.5 hover:bg-slate-200 rounded"><X className="w-3 h-3" /></button>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowStats(!showStats)}>{showStats ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}{showStats ? 'Hide' : 'Show'} Stats</Button>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            </div>
-          </header>
-        )}
+            ))}
+            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="ml-2"><Plus className="w-4 h-4" /></Button>
+          </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-auto p-4">
-          {!activeTab ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-6"><Database className="w-10 h-10 text-primary/60" /></div>
-              <h3 className="text-xl font-semibold text-primary mb-2">No Data</h3>
-              <p className="text-muted-foreground mb-6">Upload files or load sample data</p>
-              <div className="flex gap-3">
-                <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 w-4 h-4" />Upload</Button>
-                <Button variant="outline" onClick={createSampleData}><Sparkles className="mr-2 w-4 h-4" />Sample</Button>
+          {/* Header */}
+          {activeTab && (
+            <header className="bg-white border-b px-6 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h1 className="text-xl font-bold text-primary">{activeTab.fileName}</h1>
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    {activeTab.rows.length} rows × {activeTab.headers.length} columns
+                    {totalMissing > 0 && <Badge variant="destructive" className="text-xs">{totalMissing} missing</Badge>}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowStats(!showStats)}>{showStats ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}{showStats ? 'Hide' : 'Show'} Stats</Button>
               </div>
-            </div>
-          ) : (
-            <div className="border rounded-xl overflow-hidden bg-white shadow-lg">
-              <Table>
-                <TableHeader className="sticky top-0 z-10">
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="w-12 bg-slate-100"><Checkbox checked={selectedRows.size === filteredRows.length && filteredRows.length > 0} onCheckedChange={toggleAllRows} /></TableHead>
-                    {activeTab.headers.map((header, i) => {
-                      const stat = columnStats.get(i);
-                      return (
-                        <TableHead key={i} className={`min-w-[150px] ${selectedCols.has(i) ? 'bg-primary/10' : ''}`}>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Checkbox checked={selectedCols.has(i)} onCheckedChange={() => toggleCol(i)} />
-                              <Input value={header} onChange={e => handleHeaderChange(i, e.target.value)} className="h-7 border-none bg-transparent font-semibold text-sm flex-1" />
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>{getTypeIcon(activeTab.columnTypes[i])}<span className="ml-2">Type</span></DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent>
-                                      <DropdownMenuItem onClick={() => setColumnType(i, 'auto')}><Sparkles className="w-4 h-4 mr-2" />Auto</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => setColumnType(i, 'text')}><Type className="w-4 h-4 mr-2" />Text</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => setColumnType(i, 'number')}><Hash className="w-4 h-4 mr-2" />Number</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => setColumnType(i, 'date')}><Calendar className="w-4 h-4 mr-2" />Date</DropdownMenuItem>
-                                    </DropdownMenuSubContent>
-                                  </DropdownMenuSub>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => sortByCol(i, 'asc')}><SortAsc className="w-4 h-4 mr-2" />Sort Asc</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => sortByCol(i, 'desc')}><SortDesc className="w-4 h-4 mr-2" />Sort Desc</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                            {showStats && stat && (
-                              <div className="text-xs text-muted-foreground pl-6">
-                                <Badge variant="outline" className="text-xs mr-1">{stat.forcedType === 'auto' ? stat.type : stat.forcedType}</Badge>
-                                {stat.missing > 0 && <span className="text-red-500">{stat.missing} missing</span>}
-                              </div>
-                            )}
-                          </div>
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRows.map(({ row, idx }) => (
-                    <TableRow key={idx} className={selectedRows.has(idx) ? 'bg-primary/5' : ''}>
-                      <TableCell className="bg-slate-50"><Checkbox checked={selectedRows.has(idx)} onCheckedChange={() => toggleRow(idx)} /></TableCell>
-                      {row.map((cell, colIdx) => {
-                        const empty = cell == null || String(cell).trim() === '';
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Search..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              </div>
+            </header>
+          )}
+
+          {/* Table */}
+          <div className="flex-1 overflow-auto p-4">
+            {!activeTab ? (
+              <div className="flex flex-col items-center justify-center h-full">
+                <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-6"><Database className="w-10 h-10 text-primary/60" /></div>
+                <h3 className="text-xl font-semibold text-primary mb-2">No Data</h3>
+                <p className="text-muted-foreground mb-6">Upload files or load sample data</p>
+                <div className="flex gap-3">
+                  <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 w-4 h-4" />Upload</Button>
+                  <Button variant="outline" onClick={createSampleData}><Sparkles className="mr-2 w-4 h-4" />Sample</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="border rounded-xl overflow-hidden bg-white shadow-lg">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10">
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="w-12 bg-slate-100"><Checkbox checked={selectedRows.size === filteredRows.length && filteredRows.length > 0} onCheckedChange={toggleAllRows} /></TableHead>
+                      {activeTab.headers.map((header, i) => {
+                        const stat = columnStats.get(i);
                         return (
-                          <TableCell key={colIdx} className={`p-0 ${selectedCols.has(colIdx) ? 'bg-primary/5' : ''} ${empty ? 'bg-red-50/50' : ''}`}>
-                            <Input value={cell == null ? '' : String(cell)} onChange={e => handleCellChange(idx, colIdx, e.target.value)} className={`h-9 border-none rounded-none ${empty ? 'text-red-400 placeholder:text-red-300' : ''}`} placeholder={empty ? 'null' : ''} />
-                          </TableCell>
+                          <TableHead key={i} className={`min-w-[150px] ${selectedCols.has(i) ? 'bg-primary/10' : ''}`}>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Checkbox checked={selectedCols.has(i)} onCheckedChange={() => toggleCol(i)} />
+                                <Input value={header} onChange={e => handleHeaderChange(i, e.target.value)} className="h-7 border-none bg-transparent font-semibold text-sm flex-1" />
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger>{getTypeIcon(activeTab.columnTypes[i])}<span className="ml-2">Type</span></DropdownMenuSubTrigger>
+                                      <DropdownMenuSubContent>
+                                        <DropdownMenuItem onClick={() => setColumnType(i, 'auto')}><Sparkles className="w-4 h-4 mr-2" />Auto</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setColumnType(i, 'text')}><Type className="w-4 h-4 mr-2" />Text</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setColumnType(i, 'number')}><Hash className="w-4 h-4 mr-2" />Number</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setColumnType(i, 'date')}><Calendar className="w-4 h-4 mr-2" />Date</DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => sortByCol(i, 'asc')}><SortAsc className="w-4 h-4 mr-2" />Sort Asc</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => sortByCol(i, 'desc')}><SortDesc className="w-4 h-4 mr-2" />Sort Desc</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                              {showStats && stat && (
+                                <div className="text-xs text-muted-foreground pl-6">
+                                  <Badge variant="outline" className="text-xs mr-1">{stat.forcedType === 'auto' ? stat.type : stat.forcedType}</Badge>
+                                  {stat.missing > 0 && <span className="text-red-500">{stat.missing} missing</span>}
+                                </div>
+                              )}
+                            </div>
+                          </TableHead>
                         );
                       })}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRows.map(({ row, idx }) => (
+                      <TableRow key={idx} className={selectedRows.has(idx) ? 'bg-primary/5' : ''}>
+                        <TableCell className="bg-slate-50"><Checkbox checked={selectedRows.has(idx)} onCheckedChange={() => toggleRow(idx)} /></TableCell>
+                        {row.map((cell, colIdx) => {
+                          const empty = cell == null || String(cell).trim() === '';
+                          return (
+                            <TableCell key={colIdx} className={`p-0 ${selectedCols.has(colIdx) ? 'bg-primary/5' : ''} ${empty ? 'bg-red-50/50' : ''}`}>
+                              <Input value={cell == null ? '' : String(cell)} onChange={e => handleCellChange(idx, colIdx, e.target.value)} className={`h-9 border-none rounded-none ${empty ? 'text-red-400 placeholder:text-red-300' : ''}`} placeholder={empty ? 'null' : ''} />
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          {activeTab && (
+            <footer className="bg-white border-t px-6 py-2 text-xs text-muted-foreground flex justify-between">
+              <span>{filteredRows.length} / {activeTab.rows.length} rows • {activeTab.headers.length} cols</span>
+              <div className="flex gap-2">
+                {selectedRows.size > 0 && <Badge variant="secondary">{selectedRows.size} rows</Badge>}
+                {selectedCols.size > 0 && <Badge variant="secondary">{selectedCols.size} cols</Badge>}
+              </div>
+            </footer>
           )}
-        </div>
+        </main>
 
-        {/* Footer */}
-        {activeTab && (
-          <footer className="bg-white border-t px-6 py-2 text-xs text-muted-foreground flex justify-between">
-            <span>{filteredRows.length} / {activeTab.rows.length} rows • {activeTab.headers.length} cols</span>
-            <div className="flex gap-2">
-              {selectedRows.size > 0 && <Badge variant="secondary">{selectedRows.size} rows</Badge>}
-              {selectedCols.size > 0 && <Badge variant="secondary">{selectedCols.size} cols</Badge>}
+        {/* Keyboard Shortcuts Dialog */}
+        <Dialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Keyboard Shortcuts</DialogTitle></DialogHeader>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+Z</kbd> Undo</div>
+              <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+Shift+Z</kbd> Redo</div>
+              <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+S</kbd> Export CSV</div>
+              <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Delete</kbd> Delete selected</div>
+              <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Escape</kbd> Clear selection</div>
+              <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">?</kbd> Shortcuts</div>
             </div>
-          </footer>
-        )}
-      </main>
+          </DialogContent>
+        </Dialog>
 
-      {/* Keyboard Shortcuts Dialog */}
-      <Dialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Keyboard Shortcuts</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+Z</kbd> Undo</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+Shift+Z</kbd> Redo</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+S</kbd> Export CSV</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Delete</kbd> Delete selected</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Escape</kbd> Clear selection</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded text-xs">?</kbd> Shortcuts</div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Merge Dialog */}
-      <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Merge Tabs</DialogTitle>
-            <DialogDescription>Merge data from another tab into the current tab</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Source Tab</Label>
-              <Select value={mergeSourceTabId || ''} onValueChange={setMergeSourceTabId}>
-                <SelectTrigger><SelectValue placeholder="Select tab..." /></SelectTrigger>
-                <SelectContent>
-                  {tabs.filter(t => t.id !== mergeTargetTabId).map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.fileName} ({t.rows.length} rows)</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <RadioGroup value={mergeMode} onValueChange={v => setMergeMode(v as 'append' | 'join')}>
-              <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${mergeMode === 'append' ? 'border-primary bg-primary/5' : ''}`}>
-                <RadioGroupItem value="append" />
-                <div><p className="font-medium text-sm">Append Rows</p><p className="text-xs text-muted-foreground">Add rows below</p></div>
-              </label>
-              <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${mergeMode === 'join' ? 'border-primary bg-primary/5' : ''}`}>
-                <RadioGroupItem value="join" />
-                <div><p className="font-medium text-sm">Join Columns</p><p className="text-xs text-muted-foreground">Match by key column</p></div>
-              </label>
-            </RadioGroup>
-            {mergeMode === 'join' && (
+        {/* Merge Dialog */}
+        <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Merge Tabs</DialogTitle>
+              <DialogDescription>Merge data from another tab into the current tab</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
               <div>
-                <Label>Join Type</Label>
-                <Select value={joinType} onValueChange={v => setJoinType(v as 'left' | 'inner' | 'right' | 'full')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label>Source Tab</Label>
+                <Select value={mergeSourceTabId || ''} onValueChange={setMergeSourceTabId}>
+                  <SelectTrigger><SelectValue placeholder="Select tab..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="inner">INNER - Only matching rows</SelectItem>
-                    <SelectItem value="left">LEFT - Keep all Target rows</SelectItem>
-                    <SelectItem value="right">RIGHT - Keep all Source rows</SelectItem>
-                    <SelectItem value="full">FULL - Keep all rows from both</SelectItem>
+                    {tabs.filter(t => t.id !== mergeTargetTabId).map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.fileName} ({t.rows.length} rows)</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            {mergeMode === 'join' && (
-              <div>
-                <Label>Join Key</Label>
-                <Select value={joinKey} onValueChange={setJoinKey}>
-                  <SelectTrigger><SelectValue placeholder="Select column..." /></SelectTrigger>
-                  <SelectContent>
-                    {activeTab?.headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMergeDialog(false)}>Cancel</Button>
-            <Button onClick={executeMerge} disabled={!mergeSourceTabId || (mergeMode === 'join' && !joinKey)}>Merge</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* One-Hot Encoding Dialog */}
-      <Dialog open={showEncodingDialog} onOpenChange={setShowEncodingDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>One-Hot Encoding</DialogTitle>
-            <DialogDescription>Convert categorical columns to binary columns</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-3 bg-slate-50 rounded-lg text-sm">
-              <p className="font-medium">{selectedCols.size} column(s) selected</p>
-              <p className="text-muted-foreground text-xs mt-1">
-                {Array.from(selectedCols).map(i => tableData.headers[i]).join(', ')}
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <RadioGroup value={mergeMode} onValueChange={v => setMergeMode(v as 'append' | 'join')}>
+                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${mergeMode === 'append' ? 'border-primary bg-primary/5' : ''}`}>
+                  <RadioGroupItem value="append" />
+                  <div><p className="font-medium text-sm">Append Rows</p><p className="text-xs text-muted-foreground">Add rows below</p></div>
+                </label>
+                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${mergeMode === 'join' ? 'border-primary bg-primary/5' : ''}`}>
+                  <RadioGroupItem value="join" />
+                  <div><p className="font-medium text-sm">Join Columns</p><p className="text-xs text-muted-foreground">Match by key column</p></div>
+                </label>
+              </RadioGroup>
+              {mergeMode === 'join' && (
                 <div>
-                  <Label className="text-sm font-medium">Drop First Category</Label>
-                  <p className="text-xs text-muted-foreground">Avoid multicollinearity (for regression)</p>
+                  <Label>Join Type</Label>
+                  <Select value={joinType} onValueChange={v => setJoinType(v as 'left' | 'inner' | 'right' | 'full')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inner">INNER - Only matching rows</SelectItem>
+                      <SelectItem value="left">LEFT - Keep all Target rows</SelectItem>
+                      <SelectItem value="right">RIGHT - Keep all Source rows</SelectItem>
+                      <SelectItem value="full">FULL - Keep all rows from both</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Checkbox checked={encodingDropFirst} onCheckedChange={(c) => setEncodingDropFirst(!!c)} />
+              )}
+              {mergeMode === 'join' && (
+                <div>
+                  <Label>Join Key</Label>
+                  <Select value={joinKey} onValueChange={setJoinKey}>
+                    <SelectTrigger><SelectValue placeholder="Select column..." /></SelectTrigger>
+                    <SelectContent>
+                      {activeTab?.headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowMergeDialog(false)}>Cancel</Button>
+              <Button onClick={executeMerge} disabled={!mergeSourceTabId || (mergeMode === 'join' && !joinKey)}>Merge</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* One-Hot Encoding Dialog */}
+        <Dialog open={showEncodingDialog} onOpenChange={setShowEncodingDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>One-Hot Encoding</DialogTitle>
+              <DialogDescription>Convert categorical columns to binary columns</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-slate-50 rounded-lg text-sm">
+                <p className="font-medium">{selectedCols.size} column(s) selected</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {Array.from(selectedCols).map(i => tableData.headers[i]).join(', ')}
+                </p>
               </div>
               
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium">Keep Original Column</Label>
-                  <p className="text-xs text-muted-foreground">Preserve the source column</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Drop First Category</Label>
+                    <p className="text-xs text-muted-foreground">Avoid multicollinearity (for regression)</p>
+                  </div>
+                  <Checkbox checked={encodingDropFirst} onCheckedChange={(c) => setEncodingDropFirst(!!c)} />
                 </div>
-                <Checkbox checked={encodingKeepOriginal} onCheckedChange={(c) => setEncodingKeepOriginal(!!c)} />
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Keep Original Column</Label>
+                    <p className="text-xs text-muted-foreground">Preserve the source column</p>
+                  </div>
+                  <Checkbox checked={encodingKeepOriginal} onCheckedChange={(c) => setEncodingKeepOriginal(!!c)} />
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium">Column Prefix (optional)</Label>
+                  <Input 
+                    placeholder="e.g., city → city_Seoul, city_Busan" 
+                    value={encodingPrefix} 
+                    onChange={e => setEncodingPrefix(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Leave empty to use original column name</p>
+                </div>
               </div>
               
-              <div>
-                <Label className="text-sm font-medium">Column Prefix (optional)</Label>
-                <Input 
-                  placeholder="e.g., city → city_Seoul, city_Busan" 
-                  value={encodingPrefix} 
-                  onChange={e => setEncodingPrefix(e.target.value)}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Leave empty to use original column name</p>
+              <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-800">
+                <p className="font-medium mb-1">Preview:</p>
+                <p>City → City_Seoul (0/1), City_Busan (0/1), ...</p>
               </div>
             </div>
-            
-            <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-800">
-              <p className="font-medium mb-1">Preview:</p>
-              <p>City → City_Seoul (0/1), City_Busan (0/1), ...</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEncodingDialog(false)}>Cancel</Button>
-            <Button onClick={applyOneHotEncoding}>Apply Encoding</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEncodingDialog(false)}>Cancel</Button>
+              <Button onClick={applyOneHotEncoding}>Apply Encoding</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Loading */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-10 h-10 text-primary animate-spin" />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Loading */}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

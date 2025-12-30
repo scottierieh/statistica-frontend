@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   GanttChartSquare, AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, 
@@ -9,13 +10,14 @@ import {
   MoveRight, Play, ArrowLeft, ChevronLeft, ChevronRight, Share2,
   Eye, EyeOff, Download, Sparkles, RefreshCw, Layers, TrendingUp, Grid3X3,
   Palette, Maximize2, Upload, FileSpreadsheet, Loader2, X, Database,
-  GitBranch, Target, Activity
+  GitBranch, Target, Activity, HelpCircle, Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -719,242 +721,219 @@ export default function VisualizationPage() {
 
   // Main UI
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100"
-      onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-      onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }}
-      onDrop={e => { e.preventDefault(); setIsDragOver(false); processFiles(Array.from(e.dataTransfer.files)); }}>
-      
-      <AnimatePresence>
-        {isDragOver && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border-2 border-dashed border-primary">
-              <Upload className="w-16 h-16 text-primary mx-auto mb-4" /><h3 className="text-2xl font-bold mb-2">Drop files here</h3>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <AnimatePresence mode="wait">
-        {!sidebarCollapsed && (
-          <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 280, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="border-r border-slate-200 bg-white flex flex-col overflow-hidden">
-            {/* Header - Finance Style */}
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                  <BarChartIcon className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-base text-slate-900">Visualization</h2>
-                </div>
-              </div>
-            </div>
-            {/* Back to Workspace */}
-            <div className="px-4 py-3 border-b border-slate-100">
-              <Link href="/dashboard/analysis" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Workspace
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
+          <div className="flex items-center gap-2">
+              <Button variant="outline" asChild>
+                  <Link href="/dashboard">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back to Workspace
+                  </Link>
+              </Button>
+          </div>
+          <div className="flex-1 flex justify-center">
+              <Link href="/" className="flex items-center justify-center gap-2">
+                  <BarChartIcon className="h-6 w-6 text-primary" />
+                  <h1 className="text-xl font-headline font-bold">Visualization Studio</h1>
               </Link>
-            </div>
-            {/* Settings Label */}
-            <div className="px-4 pt-4 pb-2">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Settings</p>
-            </div>
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-4">
-                {/* Data Source - Upload Style */}
-                <input type="file" ref={fileInputRef} onChange={e => { const files = Array.from(e.target.files || []); if (files.length > 0) processFiles(files); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="hidden" accept=".csv,.xlsx,.xls,.json" />
-                
-                {canRun ? (
-                  <Card className="border-slate-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Database className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium text-slate-700 truncate max-w-[140px]">{fileName}</span>
+          </div>
+          <div className="w-[220px]" />
+      </header>
+
+      <div className="flex flex-1 overflow-hidden" onDragOver={e => { e.preventDefault(); setIsDragOver(true); }} onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }} onDrop={e => { e.preventDefault(); setIsDragOver(false); processFiles(Array.from(e.dataTransfer.files)); }}>
+        
+        <AnimatePresence>
+          {isDragOver && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center">
+              <div className="bg-white rounded-2xl shadow-2xl p-12 text-center border-2 border-dashed border-primary">
+                <Upload className="w-16 h-16 text-primary mx-auto mb-4" /><h3 className="text-2xl font-bold mb-2">Drop files here</h3>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Sidebar */}
+        <AnimatePresence mode="wait">
+          {!sidebarCollapsed && (
+            <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="border-r border-slate-200 bg-white shadow-lg flex flex-col overflow-hidden">
+              <div className="p-4 border-b">
+                <h2 className="font-semibold text-lg">Tools & Data</h2>
+              </div>
+              <ScrollArea className="flex-1">
+                <div className="p-4 space-y-4">
+                  {/* Data Source - Upload Style */}
+                  <input type="file" ref={fileInputRef} onChange={e => { const files = Array.from(e.target.files || []); if (files.length > 0) processFiles(files); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="hidden" accept=".csv,.xlsx,.xls,.json" />
+                  
+                  {canRun ? (
+                    <Card className="border-slate-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Database className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-slate-700 truncate max-w-[140px]">{fileName}</span>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-slate-600" onClick={clearData}><X className="w-4 h-4" /></Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-slate-600" onClick={clearData}><X className="w-4 h-4" /></Button>
-                      </div>
-                      <p className="text-xs text-slate-500 mb-3">{data.length} rows × {allLen} cols</p>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => fileInputRef.current?.click()} disabled={isFileLoading}>
-                          {isFileLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Change"}
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={loadSampleData}>Sample</Button>
+                        <p className="text-xs text-slate-500 mb-3">{data.length} rows × {allLen} cols</p>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1" onClick={() => fileInputRef.current?.click()} disabled={isFileLoading}>
+                            {isFileLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Change"}
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1" onClick={loadSampleData}>Sample</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div 
+                      className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-slate-50 transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-slate-700 mb-3">Upload Data</p>
+                      <Button variant="outline" size="sm" disabled={isFileLoading}>
+                        {isFileLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+                        Choose File
+                      </Button>
+                      <p className="text-xs text-slate-400 mt-3">or</p>
+                      <Button variant="link" size="sm" className="text-primary" onClick={(e) => { e.stopPropagation(); loadSampleData(); }}>
+                        <Sparkles className="w-3 h-3 mr-1" />Use Sample Data
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Category */}
+                  <Card className="border-slate-200">
+                    <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Palette className="w-4 h-4 text-primary" />Category</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {chartCategories.map(cat => {
+                        const Icon = cat.icon;
+                        return (
+                          <motion.button key={cat.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                            onClick={() => { setActiveCategory(cat.id); setActiveChart(null); }}
+                            className={`w-full p-3 rounded-lg flex items-center gap-3 transition-all ${activeCategory === cat.id ? 'bg-primary text-white shadow-md' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                            <Icon className="w-5 h-5" />
+                            <div className="text-left"><p className="font-medium text-sm">{cat.label}</p><p className={`text-xs ${activeCategory === cat.id ? 'text-white/70' : 'text-muted-foreground'}`}>{cat.description}</p></div>
+                          </motion.button>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+
+                  {/* Chart Type */}
+                  <Card className="border-slate-200">
+                    <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Grid3X3 className="w-4 h-4 text-primary" />Type{activeChart && <Badge className="ml-auto text-xs">{selectedInfo?.label}</Badge>}</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {chartTypes[activeCategory]?.map(chart => {
+                          const Icon = chart.icon;
+                          return (
+                            <TooltipProvider key={chart.id}><Tooltip><TooltipTrigger asChild>
+                              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                onClick={() => !chart.disabled && setActiveChart(chart.id)} disabled={chart.disabled}
+                                className={`p-2 rounded-lg flex flex-col items-center gap-0.5 transition-all ${activeChart === chart.id ? 'bg-primary text-white shadow-md' : chart.disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                                <Icon className="w-4 h-4" /><span className="text-[10px] font-medium truncate w-full text-center">{chart.label}</span>
+                              </motion.button>
+                            </TooltipTrigger><TooltipContent><p className="font-medium">{chart.label}</p><p className="text-xs text-muted-foreground">{chart.desc}</p></TooltipContent></Tooltip></TooltipProvider>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
-                ) : (
-                  <div 
-                    className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-slate-50 transition-colors"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-slate-700 mb-3">Upload Data</p>
-                    <Button variant="outline" size="sm" disabled={isFileLoading}>
-                      {isFileLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
-                      Choose File
-                    </Button>
-                    <p className="text-xs text-slate-400 mt-3">or</p>
-                    <Button variant="link" size="sm" className="text-primary" onClick={(e) => { e.stopPropagation(); loadSampleData(); }}>
-                      <Sparkles className="w-3 h-3 mr-1" />Use Sample Data
-                    </Button>
-                  </div>
-                )}
 
-                {/* Category */}
-                <Card className="border-slate-200">
-                  <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Palette className="w-4 h-4 text-primary" />Category</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    {chartCategories.map(cat => {
-                      const Icon = cat.icon;
-                      return (
-                        <motion.button key={cat.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                          onClick={() => { setActiveCategory(cat.id); setActiveChart(null); }}
-                          className={`w-full p-3 rounded-lg flex items-center gap-3 transition-all ${activeCategory === cat.id ? 'bg-primary text-white shadow-md' : 'bg-slate-50 hover:bg-slate-100'}`}>
-                          <Icon className="w-5 h-5" />
-                          <div className="text-left"><p className="font-medium text-sm">{cat.label}</p><p className={`text-xs ${activeCategory === cat.id ? 'text-white/70' : 'text-muted-foreground'}`}>{cat.description}</p></div>
-                        </motion.button>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-
-                {/* Chart Type */}
-                <Card className="border-slate-200">
-                  <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Grid3X3 className="w-4 h-4 text-primary" />Type{activeChart && <Badge className="ml-auto text-xs">{selectedInfo?.label}</Badge>}</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {chartTypes[activeCategory]?.map(chart => {
-                        const Icon = chart.icon;
-                        return (
-                          <TooltipProvider key={chart.id}><Tooltip><TooltipTrigger asChild>
-                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                              onClick={() => !chart.disabled && setActiveChart(chart.id)} disabled={chart.disabled}
-                              className={`p-2 rounded-lg flex flex-col items-center gap-0.5 transition-all ${activeChart === chart.id ? 'bg-primary text-white shadow-md' : chart.disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100'}`}>
-                              <Icon className="w-4 h-4" /><span className="text-[10px] font-medium truncate w-full text-center">{chart.label}</span>
-                            </motion.button>
-                          </TooltipTrigger><TooltipContent><p className="font-medium">{chart.label}</p><p className="text-xs text-muted-foreground">{chart.desc}</p></TooltipContent></Tooltip></TooltipProvider>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Actions */}
-                <Card className="border-slate-200">
-                  <CardContent className="pt-4 space-y-2">
-                    <Button onClick={() => activeChart && handleRunAnalysis(activeChart)} disabled={!activeChart || !canRun || isLoading} className="w-full shadow-md" variant={isDirty ? "default" : "secondary"}>
-                      {isLoading ? <><RefreshCw className="w-4 h-4 animate-spin mr-2" />Generating...</> : <><Play className="w-4 h-4 mr-2" />Generate</>}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </ScrollArea>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="absolute top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-r-lg shadow-lg z-20" style={{ left: sidebarCollapsed ? 0 : 280 }}>
-        {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-      </button>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b px-6 py-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-primary flex items-center gap-2"><BarChartIcon className="w-6 h-6" />Visualization Builder</h1>
-              <p className="text-sm text-muted-foreground">{canRun ? `${fileName} • ${data.length} rows` : 'Upload data to start'}</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setShowConfig(!showConfig)}>{showConfig ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}{showConfig ? 'Hide' : 'Show'} Config</Button>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-auto p-6">
-          {/* Config Panel */}
-          <AnimatePresence mode="wait">
-            {showConfig && activeChart && canRun && configType !== 'none' && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-6">
-                <Card className="border-slate-200 shadow-lg">
-                  <CardHeader className="pb-3 bg-gradient-to-r from-slate-50 to-white border-b">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center"><Palette className="w-5 h-5 text-primary" /></div>
-                        <div><CardTitle className="text-base">Configuration</CardTitle><CardDescription className="text-xs">{selectedInfo?.label} - {selectedInfo?.desc}</CardDescription></div>
-                      </div>
-                      <Button onClick={() => activeChart && handleRunAnalysis(activeChart)} disabled={!activeChart || !canRun || isLoading} variant={isDirty ? "default" : "secondary"} size="sm">
-                        {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}{isLoading ? 'Running...' : 'Run'}
+                  {/* Actions */}
+                  <Card className="border-slate-200">
+                    <CardContent className="pt-4 space-y-2">
+                      <Button onClick={() => activeChart && handleRunAnalysis(activeChart)} disabled={!activeChart || !canRun || isLoading} className="w-full shadow-md" variant={isDirty ? "default" : "secondary"}>
+                        {isLoading ? <><RefreshCw className="w-4 h-4 animate-spin mr-2" />Generating...</> : <><Play className="w-4 h-4 mr-2" />Generate</>}
                       </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-5">
-                    {/* Single Numeric */}
-                    {configType === 'single_numeric' && (
-                      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-                        <div><Label className="text-sm font-medium">Variable</Label><Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Group By (optional)</Label><Select value={groupColumn ?? 'none'} onValueChange={v => wrap(setGroupColumn)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="None" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Sidebar toggle */}
+        <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="absolute top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-r-lg shadow-lg z-20" style={{ left: sidebarCollapsed ? 0 : 320 }}>
+          {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-6">
+            {/* Config Panel */}
+            <AnimatePresence mode="wait">
+              {showConfig && activeChart && canRun && configType !== 'none' && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-6">
+                  <Card className="border-slate-200 shadow-lg">
+                    <CardHeader className="pb-3 bg-gradient-to-r from-slate-50 to-white border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center"><Settings className="w-5 h-5 text-primary" /></div>
+                          <div><CardTitle className="text-base">Configuration</CardTitle><CardDescription className="text-xs">{selectedInfo?.label} - {selectedInfo?.desc}</CardDescription></div>
+                        </div>
+                        <Button onClick={() => activeChart && handleRunAnalysis(activeChart)} disabled={!activeChart || !canRun || isLoading} variant={isDirty ? "default" : "secondary"} size="sm">
+                          {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}{isLoading ? 'Running...' : 'Run'}
+                        </Button>
                       </div>
-                    )}
-                    {/* Numeric with Group */}
-                    {configType === 'numeric_with_group' && (
-                      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-                        <div><Label className="text-sm font-medium">Numeric Variable</Label><Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Group By</Label><Select value={groupColumn ?? 'none'} onValueChange={v => wrap(setGroupColumn)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="None" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                      </div>
-                    )}
-                    {/* Single Categorical */}
-                    {configType === 'single_categorical' && (
-                      <div className="max-w-md">
-                        <Label className="text-sm font-medium">Category</Label>
-                        <Select value={barColumn} onValueChange={wrap(setBarColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                    )}
-                    {/* XY Scatter */}
-                    {configType === 'xy_scatter' && (
-                      <div className="grid grid-cols-4 gap-4">
-                        <div><Label className="text-sm font-medium">X-Axis</Label><Select value={scatterX} onValueChange={wrap(setScatterX)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Y-Axis</Label><Select value={scatterY} onValueChange={wrap(setScatterY)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== scatterX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Color By</Label><Select value={scatterGroup ?? 'none'} onValueChange={v => wrap(setScatterGroup)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="None" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        {['scatter', 'regression'].includes(activeChart || '') && <div className="flex items-end pb-1"><label className="flex items-center gap-2 cursor-pointer"><Checkbox checked={scatterTrend} onCheckedChange={c => wrap(setScatterTrend)(!!c)} /><span className="text-sm">Trend Line</span></label></div>}
-                      </div>
-                    )}
-                    {/* Bubble */}
-                    {configType === 'bubble' && (
-                      <div className="grid grid-cols-3 gap-4 max-w-3xl">
-                        <div><Label className="text-sm font-medium">X-Axis</Label><Select value={bubbleX} onValueChange={wrap(setBubbleX)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Y-Axis</Label><Select value={bubbleY} onValueChange={wrap(setBubbleY)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== bubbleX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Size</Label><Select value={bubbleZ} onValueChange={wrap(setBubbleZ)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== bubbleX && h !== bubbleY).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                      </div>
-                    )}
-                    {/* Pie */}
-                    {configType === 'pie' && (
-                      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-                        <div><Label className="text-sm font-medium">Category</Label><Select value={pieNameCol} onValueChange={wrap(setPieNameCol)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Value (optional)</Label><Select value={pieValueCol ?? 'none'} onValueChange={v => wrap(setPieValueCol)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="Count" /></SelectTrigger><SelectContent><SelectItem value="none">Count</SelectItem>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                      </div>
-                    )}
-                    {/* Grouped */}
-                    {configType === 'grouped' && (
-                      <div className="grid grid-cols-3 gap-4 max-w-3xl">
-                        <div><Label className="text-sm font-medium">Category</Label><Select value={cat1} onValueChange={wrap(setCat1)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Group By</Label><Select value={cat2} onValueChange={wrap(setCat2)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).filter(h => h !== cat1).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Value</Label><Select value={valueCol} onValueChange={wrap(setValueCol)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                      </div>
-                    )}
-                    {/* Multi Variable */}
-                    {configType === 'multi_var' && (
-                      <div className="max-w-lg">
-                        <Label className="text-sm font-medium">Variables (select 2+)</Label>
-                        <ScrollArea className="h-32 border rounded-lg p-3 mt-1.5 bg-slate-50">
-                          {(numericHeaders || []).map(h => (<div key={h} className="flex items-center gap-2 py-1.5"><Checkbox checked={heatmapVars.includes(h)} onCheckedChange={c => { markDirty(); setHeatmapVars(prev => c ? [...prev, h] : prev.filter(i => i !== h)); }} /><Label className="text-sm">{h}</Label></div>))}
-                        </ScrollArea>
-                        <p className="text-xs text-muted-foreground mt-2">Selected: {heatmapVars.length}</p>
-                      </div>
-                    )}
-                    {/* PCA */}
-                    {configType === 'pca' && (
-                      <div className="space-y-4">
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      {/* Single Numeric */}
+                      {configType === 'single_numeric' && (
+                        <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                          <div><Label className="text-sm font-medium">Variable</Label><Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Group By (optional)</Label><Select value={groupColumn ?? 'none'} onValueChange={v => wrap(setGroupColumn)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="None" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                      {/* Numeric with Group */}
+                      {configType === 'numeric_with_group' && (
+                        <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                          <div><Label className="text-sm font-medium">Numeric Variable</Label><Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Group By</Label><Select value={groupColumn ?? 'none'} onValueChange={v => wrap(setGroupColumn)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="None" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                      {/* Single Categorical */}
+                      {configType === 'single_categorical' && (
+                        <div className="max-w-md">
+                          <Label className="text-sm font-medium">Category</Label>
+                          <Select value={barColumn} onValueChange={wrap(setBarColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                      )}
+                      {/* XY Scatter */}
+                      {configType === 'xy_scatter' && (
+                        <div className="grid grid-cols-4 gap-4">
+                          <div><Label className="text-sm font-medium">X-Axis</Label><Select value={scatterX} onValueChange={wrap(setScatterX)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Y-Axis</Label><Select value={scatterY} onValueChange={wrap(setScatterY)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== scatterX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Color By</Label><Select value={scatterGroup ?? 'none'} onValueChange={v => wrap(setScatterGroup)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="None" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          {['scatter', 'regression'].includes(activeChart || '') && <div className="flex items-end pb-1"><label className="flex items-center gap-2 cursor-pointer"><Checkbox checked={scatterTrend} onCheckedChange={c => wrap(setScatterTrend)(!!c)} /><span className="text-sm">Trend Line</span></label></div>}
+                        </div>
+                      )}
+                      {/* Bubble */}
+                      {configType === 'bubble' && (
+                        <div className="grid grid-cols-3 gap-4 max-w-3xl">
+                          <div><Label className="text-sm font-medium">X-Axis</Label><Select value={bubbleX} onValueChange={wrap(setBubbleX)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Y-Axis</Label><Select value={bubbleY} onValueChange={wrap(setBubbleY)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== bubbleX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Size</Label><Select value={bubbleZ} onValueChange={wrap(setBubbleZ)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== bubbleX && h !== bubbleY).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                      {/* Pie */}
+                      {configType === 'pie' && (
+                        <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                          <div><Label className="text-sm font-medium">Category</Label><Select value={pieNameCol} onValueChange={wrap(setPieNameCol)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Value (optional)</Label><Select value={pieValueCol ?? 'none'} onValueChange={v => wrap(setPieValueCol)(v === 'none' ? undefined : v)}><SelectTrigger className="mt-1.5"><SelectValue placeholder="Count" /></SelectTrigger><SelectContent><SelectItem value="none">Count</SelectItem>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                      {/* Grouped */}
+                      {configType === 'grouped' && (
+                        <div className="grid grid-cols-3 gap-4 max-w-3xl">
+                          <div><Label className="text-sm font-medium">Category</Label><Select value={cat1} onValueChange={wrap(setCat1)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Group By</Label><Select value={cat2} onValueChange={wrap(setCat2)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(categoricalHeaders || []).filter(h => h !== cat1).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Value</Label><Select value={valueCol} onValueChange={wrap(setValueCol)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                      {/* Multi Variable */}
+                      {configType === 'multi_var' && (
                         <div className="max-w-lg">
                           <Label className="text-sm font-medium">Variables (select 2+)</Label>
                           <ScrollArea className="h-32 border rounded-lg p-3 mt-1.5 bg-slate-50">
@@ -962,79 +941,90 @@ export default function VisualizationPage() {
                           </ScrollArea>
                           <p className="text-xs text-muted-foreground mt-2">Selected: {heatmapVars.length}</p>
                         </div>
-                        {activeChart === 'cluster' && (
-                          <div className="max-w-xs">
-                            <Label className="text-sm font-medium">Number of Clusters (k)</Label>
-                            <Input type="number" min={2} max={10} value={nClusters} onChange={e => { markDirty(); setNClusters(parseInt(e.target.value) || 3); }} className="mt-1.5" />
+                      )}
+                      {/* PCA */}
+                      {configType === 'pca' && (
+                        <div className="space-y-4">
+                          <div className="max-w-lg">
+                            <Label className="text-sm font-medium">Variables (select 2+)</Label>
+                            <ScrollArea className="h-32 border rounded-lg p-3 mt-1.5 bg-slate-50">
+                              {(numericHeaders || []).map(h => (<div key={h} className="flex items-center gap-2 py-1.5"><Checkbox checked={heatmapVars.includes(h)} onCheckedChange={c => { markDirty(); setHeatmapVars(prev => c ? [...prev, h] : prev.filter(i => i !== h)); }} /><Label className="text-sm">{h}</Label></div>))}
+                            </ScrollArea>
+                            <p className="text-xs text-muted-foreground mt-2">Selected: {heatmapVars.length}</p>
                           </div>
-                        )}
-                      </div>
-                    )}
-                    {/* Network */}
-                    {configType === 'network' && (
-                      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-                        <div><Label className="text-sm font-medium">Source</Label><Select value={networkSource} onValueChange={wrap(setNetworkSource)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(allHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Target</Label><Select value={networkTarget} onValueChange={wrap(setNetworkTarget)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(allHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                      </div>
-                    )}
-                    {/* KPI */}
-                    {configType === 'kpi' && (
-                      <div className="max-w-md">
-                        <Label className="text-sm font-medium">Metric</Label>
-                        <Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                    )}
-                    {/* Bullet */}
-                    {configType === 'bullet' && (
-                      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-                        <div><Label className="text-sm font-medium">Actual Value</Label><Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label className="text-sm font-medium">Target Value</Label><Select value={valueCol} onValueChange={wrap(setValueCol)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== distColumn).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                          {activeChart === 'cluster' && (
+                            <div className="max-w-xs">
+                              <Label className="text-sm font-medium">Number of Clusters (k)</Label>
+                              <Input type="number" min={2} max={10} value={nClusters} onChange={e => { markDirty(); setNClusters(parseInt(e.target.value) || 3); }} className="mt-1.5" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {/* Network */}
+                      {configType === 'network' && (
+                        <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                          <div><Label className="text-sm font-medium">Source</Label><Select value={networkSource} onValueChange={wrap(setNetworkSource)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(allHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Target</Label><Select value={networkTarget} onValueChange={wrap(setNetworkTarget)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(allHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                      {/* KPI */}
+                      {configType === 'kpi' && (
+                        <div className="max-w-md">
+                          <Label className="text-sm font-medium">Metric</Label>
+                          <Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                      )}
+                      {/* Bullet */}
+                      {configType === 'bullet' && (
+                        <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                          <div><Label className="text-sm font-medium">Actual Value</Label><Select value={distColumn} onValueChange={wrap(setDistColumn)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                          <div><Label className="text-sm font-medium">Target Value</Label><Select value={valueCol} onValueChange={wrap(setValueCol)}><SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{(numericHeaders || []).filter(h => h !== distColumn).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Result */}
-          <div ref={resultRef}>
-            {isLoading ? (
-              <Card className="shadow-xl border-0"><CardContent className="p-8"><div className="flex flex-col items-center justify-center space-y-4"><div className="relative"><div className="w-16 h-16 border-4 border-primary/20 rounded-full"></div><div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0"></div></div><p className="text-muted-foreground">Generating chart...</p></div></CardContent></Card>
-            ) : activeChart && analysisResult?.success && analysisResult?.data ? (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <Card className="shadow-xl border-0 overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center"><BarChartIcon className="w-5 h-5 text-primary" /></div>
-                        <div><CardTitle className="text-lg">{selectedInfo?.label || 'Chart'}</CardTitle><p className="text-xs text-muted-foreground">{selectedInfo?.desc} • Interactive</p></div>
+            {/* Result */}
+            <div ref={resultRef}>
+              {isLoading ? (
+                <Card className="shadow-xl border-0"><CardContent className="p-8"><div className="flex flex-col items-center justify-center space-y-4"><div className="relative"><div className="w-16 h-16 border-4 border-primary/20 rounded-full"></div><div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0"></div></div><p className="text-muted-foreground">Generating chart...</p></div></CardContent></Card>
+              ) : activeChart && analysisResult?.success && analysisResult?.data ? (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                  <Card className="shadow-xl border-0 overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center"><BarChartIcon className="w-5 h-5 text-primary" /></div>
+                          <div><CardTitle className="text-lg">{selectedInfo?.label || 'Chart'}</CardTitle><p className="text-xs text-muted-foreground">{selectedInfo?.desc} • Interactive</p></div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">{analysisResult.dataInfo?.rows} rows</Badge>
                       </div>
-                      <Badge variant="secondary" className="text-xs">{analysisResult.dataInfo?.rows} rows</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 bg-white">
-                    <DynamicChart chartType={analysisResult.chartType} data={analysisResult.data} />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ) : !canRun ? (
-              <Card className="shadow-lg border-slate-200"><CardContent className="p-12"><div className="flex flex-col items-center justify-center text-center"><div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mb-6"><Upload className="w-10 h-10 text-amber-600" /></div><h3 className="text-xl font-semibold text-amber-700 mb-2">No Data</h3><p className="text-muted-foreground max-w-md mb-6">Upload a dataset or use sample data</p><div className="flex gap-3"><Button onClick={() => fileInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload</Button><Button variant="outline" onClick={loadSampleData}><Sparkles className="w-4 h-4 mr-2" />Sample</Button></div></div></CardContent></Card>
-            ) : (
-              <Card className="shadow-lg border-slate-200"><CardContent className="p-12"><div className="flex flex-col items-center justify-center text-center"><div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-6"><BarChartIcon className="w-10 h-10 text-primary/60" /></div><h3 className="text-xl font-semibold text-primary mb-2">Ready to Visualize</h3><p className="text-muted-foreground max-w-md">Select a chart type, configure variables, then click <strong>Generate</strong></p></div></CardContent></Card>
-            )}
+                    </CardHeader>
+                    <CardContent className="p-6 bg-white">
+                      <DynamicChart chartType={analysisResult.chartType} data={analysisResult.data} />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ) : !canRun ? (
+                <Card className="shadow-lg border-slate-200"><CardContent className="p-12"><div className="flex flex-col items-center justify-center text-center"><div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mb-6"><Upload className="w-10 h-10 text-amber-600" /></div><h3 className="text-xl font-semibold text-amber-700 mb-2">No Data</h3><p className="text-muted-foreground max-w-md mb-6">Upload a dataset or use sample data</p><div className="flex gap-3"><Button onClick={() => fileInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload</Button><Button variant="outline" onClick={loadSampleData}><Sparkles className="w-4 h-4 mr-2" />Sample</Button></div></div></CardContent></Card>
+              ) : (
+                <Card className="shadow-lg border-slate-200"><CardContent className="p-12"><div className="flex flex-col items-center justify-center text-center"><div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-6"><BarChartIcon className="w-10 h-10 text-primary/60" /></div><h3 className="text-xl font-semibold text-primary mb-2">Ready to Visualize</h3><p className="text-muted-foreground max-w-md">Select a chart type, configure variables, then click <strong>Generate</strong></p></div></CardContent></Card>
+              )}
+            </div>
           </div>
-        </div>
 
-        <footer className="bg-white border-t px-6 py-2 text-xs text-muted-foreground flex justify-between items-center">
-          <span>{canRun ? `${data.length} rows × ${allLen} cols` : 'No data'}</span>
-          <div className="flex items-center gap-3">
-            {activeChart && <Badge variant="outline" className="text-primary">{selectedInfo?.label}</Badge>}
-            {analysisResult && <Badge variant="secondary" className="text-green-600">Generated</Badge>}
-          </div>
-        </footer>
-      </main>
+          <footer className="bg-white border-t px-6 py-2 text-xs text-muted-foreground flex justify-between items-center">
+            <span>{canRun ? `${data.length} rows × ${allLen} cols` : 'No data'}</span>
+            <div className="flex items-center gap-3">
+              {activeChart && <Badge variant="outline" className="text-primary">{selectedInfo?.label}</Badge>}
+              {analysisResult && <Badge variant="secondary" className="text-green-600">Generated</Badge>}
+            </div>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }
-
