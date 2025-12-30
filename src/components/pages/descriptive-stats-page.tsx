@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -8,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch, Lightbulb, CheckCircle, Download, FileSpreadsheet, ImageIcon, Database, Settings2, Shield, FileText, BarChart3, ChevronRight, ChevronLeft, Check, CheckCircle2, Info, ArrowRight, ChevronDown, FileCode, FileType, Target, Activity, TrendingUp, Hash, Percent } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -22,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from '../ui/badge';
 import Papa from 'papaparse';
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://localhost:8000';
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-995604437166.asia-northeast3.run.app';
 
 interface NumericStats {
     count: number;
@@ -59,7 +58,7 @@ interface VariableResult {
     stats?: NumericStats;
     table?: CategoricalFreqItem[];
     summary?: CategoricalStats['summary'];
-    plots: { [key: string]: string };
+    plot?: string;
     insights?: string[];
     error?: string;
     groupedStats?: { [key: string]: NumericStats };
@@ -101,7 +100,8 @@ const metricDefinitions: Record<string, string> = {
 
 const IntroPage = ({ onLoadExample }: { onLoadExample: (e: any) => void }) => {
     const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
-    
+    const tipsExample = exampleDatasets.find(ex => ex.id === 'tips-data');
+
     return (
         <div className="flex flex-1 items-center justify-center p-6">
             <Card className="w-full max-w-4xl">
@@ -207,6 +207,12 @@ const IntroPage = ({ onLoadExample }: { onLoadExample: (e: any) => void }) => {
                     </div>
 
                     <div className="flex justify-center gap-4 pt-2">
+                        {tipsExample && (
+                            <Button onClick={() => onLoadExample(tipsExample)} size="lg" variant="outline">
+                                <Coffee className="mr-2 h-5 w-5" />
+                                Load Tips Dataset
+                            </Button>
+                        )}
                         {irisExample && (
                             <Button onClick={() => onLoadExample(irisExample)} size="lg">
                                 {irisExample.icon && <irisExample.icon className="mr-2 h-5 w-5" />}
@@ -355,23 +361,10 @@ const AnalysisDisplay = ({ result, varName }: { result: VariableResult, varName:
         <Card>
             <CardHeader><CardTitle>{varName}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {result.plots && (
-                    <Tabs defaultValue={Object.keys(result.plots)[0]} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            {Object.keys(result.plots).map(plotType => (
-                                <TabsTrigger key={plotType} value={plotType}>
-                                    {plotType.charAt(0).toUpperCase() + plotType.slice(1)}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                        {Object.entries(result.plots).map(([plotType, plotData]) => (
-                            <TabsContent key={plotType} value={plotType}>
-                                <div className="w-full h-full flex items-center justify-center">
-                                    <Image src={`data:image/png;base64,${plotData}`} alt={`${varName} ${plotType}`} width={600} height={400} className="rounded-md border" />
-                                </div>
-                            </TabsContent>
-                        ))}
-                    </Tabs>
+                {result.plot && (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <Image src={result.plot?.startsWith('data:') ? result.plot : `data:image/png;base64,${result.plot}`} alt="Distribution Plot" width={600} height={400} className="rounded-md border" />
+                    </div>
                 )}
                 <div className="space-y-4">
                     <Card>
@@ -429,13 +422,11 @@ interface DescriptiveStatsPageProps {
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
-    onFileSelected: (file: File) => void;
-    isUploading: boolean;
     restoredState?: any;
-    onAnalysisComplete: (result: any) => void;
+    onAnalysisComplete?: (result: any) => void;
 }
 
-export default function DescriptiveStatisticsPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected, isUploading, restoredState, onAnalysisComplete }: DescriptiveStatsPageProps) {
+export default function DescriptiveStatisticsPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample, restoredState, onAnalysisComplete}: DescriptiveStatsPageProps) {
     const { toast } = useToast();
     const resultsRef = useRef<HTMLDivElement>(null);
     
@@ -519,43 +510,6 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         setCurrentStep(step);
         setMaxReachedStep(prev => Math.max(prev, step) as Step);
     }, []);
-    
-    // Analysis
-    const runAnalysis = useCallback(async () => {
-        if (selectedVars.length === 0) {
-            toast({ title: "No Variables Selected", description: "Please select at least one variable.", variant: "destructive" });
-            return;
-        }
-        setIsLoading(true);
-        setAnalysisResult(null);
-
-        try {
-            const response = await fetch('/api/analysis/descriptive-stats', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, variables: selectedVars, groupBy: groupByVar })
-            });
-            
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
-            
-            setAnalysisResult(result);
-            onAnalysisComplete(result); // Pass result up
-            goToStep(4);
-            toast({ title: "Analysis Complete", description: `Descriptive statistics generated for ${selectedVars.length} variable(s).` });
-
-        } catch (e: any) {
-            console.error('Analysis error:', e);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [data, selectedVars, groupByVar, toast, goToStep, onAnalysisComplete]);
 
     const nextStep = useCallback(() => {
         if (currentStep === 3) {
@@ -563,7 +517,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         } else if (currentStep < 6) {
             goToStep((currentStep + 1) as Step);
         }
-    }, [currentStep, goToStep, runAnalysis]);
+    }, [currentStep]);
 
     const prevStep = useCallback(() => {
         if (currentStep > 1) goToStep((currentStep - 1) as Step);
@@ -579,6 +533,42 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
     const selectNumeric = () => setSelectedVars([...numericHeaders]);
     const selectCategorical = () => setSelectedVars([...categoricalHeaders]);
 
+    // Analysis
+    const runAnalysis = useCallback(async () => {
+        if (selectedVars.length === 0) {
+            toast({ title: "No Variables Selected", description: "Please select at least one variable.", variant: "destructive" });
+            return;
+        }
+        setIsLoading(true);
+        setAnalysisResult(null);
+
+        try {
+            const response = await fetch(`${FASTAPI_URL}/api/analysis/descriptive`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data, variables: selectedVars, groupBy: groupByVar })
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const result: FullAnalysisResponse = await response.json();
+            if ((result as any).error) throw new Error((result as any).error);
+
+            setAnalysisResult(result);
+            onAnalysisComplete?.(result);
+            goToStep(4);
+            toast({ title: "Analysis Complete", description: `Descriptive statistics generated for ${selectedVars.length} variable(s).` });
+
+        } catch (e: any) {
+            console.error('Analysis error:', e);
+            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [data, selectedVars, groupByVar, toast, goToStep]);
 
     // Downloads
     const handleDownloadPNG = useCallback(async () => {
@@ -1204,5 +1194,3 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         </div>
     );
 }
-
-```

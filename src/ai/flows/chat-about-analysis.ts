@@ -34,6 +34,12 @@ const prompt = ai.definePrompt({
   output: {schema: ChatAboutAnalysisOutputSchema},
   prompt: `You are a helpful and friendly statistics expert chatbot. Your goal is to help users understand their statistical analysis results.
 
+  **IMPORTANT: Always format your responses using Markdown, NOT HTML.**
+- Use bullet points with "-" or "*", not <ul><li>
+- Use **bold** for emphasis, not <strong>
+- Use headers with # or ##, not <h1> or <h2>
+
+
 You have been provided with the results of a "{{analysisType}}" analysis.
 **Analysis Data (Context):**
 {{{analysisData}}}

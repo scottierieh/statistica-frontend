@@ -65,12 +65,7 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 export default function GuidePage() {
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-primary/10 to-background">
-        <CardHeader>
-          <CardTitle className="font-headline text-3xl">Statistica Overview</CardTitle>
-          <CardDescription>A comprehensive reference for all available statistical analysis methods.</CardDescription>
-        </CardHeader>
-      </Card>
+
 
       <Tabs defaultValue="mindmap">
         <TabsList className="grid w-full grid-cols-3">
