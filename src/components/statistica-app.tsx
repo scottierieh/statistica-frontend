@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -79,13 +78,13 @@ import {
   Scissors,
   FileSearch,
   CheckSquare,
-  Filter,
+  Clock,
+  Download,
   Bot,
   BookOpen,
-  Search,
-  Clock,
-  Download
+  Search
 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -97,7 +96,6 @@ import {
   unparseData,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
-import { getSummaryReport } from '@/app/actions';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
@@ -105,7 +103,6 @@ import { cn } from '@/lib/utils';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
 
 // Default page to show when no data is loaded or for the overview.
@@ -281,7 +278,7 @@ export default function StatisticaApp() {
       toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
     }
   }, [data, allHeaders, fileName, toast]);
-
+  
   const hasData = data.length > 0;
 
   const filteredAnalysisCategories = useMemo(() => {
@@ -318,7 +315,7 @@ export default function StatisticaApp() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible="offcanvas">
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
@@ -387,7 +384,7 @@ export default function StatisticaApp() {
         <SidebarInset>
           <div ref={analysisPageRef} className="p-4 md:p-6 h-full flex flex-col gap-4">
             <header className="flex items-center justify-between">
-                <SidebarTrigger className="md:hidden"/>
+                <SidebarTrigger />
                 <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
                 <div />
             </header>
