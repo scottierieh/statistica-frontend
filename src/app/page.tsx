@@ -1,10 +1,11 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, ClipboardList, BrainCircuit, Calculator, Database, Lightbulb, Zap, Users, Network, TrendingUp, Link2, ShieldCheck, FileSearch, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, Activity, Palette, Clock, Menu, Target, Globe, Briefcase, ChevronLeft, ChevronRight, LayoutDashboard, BarChart3, Brain, Boxes, Timer, MessageSquare, Wallet, Truck, ScatterChart, FileText, Check, Sparkles, X, BarChart, Send, Bot, User, BookOpen, HelpCircle, Wand2, Variable, ArrowDown, MousePointerClick, FileUp, Table2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ClipboardList, BrainCircuit, Calculator, Database, Lightbulb, Zap, Users, Network, TrendingUp, Link2, ShieldCheck, FileSearch, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, Handshake, Replace, Activity, Palette, Clock, Menu, Target, Globe, Briefcase, ChevronLeft, ChevronRight, LayoutDashboard, BarChart3, Brain, Boxes, Timer, MessageSquare, Wallet, Truck, ScatterChart, FileText, Check, Sparkles, X, BarChart, Send, Bot, User, BookOpen, HelpCircle, Wand2, Variable, ArrowDown, MousePointerClick, FileUp, Table2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -68,7 +69,7 @@ const analysisCategories = [
     subcategories: [
       { name: 'T-Tests', items: ['One-Sample', 'Independent Samples', "Welch's T-test", 'Paired Samples'] },
       { name: 'ANOVA', items: ['One-Way ANOVA', 'Two-Way ANOVA', 'ANCOVA', 'MANOVA', 'Repeated Measure ANOVA'] },
-      { name: 'Non-Parametric', items: ['Mann-Whitney U Test', 'Wilcoxon Signed-Rank', 'Kruskal-Wallis H-Test', 'Friedman Test'] },
+      { name: 'Non-Parametric', items: ['Mann-Whitney U Test', 'Wilcoxon Signed-Rank', 'Kruskal-Wallis H-Test', 'Friedman Test', 'McNemar’s Test'] },
       { name: 'Statistical Design', items: ['Power Analysis'] },
     ],
   },
@@ -533,9 +534,7 @@ export default function LandingPage() {
             {/* Animated Gradient Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100" style={{ zIndex: 0 }}>
               {/* Floating Light Beams */}
-              <div className="absolute inset-0 overflow-hidden">
-                {/* Beam 1 */}
-                <motion.div 
+              <motion.div 
                   className="absolute w-[200%] h-[3px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent blur-sm"
                   style={{
                     top: '15%',

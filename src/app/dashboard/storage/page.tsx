@@ -38,13 +38,12 @@ export default function StoragePage() {
             {imageUrls.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {imageUrls.map((url, index) => (
-                  <div key={index} className="relative group">
+                  <div key={index} className="relative group aspect-square">
                     <Image
                       src={url}
                       alt={`Uploaded image ${index + 1}`}
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-cover aspect-square"
+                      fill
+                      className="rounded-lg object-cover"
                     />
                     <Button
                       variant="destructive"

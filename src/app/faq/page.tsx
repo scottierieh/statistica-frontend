@@ -38,9 +38,8 @@ export default function FaqPage() {
                 <Image
                     src={helpCenterBg.imageUrl}
                     alt={helpCenterBg.description}
-                    layout="fill"
-                    objectFit="cover"
-                    className="opacity-40"
+                    fill
+                    className="object-cover opacity-40"
                     data-ai-hint={helpCenterBg.imageHint}
                     priority
                 />
