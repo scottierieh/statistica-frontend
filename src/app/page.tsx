@@ -27,26 +27,29 @@ const securityImage = PlaceHolderImages.find(p => p.id === 'security-feature');
 const apiIntegrationsImage = PlaceHolderImages.find(p => p.id === 'api-integrations');
 const statisticaFeatureImage = PlaceHolderImages.find(p => p.id === 'statistica-feature');
 
+
+
+
+
 const VisualImage = {
-    imageUrl: 'https://github.com/scottierieh/statistica/blob/main/CBA461AF-EE60-4FF7-B36E-750F2692E141.png?raw=true',
-    imageHint: 'visual'
-  };
-  
-  const editImage = {
-    imageUrl: 'https://github.com/scottierieh/statistica/blob/main/099675B4-D86A-47B9-8F52-C7F1927BEEE8.png?raw=true',
-    imageHint: 'edit'
-  };
+  imageUrl: 'https://raw.githubusercontent.com/scottierieh/statistica/main/CBA461AF-EE60-4FF7-B36E-750F2692E141.png',
+  imageHint: 'visual'
+};
 
+const editImage = {
+  imageUrl: 'https://raw.githubusercontent.com/scottierieh/statistica/main/099675B4-D86A-47B9-8F52-C7F1927BEEE8.png',
+  imageHint: 'edit'
+};
 
-  const analyzeImage = {
-    imageUrl: 'https://github.com/scottierieh/statistica/blob/main/42FEFAB8-236D-46AC-BF28-FCDCAFDB0708.png?raw=true',
-    imageHint: 'analyze'
-  };
+const analyzeImage = {
+  imageUrl: 'https://raw.githubusercontent.com/scottierieh/statistica/main/42FEFAB8-236D-46AC-BF28-FCDCAFDB0708.png',
+  imageHint: 'analyze'
+};
 
-  const dashboardImage = {
-    imageUrl: 'https://github.com/scottierieh/statistica/blob/main/A1F6C425-5571-4584-AF54-9D0C8E5556DD.png?raw=true',
-    imageHint: 'dashboard analytics overview'
-  };
+const dashboardImage = {
+  imageUrl: 'https://raw.githubusercontent.com/scottierieh/statistica/main/A1F6C425-5571-4584-AF54-9D0C8E5556DD.png',
+  imageHint: 'dashboard analytics overview'
+};
 
 
 // Analysis Categories Data

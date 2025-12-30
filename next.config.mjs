@@ -1,13 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'github.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
   webpack: (config, { isServer }) => {
-    // Handlebars issue: require.extensions is not supported by webpack.
-    // We can simply ignore this dependency.
     config.externals.push('handlebars');
-
     return config;
   },
-  // Prevent Next.js from watching the backend directory to avoid excessive recompilations.
   watchOptions: {
     ignored: ['**/backend/**'],
   },
