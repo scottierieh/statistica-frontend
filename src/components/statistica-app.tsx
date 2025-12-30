@@ -282,39 +282,6 @@ export default function StatisticaApp() {
     }
   }, [data, allHeaders, fileName, toast]);
 
-  const handleGenerateReport = useCallback(async (analysisType: string, stats: any, viz: string | null) => {
-    setIsGeneratingReport(true);
-    try {
-      const result = await getSummaryReport({
-        analysisType,
-        statistics: JSON.stringify(stats, null, 2),
-        visualizations: viz || "No visualization available.",
-      });
-      if (result.success && result.report) {
-        setReport({ title: 'Analysis Report', content: result.report });
-      } else {
-        toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
-      }
-    } catch (e) {
-      toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while generating the report.' });
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  }, [toast]);
-
-  const downloadReport = useCallback(() => {
-    if (!report) return;
-    const blob = new Blob([report.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'statistica_report.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [report]);
-
   const hasData = data.length > 0;
 
   const filteredAnalysisCategories = useMemo(() => {
@@ -351,7 +318,7 @@ export default function StatisticaApp() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <Sidebar>
+        <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
@@ -419,10 +386,10 @@ export default function StatisticaApp() {
 
         <SidebarInset>
           <div ref={analysisPageRef} className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between md:justify-end">
-              <SidebarTrigger className="md:hidden" />
-              <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
-              <div />
+            <header className="flex items-center justify-between">
+                <SidebarTrigger className="md:hidden"/>
+                <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
+                <div />
             </header>
 
             {hasData && activeAnalysis !== 'guide' && (
@@ -444,28 +411,11 @@ export default function StatisticaApp() {
               onFileSelected={handleFileSelected}
               isUploading={isUploading}
               activeAnalysis={activeAnalysis}
-              onGenerateReport={(stats: any, viz: string | null) => handleGenerateReport(activeAnalysis, stats, viz)}
+              onGenerateReport={(stats: any, viz: string | null) => {}}
             />
           </div>
         </SidebarInset>
       </div>
-
-      <Dialog open={!!report} onOpenChange={(open) => !open && setReport(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="font-headline">{report?.title}</DialogTitle>
-            <DialogDescription>
-              An AI-generated summary of your data and selected analysis.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto rounded-md border p-4 whitespace-pre-wrap">
-            {report?.content}
-          </div>
-          <DialogFooter>
-            <Button onClick={downloadReport}>Download as .txt</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </SidebarProvider>
   );
 }
