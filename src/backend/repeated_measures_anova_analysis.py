@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -13,6 +11,10 @@ import pingouin as pg
 import math
 
 warnings.filterwarnings('ignore')
+
+# Set seaborn style globally
+sns.set_theme(style="darkgrid")
+sns.set_context("notebook", font_scale=1.1)
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -32,7 +34,7 @@ class RepeatedMeasuresAnova:
         self.data = pd.DataFrame(data).copy()
         self.subject_col = subject_col
         self.within_cols = within_cols
-        self.dependent_var = dependent_var_template # This will be the name for the melted value column, e.g., 'score'
+        self.dependent_var = dependent_var_template
         self.between_col = between_col
         self.alpha = alpha
         self.results = {}
@@ -47,110 +49,237 @@ class RepeatedMeasuresAnova:
         self.long_data = pd.melt(self.data, 
                                  id_vars=id_vars, 
                                  value_vars=self.within_cols,
-                                 var_name='time', # Standard name for the within-subject factor variable after melting
+                                 var_name='time',
                                  value_name=self.dependent_var)
         self.long_data.dropna(inplace=True)
-
+        
+        # Convert dependent variable to numeric
+        self.long_data[self.dependent_var] = pd.to_numeric(self.long_data[self.dependent_var], errors='coerce')
+        self.long_data.dropna(inplace=True)
 
     def run_analysis(self):
         try:
+            if self.long_data.empty or len(self.long_data) < 3:
+                raise ValueError("Not enough valid data for analysis")
+            
             # Build arguments dynamically for rm_anova
             kwargs = {
                 'data': self.long_data,
                 'dv': self.dependent_var,
-                'within': 'time', # This is now the standard name for the within-factor
+                'within': 'time',
                 'subject': self.subject_col,
                 'detailed': True,
                 'effsize': "np2"
             }
-            if self.between_col:
+            if self.between_col and self.between_col in self.long_data.columns:
                 kwargs['between'] = self.between_col
             
             aov = pg.rm_anova(**kwargs)
 
-            # Convert NaN to None before creating the dictionary
-            self.results['anova_table'] = aov.replace({np.nan: None}).to_dict('records')
+            # Rename 'time' to more readable format and add source type
+            anova_records = []
+            for _, row in aov.iterrows():
+                record = row.to_dict()
+                source = record.get('Source', '')
+                
+                # Map source names for frontend compatibility
+                if source == 'time':
+                    record['Source'] = 'Within (Time)'
+                    record['source_type'] = 'within'
+                elif self.between_col and source == self.between_col:
+                    record['Source'] = f'Between ({self.between_col})'
+                    record['source_type'] = 'between'
+                elif '*' in str(source):
+                    record['Source'] = 'Interaction'
+                    record['source_type'] = 'interaction'
+                else:
+                    record['source_type'] = 'other'
+                
+                # Handle NaN values
+                for key, value in record.items():
+                    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                        record[key] = None
+                
+                anova_records.append(record)
             
-            # Sphericity test is only relevant for within-subject effects with > 2 levels
+            self.results['anova_table'] = anova_records
+            
+            # Sphericity test (only for within-subject effects with > 2 levels)
             if len(self.within_cols) > 2:
-                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within='time', subject=self.subject_col)
-                if isinstance(sphericity_test, tuple): # Older pingouin versions might return a tuple
-                    w, spher, chi2, dof, pval = sphericity_test
-                    spher_dict = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
-                    self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
-                else: # Newer pingouin versions return dataframe
-                    spher_dict = sphericity_test.to_dict('records')[0]
-                    # Ensure 'W' key exists, mapping from 'W-spher' if necessary
-                    if 'W-spher' in spher_dict and 'W' not in spher_dict:
-                        spher_dict['W'] = spher_dict.pop('W-spher')
-                    self.results['mauchly_test'] = {k: _to_native_type(v) for k, v in spher_dict.items()}
+                try:
+                    sphericity_result = pg.sphericity(
+                        data=self.long_data, 
+                        dv=self.dependent_var, 
+                        within='time', 
+                        subject=self.subject_col
+                    )
+                    
+                    if isinstance(sphericity_result, tuple):
+                        w, spher, chi2, dof, pval = sphericity_result
+                        self.results['mauchly_test'] = {
+                            'W': _to_native_type(w),
+                            'spher': bool(spher),
+                            'chi2': _to_native_type(chi2),
+                            'dof': _to_native_type(dof),
+                            'p-val': _to_native_type(pval)
+                        }
+                    elif isinstance(sphericity_result, pd.DataFrame):
+                        spher_dict = sphericity_result.to_dict('records')[0]
+                        self.results['mauchly_test'] = {
+                            'W': _to_native_type(spher_dict.get('W', spher_dict.get('W-spher'))),
+                            'spher': bool(spher_dict.get('spher', True)),
+                            'chi2': _to_native_type(spher_dict.get('chi2')),
+                            'dof': _to_native_type(spher_dict.get('dof')),
+                            'p-val': _to_native_type(spher_dict.get('pval', spher_dict.get('p-val')))
+                        }
+                    else:
+                        self.results['mauchly_test'] = None
+                except Exception as e:
+                    self.results['mauchly_test'] = None
             else:
                 self.results['mauchly_test'] = None
 
-
-            # Post-hoc tests if significant interaction or main effect
-            perform_posthoc = False
-            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov.loc[aov['Source'] == 'time', 'p-GG-corr']).any() else 'p-unc'
+            # Determine which p-value to use for significance
+            sphericity_violated = (self.results.get('mauchly_test') and 
+                                   self.results['mauchly_test'].get('p-val') is not None and
+                                   self.results['mauchly_test']['p-val'] < self.alpha)
             
-            if self.between_col:
-                interaction_row = aov[aov['Source'] == f'time * {self.between_col}']
-                if not interaction_row.empty:
-                    interaction_p_col = 'p-GG-corr' if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else 'p-unc'
-                    if interaction_row[interaction_p_col].iloc[0] < self.alpha:
-                        perform_posthoc = True
-            else: # No between-subject factor, check main within-subject effect
-                within_row = aov[aov['Source'] == 'time']
-                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
+            # Find within-subjects effect for interpretation
+            within_row = next((r for r in anova_records if r.get('source_type') == 'within'), None)
+            
+            if within_row:
+                if sphericity_violated and within_row.get('p-GG-corr') is not None:
+                    main_p = within_row['p-GG-corr']
+                    p_type = 'Greenhouse-Geisser corrected'
+                else:
+                    main_p = within_row.get('p-unc')
+                    p_type = 'uncorrected'
+                
+                effect_size = within_row.get('np2', 0)
+                f_stat = within_row.get('F', 0)
+                
+                # Effect size interpretation
+                if effect_size and effect_size >= 0.14:
+                    effect_interp = 'large'
+                elif effect_size and effect_size >= 0.06:
+                    effect_interp = 'medium'
+                elif effect_size and effect_size >= 0.01:
+                    effect_interp = 'small'
+                else:
+                    effect_interp = 'negligible'
+                
+                # Generate interpretation
+                if main_p is not None and main_p < self.alpha:
+                    self.results['interpretation'] = (
+                        f"There was a statistically significant effect of time/condition on {self.dependent_var}, "
+                        f"F = {f_stat:.2f}, p {'< .001' if main_p < 0.001 else f'= {main_p:.3f}'} ({p_type}), "
+                        f"with a {effect_interp} effect size (η²p = {effect_size:.3f})."
+                    )
+                else:
+                    self.results['interpretation'] = (
+                        f"There was no statistically significant effect of time/condition on {self.dependent_var}, "
+                        f"F = {f_stat:.2f}, p = {main_p:.3f} ({p_type}), "
+                        f"η²p = {effect_size:.3f}."
+                    )
+            
+            # Post-hoc tests if significant
+            perform_posthoc = False
+            
+            if within_row:
+                p_col = 'p-GG-corr' if sphericity_violated and within_row.get('p-GG-corr') is not None else 'p-unc'
+                if within_row.get(p_col) is not None and within_row[p_col] < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
-                posthoc_args = {
-                    'data': self.long_data,
-                    'dv': self.dependent_var,
-                    'within': 'time',
-                    'subject': self.subject_col,
-                    'padjust': 'bonf'
-                }
-                if self.between_col:
-                    posthoc_args['between'] = self.between_col
-                
-                posthoc = pg.pairwise_tests(**posthoc_args)
-                self.results['posthoc_results'] = posthoc.replace({np.nan: None}).to_dict('records')
+                try:
+                    posthoc_args = {
+                        'data': self.long_data,
+                        'dv': self.dependent_var,
+                        'within': 'time',
+                        'subject': self.subject_col,
+                        'padjust': 'bonf'
+                    }
+                    if self.between_col and self.between_col in self.long_data.columns:
+                        posthoc_args['between'] = self.between_col
+                    
+                    posthoc = pg.pairwise_tests(**posthoc_args)
+                    
+                    posthoc_records = []
+                    for _, row in posthoc.iterrows():
+                        record = row.to_dict()
+                        for key, value in record.items():
+                            if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                                record[key] = None
+                        posthoc_records.append(record)
+                    
+                    self.results['posthoc_results'] = posthoc_records
+                except Exception as e:
+                    self.results['posthoc_error'] = str(e)
+
+            # Descriptive statistics
+            desc_stats = self.long_data.groupby('time')[self.dependent_var].agg(['mean', 'std', 'count']).reset_index()
+            self.results['descriptives'] = desc_stats.to_dict('records')
 
         except Exception as e:
             self.results['error'] = str(e)
-
 
     def plot_results(self):
         if 'error' in self.results or not hasattr(self, 'long_data') or self.long_data.empty:
             return None
         
-        fig, ax = plt.subplots(figsize=(8, 6))
-        
-        hue = self.between_col if self.between_col else None
-        
-        sns.pointplot(data=self.long_data, 
-                      x='time', 
-                      y=self.dependent_var, 
-                      hue=hue, 
-                      ax=ax,
-                      dodge=True,
-                      errorbar='ci',
-                      capsize=.1)
-                      
-        ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
-        ax.set_xlabel('Time / Condition')
-        ax.set_ylabel(f'Mean of {self.dependent_var}')
-        if hue:
-            ax.legend(title=hue)
-        ax.grid(True, linestyle='--', alpha=0.6)
-        
-        plt.tight_layout()
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close(fig)
-        buf.seek(0)
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+        try:
+            fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+            
+            # Plot 1: Point plot with error bars
+            ax1 = axes[0]
+            hue = self.between_col if self.between_col and self.between_col in self.long_data.columns else None
+            
+            sns.pointplot(
+                data=self.long_data, 
+                x='time', 
+                y=self.dependent_var, 
+                hue=hue, 
+                ax=ax1,
+                dodge=0.3 if hue else False,
+                errorbar='ci',
+                capsize=0.1,
+                palette='crest' if hue else None
+            )
+            
+            ax1.set_title(f'Mean {self.dependent_var} by Time/Condition', fontsize=12, fontweight='bold')
+            ax1.set_xlabel('Time / Condition', fontsize=11)
+            ax1.set_ylabel(f'Mean {self.dependent_var}', fontsize=11)
+            if hue:
+                ax1.legend(title=hue)
+            ax1.grid(True, linestyle='--', alpha=0.6)
+            
+            # Plot 2: Box plot
+            ax2 = axes[1]
+            sns.boxplot(
+                data=self.long_data, 
+                x='time', 
+                y=self.dependent_var, 
+                hue=hue,
+                ax=ax2,
+                palette='crest'
+            )
+            
+            ax2.set_title(f'Distribution of {self.dependent_var}', fontsize=12, fontweight='bold')
+            ax2.set_xlabel('Time / Condition', fontsize=11)
+            ax2.set_ylabel(self.dependent_var, fontsize=11)
+            if hue:
+                ax2.legend(title=hue)
+            
+            plt.tight_layout()
+            
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+            plt.close(fig)
+            buf.seek(0)
+            return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+            
+        except Exception as e:
+            return None
 
 
 def main():
@@ -164,6 +293,9 @@ def main():
 
         if not all([data, subject_col, within_cols]):
             raise ValueError("Missing required parameters: data, subjectCol, withinCols")
+
+        if len(within_cols) < 2:
+            raise ValueError("At least 2 within-subject columns are required")
 
         analysis = RepeatedMeasuresAnova(data, subject_col, within_cols, dependent_var, between_col)
         analysis.run_analysis()
@@ -184,3 +316,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

@@ -91,4 +91,14 @@
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 300ms;
     }
+
+    @keyframes scroll {
+        to {
+            transform: translateX(-50%);
+        }
+    }
+    .animate-scroll {
+        animation: scroll var(--duration, 40s) linear infinite var(--direction, normal);
+    }
 }
+

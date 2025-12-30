@@ -1,7 +1,6 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box, Image as ImageIcon } from "lucide-react";
+import { Calculator, BrainCircuit, Monitor, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box, Image as ImageIcon, Factory, LayoutDashboard, DatabaseZap, Paintbrush, Landmark, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
@@ -10,37 +9,55 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const tools = [
+  // Data & Analysis Tools
   {
     id: "statistica",
-    href: "/dashboard/analysis",
+    href: "/dashboard/statistica",
     icon: Calculator,
     title: "Statistica",
     description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",
     disabled: false,
   },
   {
-    id: "survey",
-    href: "/dashboard/survey2",
-    icon: ClipboardList,
-    title: "Survey Tool",
-    description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.",
+    id: "scenario",
+    href: "/dashboard/scenario",
+    icon: FlaskConical,
+    title: "Scenario",
+    description: "Explore what-if scenarios on your data.",
+    disabled: false,
+  },
+  {
+    id: "data-preprocessing",
+    href: "/dashboard/data-preprocessing",
+    icon: DatabaseZap,
+    title: "DataPrep",
+    description: "Prepare your data for analysis with tools for handling missing values, variable transformation, and outlier detection.",
     disabled: false,
   },
   {
     id: "visualization",
     href: "/dashboard/visualization",
-    icon: Palette,
+    icon: Paintbrush,
     title: "Visualization",
-    description: "A comprehensive guide to chart types for effective data representation.",
+    description: "Visually explore your data and discover insights through a variety of charts and graphs.",
     disabled: false,
   },
-    {
-    id: "storage",
-    href: "/dashboard/storage",
-    icon: ImageIcon,
-    title: "Image Storage",
-    description: "Upload and manage images with Firebase Storage.",
+  {
+    id: "dashboard",
+    href: "/dashboard/dashboards",
+    icon: Monitor,
+    title: "Dashboards",
+    description: "Real-time monitoring and analytics dashboards for various industries and domains.",
     disabled: false,
+  },
+  // Coming Soon
+  {
+    id: "survey",
+    href: "/dashboard/survey2",
+    icon: ClipboardList,
+    title: "Survey Tool",
+    description: "Coming soon...",
+    disabled: true,
   },
   {
     id: "simulation",
@@ -58,22 +75,7 @@ const tools = [
     description: "Coming soon...",
     disabled: true,
   },
-  {
-    id: "financial-modeling",
-    href: "/dashboard/financial-modeling",
-    icon: DollarSign,
-    title: "Financial Modeling",
-    description: "Coming soon...",
-    disabled: true,
-  },
-  {
-    id: "optimization",
-    href: "/dashboard/optimization",
-    icon: Target,
-    title: "Decision Analytics",
-    description: "Coming soon...",
-    disabled: true,
-  },
+
   {
     id: "360-feedback",
     href: "#",
@@ -81,15 +83,8 @@ const tools = [
     title: "360 Feedback",
     description: "Coming soon...",
     disabled: true,
-  },
-  {
-    id: "sem",
-    href: "#",
-    icon: Network,
-    title: "Structural Equation Modeling (SEM)",
-    description: "Coming soon...",
-    disabled: true,
   }
+
 ];
 
 function ToolCard({ tool }: { tool: typeof tools[0] }) {
@@ -141,8 +136,8 @@ function DashboardHub() {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
         <Link href="/" className="flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-headline font-bold">Skarii Dashboard</h1>
+          <LayoutDashboard className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-headline font-bold">Workspace</h1>
         </Link>
          <div className="ml-auto flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name}</span>

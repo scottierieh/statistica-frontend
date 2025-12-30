@@ -2,7 +2,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import Link from "next/link";
-import SurveyDashboard from "@/components/survey/SurveyDashboard";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 
 export default function Survey2Page() {

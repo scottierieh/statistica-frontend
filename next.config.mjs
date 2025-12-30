@@ -1,25 +1,44 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config, { isServer }) => {
-    // See https://webpack.js.org/configuration/resolve/#resolvealias
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'sharp$': false,
-      'onnxruntime-node$': false,
-      'mongodb-client-encryption$': false,
-      'aws4$': false,
-      'snappy$': false,
-      '@aws-sdk/credential-providers$': false,
-      'kerberos$': false,
-      '@mongodb-js/zstd$': false,
-      'snappy/package.json$': false,
-    }
-    return config
+  turbopack: {},
+  serverExternalPackages: ['docx', 'pptxgenjs'],
+
+  
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'github.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
+    ],
   },
-  watchOptions: {
-    ignored: [
-      '**/backend/**',
-    ]
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        child_process: false,
+        net: false,
+        tls: false,
+      };
+    }
+    config.externals.push('python-shell');
+
+    return config;
   },
 };
 
