@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -20,10 +19,39 @@ export default function AIInteractionController({ activeAnalysis, analysisResult
   const [isAiThinking, setIsAiThinking] = useState(false);
   const { toast } = useToast();
 
+  const initializeChat = async () => {
+    if (chatHistory.length > 0 || !analysisResultForChat) return;
+
+    setIsAiThinking(true);
+    try {
+      const initialPrompt = "Briefly summarize the key findings from this analysis in 2-3 bullet points. Start with 'Here's a quick summary of your results:'";
+      const response = await getAiChatResponse({
+        analysisType: activeAnalysis,
+        analysisData: JSON.stringify(analysisResultForChat, null, 2),
+        history: [],
+        newMessage: initialPrompt,
+      });
+
+      if (response.success && response.message) {
+        const modelMessage: ChatMessage = { role: 'model', content: response.message };
+        setChatHistory([modelMessage]);
+      }
+    } catch (e: any) {
+      // Don't show toast for initial error, just fail silently.
+      console.error("Failed to initialize chat:", e.message);
+    } finally {
+      setIsAiThinking(false);
+    }
+  };
+
   useEffect(() => {
-    // Reset chat when the analysis context changes
+    // Reset chat and initialize when context changes
     setChatHistory([]);
-  }, [analysisResultForChat]);
+    if (isChatOpen && analysisResultForChat) {
+      initializeChat();
+    }
+  }, [analysisResultForChat, isChatOpen]);
+
 
   const handleSendMessage = async (newMessage: string) => {
     if (!analysisResultForChat) {
@@ -36,14 +64,15 @@ export default function AIInteractionController({ activeAnalysis, analysisResult
     }
 
     const newUserMessage: ChatMessage = { role: 'user', content: newMessage };
-    setChatHistory(prev => [...prev, newUserMessage]);
+    const newHistory = [...chatHistory, newUserMessage];
+    setChatHistory(newHistory);
     setIsAiThinking(true);
 
     try {
       const response = await getAiChatResponse({
         analysisType: activeAnalysis,
         analysisData: JSON.stringify(analysisResultForChat, null, 2),
-        history: chatHistory,
+        history: chatHistory, // Send history before the new user message
         newMessage,
       });
 
@@ -55,7 +84,7 @@ export default function AIInteractionController({ activeAnalysis, analysisResult
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'AI Chat Error', description: e.message });
-      // Optionally remove the user's message on error, or show an error message in the chat
+      setChatHistory(prev => prev.slice(0, -1));
     } finally {
       setIsAiThinking(false);
     }

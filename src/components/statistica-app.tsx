@@ -335,7 +335,6 @@ const analysisCategories = [
         items: [
           { id: 'kmeans', label: 'K-Means', icon: ScanSearch, component: KMeansPage },
           { id: 'kmedoids', label: 'K-Medoids', icon: ScanSearch, component: KMedoidsPage },
-          { id: 'cross-validation', label: 'Cross-Validation', icon: Layers, component: CrossValidationPage }
         ]
       },
       {
@@ -363,12 +362,11 @@ export default function StatisticaApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('guide');
   const [openCategories, setOpenCategories] = useState<string[]>(['Guide']);
   const [searchTerm, setSearchTerm] = useState('');
-  const analysisPageRef = useRef<HTMLDivElement>(null);
+  const [analysisResultForChat, setAnalysisResultForChat] = useState<any>(null);
 
   const { toast } = useToast();
 
@@ -387,6 +385,7 @@ export default function StatisticaApp() {
     setCategoricalHeaders([]);
     setFileName('');
     setActiveAnalysis('guide');
+    setAnalysisResultForChat(null);
   }, []);
 
 
@@ -627,8 +626,8 @@ export default function StatisticaApp() {
         </Sidebar>
 
         <SidebarInset>
-          <div ref={analysisPageRef} className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between">
+          <div className="p-4 md:p-6 h-full flex flex-col gap-4">
+            <header className="flex items-center justify-between md:justify-end">
                 <SidebarTrigger />
                 <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
                 <div />
@@ -653,11 +652,17 @@ export default function StatisticaApp() {
               onFileSelected={handleFileSelected}
               isUploading={isUploading}
               activeAnalysis={activeAnalysis}
-              onGenerateReport={(stats: any, viz: string | null) => {}}
+              onAnalysisComplete={setAnalysisResultForChat}
             />
           </div>
         </SidebarInset>
       </div>
+
+       <AIInteractionController 
+        activeAnalysis={activeAnalysis}
+        analysisResultForChat={analysisResultForChat}
+      />
+
     </SidebarProvider>
   );
 }
