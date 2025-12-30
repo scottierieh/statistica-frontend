@@ -1,26 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'github.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'raw.githubusercontent.com',
-        pathname: '/**',
-      },
-    ],
-  },
-  webpack: (config, { isServer }) => {
-    config.externals.push('handlebars');
-    return config;
-  },
-  watchOptions: {
-    ignored: ['**/backend/**'],
-  },
+    // Note: The 'watchOptions' configuration is not a standard Next.js option and has been removed.
+    // If you need to ignore files from the watcher, consider alternative approaches
+    // or ensure you are using a version of Next.js that supports this specific configuration.
 };
 
 export default nextConfig;
