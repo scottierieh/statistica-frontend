@@ -1,53 +1,15 @@
 
-export const tipsData = `ttotal_bill,tip,sex,smoker,day,time,size
-11.72,9.94,Female,No,Fri,Lunch,4
-35.16,7.34,Female,No,Sun,Lunch,2
-34.05,2.6,Female,Yes,Sat,Lunch,4
-9.7,7.52,Female,No,Fri,Dinner,5
-10.15,4.06,Male,No,Sun,Lunch,5
-37.69,2.0,Male,No,Thur,Lunch,5
-35.01,9.34,Female,Yes,Fri,Dinner,4
-14.23,4.77,Male,No,Sun,Dinner,3
-29.86,9.93,Female,No,Sat,Lunch,1
-35.55,1.6,Female,Yes,Sun,Lunch,1
-41.47,3.43,Male,No,Sat,Dinner,1
-29.85,6.81,Female,No,Thur,Lunch,2
-23.42,4.39,Female,No,Sat,Lunch,5
-17.9,8.62,Female,No,Sat,Lunch,4
-45.41,5.06,Female,No,Sat,Lunch,1
-46.77,6.32,Female,Yes,Sat,Lunch,2
-18.24,6.95,Female,No,Fri,Dinner,4
-37.89,1.95,Male,Yes,Fri,Lunch,1
-45.14,8.82,Male,No,Sat,Lunch,5
-32.2,6.69,Female,No,Sun,Lunch,5
-47.68,8.17,Male,Yes,Fri,Dinner,3
-13.87,4.32,Female,Yes,Fri,Lunch,2
-32.28,1.9,Male,No,Thur,Dinner,4
-34.9,7.71,Male,No,Thur,Lunch,3
-15.87,1.08,Male,Yes,Sun,Dinner,3
-32.36,4.96,Male,No,Fri,Dinner,1
-28.29,4.64,Male,Yes,Sat,Lunch,2
-31.02,6.96,Female,No,Sun,Dinner,5
-13.57,6.3,Female,Yes,Thur,Lunch,5
-27.37,9.81,Male,Yes,Fri,Dinner,3
-40.77,8.42,Female,No,Sat,Dinner,1
-36.31,5.74,Female,Yes,Sun,Lunch,3
-9.14,2.4,Female,No,Fri,Dinner,4
-8.48,4.61,Female,No,Thur,Lunch,1
-47.85,8.58,Male,Yes,Sun,Lunch,5
-17.42,6.79,Male,No,Thur,Lunch,2
-45.19,2.51,Female,No,Sun,Dinner,4
-32.74,6.25,Male,No,Sat,Lunch,5
-33.57,2.3,Male,No,Sun,Lunch,3
-7.81,4.01,Female,No,Fri,Dinner,1
-11.08,6.52,Male,No,Sun,Lunch,3
-47.66,4.73,Female,Yes,Sat,Lunch,4
-13.29,9.93,Female,No,Sun,Dinner,3
-30.78,8.4,Male,No,Sun,Dinner,4
-20.04,5.04,Female,No,Sun,Lunch,1
-8.97,4.88,Female,No,Thur,Lunch,4
-36.75,8.26,Male,Yes,Sat,Dinner,2
-9.91,1.55,Male,Yes,Fri,Dinner,2
+export const tipsData = `total_bill,tip,sex,smoker,day,time,size
+16.99,1.01,Female,No,Sun,Dinner,2
+10.34,1.66,Male,No,Sun,Dinner,3
+21.01,3.5,Male,No,Sun,Dinner,3
+23.68,3.31,Male,No,Sun,Dinner,2
+24.59,3.61,Female,No,Sun,Dinner,4
+25.29,4.71,Male,No,Sun,Dinner,4
+8.77,2,Male,No,Sun,Dinner,2
+26.88,3.12,Male,No,Sun,Dinner,4
+15.04,1.96,Male,No,Sun,Dinner,2
+14.78,3.22,Male,No,Sun,Dinner,2
 10.69,3.63,Female,No,Fri,Lunch,5
 46.35,7.01,Male,No,Sat,Dinner,2
 40.17,7.69,Female,No,Sun,Lunch,5
@@ -105,3 +67,5 @@ export const tipsData = `ttotal_bill,tip,sex,smoker,day,time,size
 `;
 
 
+
+```

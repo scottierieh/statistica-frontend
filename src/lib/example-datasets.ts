@@ -1,6 +1,6 @@
 
 
-import { Car, Coffee, Database,UserX, Package, SlidersHorizontal, tipsData, CalendarDays, Shield, ShieldCheck, Timer,  CheckSquareIcon, LucideIcon, BookOpen, Users, BrainCircuit, FilterIcon, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette } from "lucide-react";
+import { Car, Coffee, Database,UserX, Package, SlidersHorizontal, CalendarDays, Shield, ShieldCheck, Timer,  CheckSquareIcon, LucideIcon, BookOpen, Users, BrainCircuit, FilterIcon, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -111,7 +111,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Marketing Mix Data',
         description: 'Simulated weekly marketing spend and revenue data for MMM.',
         icon: BarChart,
-        analysisTypes: ['mmm-analysis', 'roi-analysis'],
+        analysisTypes: ['roi-analysis'],
         data: marketingAnalysisData,
     },
     {
@@ -154,6 +154,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: Repeat,
         analysisTypes: ['rm-anova', 'stats'],
         data: rmAnovaData,
+        recommendedAnalysis: 'repeated-measures-anova'
     },
     {
         id: 'portfolio-optimization',
@@ -396,7 +397,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         description: 'Likert-scale survey for reliability & validity.',
         icon: Shield,
         analysisTypes: ['reliability-validity'],
-        recommendedAnalysis: 'reliability-validity',
         data: reliabilityValidityData,
     },
     {
@@ -537,30 +537,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: irisData
     },
     {
-        id: 'tips',
-        name: 'Restaurant Tips',
-        description: 'Tips received by a server, along with customer and bill info.',
-        icon: Coffee,
-        analysisTypes: ['stats', 'one-way-anova', 'two-way-anova', 'visuals', 'frequency', 'normality', 'homogeneity', 't-test'],
-        data: tipsData
-    },
-    {
-        id: 'did-data',
-        name: 'Intervention Impact',
-        description: 'Outcome data for treatment and control groups before and after an intervention.',
-        icon: GitCommit,
-        analysisTypes: ['did'],
-        data: didData,
-    },
-    {
-        id: 'student-performance',
-        name: 'Student Performance',
-        description: 'Study hours, attendance, and previous scores vs. final exam scores.',
-        icon: BookOpen,
-        analysisTypes: ['stats', 'visuals',  'normality', 'homogeneity', 'regression'],
-        data: studentPerformanceData,
-    },
-    {
         id: 'headcount-stability',
         name: 'headcount-stability',
         description: '시간에 따른 부서별 인력(Headcount) 변화 데이터입니다. 조직 안정성 분석에 사용됩니다.',
@@ -591,5 +567,4 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: CalendarDays,
         analysisTypes: ['attendance-pattern-analysis'],
         data: attendanceData,
-    },
-]
+    
