@@ -567,4 +567,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: CalendarDays,
         analysisTypes: ['attendance-pattern-analysis'],
         data: attendanceData,
-    
+    }
+]
+ 

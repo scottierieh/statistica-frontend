@@ -32,6 +32,8 @@ import {
   Wand2,
   Sigma,
   TestTube,
+  Waves,
+  Percent,
   Repeat,
   HeartPulse,
   Shield,
