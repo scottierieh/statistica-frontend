@@ -106,6 +106,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
 import GuidePage from './pages/guide-page';
+
 import RecommendationPage from './pages/recommendation-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import VariabilityAnalysisPage from './pages/variability-analysis-page';

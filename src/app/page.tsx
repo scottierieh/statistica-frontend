@@ -156,7 +156,7 @@ const analysisCategories = [
     icon: Target,
     color: 'from-orange-500 to-orange-600',
     subcategories: [
-      { name: 'Performance', items: ['Importance-Performance Analysis', 'Funnel Analysis', 'NPS Analysis'] },
+      { name: 'Performance', items: ['Importance-Performance Analysis (IPA)', 'Funnel Analysis', 'NPS Analysis'] },
       { name: 'Customer', items: ['LTV Prediction', 'Association Rules', 'DEA', 'ROI Analysis'] },
     ],
   },
@@ -459,6 +459,9 @@ export default function LandingPage() {
                   <DropdownMenuContent>
                     <DropdownMenuItem asChild>
                       <Link href="/faq">Help Center</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/glossary">Glossary</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/blog">Blog</Link>
@@ -1530,4 +1533,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
 
