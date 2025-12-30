@@ -1,7 +1,6 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Factory, LineChart, Landmark, ArrowRight, LayoutDashboard, Calculator, ArrowLeft, Building, Scale, Truck, ShoppingCart } from "lucide-react";
+import { Factory, LineChart, Landmark, ArrowRight, LayoutDashboard, Calculator, ArrowLeft, Building, Scale, Truck, ShoppingCart, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { Button } from "@/components/ui/button";
