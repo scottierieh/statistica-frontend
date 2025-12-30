@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch, Lightbulb, CheckCircle, Download, FileSpreadsheet, ImageIcon, Database, Settings2, Shield, FileText, BarChart3, ChevronRight, ChevronLeft, Check, CheckCircle2, Info, ArrowRight, ChevronDown, FileCode, FileType, Target, Activity, TrendingUp, Hash, Percent } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -518,29 +519,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         setCurrentStep(step);
         setMaxReachedStep(prev => Math.max(prev, step) as Step);
     }, []);
-
-    const nextStep = useCallback(() => {
-        if (currentStep === 3) {
-            runAnalysis();
-        } else if (currentStep < 6) {
-            goToStep((currentStep + 1) as Step);
-        }
-    }, [currentStep, goToStep, runAnalysis]);
-
-    const prevStep = useCallback(() => {
-        if (currentStep > 1) goToStep((currentStep - 1) as Step);
-    }, [currentStep, goToStep]);
-
-    // Variable selection
-    const handleVarSelectionChange = (varName: string, isChecked: boolean) => {
-        setSelectedVars(prev => isChecked ? [...prev, varName] : prev.filter(v => v !== varName));
-    };
-
-    const selectAll = () => setSelectedVars([...allHeaders]);
-    const selectNone = () => setSelectedVars([]);
-    const selectNumeric = () => setSelectedVars([...numericHeaders]);
-    const selectCategorical = () => setSelectedVars([...categoricalHeaders]);
-
+    
     // Analysis
     const runAnalysis = useCallback(async () => {
         if (selectedVars.length === 0) {
@@ -577,6 +556,29 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
             setIsLoading(false);
         }
     }, [data, selectedVars, groupByVar, toast, goToStep, onAnalysisComplete]);
+
+    const nextStep = useCallback(() => {
+        if (currentStep === 3) {
+            runAnalysis();
+        } else if (currentStep < 6) {
+            goToStep((currentStep + 1) as Step);
+        }
+    }, [currentStep, goToStep, runAnalysis]);
+
+    const prevStep = useCallback(() => {
+        if (currentStep > 1) goToStep((currentStep - 1) as Step);
+    }, [currentStep, goToStep]);
+
+    // Variable selection
+    const handleVarSelectionChange = (varName: string, isChecked: boolean) => {
+        setSelectedVars(prev => isChecked ? [...prev, varName] : prev.filter(v => v !== varName));
+    };
+
+    const selectAll = () => setSelectedVars([...allHeaders]);
+    const selectNone = () => setSelectedVars([]);
+    const selectNumeric = () => setSelectedVars([...numericHeaders]);
+    const selectCategorical = () => setSelectedVars([...categoricalHeaders]);
+
 
     // Downloads
     const handleDownloadPNG = useCallback(async () => {
@@ -1202,3 +1204,5 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         </div>
     );
 }
+
+```
