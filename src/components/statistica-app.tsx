@@ -79,9 +79,7 @@ import {
   Scissors,
   FileSearch,
   CheckSquare,
-  Clock,
   Filter,
-  Download,
   Bot,
   BookOpen,
   Search
@@ -101,7 +99,6 @@ import { getSummaryReport } from '@/app/actions';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
-import html2canvas from 'html2canvas';
 import { cn } from '@/lib/utils';
 import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
@@ -283,30 +280,6 @@ export default function StatisticaApp() {
     }
   }, [data, allHeaders, fileName, toast]);
 
-  const handleDownloadAsPDF = useCallback(async () => {
-    if (!analysisPageRef.current) return;
-    toast({ title: "Generating PDF...", description: "Please wait while the report is being captured." });
-
-    try {
-      const canvas = await html2canvas(analysisPageRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: window.getComputedStyle(document.body).backgroundColor,
-        onclone: (document) => {
-          // You can modify the cloned document before capture if needed
-        }
-      });
-      const image = canvas.toDataURL('image/png', 1.0);
-      const link = document.createElement('a');
-      link.download = `Statistica_Report_${activeAnalysis}_${new Date().toISOString().split('T')[0]}.png`;
-      link.href = image;
-      link.click();
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      toast({ title: "Error", description: "Could not generate PDF.", variant: "destructive" });
-    }
-  }, [activeAnalysis, toast]);
-
   const handleGenerateReport = useCallback(async (analysisType: string, stats: any, viz: string | null) => {
     setIsGeneratingReport(true);
     try {
@@ -438,16 +411,10 @@ export default function StatisticaApp() {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="flex-col gap-2">
-            <div className="w-full flex gap-2">
-              <Button variant="outline" onClick={() => setActiveAnalysis('history')} className="flex-1">
-                <Clock />
-                <span className="group-data-[collapsible=icon]:hidden">History</span>
-              </Button>
-              <Button onClick={handleDownloadAsPDF} disabled={!hasData} className="flex-1">
-                <Download />
-                <span className="group-data-[collapsible=icon]:hidden">PDF</span>
-              </Button>
-            </div>
+            <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
+              {isGeneratingReport ? <Loader2 className="animate-spin" /> : <Bot />}
+              {isGeneratingReport ? 'Generating...' : 'AI Report'}
+            </Button>
             <Separator />
             <UserNav />
           </SidebarFooter>
@@ -505,4 +472,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
