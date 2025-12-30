@@ -1,44 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbopack: {},
-  serverExternalPackages: ['docx', 'pptxgenjs'],
-
-  
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'github.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'raw.githubusercontent.com',
-      },
-    ],
-  },
   webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        child_process: false,
-        net: false,
-        tls: false,
-      };
-    }
-    config.externals.push('python-shell');
+    // Handlebars issue: require.extensions is not supported by webpack.
+    // We can simply ignore this dependency.
+    config.externals.push('handlebars');
 
     return config;
+  },
+  // Prevent Next.js from watching the backend directory to avoid excessive recompilations.
+  watchOptions: {
+    ignored: ['**/backend/**'],
   },
 };
 
