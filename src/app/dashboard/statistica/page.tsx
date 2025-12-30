@@ -3,16 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calculator } from "lucide-react";
 import Link from "next/link";
+import StatisticaApp from '@/components/statistica-app';
 import DashboardClientLayout from "@/components/dashboard-client-layout";
-
-function StatisticaApp() {
-  return (
-    <div>
-      {/* This is a blank page as requested. */}
-    </div>
-  );
-}
-
 
 export default function StatisticaPage() {
   return (
