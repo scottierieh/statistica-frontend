@@ -659,7 +659,6 @@ export default function LandingPage() {
                 />
 
                
-              </div>
             </div>
             
             {/* Gradient Overlay for better text readability */}
@@ -1528,3 +1527,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
