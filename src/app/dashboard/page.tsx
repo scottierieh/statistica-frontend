@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Calculator, BrainCircuit, Monitor, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box, Image as ImageIcon, Factory, LayoutDashboard, DatabaseZap, Paintbrush, Landmark, FlaskConical } from "lucide-react";
@@ -145,14 +146,16 @@ function DashboardHub() {
         </div>
       </header>
       <main className="flex-1 p-4 md:p-8 lg:p-12">
-        <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
-          <h2 className="text-3xl font-bold font-headline mb-8 text-center text-foreground">Available Tools</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {tools.map((tool) => (
-              <ToolCard key={tool.id} tool={tool} />
-            ))}
-          </div>
-        </motion.div>
+        <div className="max-w-7xl mx-auto">
+          <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
+            <h2 className="text-3xl font-bold font-headline mb-8 text-center text-foreground">Available Tools</h2>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {tools.map((tool) => (
+                <ToolCard key={tool.id} tool={tool} />
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </main>
     </div>
   );
