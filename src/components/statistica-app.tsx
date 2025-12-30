@@ -82,7 +82,9 @@ import {
   Filter,
   Bot,
   BookOpen,
-  Search
+  Search,
+  Clock,
+  Download
 } from 'lucide-react';
 
 
@@ -410,12 +412,7 @@ export default function StatisticaApp() {
                 ))}
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter className="flex-col gap-2">
-            <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
-              {isGeneratingReport ? <Loader2 className="animate-spin" /> : <Bot />}
-              {isGeneratingReport ? 'Generating...' : 'AI Report'}
-            </Button>
-            <Separator />
+          <SidebarFooter>
             <UserNav />
           </SidebarFooter>
         </Sidebar>
