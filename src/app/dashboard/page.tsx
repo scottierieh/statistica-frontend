@@ -97,7 +97,7 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
     tool.disabled ? (
       <div className="h-full">{children}</div>
     ) : (
-      <Link href={tool.href} className="block h-full">
+      <Link href={tool.href} className="block h-full" target="_blank" rel="noopener noreferrer">
         {children}
       </Link>
     );
