@@ -27,8 +27,6 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
 interface DescriptiveStats {
   overall: { n: number; mean: number; std: number; median: number; min: number; max: number; q1: number; q3: number; se: number };
   by_group: { [key: string]: { n: number; mean: number; std: number; median: number; min: number; max: number; se: number } };
@@ -376,16 +374,16 @@ export default function EffectivenessPage({
     setResults(null);
     
     try {
-      const response = await fetch('/api/analysis/effectiveness', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`/api/analysis/effectiveness`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
           data, 
           outcome: outcomeVar, 
           time: timeVar, 
           group: groupVar, 
           covariates 
-        })
+        }) 
       });
       
       if (!response.ok) { 

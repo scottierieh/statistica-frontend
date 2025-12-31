@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 # Import analysis functions
 from effectiveness_analysis import run_effectiveness_analysis
 from simple_test_analysis import run_simple_test_analysis
+from descriptive_stats_analysis import run_descriptive_stats_analysis
 
 app = FastAPI()
 
@@ -37,6 +38,10 @@ class EffectivenessPayload(BaseModel):
 class SimpleTestPayload(BaseModel):
     numbers: List[float]
 
+class DescriptiveStatsPayload(BaseModel):
+    data: List[Dict[str, Any]]
+    variables: List[str]
+    groupBy: Optional[str] = None
 
 @app.get("/")
 def read_root():
@@ -68,6 +73,20 @@ async def analyze_simple_test(payload: SimpleTestPayload):
         results = run_simple_test_analysis(payload.numbers)
         return {"results": results}
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/descriptive")
+async def analyze_descriptive_stats(payload: DescriptiveStatsPayload):
+    try:
+        results = run_descriptive_stats_analysis(
+            data=payload.data,
+            variables=payload.variables,
+            group_by_var=payload.groupBy
+        )
+        return results
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
 
