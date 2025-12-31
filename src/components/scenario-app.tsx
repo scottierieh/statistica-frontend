@@ -71,7 +71,7 @@ const analysisCategories = [
         name: 'Policy / Institution',
         icon: Landmark,
         items: [
-            { id: 'policy-pre-post', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
+            { id: 'pre-post-policy', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
             { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
             { id: 'policy-distribution', label: 'Policy Outcome Distribution Analysis', component: PolicyDistributionPage, icon: BarChart3 },
         ],
@@ -129,7 +129,7 @@ export default function ScenarioApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<string>('policy-pre-post');
+  const [activeAnalysis, setActiveAnalysis] = useState<string>('pre-post-policy');
   const [openCategories, setOpenCategories] = useState<string[]>(['Policy / Institution']);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -268,6 +268,11 @@ export default function ScenarioApp() {
 
         <SidebarInset>
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
+            <header className="flex items-center justify-between md:justify-end">
+                <SidebarTrigger />
+                <div />
+            </header>
+            
             {hasData && (
               <DataPreview 
                 fileName={fileName}
