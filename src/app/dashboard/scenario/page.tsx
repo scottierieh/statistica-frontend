@@ -31,7 +31,9 @@ export default function ScenarioPage() {
           </div>
         </header>
         <main className="flex-1 overflow-auto">
-          <ScenarioApp />
+          <div className="max-w-7xl mx-auto">
+            <ScenarioApp />
+          </div>
         </main>
       </div>
     </DashboardClientLayout>
