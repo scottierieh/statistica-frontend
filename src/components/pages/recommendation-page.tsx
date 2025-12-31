@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -25,7 +26,7 @@ interface RecommendationPageProps {
   allHeaders: string[];
 }
 
-const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
+const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelected: (file: File) => void; onLoadExample: (example: ExampleDataSet) => void; isUploading: boolean }) => {
     const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
 
     return (
@@ -43,48 +44,39 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Card className="text-left bg-muted/50">
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <FileUp className="w-5 h-5 text-primary" />
-                                    Data-Driven Recommendation
-                                </CardTitle>
+                    <div className="grid md:grid-cols-2 gap-6 items-start">
+                        <Card className="hover:border-primary/50 hover:shadow-lg transition-all">
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><FileUp className="w-5 h-5"/>From Data</CardTitle>
+                                <CardDescription>Upload your dataset and get recommendations based on its structure.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-muted-foreground">
-                                    Upload your dataset and the AI will analyze its structure to suggest suitable statistical tests.
-                                </p>
+                                <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
+                                {irisExample && (
+                                    <Button size="sm" variant="outline" onClick={() => onLoadExample(irisExample)} className="w-full mt-2">
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Use Sample Data
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
-                        <Card className="text-left bg-muted/50">
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <Lightbulb className="w-5 h-5 text-primary" />
-                                    Goal-Driven Recommendation
-                                </CardTitle>
+                        <Card className="hover:border-primary/50 hover:shadow-lg transition-all">
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Lightbulb className="w-5 h-5"/>From Goal</CardTitle>
+                                <CardDescription>Describe your research goal and get suitable analysis suggestions.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-muted-foreground">
-                                    Describe your research objective, and the AI will recommend methods to achieve it.
-                                </p>
+                                <Textarea placeholder="e.g., 'I want to see if there's a difference in test scores between two groups.'" className="mb-2"/>
+                                <Button className="w-full">Get Recommendations</Button>
                             </CardContent>
                         </Card>
-                    </div>
-                    <div className="flex justify-center gap-4 pt-2">
-                        <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
-                        {irisExample && (
-                            <Button size="lg" variant="outline" onClick={() => onLoadExample(irisExample)}>
-                                <Sparkles className="mr-2 h-5 w-5" />
-                                Use Sample Data
-                            </Button>
-                        )}
                     </div>
                 </CardContent>
             </Card>
         </div>
     );
 };
+
 
 export default function RecommendationPage(props: RecommendationPageProps) {
     const { toast } = useToast();
@@ -164,7 +156,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
     }
 
     return (
-         <div className="space-y-6">
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">AI Analysis Recommendation</CardTitle>
@@ -197,7 +189,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                         </ScrollArea>
                     </div>
 
-                    <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800">
+                     <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800">
                         <Info className="h-4 w-4 text-sky-600" />
                         <AlertTitle className="text-sky-800 dark:text-sky-200">Describe Your Analysis Goal (Optional)</AlertTitle>
                         <AlertDescription className="text-sky-700 dark:text-sky-300">
@@ -262,9 +254,9 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.size === 0} size="lg">
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Get Recommendations</>}
-                    </Button>
+                        <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.size === 0} size="lg">
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Get Recommendations</>}
+                        </Button>
                 </CardFooter>
             </Card>
 
@@ -343,3 +335,4 @@ export default function RecommendationPage(props: RecommendationPageProps) {
             )}
         </div>
     );
+}
