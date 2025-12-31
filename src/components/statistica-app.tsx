@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -86,7 +85,13 @@ import {
   BookOpen,
   Building2,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Grid,
+  SlidersHorizontal,
+  Container,
+  Award,
+  Truck,
+  Package
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -100,7 +105,6 @@ import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
 import GuidePage from './pages/guide-page';
-
 import RecommendationPage from './pages/recommendation-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import VariabilityAnalysisPage from './pages/variability-analysis-page';
@@ -418,10 +422,10 @@ const analysisCategories = [
     icon: Target,
     items: [
       { id: 'ipa', label: 'Importance-Performance Analysis', icon: Target, component: IpaPage },
-      { id: 'funnel-analysis', label: 'Funnel Analysis', icon: Target, component: FunnelPage },
+      { id: 'funnel-analysis', label: 'Funnel Analysis', icon: Filter, component: FunnelPage },
       { id: 'nps', label: 'Net Promoter Score (NPS)', icon: Share2, component: NpsPage },
       { id: 'ltv-prediction', label: 'LTV Prediction', icon: DollarSign, component: LtvPage },
-      { id: 'association-rule', label: 'Association rule', icon: DollarSign, component: AssociationPage },
+      { id: 'association-rule', label: 'Association Rule', icon: Handshake, component: AssociationPage },
       { id: 'dea', label: 'Data Envelopment Analysis (DEA)', icon: Building, component: DeaPage },
       { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
     ],
@@ -431,8 +435,8 @@ const analysisCategories = [
     icon: UserX,
     items: [
         { id: 'turnover-rate-analysis', label: 'Turnover/Retention Analysis', icon: TrendingUp, component: TurnoverAnalysisPage },
-        { id: 'talent-risk-matrix', label: 'Key Talent Risk Matrix', icon: Grid3x3, component: RiskMatrixPage },
-        { id: 'satisfaction-engagement-matrix', label: 'Satisfaction-Engagement Matrix', icon: Grid3x3, component: SatisfactionEngagementMatrixPage },
+        { id: 'talent-risk-matrix', label: 'Key Talent Risk Matrix', icon: Grid, component: RiskMatrixPage },
+        { id: 'satisfaction-engagement-matrix', label: 'Satisfaction-Engagement Matrix', icon: Grid, component: SatisfactionEngagementMatrixPage },
         { id: 'attendance-pattern-analysis', label: 'Attendance Pattern Analysis', icon: CalendarDays, component: AttendanceAnalysisPage },
         { id: 'headcount-stability-analysis', label: 'Headcount Stability', icon: Users, component: HeadcountStabilityPage },
     ],
