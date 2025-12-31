@@ -11,12 +11,13 @@ import {
 import Mindmap from '@/components/mindmap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview' },
@@ -92,35 +93,30 @@ const STATISTICA_FEATURES = [
     icon: FileUp, 
     label: 'Upload Data', 
     description: 'Easily upload your CSV, Excel, or JSON files.',
-    image: "https://images.unsplash.com/photo-1579547849127-1c3ab389478e?q=80&w=2070&auto=format&fit=crop"
   },
   { 
     id: 'recommend', 
     icon: Wand2, 
     label: 'AI Recommendation', 
     description: 'Not sure where to start? Our AI suggests the best analysis for your data.',
-    image: "https://images.unsplash.com/photo-1579546929662-711aa81148e9?q=80&w=2070&auto=format&fit=crop"
   },
   { 
     id: 'guided', 
     icon: Milestone, 
     label: 'Guided Analysis', 
     description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.',
-    image: "https://images.unsplash.com/photo-1579547849127-1c3ab389478e?q=80&w=2070&auto=format&fit=crop"
   },
   { 
     id: 'visualize', 
     icon: BarChart3, 
     label: 'Instant Visualization', 
     description: 'Get publication-ready charts and graphs automatically generated with your results.',
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop"
   },
   { 
     id: 'interpret', 
     icon: Bot, 
     label: 'AI Interpretation', 
     description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.',
-    image: "https://images.unsplash.com/photo-1579547945412-034878a95843?q=80&w=2070&auto=format&fit=crop"
   },
 ];
 
@@ -172,6 +168,60 @@ const industryApplications = [
 export default function GuidePage() {
     const [activeFeature, setActiveFeature] = useState(STATISTICA_FEATURES[0].id);
     const activeFeatureData = STATISTICA_FEATURES.find(f => f.id === activeFeature);
+
+    const FeatureVisual = ({ featureId }: { featureId: string }) => {
+        switch (featureId) {
+            case 'upload':
+                return (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center">
+                        <FileUp className="w-16 h-16 text-primary mb-4" />
+                        <div className="flex gap-2">
+                            <Badge variant="secondary">CSV</Badge>
+                            <Badge variant="secondary">Excel</Badge>
+                            <Badge variant="secondary">JSON</Badge>
+                        </div>
+                    </motion.div>
+                );
+            case 'recommend':
+                 return (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center">
+                        <Wand2 className="w-16 h-16 text-primary mb-4" />
+                        <p className="text-sm font-semibold">AI suggests:</p>
+                        <Badge variant="outline" className="mt-2 text-base">T-Test</Badge>
+                        <Badge variant="outline" className="mt-1 text-base">ANOVA</Badge>
+                    </motion.div>
+                );
+            case 'guided':
+                return (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-xs space-y-2">
+                        {RUN_ANALYSIS_STEPS.slice(0,3).map(step => (
+                            <div key={step.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                                <step.icon className="w-5 h-5 text-primary"/>
+                                <span className="font-medium text-sm">{step.label}</span>
+                            </div>
+                        ))}
+                    </motion.div>
+                );
+            case 'visualize':
+                return (
+                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
+                        <BarChart3 className="w-16 h-16 text-primary"/>
+                        <LineChart className="w-16 h-16 text-green-500"/>
+                        <PieChartIcon className="w-16 h-16 text-amber-500"/>
+                    </motion.div>
+                );
+            case 'interpret':
+                return (
+                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center">
+                        <Bot className="w-16 h-16 text-primary mb-4" />
+                        <p className="text-sm bg-muted p-3 rounded-lg border">"The results show a significant positive correlation..."</p>
+                    </motion.div>
+                );
+            default:
+                return null;
+        }
+    };
+
 
     return (
         <div className="space-y-6">
@@ -362,19 +412,11 @@ export default function GuidePage() {
                                             className="absolute inset-0 flex flex-col items-center justify-center p-6"
                                         >
                                             {activeFeatureData && (
-                                                <>
-                                                    <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
-                                                        <Image
-                                                            src={activeFeatureData.image}
-                                                            alt={activeFeatureData.label}
-                                                            layout="fill"
-                                                            objectFit="cover"
-                                                            className="transition-transform duration-500 group-hover:scale-105"
-                                                        />
-                                                    </div>
-                                                    <h3 className="text-lg font-semibold">{activeFeatureData.label}</h3>
+                                                <div className="flex flex-col items-center justify-center h-full">
+                                                    <FeatureVisual featureId={activeFeatureData.id} />
+                                                    <p className="text-lg font-semibold mt-4">{activeFeatureData.label}</p>
                                                     <p className="text-muted-foreground mt-1 max-w-md">{activeFeatureData.description}</p>
-                                                </>
+                                                </div>
                                             )}
                                         </motion.div>
                                     </AnimatePresence>
@@ -457,3 +499,5 @@ export default function GuidePage() {
         </div>
     );
 }
+
+    
