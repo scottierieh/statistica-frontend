@@ -168,7 +168,7 @@ export default function GuidePage() {
                     </div>
                     
                     <div className="mt-12 pt-8 border-t">
-                        <h3 className="text-2xl font-bold text-center mb-8">Detailed Analysis Steps</h3>
+                        <h3 className="text-2xl font-bold text-center mb-8">Detailed Analysis Steps (Run Analysis)</h3>
                          <div className="space-y-8">
                             {RUN_ANALYSIS_STEPS.map((step, index) => (
                                 <div key={step.id} className="grid md:grid-cols-2 gap-8 items-center">
@@ -200,20 +200,16 @@ export default function GuidePage() {
                                                                 <Label>Post-hoc Test</Label>
                                                                 <Badge variant="outline">Tukey HSD</Badge>
                                                             </div>
-                                                            <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
-                                                                <Label>Confidence Interval</Label>
-                                                                <Badge variant="outline">95%</Badge>
-                                                            </div>
                                                         </div>
                                                     )}
                                                     {step.id === 3 && (
-                                                        <div className="w-full max-w-sm space-y-3">
+                                                         <div className="w-full max-w-sm space-y-3">
                                                             <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
                                                              <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
                                                                 <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
                                                                 <div>
                                                                     <p className="font-medium text-sm">Variables selected</p>
-                                                                    <p className="text-xs text-muted-foreground">5 variable(s) selected</p>
+                                                                    <p className="text-xs text-muted-foreground">3 variable(s) selected</p>
                                                                 </div>
                                                              </div>
                                                               <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
@@ -223,13 +219,6 @@ export default function GuidePage() {
                                                                     <p className="text-xs text-muted-foreground">No missing values detected</p>
                                                                 </div>
                                                              </div>
-                                                             <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
-                                                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
-                                                                <div>
-                                                                    <p className="font-medium text-sm">Sample size</p>
-                                                                    <p className="text-xs text-muted-foreground">150 observations available</p>
-                                                                </div>
-                                                             </div>
                                                         </div>
                                                     )}
                                                     {step.id === 4 && (
@@ -237,40 +226,32 @@ export default function GuidePage() {
                                                             <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
                                                                 <Sparkles className="w-5 h-5 text-primary" /> Key Findings
                                                             </h4>
-                                                            <ul className="space-y-3">
-                                                                <li className="flex items-start gap-3">
-                                                                    <span className="font-bold text-primary">•</span>
-                                                                    <p className="text-sm text-muted-foreground">You analyzed <strong className="text-foreground">5 variables</strong> across <strong className="text-foreground">150 records</strong>.</p>
-                                                                </li>
-                                                                <li className="flex items-start gap-3">
-                                                                    <span className="font-bold text-primary">•</span>
-                                                                    <p className="text-sm text-muted-foreground">Your data is complete — no missing values found!</p>
-                                                                </li>
-                                                                <li className="flex items-start gap-3">
-                                                                    <span className="font-bold text-primary">•</span>
-                                                                    <p className="text-sm text-muted-foreground">Data appears reasonably balanced — mean and median should be similar.</p>
-                                                                </li>
-                                                                <li className="flex items-start gap-3">
-                                                                    <span className="font-bold text-amber-500">•</span>
-                                                                    <p className="text-sm text-muted-foreground"><strong className="text-amber-600">Potential outliers detected</strong> — check the visualizations for unusual values.</p>
-                                                                </li>
-                                                            </ul>
+                                                            <Alert className="border-primary bg-primary/5">
+                                                                <AlertTitle className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/>Significant Result</AlertTitle>
+                                                                <AlertDescription>The analysis shows both <strong>Price</strong> and <strong>Quality</strong> have a significant positive impact on <strong>Satisfaction</strong>.</AlertDescription>
+                                                            </Alert>
                                                         </div>
                                                     )}
                                                     {step.id === 5 && (
-                                                         <div className="w-full max-w-sm space-y-3">
-                                                            <h4 className="text-sm font-semibold text-center mb-2">Reasoning</h4>
-                                                            <Card className="text-left p-3">
-                                                                <p className="text-xs text-muted-foreground">The p-value is below 0.05, indicating that the observed effect is unlikely to be due to chance. This allows us to reject the null hypothesis.</p>
-                                                            </Card>
+                                                        <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
+                                                            <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                                                                <Lightbulb className="w-5 h-5 text-primary" /> Why This Conclusion?
+                                                            </h4>
+                                                            <ul className="text-sm space-y-3 text-muted-foreground">
+                                                                <li className="flex gap-3"><strong className="text-primary font-bold">1.</strong>Both 'Price' and 'Quality' have p-values less than 0.05, meaning their effect is not due to random chance.</li>
+                                                                <li className="flex gap-3"><strong className="text-primary font-bold">2.</strong>The model's R-squared value (0.65) shows that 65% of the change in 'Satisfaction' is explained by these two factors.</li>
+                                                            </ul>
                                                         </div>
                                                     )}
                                                     {step.id === 6 && (
                                                         <div className="w-full max-w-sm space-y-3">
                                                             <h4 className="text-sm font-semibold text-center mb-2">Full Statistics</h4>
                                                             <Table className="text-xs bg-white rounded-md border">
-                                                                <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Value</TableHead></TableRow></TableHeader>
-                                                                <TableBody><TableRow><TableCell>F-statistic</TableCell><TableCell>4.58</TableCell></TableRow><TableRow><TableCell>p-value</TableCell><TableCell>0.042</TableCell></TableRow></TableBody>
+                                                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coefficient</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                                                <TableBody>
+                                                                    <TableRow><TableCell>Price</TableCell><TableCell>0.45</TableCell><TableCell>{'<'}0.001</TableCell></TableRow>
+                                                                    <TableRow><TableCell>Quality</TableCell><TableCell>0.62</TableCell><TableCell>{'<'}0.001</TableCell></TableRow>
+                                                                </TableBody>
                                                             </Table>
                                                         </div>
                                                     )}
@@ -280,11 +261,11 @@ export default function GuidePage() {
                                     </div>
                                     <div className={`md:order-${index % 2 === 0 ? '1' : '2'} space-y-4`}>
                                          <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold flex-shrink-0">
-                                                {step.id}
+                                            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0 border-2 border-primary/20">
+                                                <step.icon className="w-6 h-6" />
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-xl text-primary">{step.label}</h4>
+                                                <h4 className="font-bold text-xl">{step.label}</h4>
                                                 <p className="text-muted-foreground text-sm">{step.description}</p>
                                             </div>
                                         </div>
@@ -371,5 +352,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
