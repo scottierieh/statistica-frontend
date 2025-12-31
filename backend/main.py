@@ -5,32 +5,37 @@ from typing import List, Dict, Any, Optional
 
 # Import analysis functions
 from effectiveness_analysis import run_effectiveness_analysis
+from simple_test_analysis import run_simple_test_analysis
 
 app = FastAPI()
 
-# CORS 설정 - 더 넓은 범위로 설정
+# CORS 설정
 origins = [
     "http://localhost:9002",
     "http://127.0.0.1:9002",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "*",  # 개발 환경에서는 모든 origin 허용
+    "*",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 개발 환경에서는 모든 origin 허용
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class AnalysisPayload(BaseModel):
+class EffectivenessPayload(BaseModel):
     data: List[Dict[str, Any]]
-    outcomeVar: str
-    timeVar: Optional[str] = None
-    groupVar: Optional[str] = None
+    outcome: str
+    time: Optional[str] = None
+    group: Optional[str] = None
     covariates: Optional[List[str]] = []
+
+class SimpleTestPayload(BaseModel):
+    numbers: List[float]
+
 
 @app.get("/")
 def read_root():
@@ -41,17 +46,14 @@ def health_check():
     return {"status": "ok"}
 
 @app.post("/api/analysis/effectiveness")
-async def analyze_effectiveness(payload: AnalysisPayload):
+async def analyze_effectiveness(payload: EffectivenessPayload):
     try:
-        print(f"Received payload: outcomeVar={payload.outcomeVar}, timeVar={payload.timeVar}, groupVar={payload.groupVar}")
-        print(f"Data length: {len(payload.data)}")
-        
         results = run_effectiveness_analysis(
             data=payload.data,
-            outcome_var=payload.outcomeVar,
-            time_var=payload.timeVar,
-            group_var=payload.groupVar,
-            covariates=payload.covariates or []
+            outcome_var=payload.outcome,
+            time_var=payload.time,
+            group_var=payload.group,
+            covariates=payload.covariates
         )
         return results
     except Exception as e:
@@ -59,7 +61,15 @@ async def analyze_effectiveness(payload: AnalysisPayload):
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/api/analysis/simple-test")
+async def analyze_simple_test(payload: SimpleTestPayload):
+    try:
+        results = run_simple_test_analysis(payload.numbers)
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    

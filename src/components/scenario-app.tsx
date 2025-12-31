@@ -34,6 +34,7 @@ import {
   FlaskConical,
   Search,
   Check,
+  TestTube
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -67,6 +68,7 @@ import HrPolicyOutcomePage from './pages/scenario/hr-policy-outcome-page';
 import AttritionAnalysisPage from './pages/scenario/attrition-analysis-page';
 import PerformanceStructurePage from './pages/scenario/performance-structure-page';
 import EffectivenessPage from './pages/EffectivenessPage';
+import SimpleTestPage from './pages/scenario/simple-test-page';
 
 const analysisCategories = [
     {
@@ -115,6 +117,13 @@ const analysisCategories = [
             { id: 'performance-structure', label: 'Performance Structure Diagnosis', component: PerformanceStructurePage, icon: BarChart3 },
         ],
     },
+    {
+        name: 'Testing',
+        icon: TestTube,
+        items: [
+            { id: 'simple-test', label: 'Simple Sum Analysis', component: SimpleTestPage, icon: TestTube },
+        ],
+    }
 ];
 
 const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
