@@ -26,6 +26,8 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://127.0.0.1:8000';
+
 interface DescriptiveStats {
   overall: { n: number; mean: number; std: number; median: number; min: number; max: number; q1: number; q3: number; se: number };
   by_group: { [key: string]: { n: number; mean: number; std: number; median: number; min: number; max: number; se: number } };
@@ -176,7 +178,7 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
     if (!outcomeVar) { toast({ variant: 'destructive', title: 'Error', description: 'Select outcome variable.' }); return; }
     setIsLoading(true); setResults(null);
     try {
-      const response = await fetch('/api/analysis/effectiveness', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, outcomeVar, timeVar, groupVar, covariates }) });
+      const response = await fetch(`${FASTAPI_URL}/api/analysis/effectiveness`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, outcomeVar, timeVar, groupVar, covariates }) });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || `HTTP error! ${response.status}`); }
       const result: EffectivenessResults = await response.json();
       if ((result as any).error) throw new Error((result as any).error);
@@ -241,7 +243,7 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard label="Sample Size" value={results.summary_statistics.n_total} sublabel="Total observations" icon={Layers} />
               <StatCard label="Valid N" value={results.summary_statistics.n_valid} sublabel="After removing missing" icon={CheckCircle} />
-              {results.pre_post_comparison?.overall && (<><StatCard label="Effect Size (d)" value={results.pre_post_comparison.overall.effect_size.toFixed(3)} sublabel={results.pre_post_comparison.overall.effect_interpretation} icon={Scale} /><StatCard label="Pre-Post p-value" value={results.pre_post_comparison.overall.p_value < 0.001 ? '<0.001' : results.pre_post_comparison.overall.p_value.toFixed(4)} sublabel={results.pre_post_comparison.overall.significant ? 'Significant' : 'Not Significant'} icon={Target} /></>)}
+              {results.pre_post_comparison?.overall && (<><StatCard label="Effect Size (d)" value={results.pre_post_comparison.overall.effect_size.toFixed(3)} sublabel={results.pre_post_comparison.overall.effect_interpretation} icon={Scale} /><StatCard label="Pre-Post p-value" value={results.pre_post_comparison.overall.p_value < 0.001 ? '<.001' : results.pre_post_comparison.overall.p_value.toFixed(4)} sublabel={results.pre_post_comparison.overall.significant ? 'Significant' : 'Not Significant'} icon={Target} /></>)}
             </div>
             
             <Card className="border-2 border-primary/20"><CardHeader><div className="flex items-center gap-3"><div className="p-2 bg-primary/10 rounded-lg"><Sparkles className="h-5 w-5 text-primary" /></div><div><CardTitle className="text-xl">Overall Conclusion</CardTitle><CardDescription>Summary report</CardDescription></div></div></CardHeader>
