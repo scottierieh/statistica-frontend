@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -208,7 +207,20 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Input } from './ui/input';
 
-const analysisCategories = [
+interface AnalysisPageProps {
+  data: DataSet;
+  allHeaders: string[];
+  numericHeaders: string[];
+  categoricalHeaders: string[];
+  onLoadExample: (example: ExampleDataSet) => void;
+  isUploading: boolean;
+  activeAnalysis: string;
+  onAnalysisComplete?: (result: any) => void;
+  restoredState?: any;
+}
+
+
+const analysisCategories: any[] = [
   {
     name: 'Overview',
     icon: BookOpen,
@@ -720,17 +732,17 @@ export default function StatisticaApp() {
 
       if ('subCategories' in category && category.subCategories) {
         const filteredSubCategories = category.subCategories
-          .map(sub => {
-            const filteredItems = sub.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+          .map((sub: any) => {
+            const filteredItems = sub.items.filter((item: any) => item.label.toLowerCase().includes(lowercasedFilter));
             return filteredItems.length > 0 ? { ...sub, items: filteredItems } : null;
           })
-          .filter(Boolean) as typeof category.subCategories;
+          .filter(Boolean);
 
         return filteredSubCategories.length > 0 ? { ...category, subCategories: filteredSubCategories } : null;
       }
 
       return null;
-    }).filter(Boolean) as typeof analysisCategories;
+    }).filter(Boolean);
   }, [searchTerm]);
 
   const ActivePageComponent = useMemo(() => {
@@ -740,7 +752,7 @@ export default function StatisticaApp() {
             if (found) return found.component;
         } else if ('subCategories' in category && category.subCategories) {
             for (const sub of category.subCategories) {
-                const found = sub.items.find(item => item.id === activeAnalysis);
+                const found = sub.items.find((item: any) => item.id === activeAnalysis);
                 if(found) return found.component;
             }
         }
@@ -790,7 +802,7 @@ export default function StatisticaApp() {
                     <CollapsibleContent>
                       {'items' in category ? (
                         <SidebarMenu>
-                          {(category.items).map(item => (
+                          {(category.items).map((item: any) => (
                             <SidebarMenuItem key={item.id}>
                               <SidebarMenuButton
                                 onClick={() => setActiveAnalysis(item.id)}
@@ -805,10 +817,10 @@ export default function StatisticaApp() {
                       ) : (
                         'subCategories' in category && category.subCategories && (
                           <SidebarMenu>
-                            {category.subCategories.map((sub, i) => (
+                            {category.subCategories.map((sub: any, i: number) => (
                               <div key={i}>
                                 <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2 my-1">{sub.name}</SidebarGroupLabel>
-                                {sub.items.map(item => (
+                                {sub.items.map((item: any) => (
                                   <SidebarMenuItem key={item.id}>
                                     <SidebarMenuButton
                                       onClick={() => setActiveAnalysis(item.id)}
