@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 
@@ -31,6 +31,7 @@ const analysisMethods = [
     { category: 'Relationship', method: 'Crosstab & Chi-Squared', purpose: 'Tests independence between categorical variables', useCase: 'Gender differences in brand preference' },
     { category: 'Predictive', method: 'Generalized Linear Model (GLM)', purpose: 'Extends regression to non-normal distributions', useCase: 'Poisson, logistic, or gamma regression models' },
     { category: 'Predictive', method: 'Discriminant Analysis', purpose: 'Classifies cases into predefined groups', useCase: 'Customer segmentation, churn prediction' },
+    { category: 'Predictive', method: 'Survival Analysis', purpose: 'Analyzes time-to-event data', useCase: 'Customer churn analysis, product failure time' },
     { category: 'Structural', method: 'Factor Analysis', purpose: 'Identifies latent factors from correlated items', useCase: 'Reducing survey dimensions' },
     { category: 'Structural', method: 'Reliability (Cronbach’s α)', purpose: 'Tests internal consistency among items', useCase: 'Reliability check for survey scales' },
     { category: 'Structural', method: 'Exploratory Factor Analysis (EFA)', purpose: 'Explores underlying factor structure', useCase: 'Identifying satisfaction dimensions' },
@@ -66,15 +67,17 @@ const STEPS = [
     { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
     { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
     {
-        id: 3, icon: Settings, label: 'Run Analysis', description: 'Configure variables, validate data, and get results.', subSteps: [
-            { id: 3.1, label: 'Variables' },
-            { id: 3.2, label: 'Settings' },
-            { id: 3.3, label: 'Validation' },
-            { id: 3.4, label: 'Summary' },
-            { id: 3.5, label: 'Reasoning' },
-            { id: 3.6, label: 'Statistics' }
-        ]
+        id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables, validate data, and get results through a guided 6-step process.',
     }
+];
+
+const RUN_ANALYSIS_STEPS = [
+    { id: 1, label: 'Variables', description: 'Select your dependent and independent variables for the analysis.' },
+    { id: 2, label: 'Settings', description: 'Configure model-specific parameters and options.' },
+    { id: 3, label: 'Validation', description: 'The system checks data suitability and statistical assumptions.' },
+    { id: 4, label: 'Summary', description: 'Review a high-level, easy-to-understand summary of the key findings.' },
+    { id: 5, label: 'Reasoning', description: 'Understand the "why" behind the summary with detailed interpretations.' },
+    { id: 6, label: 'Statistics', description: 'Dive deep into the full statistical output, tables, and charts.' }
 ];
 
 const industryApplications = [
@@ -156,28 +159,9 @@ export default function GuidePage() {
                                         <h3 className="font-semibold text-xl mb-1">{step.label}</h3>
                                         <p className="text-muted-foreground">{step.description}</p>
                                     </div>
-                                     {step.subSteps && (
-                                        <div className="pl-4">
-                                            <div className="flex items-center space-x-2">
-                                                {step.subSteps.map((subStep, subIndex) => (
-                                                    <React.Fragment key={subStep.id}>
-                                                        <div className="flex flex-col items-center text-center">
-                                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                                                                {subStep.id.toString().split('.')[1] || subStep.id}
-                                                            </div>
-                                                            <span className="text-xs mt-1 text-muted-foreground">{subStep.label}</span>
-                                                        </div>
-                                                        {subIndex < step.subSteps.length - 1 && (
-                                                            <div className="w-6 h-px bg-border"></div>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                     <Card className="overflow-hidden">
                                         <CardContent className="p-0">
-                                            <div className="bg-muted h-96 rounded-lg flex items-center justify-center">
+                                            <div className="bg-muted h-64 rounded-lg flex items-center justify-center">
                                                 <p className="text-sm text-muted-foreground">Image for Step {step.id}</p>
                                             </div>
                                         </CardContent>
@@ -185,6 +169,44 @@ export default function GuidePage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                    
+                    <div className="mt-12 pt-8 border-t">
+                        <h3 className="text-2xl font-bold text-center mb-8">Detailed Analysis Steps</h3>
+                        <div className="relative flex flex-col items-center">
+                            {RUN_ANALYSIS_STEPS.map((step, index) => (
+                                <React.Fragment key={step.id}>
+                                    <div className="grid grid-cols-[auto,1fr] md:grid-cols-[1fr,auto,1fr] gap-6 md:gap-8 items-center w-full">
+                                        {index % 2 === 0 ? (
+                                            <>
+                                                <div className="text-right">
+                                                    <h4 className="font-bold text-lg text-primary">{step.label}</h4>
+                                                    <p className="text-muted-foreground text-sm">{step.description}</p>
+                                                </div>
+                                                <div className="relative flex justify-center">
+                                                    <div className="w-12 h-12 rounded-full bg-background border-2 border-primary flex items-center justify-center z-10 font-bold text-primary">{step.id}</div>
+                                                </div>
+                                                <div className="hidden md:block"></div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="hidden md:block"></div>
+                                                <div className="relative flex justify-center">
+                                                    <div className="w-12 h-12 rounded-full bg-background border-2 border-primary flex items-center justify-center z-10 font-bold text-primary">{step.id}</div>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-lg text-primary">{step.label}</h4>
+                                                    <p className="text-muted-foreground text-sm">{step.description}</p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    {index < RUN_ANALYSIS_STEPS.length - 1 && (
+                                        <div className="absolute top-0 left-1/2 w-0.5 h-full bg-border -translate-x-1/2"></div>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -264,3 +286,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
