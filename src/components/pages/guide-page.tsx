@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 
@@ -65,19 +65,17 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 
 const STEPS = [
     { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
-    { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
-    {
-        id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables, validate data, and get results through a guided 6-step process.',
-    }
+    { id: 2, icon: Upload, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
+    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables, validate data, and get results through a guided 6-step process.' },
 ];
 
 const RUN_ANALYSIS_STEPS = [
-    { id: 1, label: 'Variables', description: 'Select your dependent and independent variables for the analysis.' },
-    { id: 2, label: 'Settings', description: 'Configure model-specific parameters and options.' },
-    { id: 3, label: 'Validation', description: 'The system checks data suitability and statistical assumptions.' },
-    { id: 4, label: 'Summary', description: 'Review a high-level, easy-to-understand summary of the key findings.' },
-    { id: 5, label: 'Reasoning', description: 'Understand the "why" behind the summary with detailed interpretations.' },
-    { id: 6, label: 'Statistics', description: 'Dive deep into the full statistical output, tables, and charts.' }
+    { id: 1, icon: Variable, label: 'Variables', description: 'Select your dependent and independent variables for the analysis.' },
+    { id: 2, icon: Settings2, label: 'Settings', description: 'Configure model-specific parameters and options.' },
+    { id: 3, icon: ShieldCheck, label: 'Validation', description: 'The system checks data suitability and statistical assumptions.' },
+    { id: 4, icon: FileSearch, label: 'Summary', description: 'Review a high-level, easy-to-understand summary of the key findings.' },
+    { id: 5, icon: Lightbulb, label: 'Reasoning', description: 'Understand the "why" behind the summary with detailed interpretations.' },
+    { id: 6, icon: Sigma, label: 'Statistics', description: 'Dive deep into the full statistical output, tables, and charts.' }
 ];
 
 const industryApplications = [
@@ -159,13 +157,6 @@ export default function GuidePage() {
                                         <h3 className="font-semibold text-xl mb-1">{step.label}</h3>
                                         <p className="text-muted-foreground">{step.description}</p>
                                     </div>
-                                    <Card className="overflow-hidden">
-                                        <CardContent className="p-0">
-                                            <div className="bg-muted h-64 rounded-lg flex items-center justify-center">
-                                                <p className="text-sm text-muted-foreground">Image for Step {step.id}</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
                                 </div>
                             </div>
                         ))}
@@ -173,38 +164,30 @@ export default function GuidePage() {
                     
                     <div className="mt-12 pt-8 border-t">
                         <h3 className="text-2xl font-bold text-center mb-8">Detailed Analysis Steps</h3>
-                        <div className="relative flex flex-col items-center">
+                         <div className="space-y-8">
                             {RUN_ANALYSIS_STEPS.map((step, index) => (
-                                <React.Fragment key={step.id}>
-                                    <div className="grid grid-cols-[auto,1fr] md:grid-cols-[1fr,auto,1fr] gap-6 md:gap-8 items-center w-full">
-                                        {index % 2 === 0 ? (
-                                            <>
-                                                <div className="text-right">
-                                                    <h4 className="font-bold text-lg text-primary">{step.label}</h4>
-                                                    <p className="text-muted-foreground text-sm">{step.description}</p>
-                                                </div>
-                                                <div className="relative flex justify-center">
-                                                    <div className="w-12 h-12 rounded-full bg-background border-2 border-primary flex items-center justify-center z-10 font-bold text-primary">{step.id}</div>
-                                                </div>
-                                                <div className="hidden md:block"></div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="hidden md:block"></div>
-                                                <div className="relative flex justify-center">
-                                                    <div className="w-12 h-12 rounded-full bg-background border-2 border-primary flex items-center justify-center z-10 font-bold text-primary">{step.id}</div>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-lg text-primary">{step.label}</h4>
-                                                    <p className="text-muted-foreground text-sm">{step.description}</p>
-                                                </div>
-                                            </>
-                                        )}
+                                <div key={step.id} className="grid md:grid-cols-2 gap-8 items-center">
+                                    <div className={`md:order-${index % 2 === 0 ? '1' : '2'} space-y-4`}>
+                                         <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold flex-shrink-0">
+                                                {step.id}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-xl text-primary">{step.label}</h4>
+                                                <p className="text-muted-foreground text-sm">{step.description}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    {index < RUN_ANALYSIS_STEPS.length - 1 && (
-                                        <div className="absolute top-0 left-1/2 w-0.5 h-full bg-border -translate-x-1/2"></div>
-                                    )}
-                                </React.Fragment>
+                                    <div className={`md:order-${index % 2 === 0 ? '2' : '1'} `}>
+                                        <Card className="overflow-hidden">
+                                            <CardContent className="p-0">
+                                                <div className="bg-muted h-64 rounded-lg flex items-center justify-center">
+                                                    <p className="text-sm text-muted-foreground">Image for Step {step.id}</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -286,5 +269,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
