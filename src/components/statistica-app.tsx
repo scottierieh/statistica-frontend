@@ -418,12 +418,12 @@ const analysisCategories = [
     icon: Target,
     items: [
       { id: 'ipa', label: 'Importance-Performance Analysis', icon: Target, component: IpaPage },
-      { id: 'funnel-analysis', label: 'Funnel Analysis', icon: Filter, component: FunnelPage },
+      { id: 'funnel-analysis', label: 'Funnel Analysis', icon: Target, component: FunnelPage },
       { id: 'nps', label: 'Net Promoter Score (NPS)', icon: Share2, component: NpsPage },
       { id: 'ltv-prediction', label: 'LTV Prediction', icon: DollarSign, component: LtvPage },
-      { id: 'association-rule', label: 'Association rule', icon: Handshake, component: AssociationPage },
+      { id: 'association-rule', label: 'Association rule', icon: DollarSign, component: AssociationPage },
       { id: 'dea', label: 'Data Envelopment Analysis (DEA)', icon: Building, component: DeaPage },
-      { id: 'roi-analysis', label: 'ROI Analysis', icon: Percent, component: RoiAnalysisPage },
+      { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
     ],
   },
   {
