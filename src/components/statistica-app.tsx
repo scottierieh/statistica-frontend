@@ -97,7 +97,12 @@ import {
   Package,
   FileUp,
   Milestone,
-  BarChart3
+  BarChart3,
+  Sparkles,
+  HelpCircle,
+  Info,
+  Lightbulb,
+  Check
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -699,7 +704,7 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelec
                     {/* Data Upload */}
                     <div className="grid md:grid-cols-2 gap-6 items-start">
                         <Card className="hover:border-primary/50 hover:shadow-lg transition-all">
-                            <CardHeader>
+                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><FileUp className="w-5 h-5"/>Upload Your Data</CardTitle>
                                 <CardDescription>Get started by uploading your dataset.</CardDescription>
                             </CardHeader>
