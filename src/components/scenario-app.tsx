@@ -14,9 +14,9 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
+  FileText,
   Loader2,
   TrendingUp,
-  FlaskConical,
   Landmark,
   Megaphone,
   Package,
@@ -30,7 +30,9 @@ import {
   Activity,
   UserX,
   Filter,
-  DollarSign
+  DollarSign,
+  FlaskConical,
+  Search,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -45,6 +47,7 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Input } from './ui/input';
 
 // Import newly created pages
 import PrePostPolicyPage from './pages/scenario/pre-post-policy-page';
@@ -63,130 +66,53 @@ import HrPolicyOutcomePage from './pages/scenario/hr-policy-outcome-page';
 import AttritionAnalysisPage from './pages/scenario/attrition-analysis-page';
 import PerformanceStructurePage from './pages/scenario/performance-structure-page';
 
-
 const analysisCategories = [
-  {
-    name: 'Policy / Institution',
-    icon: Landmark,
-    items: [
-      {
-        id: 'policy-pre-post',
-        label: 'Pre/Post Policy Comparison',
-        component: PrePostPolicyPage,
-        icon: ArrowLeftRight
-      },
-      {
-        id: 'policy-target-impact',
-        label: 'Target Group Impact Analysis',
-        component: PolicyTargetImpactPage,
-        icon: Target
-      },
-      {
-        id: 'policy-distribution',
-        label: 'Policy Outcome Distribution Analysis',
-        component: PolicyDistributionPage,
-        icon: BarChart3
-      },
-    ],
-  },
-  {
-    name: 'Marketing / Growth',
-    icon: Megaphone,
-    items: [
-      {
-        id: 'campaign-performance',
-        label: 'Campaign Performance Evaluation',
-        component: CampaignPerformancePage,
-        icon: TrendingUp
-      },
-      {
-        id: 'segment-effectiveness',
-        label: 'Customer Segment Effectiveness Analysis',
-        component: SegmentEffectivenessPage,
-        icon: Users
-      },
-      {
-        id: 'channel-efficiency',
-        label: 'Channel Efficiency Diagnosis',
-        component: ChannelEfficiencyPage,
-        icon: Zap
-      },
-    ],
-  },
-  {
-    name: 'Product / Service',
-    icon: Package,
-    items: [
-      {
-        id: 'feature-adoption',
-        label: 'Feature Adoption Analysis',
-        component: FeatureAdoptionPage,
-        icon: Layers
-      },
-      {
-        id: 'engagement-change',
-        label: 'User Engagement Change Analysis',
-        component: EngagementChangePage,
-        icon: Activity
-      },
-      {
-        id: 'churn-diagnosis',
-        label: 'Churn & Drop-off Diagnosis',
-        component: ChurnDiagnosisPage,
-        icon: UserX
-      },
-    ],
-  },
-  {
-    name: 'Operations / Process',
-    icon: Factory,
-    items: [
-      {
-        id: 'process-bottleneck',
-        label: 'Process Bottleneck Diagnosis',
-        component: ProcessBottleneckPage,
-        icon: Filter
-      },
-      {
-        id: 'process-stability',
-        label: 'Process Stability & Quality Analysis',
-        component: ProcessStabilityPage,
-        icon: Activity
-      },
-      {
-        id: 'cost-efficiency',
-        label: 'Cost & Efficiency Structure Analysis',
-        component: CostEfficiencyPage,
-        icon: DollarSign
-      },
-    ],
-  },
-  {
-    name: 'HR / Organization',
-    icon: Users,
-    items: [
-      {
-        id: 'hr-policy-outcome',
-        label: 'HR Policy Outcome Analysis',
-        component: HrPolicyOutcomePage,
-        icon: Users
-      },
-      {
-        id: 'attrition-retention',
-        label: 'Attrition & Retention Analysis',
-        component: AttritionAnalysisPage,
-        icon: UserX
-      },
-      {
-        id: 'performance-structure',
-        label: 'Performance Structure Diagnosis',
-        component: PerformanceStructurePage,
-        icon: BarChart3
-      },
-    ],
-  },
+    {
+        name: 'Policy / Institution',
+        icon: Landmark,
+        items: [
+            { id: 'policy-pre-post', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
+            { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
+            { id: 'policy-distribution', label: 'Policy Outcome Distribution Analysis', component: PolicyDistributionPage, icon: BarChart3 },
+        ],
+    },
+    {
+        name: 'Marketing / Growth',
+        icon: Megaphone,
+        items: [
+            { id: 'campaign-performance', label: 'Campaign Performance Evaluation', component: CampaignPerformancePage, icon: TrendingUp },
+            { id: 'segment-effectiveness', label: 'Customer Segment Effectiveness Analysis', component: SegmentEffectivenessPage, icon: Users },
+            { id: 'channel-efficiency', label: 'Channel Efficiency Diagnosis', component: ChannelEfficiencyPage, icon: Zap },
+        ],
+    },
+    {
+        name: 'Product / Service',
+        icon: Package,
+        items: [
+            { id: 'feature-adoption', label: 'Feature Adoption Analysis', component: FeatureAdoptionPage, icon: Layers },
+            { id: 'engagement-change', label: 'User Engagement Change Analysis', component: EngagementChangePage, icon: Activity },
+            { id: 'churn-diagnosis', label: 'Churn & Drop-off Diagnosis', component: ChurnDiagnosisPage, icon: UserX },
+        ],
+    },
+    {
+        name: 'Operations / Process',
+        icon: Factory,
+        items: [
+            { id: 'process-bottleneck', label: 'Process Bottleneck Diagnosis', component: ProcessBottleneckPage, icon: Filter },
+            { id: 'process-stability', label: 'Process Stability & Quality Analysis', component: ProcessStabilityPage, icon: Activity },
+            { id: 'cost-efficiency', label: 'Cost & Efficiency Structure Analysis', component: CostEfficiencyPage, icon: DollarSign },
+        ],
+    },
+    {
+        name: 'HR / Organization',
+        icon: Users,
+        items: [
+            { id: 'hr-policy-outcome', label: 'HR Policy Outcome Analysis', component: HrPolicyOutcomePage, icon: Users },
+            { id: 'attrition-retention', label: 'Attrition & Retention Analysis', component: AttritionAnalysisPage, icon: UserX },
+            { id: 'performance-structure', label: 'Performance Structure Diagnosis', component: PerformanceStructurePage, icon: BarChart3 },
+        ],
+    },
 ];
-
 
 const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
   .flatMap(category => category.items)
@@ -199,12 +125,13 @@ const analysisPages: Record<string, React.ComponentType<any>> = analysisCategori
 export default function ScenarioApp() {
   const [data, setData] = useState<DataSet>([]);
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
+  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<string>('policy-pre-post');
   const [openCategories, setOpenCategories] = useState<string[]>(['Policy / Institution']);
-  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
-  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { toast } = useToast();
 
@@ -268,6 +195,18 @@ export default function ScenarioApp() {
     }
   };
 
+  const filteredAnalysisCategories = useMemo(() => {
+    if (!searchTerm) {
+      return analysisCategories;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+
+    return analysisCategories.map(category => {
+      const filteredItems = category.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+      return filteredItems.length > 0 ? { ...category, items: filteredItems } : null;
+    }).filter(Boolean) as typeof analysisCategories;
+  }, [searchTerm]);
+
   const ActivePageComponent = analysisPages[activeAnalysis] || (() => <div>Select an analysis</div>);
   const hasData = data.length > 0;
 
@@ -284,22 +223,20 @@ export default function ScenarioApp() {
       <div className="flex min-h-screen w-full">
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <FlaskConical className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h1 className="text-xl font-headline font-bold">Scenario</h1>
-            </div>
-             <div className='p-2'>
+            <div className='p-2 space-y-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
                 loading={isUploading}
               />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search analyses..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
+              </div>
             </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
             <SidebarMenu>
-              {analysisCategories.map(category => (
+              {filteredAnalysisCategories.map(category => (
                   <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold shadow-md border bg-white text-foreground hover:bg-slate-50">
@@ -331,12 +268,6 @@ export default function ScenarioApp() {
 
         <SidebarInset>
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between md:justify-end">
-                <SidebarTrigger className="md:hidden"/>
-                <h1 className="text-2xl font-headline font-bold md:hidden">Scenario Analysis</h1>
-                <div />
-            </header>
-            
             {hasData && (
               <DataPreview 
                 fileName={fileName}
