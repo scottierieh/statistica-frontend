@@ -37,15 +37,37 @@ const prompt = ai.definePrompt({
 **Data Summary (column names, types, and stats):**
 {{{dataSummary}}}
 
+**Available Statistical Analyses:**
+You MUST choose from the following list of available analyses:
+- Descriptive Statistics
+- Frequency Analysis
+- T-Tests (One-Sample, Independent, Paired)
+- ANOVA (One-Way, Two-Way)
+- Correlation
+- Simple & Multiple Linear Regression
+- Logistic Regression
+- Chi-Squared Test (Crosstab)
+- Reliability Analysis (Cronbach's Alpha)
+- Factor Analysis (EFA, PCA)
+- Mediation & Moderation Analysis
+- Cluster Analysis (K-Means, Hierarchical)
+- Time Series Analysis (Decomposition, ARIMA)
+- Survival Analysis
+- Non-parametric tests (Mann-Whitney, Wilcoxon, Kruskal-Wallis, Friedman)
+- Conjoint Analysis (CBC)
+- MaxDiff Analysis
+- TURF Analysis
+- Structural Equation Modeling (SEM)
+- Importance-Performance Analysis (IPA)
+- Data Envelopment Analysis (DEA)
+- Net Promoter Score (NPS) Analysis
+
 **Instructions:**
-1.  **Integrate Context:** Use the user's data description to understand the context and purpose of the data. This is more important than the raw column names.
-2.  **Infer Research Questions:** Based on the data summary and the user's description, infer potential research questions.
-3.  **Recommend Analyses:** Suggest 3 to 5 relevant statistical analyses that would answer these questions. For example:
-    - If the user describes a "pre-test vs. post-test" study and there are two related numeric columns, recommend a "Paired Samples T-Test".
-    - If the description mentions "customer satisfaction survey with demographics" and there are numeric 'satisfaction' columns and a categorical 'region' column, recommend "One-Way ANOVA".
-    - If the description is "tracking sales over time", recommend "Time Series Analysis".
-4.  **Provide a Clear 'Reason':** For each recommendation, explain concisely why it's suitable, connecting it to the user's description.
-5.  **List 'required_variables':** List the actual variable names from the data summary that would be used for this analysis.
+1.  **Analyze Context:** Use the user's data description and goals to understand the purpose of the data.
+2.  **Examine Data Structure:** Review the data summary to understand variable types (numeric, categorical).
+3.  **Recommend from List:** Suggest 3 to 5 relevant statistical analyses **strictly from the "Available Statistical Analyses" list above**.
+4.  **Provide Rationale:** For each recommendation, explain concisely why it is suitable, connecting it to both the data structure and the user's goals.
+5.  **Specify Variables:** List the actual variable names from the data summary that would be required for each recommended analysis.
 `,
 });
 
