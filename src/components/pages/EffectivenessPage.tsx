@@ -178,7 +178,7 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
     if (!outcomeVar) { toast({ variant: 'destructive', title: 'Error', description: 'Select outcome variable.' }); return; }
     setIsLoading(true); setResults(null);
     try {
-      const response = await fetch(`${FASTAPI_URL}/api/analysis/effectiveness`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, outcomeVar, timeVar, groupVar, covariates }) });
+      const response = await fetch('/api/analysis/effectiveness', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, outcomeVar, timeVar, groupVar, covariates }) });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || `HTTP error! ${response.status}`); }
       const result: EffectivenessResults = await response.json();
       if ((result as any).error) throw new Error((result as any).error);

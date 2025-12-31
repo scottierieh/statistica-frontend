@@ -227,12 +227,3 @@ def run_effectiveness_analysis(data, outcome_var, time_var=None, group_var=None,
     }
     results['overall_conclusion'] = analyzer.generate_conclusion(results)
     return json.loads(json.dumps(results, default=_to_native_type))
-
-if __name__ == '__main__':
-    try:
-        payload = json.load(sys.stdin)
-        results = run_effectiveness_analysis(**payload)
-        print(json.dumps(results, default=_to_native_type, indent=2))
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
