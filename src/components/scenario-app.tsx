@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -30,9 +31,13 @@ import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
-import WhatIfAnalysisPage from './pages/whatif-page';
-import ThresholdOptimizationPage from './pages/threshold-optimization-page';
-import CostSensitivePage from './pages/cost-sensitive-page';
+
+// Since the pages were removed, we'll define placeholder components here for now
+// In a real scenario, these would be the actual analysis components.
+const WhatIfAnalysisPage = () => <div className="p-4"><h2 className="text-xl font-semibold">What-If Analysis</h2><p>Configure your what-if scenario here.</p></div>;
+const ThresholdOptimizationPage = () => <div className="p-4"><h2 className="text-xl font-semibold">Threshold Optimization</h2><p>Set up your threshold optimization parameters.</p></div>;
+const CostSensitivePage = () => <div className="p-4"><h2 className="text-xl font-semibold">Cost-Sensitive Analysis</h2><p>Define costs for your cost-sensitive analysis.</p></div>;
+
 
 type AnalysisType = 'what-if' | 'threshold-optimization' | 'cost-sensitive';
 
