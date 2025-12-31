@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import Papa from 'papaparse';
 import type { DataSet } from '@/lib/stats';
@@ -177,7 +176,7 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
     if (!outcomeVar) { toast({ variant: 'destructive', title: 'Error', description: 'Select outcome variable.' }); return; }
     setIsLoading(true); setResults(null);
     try {
-      const response = await fetch('/api/analysis/effectiveness', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, outcome: outcomeVar, time: timeVar, group: groupVar, covariates }) });
+      const response = await fetch('/api/analysis/effectiveness', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, outcomeVar, timeVar, groupVar, covariates }) });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || `HTTP error! ${response.status}`); }
       const result: EffectivenessResults = await response.json();
       if ((result as any).error) throw new Error((result as any).error);
@@ -217,7 +216,7 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2"><Label>Outcome <span className="text-destructive">*</span></Label><Select value={outcomeVar} onValueChange={setOutcomeVar}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Time Variable</Label><Select value={timeVar || 'none'} onValueChange={v => setTimeVar(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{[...numericHeaders, ...categoricalHeaders].map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Time Variable</Label><Select value={timeVar || 'none'} onValueChange={v => setTimeVar(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{[...categoricalHeaders, ...numericHeaders].map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label>Group Variable</Label><Select value={groupVar || 'none'} onValueChange={v => setGroupVar(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{[...categoricalHeaders, ...numericHeaders].map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label>Covariates</Label><ScrollArea className="h-24 border rounded-md p-2">{numericHeaders.filter(h => h !== outcomeVar).map(header => (<div key={header} className="flex items-center space-x-2 py-1"><Checkbox id={`cov-${header}`} checked={covariates.includes(header)} onCheckedChange={c => handleCovariateChange(header, c as boolean)} /><label htmlFor={`cov-${header}`} className="text-xs">{header}</label></div>))}</ScrollArea></div>
           </div>
@@ -236,7 +235,7 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
             </DropdownMenu>
           </div>
 
-          <div ref={resultsRef} data-results-container className="space-y-6 bg-background">
+          <div ref={resultsRef} data-results-container className="space-y-6 bg-background p-4 rounded-lg">
             <div className="text-center py-4 border-b"><h2 className="text-2xl font-bold">Effectiveness Analysis Report</h2><p className="text-sm text-muted-foreground mt-1">Outcome: {outcomeVar} | Time: {timeVar || 'N/A'} | Group: {groupVar || 'N/A'}</p></div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -329,5 +328,3 @@ export default function EffectivenessPage({ data, numericHeaders, categoricalHea
     </div>
   );
 }
-
-    
