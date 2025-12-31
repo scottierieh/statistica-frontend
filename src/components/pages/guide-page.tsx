@@ -89,20 +89,29 @@ export default function GuidePage() {
                     <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works, using Descriptive Statistics as an example.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <div className="space-y-6">
+                   <div className="space-y-8">
                         {STEPS.map((step, index) => (
-                            <div key={step.id} className="flex items-start gap-4">
-                                <div className="flex-shrink-0 flex flex-col items-center">
-                                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                            <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
+                                <div className="flex flex-col items-center">
+                                    <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
                                         {step.id}
                                     </div>
                                     {index < STEPS.length - 1 && (
-                                        <div className="w-0.5 h-12 bg-border mt-2"></div>
+                                        <div className="w-1 flex-1 bg-border mt-2"></div>
                                     )}
                                 </div>
-                                <div className="pt-2">
-                                    <h3 className="font-semibold text-lg">{step.label}</h3>
-                                    <p className="text-muted-foreground mt-1">{step.description}</p>
+                                <div className="space-y-4 pt-1">
+                                    <div>
+                                        <h3 className="font-semibold text-xl mb-1">{step.label}</h3>
+                                        <p className="text-muted-foreground">{step.description}</p>
+                                    </div>
+                                    <Card className="overflow-hidden">
+                                        <CardContent className="p-0">
+                                            <div className="bg-muted h-48 flex items-center justify-center">
+                                                <p className="text-sm text-muted-foreground">Image for Step {step.id}</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                 </div>
                             </div>
                         ))}
