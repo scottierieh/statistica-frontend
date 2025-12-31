@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000';
+const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:8000';
 
-export async function proxyToPython(request: NextRequest, endpoint: string) {
+export async function proxyToPython(request: NextRequest, endpoint: string, apiUrl: string = PYTHON_API_URL) {
     try {
         const body = await request.json();
 
-        const response = await fetch(`${PYTHON_API_URL}/api/analysis/${endpoint}`, {
+        const response = await fetch(`${apiUrl}/api/analysis/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),

@@ -61,6 +61,10 @@ import { thresholdOptimizationData } from './example-datasets/threshold-optimiza
 import { costSensitiveData } from './example-datasets/cost-sensitive-data';
 import { decisionRulesData } from './example-datasets/decision-rules-data';
 import { reliabilityValidityData } from './example-datasets/reliability-validity-data';
+import { effectivenessAnalysisData } from './example-datasets/effectiveness-analysis-data';
+
+
+
 
 
 type AnalysisType = 'stats' | 'correlation' |'associationData' | 'one-way-anova' | 'marketing-analysis'|'two-way-anova' | 'funnel-analysis'| 'ancova' |'ltv-prediction' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'classifier-comparison' | 'turf' | 'csat' | 'semantic-differential' | string;
@@ -89,6 +93,17 @@ export const exampleDatasets: ExampleDataSet[] = [
         recommendedAnalysis: 'attribute-control-charts',
         data: attributeControlChartData,
     },
+    {
+        id: 'effectiveness-analysis',
+        name: 'Effectiveness Analysis Data',
+        description: 'Dataset for tracking product defects and sample sizes over time for attribute control charts.',
+        icon: TrendingUp,
+        analysisTypes: ['attribute-control-charts'],
+        data: effectivenessAnalysisData,
+    },
+
+
+    
     {
         id: 'rfm-data',
         name: 'Transactional Data',
