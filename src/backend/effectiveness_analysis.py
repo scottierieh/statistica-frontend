@@ -27,12 +27,14 @@ def _to_native_type(obj):
     return obj
 
 class EffectivenessAnalyzer:
-    def __init__(self, data, outcome_var, time_var=None, group_var=None, covariates=None):
+    def __init__(self, data, outcome_var, time_var=None, group_var=None, covariates=None, alpha=0.05):
         self.df = pd.DataFrame(data).copy()
         self.outcome_var = outcome_var
         self.time_var = time_var
         self.group_var = group_var
         self.covariates = covariates or []
+        self.alpha = alpha
+        self.original_length = len(self.df)
         self._prepare_data()
 
     def _prepare_data(self):
@@ -41,10 +43,15 @@ class EffectivenessAnalyzer:
         if self.group_var: all_vars.append(self.group_var)
         if self.covariates: all_vars.extend(self.covariates)
         
-        self.df_clean = self.df[all_vars].dropna().copy()
+        self.df_clean = self.df[list(set(all_vars))].dropna().copy()
         self.df_clean[self.outcome_var] = pd.to_numeric(self.df_clean[self.outcome_var], errors='coerce')
         if self.time_var:
-            self.df_clean[self.time_var] = pd.to_numeric(self.df_clean[self.time_var], errors='coerce')
+            try:
+                self.df_clean[self.time_var] = pd.to_numeric(self.df_clean[self.time_var])
+            except (ValueError, TypeError):
+                # If it's not numeric, treat it as categorical pre/post
+                pass
+
         self.df_clean.dropna(subset=[self.outcome_var] + ([self.time_var] if self.time_var else []), inplace=True)
         
         if self.time_var:
@@ -56,7 +63,6 @@ class EffectivenessAnalyzer:
             self.group_values = sorted(self.df_clean[self.group_var].unique())
             if len(self.group_values) != 2:
                 self.group_var = None # Disable group-based analysis if not binary
-
 
     def analyze_descriptive_stats(self):
         y = self.df_clean[self.outcome_var]
@@ -93,7 +99,7 @@ class EffectivenessAnalyzer:
         ttest_res = stats.ttest_ind(post_data, pre_data, equal_var=False) # Welch's T-test
         mean_diff = post_data.mean() - pre_data.mean()
         
-        pooled_std = np.sqrt((pre_data.std()**2 + post_data.std()**2) / 2)
+        pooled_std = np.sqrt((pre_data.std()**2 + post_data.std()**2) / 2) if len(pre_data) > 1 and len(post_data) > 1 else 0
         cohens_d = mean_diff / pooled_std if pooled_std > 0 else 0
         
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -196,29 +202,25 @@ class EffectivenessAnalyzer:
 
         return { 'conclusion': conclusion, 'conclusion_text': text, 'confidence_level': 'high' if conclusion == 'EFFECTIVE' else 'medium', 'evidence_points': evidence, 'recommendation': "Proceed with rollout, but monitor key metrics." if is_effective else "Re-evaluate the intervention strategy."}
 
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        analyzer = EffectivenessAnalyzer(**payload)
-        
-        results = {
-            'descriptive_stats': analyzer.analyze_descriptive_stats(),
-            'pre_post_comparison': analyzer.analyze_pre_post(),
-            'did_analysis': analyzer.analyze_did(),
-            'trend_analysis': analyzer.analyze_trend(),
-            'sensitivity_analysis': analyzer.analyze_sensitivity(),
-            'effect_size_analysis': {'plot': None}, # Placeholder
-            'summary_statistics': {'n_total': analyzer.original_length, 'n_valid': len(analyzer.df_clean), 'outcome_var': analyzer.outcome_var, 'time_var': analyzer.time_var, 'group_var': analyzer.group_var, 'covariates': analyzer.covariates}
-        }
-        results['overall_conclusion'] = analyzer.generate_conclusion(results)
-
-        print(json.dumps(results, default=_to_native_type, indent=2))
-        
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
-
+def run_effectiveness_analysis(data, outcome_var, time_var=None, group_var=None, covariates=None, alpha=0.05):
+    analyzer = EffectivenessAnalyzer(data, outcome_var, time_var, group_var, covariates, alpha)
     
+    results = {
+        'descriptive_stats': analyzer.analyze_descriptive_stats(),
+        'pre_post_comparison': analyzer.analyze_pre_post(),
+        'did_analysis': analyzer.analyze_did(),
+        'trend_analysis': analyzer.analyze_trend(),
+        'sensitivity_analysis': analyzer.analyze_sensitivity(),
+        'effect_size_analysis': {'plot': None},
+        'summary_statistics': {
+            'n_total': analyzer.original_length, 
+            'n_valid': len(analyzer.df_clean), 
+            'outcome_var': analyzer.outcome_var, 
+            'time_var': analyzer.time_var, 
+            'group_var': analyzer.group_var, 
+            'covariates': analyzer.covariates
+        }
+    }
+    results['overall_conclusion'] = analyzer.generate_conclusion(results)
+
+    return _to_native_type(results)

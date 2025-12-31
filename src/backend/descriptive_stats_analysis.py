@@ -212,73 +212,61 @@ def create_plots(series, is_numeric, var_name):
     
     return plots
 
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        data = payload.get('data')
-        selected_vars = payload.get('variables')
-        group_by_var = payload.get('groupBy')
+def run_descriptive_stats_analysis(data, variables, group_by_var=None):
+    """Main function for descriptive statistics analysis."""
+    df = pd.DataFrame(data)
+    all_results = {}
 
-        df = pd.DataFrame(data)
-        all_results = {}
+    for var in variables:
+        if group_by_var and group_by_var not in df.columns:
+            all_results[var] = {"error": f"Group By variable '{group_by_var}' not found"}
+            continue
+        
+        # --- Overall (non-grouped) analysis ---
+        series = df[var].dropna()
+        is_numeric = pd.api.types.is_numeric_dtype(df[var])
+        var_result = {}
 
-        for var in selected_vars:
-            if group_by_var and group_by_var not in df.columns:
-                all_results[var] = {"error": f"Group By variable '{group_by_var}' not found"}
-                continue
-            
-            # --- Overall (non-grouped) analysis ---
-            series = df[var].dropna()
-            is_numeric = pd.api.types.is_numeric_dtype(df[var])
-            var_result = {}
-
-            if is_numeric:
-                numeric_series = pd.to_numeric(series, errors='coerce').dropna()
-                if not numeric_series.empty:
-                    stats, insights = get_numeric_stats(numeric_series)
-                    plots = create_plots(numeric_series, True, var)
-                    var_result = {'type': 'numeric', 'stats': stats, 'plots': plots, 'insights': insights}
-                else:
-                    var_result = {'error': 'No numeric data to analyze.'}
+        if is_numeric:
+            numeric_series = pd.to_numeric(series, errors='coerce').dropna()
+            if not numeric_series.empty:
+                stats, insights = get_numeric_stats(numeric_series)
+                plots = create_plots(numeric_series, True, var)
+                var_result = {'type': 'numeric', 'stats': stats, 'plots': plots, 'insights': insights}
             else:
-                if not series.empty:
-                    stats, insights = get_categorical_stats(series)
-                    plots = create_plots(series, False, var)
-                    var_result = {'type': 'categorical', **stats, 'plots': plots, 'insights': insights}
-                else:
-                    var_result = {'error': 'No categorical data to analyze.'}
-            
-            all_results[var] = var_result
+                var_result = {'error': 'No numeric data to analyze.'}
+        else:
+            if not series.empty:
+                stats, insights = get_categorical_stats(series)
+                plots = create_plots(series, False, var)
+                var_result = {'type': 'categorical', **stats, 'plots': plots, 'insights': insights}
+            else:
+                var_result = {'error': 'No categorical data to analyze.'}
+        
+        all_results[var] = var_result
 
-            # --- Grouped analysis if requested ---
-            if group_by_var:
-                grouped = df.groupby(group_by_var)
-                grouped_stats = {}
-                grouped_table = {}
-                
-                for name, group in grouped:
-                    group_series = group[var].dropna()
-                    
-                    if is_numeric:
-                        numeric_group_series = pd.to_numeric(group_series, errors='coerce').dropna()
-                        if not numeric_group_series.empty:
-                            stats, _ = get_numeric_stats(numeric_group_series)
-                            grouped_stats[str(name)] = stats
-                    else:
-                        if not group_series.empty:
-                            stats, _ = get_categorical_stats(group_series)
-                            grouped_table[str(name)] = stats['table']
+        # --- Grouped analysis if requested ---
+        if group_by_var:
+            grouped = df.groupby(group_by_var)
+            grouped_stats = {}
+            grouped_table = {}
+            
+            for name, group in grouped:
+                group_series = group[var].dropna()
                 
                 if is_numeric:
-                    all_results[var]['groupedStats'] = grouped_stats
+                    numeric_group_series = pd.to_numeric(group_series, errors='coerce').dropna()
+                    if not numeric_group_series.empty:
+                        stats, _ = get_numeric_stats(numeric_group_series)
+                        grouped_stats[str(name)] = stats
                 else:
-                    all_results[var]['groupedTable'] = grouped_table
+                    if not group_series.empty:
+                        stats, _ = get_categorical_stats(group_series)
+                        grouped_table[str(name)] = stats['table']
+            
+            if is_numeric:
+                all_results[var]['groupedStats'] = grouped_stats
+            else:
+                all_results[var]['groupedTable'] = grouped_table
 
-        print(json.dumps({'results': all_results}, default=_to_native_type))
-
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
+    return {'results': all_results}
