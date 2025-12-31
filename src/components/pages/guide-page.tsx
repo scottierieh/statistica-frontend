@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -11,13 +10,10 @@ import {
 import Mindmap from '@/components/mindmap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview' },
@@ -37,7 +33,7 @@ const analysisMethods = [
     { category: 'Relationship', method: 'Multiple Linear Regression', purpose: 'Predicts outcome using multiple predictors', useCase: 'Impact of quality, price, and service on satisfaction' },
     { category: 'Relationship', method: 'Polynomial Regression', purpose: 'Models nonlinear relationships', useCase: 'Curvilinear relationship between price and satisfaction' },
     { category: 'Relationship', method: 'Logistic Regression', purpose: 'Predicts categorical outcomes (e.g., yes/no)', useCase: 'Purchase decision prediction' },
-    { category: 'Relationship', method: 'Crosstab & Chi-Squared', purpose: 'Tests independence between categorical variables', useCase: 'Gender differences in brand preference' },
+    { category: 'Relationship', method: 'Crosstab & Chi-Squared Test', purpose: 'Tests independence between categorical variables', useCase: 'Gender differences in brand preference' },
     { category: 'Predictive', method: 'Generalized Linear Model (GLM)', purpose: 'Extends regression to non-normal distributions', useCase: 'Poisson, logistic, or gamma regression models' },
     { category: 'Predictive', method: 'Discriminant Analysis', purpose: 'Classifies cases into predefined groups', useCase: 'Customer segmentation, churn prediction' },
     { category: 'Predictive', method: 'Survival Analysis', purpose: 'Analyzes time-to-event data', useCase: 'Customer churn analysis, product failure time' },
@@ -88,11 +84,41 @@ const RUN_ANALYSIS_STEPS = [
 ];
 
 const STATISTICA_FEATURES = [
-  { id: 1, icon: FileUp, label: 'Upload Data', description: 'Easily upload your CSV, Excel, or JSON files.' },
-  { id: 2, icon: Wand2, label: 'AI Recommendation', description: 'Not sure where to start? Our AI suggests the best analysis for your data.' },
-  { id: 3, icon: Milestone, label: 'Guided Analysis', description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.' },
-  { id: 4, icon: BarChart3, label: 'Instant Visualization', description: 'Get publication-ready charts and graphs automatically generated with your results.' },
-  { id: 5, icon: Bot, label: 'AI-Powered Interpretation', description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.' },
+  { 
+    id: 'upload', 
+    icon: FileUp, 
+    label: 'Upload Data', 
+    description: 'Easily upload your CSV, Excel, or JSON files.',
+    image: "https://images.unsplash.com/photo-1579547849127-1c3ab389478e?q=80&w=2070&auto=format&fit=crop"
+  },
+  { 
+    id: 'recommend', 
+    icon: Wand2, 
+    label: 'AI Recommendation', 
+    description: 'Not sure where to start? Our AI suggests the best analysis for your data.',
+    image: "https://images.unsplash.com/photo-1579546929662-711aa81148e9?q=80&w=2070&auto=format&fit=crop"
+  },
+  { 
+    id: 'guided', 
+    icon: Milestone, 
+    label: 'Guided Analysis', 
+    description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.',
+    image: "https://images.unsplash.com/photo-1579547849127-1c3ab389478e?q=80&w=2070&auto=format&fit=crop"
+  },
+  { 
+    id: 'visualize', 
+    icon: BarChart3, 
+    label: 'Instant Visualization', 
+    description: 'Get publication-ready charts and graphs automatically generated with your results.',
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop"
+  },
+  { 
+    id: 'interpret', 
+    icon: Bot, 
+    label: 'AI Interpretation', 
+    description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.',
+    image: "https://images.unsplash.com/photo-1579547945412-034878a95843?q=80&w=2070&auto=format&fit=crop"
+  },
 ];
 
 const industryApplications = [
@@ -141,252 +167,290 @@ const industryApplications = [
 ];
 
 export default function GuidePage() {
-  return (
-    <div className="space-y-6">
-      <Tabs defaultValue="procedure">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
-          <TabsTrigger value="features">Statistica Features</TabsTrigger>
-          <TabsTrigger value="byCategory">By Categories</TabsTrigger>
-          <TabsTrigger value="byIndustry">By Field</TabsTrigger>
-        </TabsList>
-        <TabsContent value="procedure">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Standard Analysis Procedure</CardTitle>
-                    <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-8">
-                        {WORKFLOW_STEPS.map((step, index) => (
-                            <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
-                                <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-                                        {step.id}
-                                    </div>
-                                    {index < WORKFLOW_STEPS.length - 1 && (
-                                        <div className="w-0.5 flex-1 bg-border mt-2"></div>
-                                    )}
-                                </div>
-                                <div className="space-y-4 pt-1">
-                                    <div>
-                                        <h3 className="font-semibold text-lg mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
-                                        <p className="text-muted-foreground">{step.description}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    
-                    <div className="mt-12 pt-8 border-t">
-                        <h3 className="text-2xl font-bold text-center mb-8">Detailed Analysis Steps (Run Analysis)</h3>
-                         <div className="space-y-8">
-                            {RUN_ANALYSIS_STEPS.map((step, index) => (
-                                <div key={step.id} className="grid md:grid-cols-2 gap-8 items-center">
-                                    <div className={`md:order-${index % 2 === 0 ? '2' : '1'} `}>
-                                        <Card className="overflow-hidden">
-                                            <CardContent className="p-0">
-                                                <div className="bg-muted h-64 rounded-lg flex items-center justify-center p-4">
-                                                    {step.id === 1 && (
-                                                        <div className="w-full max-w-sm space-y-3">
-                                                            <h4 className="text-sm font-semibold text-center mb-2">Select Variables</h4>
-                                                            <div className="p-3 bg-white rounded-md border shadow-sm">
-                                                                <Label className="text-xs text-muted-foreground">Dependent Variable</Label>
-                                                                <div className="flex items-center justify-between mt-1"><span>Satisfaction</span> <Target className="w-4 h-4 text-primary"/></div>
-                                                            </div>
-                                                            <div className="p-3 bg-white rounded-md border shadow-sm">
-                                                                <Label className="text-xs text-muted-foreground">Independent Variables</Label>
-                                                                <div className="flex items-center justify-between mt-1"><span>Price, Quality</span><Users className="w-4 h-4 text-primary"/></div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {step.id === 2 && (
-                                                        <div className="w-full max-w-sm space-y-3">
-                                                            <h4 className="text-sm font-semibold text-center mb-2">Configure Settings</h4>
-                                                            <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
-                                                                <Label>Alpha Level</Label>
-                                                                <Badge>0.05</Badge>
-                                                            </div>
-                                                            <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
-                                                                <Label>Post-hoc Test</Label>
-                                                                <Badge variant="outline">Tukey HSD</Badge>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {step.id === 3 && (
-                                                         <div className="w-full max-w-sm space-y-3">
-                                                            <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
-                                                             <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
-                                                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
-                                                                <div>
-                                                                    <p className="font-medium text-sm">Variables selected</p>
-                                                                    <p className="text-xs text-muted-foreground">3 variable(s) selected</p>
-                                                                </div>
-                                                             </div>
-                                                              <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
-                                                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
-                                                                <div>
-                                                                    <p className="font-medium text-sm">Data completeness</p>
-                                                                    <p className="text-xs text-muted-foreground">No missing values detected</p>
-                                                                </div>
-                                                             </div>
-                                                        </div>
-                                                    )}
-                                                    {step.id === 4 && (
-                                                        <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
-                                                            <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                                                                <Sparkles className="w-5 h-5 text-primary" /> Key Findings
-                                                            </h4>
-                                                            <Alert className="border-primary bg-primary/5">
-                                                                <AlertTitle className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/>Significant Result</AlertTitle>
-                                                                <AlertDescription>The analysis shows both <strong>Price</strong> and <strong>Quality</strong> have a significant positive impact on <strong>Satisfaction</strong>.</AlertDescription>
-                                                            </Alert>
-                                                        </div>
-                                                    )}
-                                                    {step.id === 5 && (
-                                                        <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
-                                                            <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                                                                <Lightbulb className="w-5 h-5 text-primary" /> Why This Conclusion?
-                                                            </h4>
-                                                            <ul className="text-sm space-y-3 text-muted-foreground">
-                                                                <li className="flex gap-3"><strong className="text-primary font-bold">1.</strong>Both 'Price' and 'Quality' have p-values less than 0.05, meaning their effect is not due to random chance.</li>
-                                                                <li className="flex gap-3"><strong className="text-primary font-bold">2.</strong>The model's R-squared value (0.65) shows that 65% of the change in 'Satisfaction' is explained by these two factors.</li>
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {step.id === 6 && (
-                                                        <div className="w-full max-w-sm space-y-3">
-                                                            <h4 className="text-sm font-semibold text-center mb-2">Full Statistics</h4>
-                                                            <Table className="text-xs bg-white rounded-md border">
-                                                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coefficient</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
-                                                                <TableBody>
-                                                                    <TableRow><TableCell>Price</TableCell><TableCell>0.45</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
-                                                                    <TableRow><TableCell>Quality</TableCell><TableCell>0.62</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
-                                                                </TableBody>
-                                                            </Table>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                    <div className={`md:order-${index % 2 === 0 ? '1' : '2'} space-y-4`}>
-                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0 border-2 border-primary/20">
-                                                <step.icon className="w-6 h-6" />
+    const [activeFeature, setActiveFeature] = useState(STATISTICA_FEATURES[0].id);
+    const activeFeatureData = STATISTICA_FEATURES.find(f => f.id === activeFeature);
+
+    return (
+        <div className="space-y-6">
+            <Tabs defaultValue="procedure">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
+                    <TabsTrigger value="features">Statistica Features</TabsTrigger>
+                    <TabsTrigger value="byCategory">By Categories</TabsTrigger>
+                    <TabsTrigger value="byIndustry">By Field</TabsTrigger>
+                </TabsList>
+                <TabsContent value="procedure">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Standard Analysis Procedure</CardTitle>
+                            <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-8">
+                                {WORKFLOW_STEPS.map((step, index) => (
+                                    <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                                                {step.id}
                                             </div>
+                                            {index < WORKFLOW_STEPS.length - 1 && (
+                                                <div className="w-0.5 flex-1 bg-border mt-2"></div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-4 pt-1">
                                             <div>
-                                                <h4 className="font-bold text-xl">{step.label}</h4>
-                                                <p className="text-muted-foreground text-sm">{step.description}</p>
+                                                <h3 className="font-semibold text-lg mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
+                                                <p className="text-muted-foreground">{step.description}</p>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="features">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Statistica's Core Features</CardTitle>
-                    <CardDescription>A visual walkthrough of how Statistica transforms raw data into actionable insights.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-8">
-                        {STATISTICA_FEATURES.map((feature, index) => (
-                            <div key={feature.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
-                                <div className="flex flex-col items-center">
-                                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                                        <feature.icon className="w-6 h-6" />
-                                    </div>
-                                    {index < STATISTICA_FEATURES.length - 1 && (
-                                        <div className="w-1 flex-1 bg-border mt-2"></div>
-                                    )}
-                                </div>
-                                <div className="pt-1">
-                                    <h3 className="font-semibold text-lg mb-1">{feature.label}</h3>
-                                    <p className="text-muted-foreground">{feature.description}</p>
+                                ))}
+                            </div>
+                            
+                            <div className="mt-12 pt-8 border-t">
+                                <h3 className="text-2xl font-bold text-center mb-8">Detailed Analysis Steps (Run Analysis)</h3>
+                                <div className="space-y-8">
+                                    {RUN_ANALYSIS_STEPS.map((step, index) => (
+                                        <div key={step.id} className="grid md:grid-cols-2 gap-8 items-center">
+                                            <div className={`md:order-${index % 2 === 0 ? '2' : '1'} `}>
+                                                <Card className="overflow-hidden">
+                                                    <CardContent className="p-0">
+                                                        <div className="bg-muted h-64 rounded-lg flex items-center justify-center p-4">
+                                                            {step.id === 1 && (
+                                                                <div className="w-full max-w-sm space-y-3">
+                                                                    <h4 className="text-sm font-semibold text-center mb-2">Select Variables</h4>
+                                                                    <div className="p-3 bg-white rounded-md border shadow-sm">
+                                                                        <Label className="text-xs text-muted-foreground">Dependent Variable</Label>
+                                                                        <div className="flex items-center justify-between mt-1"><span>Satisfaction</span> <Target className="w-4 h-4 text-primary"/></div>
+                                                                    </div>
+                                                                    <div className="p-3 bg-white rounded-md border shadow-sm">
+                                                                        <Label className="text-xs text-muted-foreground">Independent Variables</Label>
+                                                                        <div className="flex items-center justify-between mt-1"><span>Price, Quality</span><Users className="w-4 h-4 text-primary"/></div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {step.id === 2 && (
+                                                                <div className="w-full max-w-sm space-y-3">
+                                                                    <h4 className="text-sm font-semibold text-center mb-2">Configure Settings</h4>
+                                                                    <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                                                        <Label>Alpha Level</Label>
+                                                                        <Badge>0.05</Badge>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                                                        <Label>Post-hoc Test</Label>
+                                                                        <Badge variant="outline">Tukey HSD</Badge>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {step.id === 3 && (
+                                                                <div className="w-full max-w-sm space-y-3">
+                                                                    <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
+                                                                    <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                                                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                                                        <div>
+                                                                            <p className="font-medium text-sm">Variables selected</p>
+                                                                            <p className="text-xs text-muted-foreground">3 variable(s) selected</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                                                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                                                        <div>
+                                                                            <p className="font-medium text-sm">Data completeness</p>
+                                                                            <p className="text-xs text-muted-foreground">No missing values detected</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {step.id === 4 && (
+                                                                <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
+                                                                    <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                                                                        <Sparkles className="w-5 h-5 text-primary" /> Key Findings
+                                                                    </h4>
+                                                                    <Alert className="border-primary bg-primary/5">
+                                                                        <AlertTitle className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/>Significant Result</AlertTitle>
+                                                                        <AlertDescription>The analysis shows both <strong>Price</strong> and <strong>Quality</strong> have a significant positive impact on <strong>Satisfaction</strong>.</AlertDescription>
+                                                                    </Alert>
+                                                                </div>
+                                                            )}
+                                                            {step.id === 5 && (
+                                                                <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
+                                                                    <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                                                                        <Lightbulb className="w-5 h-5 text-primary" /> Why This Conclusion?
+                                                                    </h4>
+                                                                    <ul className="text-sm space-y-3 text-muted-foreground">
+                                                                        <li className="flex gap-3"><strong className="text-primary font-bold">1.</strong>Both 'Price' and 'Quality' have p-values less than 0.05, meaning their effect is not due to random chance.</li>
+                                                                        <li className="flex gap-3"><strong className="text-primary font-bold">2.</strong>The model's R-squared value (0.65) shows that 65% of the change in 'Satisfaction' is explained by these two factors.</li>
+                                                                    </ul>
+                                                                </div>
+                                                            )}
+                                                            {step.id === 6 && (
+                                                                <div className="w-full max-w-sm space-y-3">
+                                                                    <h4 className="text-sm font-semibold text-center mb-2">Full Statistics</h4>
+                                                                    <Table className="text-xs bg-white rounded-md border">
+                                                                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coefficient</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                                                        <TableBody>
+                                                                            <TableRow><TableCell>Price</TableCell><TableCell>0.45</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
+                                                                            <TableRow><TableCell>Quality</TableCell><TableCell>0.62</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
+                                                                        </TableBody>
+                                                                    </Table>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                            <div className={`md:order-${index % 2 === 0 ? '1' : '2'} space-y-4`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0 border-2 border-primary/20">
+                                                        <step.icon className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-xl">{step.label}</h4>
+                                                        <p className="text-muted-foreground text-sm">{step.description}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="byCategory">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analysis Methods by Categories</CardTitle>
-              <CardDescription>Find the right tool for your research question, grouped by statistical area.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Accordion type="single" collapsible className="w-full">
-                    {Object.entries(groupedMethods).map(([category, methods]) => (
-                        <AccordionItem value={category} key={category}>
-                            <AccordionTrigger className="text-lg font-semibold">{category}</AccordionTrigger>
-                            <AccordionContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-1/4">Method</TableHead>
-                                            <TableHead className="w-1/2">Purpose / Description</TableHead>
-                                            <TableHead className="w-1/4">Typical Use Case</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {methods.map((method) => (
-                                            <TableRow key={method.method}>
-                                                <TableCell>{method.method}</TableCell>
-                                                <TableCell>{method.purpose}</TableCell>
-                                                <TableCell>{method.useCase}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="byIndustry">
-           <Card>
-            <CardHeader>
-              <CardTitle>Analysis by Field of Application</CardTitle>
-              <CardDescription>Discover which statistical analyses are commonly used in your industry and how they can provide value.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              {industryApplications.map(industry => {
-                const Icon = industry.icon;
-                return (
-                  <div key={industry.industry}>
-                    <h3 className="text-2xl font-bold font-headline mb-4 flex items-center gap-3">
-                      <Icon className="w-7 h-7 text-primary" />
-                      {industry.industry}
-                    </h3>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {industry.applications.map(app => (
-                        <Card key={app.method} className="flex flex-col">
-                           <CardHeader className="pb-2">
-                             <CardTitle className="text-base">{app.method}</CardTitle>
-                           </CardHeader>
-                           <CardContent className="flex-1">
-                             <p className="text-sm text-muted-foreground">{app.use}</p>
-                           </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="features">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Statistica's Core Features</CardTitle>
+                            <CardDescription>A visual walkthrough of how Statistica transforms raw data into actionable insights.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-center">
+                                <div className="flex justify-center gap-2 border-b">
+                                    {STATISTICA_FEATURES.map(feature => (
+                                        <button
+                                            key={feature.id}
+                                            onClick={() => setActiveFeature(feature.id)}
+                                            className={cn(
+                                                "py-3 px-4 text-sm font-semibold transition-colors relative",
+                                                activeFeature === feature.id ? "text-primary" : "text-muted-foreground hover:text-primary"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <feature.icon className="w-4 h-4" />
+                                                <span>{feature.label}</span>
+                                            </div>
+                                            {activeFeature === feature.id && (
+                                                <motion.div
+                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                                    layoutId="underline-features"
+                                                />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative mt-4 w-full h-[350px] overflow-hidden bg-slate-100 rounded-lg">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={activeFeature}
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="absolute inset-0 flex flex-col items-center justify-center p-6"
+                                        >
+                                            {activeFeatureData && (
+                                                <>
+                                                    <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
+                                                        <Image
+                                                            src={activeFeatureData.image}
+                                                            alt={activeFeatureData.label}
+                                                            layout="fill"
+                                                            objectFit="cover"
+                                                            className="transition-transform duration-500 group-hover:scale-105"
+                                                        />
+                                                    </div>
+                                                    <h3 className="text-lg font-semibold">{activeFeatureData.label}</h3>
+                                                    <p className="text-muted-foreground mt-1 max-w-md">{activeFeatureData.description}</p>
+                                                </>
+                                            )}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="byCategory">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Analysis Methods by Categories</CardTitle>
+                            <CardDescription>Find the right tool for your research question, grouped by statistical area.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Accordion type="single" collapsible className="w-full">
+                                {Object.entries(groupedMethods).map(([category, methods]) => (
+                                    <AccordionItem value={category} key={category}>
+                                        <AccordionTrigger className="text-lg font-semibold">{category}</AccordionTrigger>
+                                        <AccordionContent>
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-1/4">Method</TableHead>
+                                                        <TableHead className="w-1/2">Purpose / Description</TableHead>
+                                                        <TableHead className="w-1/4">Typical Use Case</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {methods.map((method) => (
+                                                        <TableRow key={method.method}>
+                                                            <TableCell>{method.method}</TableCell>
+                                                            <TableCell>{method.purpose}</TableCell>
+                                                            <TableCell>{method.useCase}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="byIndustry">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Analysis by Field of Application</CardTitle>
+                            <CardDescription>Discover which statistical analyses are commonly used in your industry and how they can provide value.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
+                            {industryApplications.map(industry => {
+                                const Icon = industry.icon;
+                                return (
+                                <div key={industry.industry}>
+                                    <h3 className="text-2xl font-bold font-headline mb-4 flex items-center gap-3">
+                                    <Icon className="w-7 h-7 text-primary" />
+                                    {industry.industry}
+                                    </h3>
+                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {industry.applications.map(app => (
+                                        <Card key={app.method} className="flex flex-col">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-base">{app.method}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="flex-1">
+                                            <p className="text-sm text-muted-foreground">{app.use}</p>
+                                        </CardContent>
+                                        </Card>
+                                    ))}
+                                    </div>
+                                </div>
+                                );
+                            })}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
 }
