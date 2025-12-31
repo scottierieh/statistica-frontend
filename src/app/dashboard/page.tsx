@@ -24,7 +24,7 @@ const tools = [
     href: "/dashboard/scenario",
     icon: FlaskConical,
     title: "Scenario",
-    description: "Explore what-if scenarios on your data.",
+    description: "Explore what-if scenarios and simulations on your data.",
     disabled: false,
   },
   {
