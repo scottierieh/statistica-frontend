@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -10,10 +9,6 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarTrigger,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenu,
-  SidebarGroupLabel
 } from '@/components/ui/sidebar';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -28,8 +23,8 @@ import {
   Eye, EyeOff, Upload, FileSpreadsheet, SortAsc, SortDesc, 
   Type, Hash, Calendar, Sparkles, Columns, Rows, Eraser, 
   RefreshCw, CheckCircle2, XCircle, Keyboard, Wand2, 
-  MoreVertical, X, Plus, Calculator, ChevronDown, Clock,
-  FileText, GitMerge, Settings, Layers
+  MoreVertical, X, Plus, Calculator,
+  FileText, GitMerge, Layers, ChevronDown
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -54,7 +49,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
@@ -88,63 +82,6 @@ interface HistoryEntry {
   description: string;
 }
 
-// Sidebar menu categories
-const menuCategories = [
-  {
-    name: 'File Operations',
-    icon: FileSpreadsheet,
-    items: [
-      { id: 'upload', label: 'Upload Files', icon: Upload },
-      { id: 'sample', label: 'Sample Data', icon: Sparkles },
-      { id: 'export-csv', label: 'Export CSV', icon: Download },
-      { id: 'export-xlsx', label: 'Export Excel', icon: Download },
-      { id: 'export-json', label: 'Export JSON', icon: Download },
-    ]
-  },
-  {
-    name: 'Row Operations',
-    icon: Rows,
-    items: [
-      { id: 'add-row-above', label: 'Add Row Above', icon: ArrowUp },
-      { id: 'add-row-below', label: 'Add Row Below', icon: ArrowDown },
-      { id: 'delete-rows', label: 'Delete Selected Rows', icon: Trash2 },
-    ]
-  },
-  {
-    name: 'Column Operations',
-    icon: Columns,
-    items: [
-      { id: 'add-col-left', label: 'Add Column Left', icon: ArrowLeft },
-      { id: 'add-col-right', label: 'Add Column Right', icon: ArrowRight },
-      { id: 'delete-cols', label: 'Delete Selected Columns', icon: Trash2 },
-    ]
-  },
-  {
-    name: 'Data Quality',
-    icon: AlertTriangle,
-    items: [
-      { id: 'fill-missing', label: 'Fill Missing Values', icon: Eraser },
-      { id: 'find-duplicates', label: 'Find Duplicates', icon: Search },
-      { id: 'remove-duplicates', label: 'Remove Duplicates', icon: XCircle },
-    ]
-  },
-  {
-    name: 'Transform',
-    icon: Wand2,
-    items: [
-      { id: 'transform', label: 'Apply Transform', icon: Sparkles },
-      { id: 'one-hot', label: 'One-Hot Encoding', icon: Hash },
-    ]
-  },
-  {
-    name: 'Merge',
-    icon: GitMerge,
-    items: [
-      { id: 'merge-tabs', label: 'Merge Tabs', icon: Layers },
-    ]
-  },
-];
-
 // Generate unique ID
 const generateId = () => `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -167,8 +104,7 @@ export default function DataPreprocessingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
-  const [openCategories, setOpenCategories] = useState<string[]>(['File Operations']);
-  const [menuSearchTerm, setMenuSearchTerm] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
   
   // Transform options
   const [fillMethod, setFillMethod] = useState('mean');
@@ -194,14 +130,6 @@ export default function DataPreprocessingPage() {
   const tableData = activeTab || { id: '', fileName: '', headers: [], rows: [], columnTypes: [] };
   const history = activeTabId ? (historyMap.get(activeTabId) || []) : [];
   const historyIndex = activeTabId ? (historyIndexMap.get(activeTabId) ?? -1) : -1;
-
-  const toggleCategory = (category: string) => {
-    setOpenCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
 
   // Calculate column stats for active tab
   const columnStats = useMemo(() => {
@@ -804,66 +732,6 @@ export default function DataPreprocessingPage() {
   };
 
   // Handle menu item click
-  const handleMenuAction = (actionId: string) => {
-    switch (actionId) {
-      case 'upload':
-        fileInputRef.current?.click();
-        break;
-      case 'sample':
-        createSampleData();
-        break;
-      case 'export-csv':
-        downloadFile('csv');
-        break;
-      case 'export-xlsx':
-        downloadFile('xlsx');
-        break;
-      case 'export-json':
-        downloadFile('json');
-        break;
-      case 'add-row-above':
-        addRowAbove();
-        break;
-      case 'add-row-below':
-        addRowBelow();
-        break;
-      case 'delete-rows':
-        deleteSelectedRows();
-        break;
-      case 'add-col-left':
-        addColLeft();
-        break;
-      case 'add-col-right':
-        addColRight();
-        break;
-      case 'delete-cols':
-        deleteSelectedCols();
-        break;
-      case 'fill-missing':
-        fillMissing();
-        break;
-      case 'find-duplicates':
-        findDuplicates();
-        break;
-      case 'remove-duplicates':
-        removeDuplicates();
-        break;
-      case 'transform':
-        applyTransform();
-        break;
-      case 'one-hot':
-        openEncodingDialog();
-        break;
-      case 'merge-tabs':
-        if (activeTabId && tabs.length > 1) {
-          openMergeDialog(activeTabId);
-        } else {
-          toast({ title: 'Cannot Merge', description: 'Need at least 2 tabs to merge', variant: 'destructive' });
-        }
-        break;
-    }
-  };
-
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -883,16 +751,6 @@ export default function DataPreprocessingPage() {
     return tableData.rows.map((row, idx) => ({ row, idx })).filter(({ row }) => !searchTerm || row.some(c => String(c ?? '').toLowerCase().includes(searchTerm.toLowerCase())));
   }, [tableData.rows, searchTerm]);
 
-  // Filter menu categories
-  const filteredMenuCategories = useMemo(() => {
-    if (!menuSearchTerm) return menuCategories;
-    const lowercasedFilter = menuSearchTerm.toLowerCase();
-    return menuCategories.map(category => {
-      const filteredItems = category.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
-      return filteredItems.length > 0 ? { ...category, items: filteredItems } : null;
-    }).filter(Boolean) as typeof menuCategories;
-  }, [menuSearchTerm]);
-
   const totalMissing = Array.from(columnStats.values()).reduce((s, c) => s + c.missing, 0);
 
   const getTypeIcon = (type: ColumnType) => {
@@ -905,10 +763,22 @@ export default function DataPreprocessingPage() {
   return (
     <SidebarProvider>
       <div 
-        className="flex min-h-screen w-full"
-        onDragOver={e => e.preventDefault()}
-        onDrop={handleDrop}
+        className="flex min-h-screen w-full relative"
+        onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }}
+        onDrop={e => { setIsDragOver(false); handleDrop(e); }}
       >
+        {/* Drag & Drop Overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center">
+            <div className="bg-background rounded-2xl shadow-2xl p-12 text-center border-2 border-dashed border-primary">
+              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold mb-2">Drop files here</h3>
+              <p className="text-muted-foreground">CSV, Excel, JSON supported</p>
+            </div>
+          </div>
+        )}
+
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2">
@@ -917,131 +787,222 @@ export default function DataPreprocessingPage() {
               </div>
               <h1 className="text-xl font-headline font-bold">Data Studio</h1>
             </div>
-            <div className="p-2 space-y-2">
-              <Button 
-                onClick={() => fileInputRef.current?.click()} 
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Upload Files
-              </Button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                className="hidden" 
-                accept=".csv,.txt,.tsv,.xlsx,.xls,.json" 
-                multiple 
-              />
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search operations..." 
-                  value={menuSearchTerm} 
-                  onChange={e => setMenuSearchTerm(e.target.value)} 
-                  className="pl-9" 
-                />
-              </div>
-            </div>
           </SidebarHeader>
           
           <SidebarContent>
-            <SidebarMenu>
-              {filteredMenuCategories.map(category => (
-                <Collapsible 
-                  key={category.name} 
-                  open={openCategories.includes(category.name)} 
-                  onOpenChange={() => toggleCategory(category.name)}
-                >
-                  <CollapsibleTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start text-base px-2 font-semibold bg-muted text-foreground"
-                    >
-                      <category.icon className="mr-2 h-5 w-5" />
-                      <span>{category.name}</span>
-                      <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')} />
+            <ScrollArea className="flex-1">
+              <div className="p-4 space-y-4">
+                {/* File Operations */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Import / Export
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                      accept=".csv,.txt,.tsv,.xlsx,.xls,.json" 
+                      multiple 
+                    />
+                    <Button onClick={() => fileInputRef.current?.click()} className="w-full" size="sm">
+                      <Upload className="mr-2 w-4 h-4" />Upload Files
                     </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenu>
-                      {category.items.map(item => (
-                        <SidebarMenuItem key={item.id}>
-                          <SidebarMenuButton onClick={() => handleMenuAction(item.id)}>
-                            <item.icon className="h-4 w-4" />
-                            {item.label}
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </SidebarMenu>
+                    <Button variant="outline" onClick={createSampleData} className="w-full" size="sm">
+                      <Sparkles className="mr-2 w-4 h-4" />Sample Data
+                    </Button>
+                    <Separator className="my-2" />
+                    <div className="flex">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => downloadFile('csv')} 
+                        disabled={!activeTab} 
+                        size="sm"
+                        className="flex-1 rounded-r-none border-r-0"
+                      >
+                        <Download className="mr-2 w-4 h-4" />Download CSV
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            disabled={!activeTab}
+                            className="px-2 rounded-l-none"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => downloadFile('csv')}>
+                            <FileText className="mr-2 w-4 h-4" />CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => downloadFile('xlsx')}>
+                            <FileSpreadsheet className="mr-2 w-4 h-4" />Excel
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => downloadFile('json')}>
+                            <FileText className="mr-2 w-4 h-4" />JSON
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Transform Options */}
-            <div className="px-4 py-2 space-y-4">
-              <Separator />
-              <div className="space-y-2">
-                <SidebarGroupLabel className="text-xs font-semibold">Fill Method</SidebarGroupLabel>
-                <Select value={fillMethod} onValueChange={setFillMethod}>
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mean">Mean</SelectItem>
-                    <SelectItem value="median">Median</SelectItem>
-                    <SelectItem value="mode">Mode</SelectItem>
-                    <SelectItem value="zero">Zero</SelectItem>
-                    <SelectItem value="forward">Forward Fill</SelectItem>
-                    <SelectItem value="backward">Backward Fill</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Row Operations */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Rows className="w-4 h-4" />Rows
+                    </CardTitle>
+                    {selectedRows.size > 0 && <Badge variant="secondary" className="text-xs">{selectedRows.size} selected</Badge>}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={addRowAbove} disabled={selectedRows.size === 0}>
+                        <ArrowUp className="mr-1 w-3 h-3" />Above
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={addRowBelow} disabled={selectedRows.size === 0}>
+                        <ArrowDown className="mr-1 w-3 h-3" />Below
+                      </Button>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full text-destructive" onClick={deleteSelectedRows} disabled={selectedRows.size === 0}>
+                      <Trash2 className="mr-2 w-3 h-3" />Delete
+                    </Button>
+                  </CardContent>
+                </Card>
 
-              <div className="space-y-2">
-                <SidebarGroupLabel className="text-xs font-semibold">Transform Type</SidebarGroupLabel>
-                <Select value={transformType} onValueChange={setTransformType}>
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder="Select..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="log">ln (Natural Log)</SelectItem>
-                    <SelectItem value="log10">log10</SelectItem>
-                    <SelectItem value="sqrt">√ (Square Root)</SelectItem>
-                    <SelectItem value="square">x² (Square)</SelectItem>
-                    <SelectItem value="zscore">Z-Score</SelectItem>
-                    <SelectItem value="minmax">Min-Max Normalize</SelectItem>
-                    <SelectItem value="abs">Absolute Value</SelectItem>
-                    <SelectItem value="round">Round</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Column Operations */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Columns className="w-4 h-4" />Columns
+                    </CardTitle>
+                    {selectedCols.size > 0 && <Badge variant="secondary" className="text-xs">{selectedCols.size} selected</Badge>}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={addColLeft} disabled={selectedCols.size === 0}>
+                        <ArrowLeft className="mr-1 w-3 h-3" />Left
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={addColRight} disabled={selectedCols.size === 0}>
+                        <ArrowRight className="mr-1 w-3 h-3" />Right
+                      </Button>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full text-destructive" onClick={deleteSelectedCols} disabled={selectedCols.size === 0}>
+                      <Trash2 className="mr-2 w-3 h-3" />Delete
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Data Quality */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />Data Quality
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select value={fillMethod} onValueChange={setFillMethod}>
+                      <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mean">Mean</SelectItem>
+                        <SelectItem value="median">Median</SelectItem>
+                        <SelectItem value="mode">Mode</SelectItem>
+                        <SelectItem value="zero">Zero</SelectItem>
+                        <SelectItem value="forward">Forward Fill</SelectItem>
+                        <SelectItem value="backward">Backward Fill</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={fillMissing} className="w-full" size="sm" disabled={selectedCols.size === 0}>
+                      <Eraser className="mr-2 w-3 h-3" />Fill Missing
+                    </Button>
+                    <Separator />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={findDuplicates} disabled={!activeTab}>
+                        <Search className="mr-1 w-3 h-3" />Find
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={removeDuplicates} disabled={!activeTab}>
+                        <XCircle className="mr-1 w-3 h-3" />Remove
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Transform */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Wand2 className="w-4 h-4" />Transform
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select value={transformType} onValueChange={setTransformType}>
+                      <SelectTrigger className="h-8"><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="log">ln</SelectItem>
+                        <SelectItem value="log10">log10</SelectItem>
+                        <SelectItem value="sqrt">√</SelectItem>
+                        <SelectItem value="square">x²</SelectItem>
+                        <SelectItem value="zscore">Z-Score</SelectItem>
+                        <SelectItem value="minmax">Min-Max</SelectItem>
+                        <SelectItem value="abs">Abs</SelectItem>
+                        <SelectItem value="round">Round</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={applyTransform} disabled={!transformType || selectedCols.size === 0} size="sm" className="w-full">
+                      <Sparkles className="mr-2 w-3 h-3" />Apply
+                    </Button>
+                    <Separator />
+                    <Button variant="outline" onClick={openEncodingDialog} disabled={selectedCols.size === 0} size="sm" className="w-full">
+                      <Hash className="mr-2 w-3 h-3" />One-Hot Encoding
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* History */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4" />History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0}>
+                        <Undo className="mr-1 w-3 h-3" />Undo
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1}>
+                        <RefreshCw className="mr-1 w-3 h-3" />Redo
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Merge */}
+                {tabs.length > 1 && activeTabId && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <GitMerge className="w-4 h-4" />Merge Tabs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => openMergeDialog(activeTabId)}>
+                        <Layers className="mr-2 w-3 h-3" />Merge into this tab
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-            </div>
+            </ScrollArea>
           </SidebarContent>
 
           <SidebarFooter className="flex-col gap-2">
-            <div className="w-full flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={undo} 
-                disabled={historyIndex <= 0}
-                className="flex-1"
-              >
-                <Undo className="h-4 w-4" />
-                <span className="group-data-[collapsible=icon]:hidden">Undo</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={redo} 
-                disabled={historyIndex >= history.length - 1}
-                className="flex-1"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span className="group-data-[collapsible=icon]:hidden">Redo</span>
-              </Button>
-            </div>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -1051,16 +1012,19 @@ export default function DataPreprocessingPage() {
               <Keyboard className="mr-2 w-3 h-3" />
               Press ? for shortcuts
             </Button>
-            <Separator />
-            <UserNav />
           </SidebarFooter>
         </Sidebar>
 
         <SidebarInset>
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between md:justify-end">
+            <header className="flex items-center justify-between border-b pb-4">
               <SidebarTrigger className="md:hidden" />
-              <h1 className="text-2xl font-headline font-bold md:hidden">Data Studio</h1>
+              <div className="flex-1 flex justify-center">
+                <h1 className="text-xl font-headline font-bold flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Data Studio
+                </h1>
+              </div>
               <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
@@ -1070,6 +1034,7 @@ export default function DataPreprocessingPage() {
                   {showStats ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                   {showStats ? 'Hide' : 'Show'} Stats
                 </Button>
+                <UserNav />
               </div>
             </header>
 

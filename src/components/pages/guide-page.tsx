@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2, AlertTriangle, ChevronDown, Sparkles
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2, AlertTriangle, ChevronDown, Sparkles, FileCode, FileType
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 import { Badge } from '@/components/ui/badge';
@@ -77,12 +77,20 @@ const WORKFLOW_STEPS = [
 ];
 
 const RUN_ANALYSIS_STEPS = [
-    { id: 1, icon: Variable, label: 'Variables', description: 'Select your dependent and independent variables for the analysis.' },
-    { id: 2, icon: Settings2, label: 'Settings', description: 'Configure model-specific parameters and options.' },
-    { id: 3, icon: ShieldCheck, label: 'Validation', description: 'The system checks data suitability and statistical assumptions.' },
-    { id: 4, icon: FileSearch, label: 'Summary', description: 'Review a high-level, easy-to-understand summary of the key findings.' },
-    { id: 5, icon: Lightbulb, label: 'Reasoning', description: 'Understand the "why" behind the summary with detailed interpretations.' },
-    { id: 6, icon: Sigma, label: 'Statistics', description: 'Dive deep into the full statistical output, tables, and charts.' }
+    { id: 1, icon: Variable, label: 'Variables', description: 'Select the dependent and independent variables for your analysis.' },
+    { id: 2, icon: Settings2, label: 'Settings', description: 'Configure model-specific parameters, such as alpha levels or post-hoc tests.' },
+    { id: 3, icon: ShieldCheck, label: 'Validation', description: 'The system checks your data against the statistical assumptions required for the chosen test.' },
+    { id: 4, icon: FileSearch, label: 'Summary', description: 'Review a high-level, business-friendly summary of the key findings. For example: "Price and Quality positively impact Satisfaction."' },
+    { id: 5, icon: Lightbulb, label: 'Reasoning', description: 'Understand the "why" behind the summary with simple explanations of the statistical results.' },
+    { id: 6, icon: Sigma, label: 'Statistics', description: 'Dive deep into the full statistical output, including tables (e.g., ANOVA, coefficients) and charts.' }
+];
+
+const STATISTICA_FEATURES = [
+  { id: 1, icon: FileUp, label: 'Upload Data', description: 'Easily upload your CSV, Excel, or JSON files.' },
+  { id: 2, icon: Wand2, label: 'AI Recommendation', description: 'Not sure where to start? Our AI suggests the best analysis for your data.' },
+  { id: 3, icon: Milestone, label: 'Guided Analysis', description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.' },
+  { id: 4, icon: BarChart3, label: 'Instant Visualization', description: 'Get publication-ready charts and graphs automatically generated with your results.' },
+  { id: 5, icon: Bot, label: 'AI-Powered Interpretation', description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.' },
 ];
 
 const industryApplications = [
@@ -134,8 +142,9 @@ export default function GuidePage() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="procedure">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
+          <TabsTrigger value="features">Statistica Features</TabsTrigger>
           <TabsTrigger value="byCategory">By Categories</TabsTrigger>
           <TabsTrigger value="byIndustry">By Field</TabsTrigger>
         </TabsList>
@@ -273,6 +282,34 @@ export default function GuidePage() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="features">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Statistica's Core Features</CardTitle>
+                    <CardDescription>A visual walkthrough of how Statistica transforms raw data into actionable insights.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-8">
+                        {STATISTICA_FEATURES.map((feature, index) => (
+                            <div key={feature.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
+                                <div className="flex flex-col items-center">
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                                        <feature.icon className="w-8 h-8" />
+                                    </div>
+                                    {index < STATISTICA_FEATURES.length - 1 && (
+                                        <div className="w-1 flex-1 bg-border mt-2"></div>
+                                    )}
+                                </div>
+                                <div className="pt-2">
+                                    <h3 className="font-semibold text-xl mb-1">{feature.label}</h3>
+                                    <p className="text-muted-foreground">{feature.description}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </CardContent>
             </Card>
