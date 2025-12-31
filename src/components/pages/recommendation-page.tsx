@@ -244,4 +244,3 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
         </div>
     );
 }
-
