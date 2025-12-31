@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 
@@ -63,10 +63,18 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 }, {} as Record<string, typeof analysisMethods>);
 
 const STEPS = [
-    { id: 1, icon: Target, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
-    { id: 2, icon: FileUp, label: 'Upload Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
-    { id: 3, icon: Settings, label: 'Configure & Validate', description: 'Select your variables, set analysis parameters, and let the system validate your data for suitability.' },
-    { id: 4, icon: FileDown, label: 'Get Results', description: 'Review your results, from high-level summaries and AI-powered insights to detailed statistical tables and charts.' }
+    { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
+    { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
+    {
+        id: 3, icon: Settings, label: 'Run Analysis', description: 'Configure variables, validate data, and get results.', subSteps: [
+            { id: 3.1, label: 'Variables' },
+            { id: 3.2, label: 'Settings' },
+            { id: 3.3, label: 'Validation' },
+            { id: 3.4, label: 'Summary' },
+            { id: 3.5, label: 'Reasoning' },
+            { id: 3.6, label: 'Statistics' }
+        ]
+    }
 ];
 
 const industryApplications = [
@@ -148,6 +156,25 @@ export default function GuidePage() {
                                         <h3 className="font-semibold text-xl mb-1">{step.label}</h3>
                                         <p className="text-muted-foreground">{step.description}</p>
                                     </div>
+                                     {step.subSteps && (
+                                        <div className="pl-4">
+                                            <div className="flex items-center space-x-2">
+                                                {step.subSteps.map((subStep, subIndex) => (
+                                                    <React.Fragment key={subStep.id}>
+                                                        <div className="flex flex-col items-center text-center">
+                                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                                                                {subStep.id.toString().split('.')[1] || subStep.id}
+                                                            </div>
+                                                            <span className="text-xs mt-1 text-muted-foreground">{subStep.label}</span>
+                                                        </div>
+                                                        {subIndex < step.subSteps.length - 1 && (
+                                                            <div className="w-6 h-px bg-border"></div>
+                                                        )}
+                                                    </React.Fragment>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     <Card className="overflow-hidden">
                                         <CardContent className="p-0">
                                             <div className="bg-muted h-96 rounded-lg flex items-center justify-center">
