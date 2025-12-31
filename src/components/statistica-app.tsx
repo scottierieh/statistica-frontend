@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -94,7 +93,10 @@ import {
   Container,
   Award,
   Truck,
-  Package
+  Package,
+  FileUp,
+  Milestone,
+  BarChart3
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -207,6 +209,8 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Input } from './ui/input';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 export interface AnalysisPageProps {
   data: DataSet;
@@ -574,6 +578,44 @@ const analysisCategories: AnalysisCategory[] = [
   },
 ];
 
+const STATISTICA_FEATURES = [
+  { 
+    id: 'upload', 
+    icon: FileUp, 
+    label: 'Upload Data', 
+    description: 'Easily upload your CSV, Excel, or JSON files.',
+    image: "/placeholder.svg" // Replace with actual image path
+  },
+  { 
+    id: 'recommend', 
+    icon: Wand2, 
+    label: 'AI Recommendation', 
+    description: 'Not sure where to start? Our AI suggests the best analysis for your data.',
+    image: "/placeholder.svg"
+  },
+  { 
+    id: 'guided', 
+    icon: Milestone, 
+    label: 'Guided Analysis', 
+    description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.',
+    image: "/placeholder.svg"
+  },
+  { 
+    id: 'visualize', 
+    icon: BarChart3, 
+    label: 'Instant Visualization', 
+    description: 'Get publication-ready charts and graphs automatically generated with your results.',
+    image: "/placeholder.svg"
+  },
+  { 
+    id: 'interpret', 
+    icon: Bot, 
+    label: 'AI Interpretation', 
+    description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.',
+    image: "/placeholder.svg"
+  },
+];
+
 const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
   .flatMap(category => category.isSingle ? category.items : ('items' in category && category.items ? category.items : (category.subCategories || []).flatMap((sc: AnalysisSubCategory) => sc.items)))
   .reduce((acc, item) => {
@@ -583,6 +625,106 @@ const analysisPages: Record<string, React.ComponentType<any>> = analysisCategori
     return acc;
   }, {} as Record<string, React.ComponentType<any>>);
 
+
+const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelected: (file: File) => void; onLoadExample: (example: ExampleDataSet) => void; isUploading: boolean }) => {
+    const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
+    const [activeFeature, setActiveFeature] = useState(STATISTICA_FEATURES[0].id);
+    const activeFeatureData = STATISTICA_FEATURES.find(f => f.id === activeFeature);
+
+    return (
+        <div className="flex flex-1 items-center justify-center p-6 bg-slate-50">
+            <Card className="w-full max-w-5xl">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Calculator className="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">Welcome to Statistica</CardTitle>
+                    <CardDescription className="text-base mt-2 max-w-2xl mx-auto">
+                        Your intelligent partner for statistical analysis. Go from raw data to actionable insights in minutes, not hours.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10">
+                    {/* Core Features - Animated Tabs */}
+                    <div className="text-center">
+                        <h3 className="text-2xl font-bold font-headline mb-6">Statistica's Core Features</h3>
+                        <div className="flex justify-center gap-2 border-b">
+                            {STATISTICA_FEATURES.map(feature => (
+                                <button
+                                    key={feature.id}
+                                    onClick={() => setActiveFeature(feature.id)}
+                                    className={cn(
+                                        "py-3 px-4 text-sm font-semibold transition-colors relative",
+                                        activeFeature === feature.id ? "text-primary" : "text-muted-foreground hover:text-primary"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <feature.icon className="w-4 h-4" />
+                                        <span>{feature.label}</span>
+                                    </div>
+                                    {activeFeature === feature.id && (
+                                        <motion.div
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                            layoutId="underline"
+                                        />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="relative mt-4 w-full h-[350px] overflow-hidden">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={activeFeature}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="absolute inset-0 flex flex-col items-center justify-center"
+                                >
+                                    {activeFeatureData && (
+                                        <div className="text-center">
+                                             <div className="p-3 bg-primary/10 rounded-full inline-block mb-4">
+                                                <activeFeatureData.icon className="w-8 h-8 text-primary" />
+                                            </div>
+                                            <p className="text-lg font-semibold max-w-lg mx-auto">{activeFeatureData.description}</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                    {/* Data Upload */}
+                    <div className="grid md:grid-cols-2 gap-6 items-start">
+                        <Card className="hover:border-primary/50 hover:shadow-lg transition-all">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><FileUp className="w-5 h-5"/>Upload Your Data</CardTitle>
+                                <CardDescription>Get started by uploading your dataset.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
+                            </CardContent>
+                        </Card>
+                        <Card className="hover:border-primary/50 hover:shadow-lg transition-all">
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5"/>Use Sample Data</CardTitle>
+                                <CardDescription>Don't have a dataset? Try one of ours.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {irisExample && (
+                                    <Button size="lg" variant="outline" onClick={() => onLoadExample(irisExample)} className="w-full">
+                                        <irisExample.icon className="mr-2 h-5 w-5" />
+                                        Load Iris Dataset
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
 
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
@@ -926,5 +1068,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
-    
