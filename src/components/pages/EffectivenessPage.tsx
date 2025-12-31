@@ -120,7 +120,7 @@ const AnalysisOverview = ({ outcomeVar, timeVar, groupVar, covariates, data }: {
 };
 
 const IntroPage = ({ onLoadExample }: { onLoadExample: (e: ExampleDataSet) => void }) => {
-  const example = exampleDatasets.find(d => d.id === 'effectiveness-analysis' || d.analysisTypes.includes('effectiveness'));
+  const example = exampleDatasets.find(d => d.id === 'effectiveness-analysis');
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <Card className="w-full max-w-4xl">
