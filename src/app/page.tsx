@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -461,6 +460,9 @@ export default function LandingPage() {
                       <Link href="/faq">Help Center</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/faq/analysis-list">Analysis List</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/glossary">Glossary</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -523,7 +525,16 @@ export default function LandingPage() {
                                 </DropdownMenuContent>
                            </DropdownMenu>
                             <Link href="/pricing" className="text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
-                            <Link href="/faq" className="text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Support</Link>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Support <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem asChild><Link href="/faq" onClick={() => setIsMobileMenuOpen(false)}>Help Center</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/faq/analysis-list" onClick={() => setIsMobileMenuOpen(false)}>Analysis List</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/glossary" onClick={() => setIsMobileMenuOpen(false)}>Glossary</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/whats-new" onClick={() => setIsMobileMenuOpen(false)}>What's New</Link></DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <Separator className="my-2" />
                             <Button asChild><Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>Get Started</Link></Button>
                             <Button variant="outline" asChild><Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></Button>
@@ -1533,5 +1544,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-
