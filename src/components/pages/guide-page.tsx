@@ -159,16 +159,16 @@ export default function GuidePage() {
                         {WORKFLOW_STEPS.map((step, index) => (
                             <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
                                 <div className="flex flex-col items-center">
-                                    <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
+                                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
                                         {step.id}
                                     </div>
                                     {index < WORKFLOW_STEPS.length - 1 && (
-                                        <div className="w-1 flex-1 bg-border mt-2"></div>
+                                        <div className="w-0.5 flex-1 bg-border mt-2"></div>
                                     )}
                                 </div>
                                 <div className="space-y-4 pt-1">
                                     <div>
-                                        <h3 className="font-semibold text-xl mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
+                                        <h3 className="font-semibold text-lg mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
                                         <p className="text-muted-foreground">{step.description}</p>
                                     </div>
                                 </div>
@@ -258,8 +258,8 @@ export default function GuidePage() {
                                                             <Table className="text-xs bg-white rounded-md border">
                                                                 <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coefficient</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
                                                                 <TableBody>
-                                                                    <TableRow><TableCell>Price</TableCell><TableCell>0.45</TableCell><TableCell>{'<'}0.001</TableCell></TableRow>
-                                                                    <TableRow><TableCell>Quality</TableCell><TableCell>0.62</TableCell><TableCell>{'<'}0.001</TableCell></TableRow>
+                                                                    <TableRow><TableCell>Price</TableCell><TableCell>0.45</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
+                                                                    <TableRow><TableCell>Quality</TableCell><TableCell>0.62</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
                                                                 </TableBody>
                                                             </Table>
                                                         </div>
@@ -389,3 +389,4 @@ export default function GuidePage() {
     </div>
   );
 }
+
