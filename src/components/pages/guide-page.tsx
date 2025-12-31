@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 
@@ -71,6 +71,51 @@ const STEPS = [
     { id: 6, label: 'Statistics', description: 'Dive deep into detailed statistical tables, charts, and downloadable reports.' }
 ];
 
+const industryApplications = [
+    {
+        industry: 'Marketing',
+        icon: Megaphone,
+        applications: [
+            { method: 'A/B Testing (T-Test)', use: 'Compare conversion rates of two different ad campaigns.' },
+            { method: 'Customer Segmentation (Clustering)', use: 'Group customers based on purchasing behavior and demographics.' },
+            { method: 'Brand Funnel Analysis', use: 'Track awareness, consideration, and preference for your brand vs. competitors.' },
+            { method: 'Conjoint Analysis', use: 'Identify which product features are most valued by customers.' },
+            { method: 'TURF Analysis', use: 'Optimize product lines or marketing messages to maximize reach.' },
+            { method: 'RFM Analysis', use: 'Segment customers based on Recency, Frequency, and Monetary value.' }
+        ]
+    },
+    {
+        industry: 'Human Resources (HR)',
+        icon: Users,
+        applications: [
+            { method: 'Employee Satisfaction Surveys (Descriptive Stats)', use: 'Summarize feedback on workplace satisfaction.' },
+            { method: 'Turnover Analysis (Survival Analysis)', use: 'Analyze factors that contribute to employee churn.' },
+            { method: 'Performance Structure Diagnosis (Regression)', use: 'Identify key drivers of employee performance.' },
+            { method: 'Attendance Pattern Analysis', use: 'Find patterns in employee absenteeism or tardiness.' },
+        ]
+    },
+    {
+        industry: 'Manufacturing & Quality',
+        icon: Factory,
+        applications: [
+            { method: 'Statistical Process Control (SPC)', use: 'Monitor production processes to ensure they are stable and within limits.' },
+            { method: 'Process Capability Analysis (Cpk, Ppk)', use: 'Assess if a process is capable of meeting specifications.' },
+            { method: 'Pareto Analysis', use: 'Identify the most frequent causes of defects (the "vital few").' },
+            { method: 'Gage R&R', use: 'Evaluate the reliability and consistency of measurement systems.' },
+        ]
+    },
+    {
+        industry: 'Finance & Investment',
+        icon: Landmark,
+        applications: [
+            { method: 'Portfolio Optimization', use: 'Construct a portfolio of assets that maximizes expected return for a given level of risk.' },
+            { method: 'Value at Risk (VaR) Analysis', use: 'Estimate potential losses in an investment portfolio over a specific time frame.' },
+            { method: 'Time Series Forecasting (ARIMA)', use: 'Forecast stock prices or economic indicators.' },
+            { method: 'Factor Analysis', use: 'Identify underlying factors that affect asset returns (e.g., Fama-French models).' },
+        ]
+    }
+];
+
 export default function GuidePage() {
   return (
     <div className="space-y-6">
@@ -80,7 +125,7 @@ export default function GuidePage() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
           <TabsTrigger value="byCategory">By Categories</TabsTrigger>
-          <TabsTrigger value="byAnalysis">By Analysis</TabsTrigger>
+          <TabsTrigger value="byIndustry">By Field</TabsTrigger>
         </TabsList>
         <TabsContent value="procedure">
             <Card>
@@ -107,7 +152,7 @@ export default function GuidePage() {
                                     </div>
                                     <Card className="overflow-hidden">
                                         <CardContent className="p-0">
-                                            <div className="bg-muted h-48 flex items-center justify-center">
+                                            <div className="bg-muted h-96 rounded-lg flex items-center justify-center">
                                                 <p className="text-sm text-muted-foreground">Image for Step {step.id}</p>
                                             </div>
                                         </CardContent>
@@ -157,31 +202,36 @@ export default function GuidePage() {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="byAnalysis">
+        <TabsContent value="byIndustry">
            <Card>
             <CardHeader>
-              <CardTitle>All Analysis Methods</CardTitle>
-              <CardDescription>A complete list of all available statistical analyses.</CardDescription>
+              <CardTitle>Analysis by Field of Application</CardTitle>
+              <CardDescription>Discover which statistical analyses are commonly used in your industry and how they can provide value.</CardDescription>
             </CardHeader>
-            <CardContent>
-               <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Analysis Method</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Purpose</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {analysisMethods.sort((a,b) => a.method.localeCompare(b.method)).map((method) => (
-                      <TableRow key={method.method}>
-                        <TableCell className="font-semibold">{method.method}</TableCell>
-                        <TableCell>{method.category}</TableCell>
-                        <TableCell>{method.purpose}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+            <CardContent className="space-y-8">
+              {industryApplications.map(industry => {
+                const Icon = industry.icon;
+                return (
+                  <div key={industry.industry}>
+                    <h3 className="text-2xl font-bold font-headline mb-4 flex items-center gap-3">
+                      <Icon className="w-7 h-7 text-primary" />
+                      {industry.industry}
+                    </h3>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {industry.applications.map(app => (
+                        <Card key={app.method} className="flex flex-col">
+                           <CardHeader className="pb-2">
+                             <CardTitle className="text-base">{app.method}</CardTitle>
+                           </CardHeader>
+                           <CardContent className="flex-1">
+                             <p className="text-sm text-muted-foreground">{app.use}</p>
+                           </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
