@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { analysisGoals } from '@/lib/analysis-goals';
+import DataUploader from '../data-uploader';
 
 interface RecommendationPageProps {
   onFileSelected: (file: File) => void;
@@ -47,17 +47,13 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                         The model will analyze your dataset's structure—identifying numeric and categorical variables—to provide tailored recommendations.
                     </p>
                     <div className="flex justify-center gap-4 pt-2">
-                        <Button size="lg" onClick={() => document.getElementById('recommend-upload-input')?.click()} disabled={isUploading}>
-                            {isUploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <FileUp className="mr-2 h-5 w-5" />}
-                            Upload Data
-                        </Button>
-                         <input
-                            id="recommend-upload-input"
-                            type="file"
-                            className="hidden"
-                            onChange={(e) => e.target.files && onFileSelected(e.target.files[0])}
-                            accept=".csv,.txt,.tsv,.xlsx,.xls,.json"
-                         />
+                        <DataUploader onFileSelected={onFileSelected} loading={isUploading}>
+                            <Button size="lg" disabled={isUploading}>
+                                {isUploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <FileUp className="mr-2 h-5 w-5" />}
+                                Upload Data
+                            </Button>
+                        </DataUploader>
+
                         {irisExample && (
                             <Button size="lg" variant="outline" onClick={() => onLoadExample(irisExample)}>
                                 <Sparkles className="mr-2 h-5 w-5" />
@@ -79,6 +75,25 @@ export default function RecommendationPage(props: RecommendationPageProps) {
     const [dataDescription, setDataDescription] = useState('');
     const [analysisGoal, setAnalysisGoal] = useState('');
     const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set());
+    const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set(props.allHeaders));
+    
+    useEffect(() => {
+        if (props.allHeaders) {
+            setSelectedVars(new Set(props.allHeaders));
+        }
+    }, [props.allHeaders]);
+
+    const handleVarSelectionChange = (varName: string, isChecked: boolean) => {
+        setSelectedVars(prev => {
+            const newSet = new Set(prev);
+            if (isChecked) {
+                newSet.add(varName);
+            } else {
+                newSet.delete(varName);
+            }
+            return newSet;
+        });
+    };
 
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
@@ -90,12 +105,20 @@ export default function RecommendationPage(props: RecommendationPageProps) {
             analysisGoal.trim() ? `Analysis Goal: ${analysisGoal.trim()}` : '',
             ...Array.from(selectedGoals)
         ].filter(Boolean).join('\n');
+        
+        const dataForAnalysis = props.data.map(row => {
+            const newRow: any = {};
+            selectedVars.forEach(v => {
+                newRow[v] = row[v];
+            });
+            return newRow;
+        });
 
         try {
             const response = await fetch('/api/analysis/data-summary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: props.data, headers: props.allHeaders, dataDescription: combinedDescription }),
+                body: JSON.stringify({ data: dataForAnalysis, headers: Array.from(selectedVars), dataDescription: combinedDescription }),
             });
 
             if (!response.ok) {
@@ -115,7 +138,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [props.data, props.allHeaders, dataDescription, analysisGoal, selectedGoals, toast]);
+    }, [props.data, selectedVars, dataDescription, analysisGoal, selectedGoals, toast]);
     
     if (!props.data || props.data.length === 0) {
         return <IntroPage onFileSelected={props.onFileSelected} onLoadExample={() => props.onLoadExample(exampleDatasets.find(e => e.id === 'iris')!)} isUploading={props.isUploading} />;
@@ -127,13 +150,38 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                 <CardHeader>
                     <CardTitle className="font-headline">Describe Your Analysis Goal</CardTitle>
                     <CardDescription>
-                        Provide more context about your data and objectives to get better recommendations.
+                        Provide context about your data and objectives to get better recommendations.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                     <div className="space-y-2">
+                        <Label htmlFor="variable-selection" className="text-base font-semibold">
+                            1. Select Variables for Analysis
+                        </Label>
+                         <div className="flex flex-wrap gap-2 mb-2">
+                            <Button variant="outline" size="sm" onClick={() => setSelectedVars(new Set(props.allHeaders))}>Select All</Button>
+                            <Button variant="outline" size="sm" onClick={() => setSelectedVars(new Set())}>Deselect All</Button>
+                        </div>
+                        <ScrollArea className="h-40 border rounded-lg p-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                {props.allHeaders.map(h => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`var-select-${h}`} 
+                                            checked={selectedVars.has(h)}
+                                            onCheckedChange={(checked) => handleVarSelectionChange(h, !!checked)} 
+                                        />
+                                        <Label htmlFor={`var-select-${h}`} className="text-sm font-medium cursor-pointer">
+                                            {h}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="data-description" className="text-base font-semibold">
-                            1. What is this data about? (Optional)
+                            2. What is this data about? (Optional)
                         </Label>
                         <Textarea
                             id="data-description"
@@ -145,7 +193,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="analysis-goal" className="text-base font-semibold">
-                            2. What do you want to find out? (Optional)
+                           3. What do you want to find out? (Optional)
                         </Label>
                         <Textarea
                             id="analysis-goal"
@@ -156,7 +204,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                         />
                     </div>
                     <div>
-                         <Label className="text-base font-semibold">3. Select Your Analysis Objectives (Optional)</Label>
+                         <Label className="text-base font-semibold">4. Select Your Analysis Objectives (Optional)</Label>
                          <p className="text-sm text-muted-foreground mb-3">Choose one or more general goals.</p>
                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {analysisGoals.map(goal => (
@@ -186,7 +234,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading} size="lg">
+                    <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.size === 0} size="lg">
                         {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Get Recommendations</>}
                     </Button>
                 </CardFooter>
@@ -196,7 +244,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle>Data Summary</CardTitle>
-                        <CardDescription>A brief overview of your dataset's columns.</CardDescription>
+                        <CardDescription>A brief overview of your selected dataset columns.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="max-h-[400px]">
