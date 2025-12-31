@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -13,6 +14,7 @@ import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { ScrollArea } from '../ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 
 interface RecommendationPageProps {
@@ -164,7 +166,7 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
             )}
 
             {summary && (
-                <Collapsible>
+                <Collapsible defaultOpen>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
@@ -198,7 +200,12 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
                                             {summary.map((col, index) => (
                                                 <TableRow key={index}>
                                                     <TableCell className="font-medium">{col.name}</TableCell>
-                                                    <TableCell>{col.type}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={col.type === 'numeric' ? 'default' : 'secondary'}
+                                                          className={col.type === 'numeric' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
+                                                          {col.type}
+                                                        </Badge>
+                                                    </TableCell>
                                                     <TableCell>{col.missing_count}</TableCell>
                                                     <TableCell>{col.unique_count}</TableCell>
                                                     <TableCell>{col.mean?.toFixed(2) ?? '-'}</TableCell>
@@ -232,9 +239,12 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
                                     <p className="text-sm text-muted-foreground">{rec.reason}</p>
                                 </CardContent>
                                 <CardFooter>
-                                    <p className="text-xs text-muted-foreground">
-                                        <strong>Example Variables:</strong> {rec.required_variables.join(', ')}
-                                    </p>
+                                    <div className="w-full">
+                                        <Label className="text-xs text-muted-foreground">Example Variables</Label>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {rec.required_variables.map((v: string, i: number) => <Badge key={i} variant="outline">{v}</Badge>)}
+                                        </div>
+                                    </div>
                                 </CardFooter>
                             </Card>
                         ))}

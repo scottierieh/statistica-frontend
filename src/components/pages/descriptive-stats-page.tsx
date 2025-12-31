@@ -631,6 +631,36 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         toast({ title: "CSV Downloaded" });
     }, [analysisResult, selectedVars, numericHeaders, categoricalHeaders, toast]);
 
+
+    const handleDownloadDOCX = useCallback(async () => {
+        if (!analysisResult) return;
+        toast({ title: "Generating Word..." });
+        try {
+            const response = await fetch('/api/export/descriptive-docx', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    results: analysisResult.results,
+                    selectedVars,
+                    groupByVar,
+                    numericHeaders,
+                    categoricalHeaders,
+                    totalRows: data.length
+                })
+            });
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Descriptive_Statistics_${new Date().toISOString().split('T')[0]}.docx`;
+            link.click();
+            toast({ title: "Download Complete" });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Failed" });
+        }
+    }, [analysisResult, selectedVars, groupByVar, numericHeaders, categoricalHeaders, data.length, toast]);
+
+
+
     // Intro page
     if (view === 'intro' || !canRun) {
         return <IntroPage onLoadExample={onLoadExample} />;
@@ -1136,6 +1166,9 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                                     <DropdownMenuItem onClick={handleDownloadPNG} disabled={isDownloading}>
                                         {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
                                         PNG Image
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleDownloadDOCX}>
+                                        <FileText className="mr-2 h-4 w-4" />Word Document
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem disabled className="text-muted-foreground">
