@@ -5,6 +5,7 @@ import { ArrowLeft, Calculator } from "lucide-react";
 import Link from "next/link";
 import StatisticaApp from '@/components/statistica-app';
 import DashboardClientLayout from "@/components/dashboard-client-layout";
+import { UserNav } from "@/components/user-nav";
 
 export default function StatisticaPage() {
   return (
@@ -25,7 +26,9 @@ export default function StatisticaPage() {
                   <h1 className="text-xl font-headline font-bold">Statistica</h1>
               </Link>
           </div>
-          <div className="w-[180px]"/>
+          <div className="w-[180px] flex justify-end">
+            <UserNav />
+          </div>
         </header>
         <main className="flex-1 overflow-auto">
           <div className="max-w-8xl mx-auto">

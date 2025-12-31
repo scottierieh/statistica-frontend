@@ -21,75 +21,22 @@ import {
   Loader2,
   TrendingUp,
   Landmark,
-  Building,
-  FastForward,
-  PlayCircle,
-  BarChart,
-  GitBranch,
+  Megaphone,
+  Package,
+  Factory,
   Users,
-  Waypoints,
-  CalendarDays,
-  Wand2,
-  Sigma,
-  TestTube,
-  Waves,
-  Percent,
-  Repeat,
-  HeartPulse,
-  Shield,
-  Component,
-  BrainCircuit,
-  CheckCircle2,
-  AlertTriangle,
-  Network,
-  Columns,
-  Sun,
+  ArrowLeftRight,
   Target,
+  BarChart3,
+  Zap,
   Layers,
-  Map,
-  ScanSearch,
-  Atom,
-  MessagesSquare,
-  Share2,
-  GitCommit,
-  DollarSign,
-  ThumbsUp,
-  ClipboardList,
-  Handshake,
-  Replace,
   Activity,
-  Palette,
-  Crosshair,
+  UserX,
+  Filter,
+  DollarSign,
   FlaskConical,
-  Feather,
-  Settings2,
-  Smile,
-  Scaling,
-  AreaChart,
-  LineChart,
-  Car,
-  ChevronsUpDown,
-  BarChart2,
-  Calculator,
-  Brain,
-  Link2,
-  ScatterChart,
-  ShieldCheck,
-  Scissors,
-  FileSearch,
-  CheckSquare,
-  Clock,
-  Download,
-  Bot,
-  BookOpen,
   Search,
-  ArrowLeft
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-
-
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   type DataSet,
@@ -100,10 +47,11 @@ import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UserNav } from './user-nav';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
+import { Input } from './ui/input';
 import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
 import GuidePage from './pages/guide-page';
 
@@ -363,6 +311,7 @@ export default function StatisticaApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('guide');
   const [openCategories, setOpenCategories] = useState<string[]>(['Guide']);
@@ -484,7 +433,40 @@ export default function StatisticaApp() {
       toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
     }
   }, [data, allHeaders, fileName, toast]);
-  
+
+  const handleGenerateReport = useCallback(async (analysisType: string, stats: any, viz: string | null) => {
+    setIsGeneratingReport(true);
+    try {
+      const result = await getSummaryReport({
+        analysisType,
+        statistics: JSON.stringify(stats, null, 2),
+        visualizations: viz || "No visualization available.",
+      });
+      if (result.success && result.report) {
+        setReport({ title: 'Analysis Report', content: result.report });
+      } else {
+        toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
+      }
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while generating the report.' });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  }, [toast]);
+
+  const downloadReport = useCallback(() => {
+    if (!report) return;
+    const blob = new Blob([report.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'statistica_report.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [report]);
+
   const hasData = data.length > 0;
 
   const filteredAnalysisCategories = useMemo(() => {
@@ -539,12 +521,6 @@ export default function StatisticaApp() {
       <div className="flex min-h-screen w-full">
         <Sidebar collapsible="offcanvas">
           <SidebarHeader>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Calculator className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h1 className="text-xl font-headline font-bold">Skari</h1>
-            </div>
             <div className='p-2 space-y-2'>
               <DataUploader
                 onFileSelected={handleFileSelected}
@@ -622,7 +598,7 @@ export default function StatisticaApp() {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
-            <UserNav />
+            {/* UserNav is now in the page header */}
           </SidebarFooter>
         </Sidebar>
 

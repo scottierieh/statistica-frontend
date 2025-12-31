@@ -73,7 +73,7 @@ const analysisCategories = [
         items: [
             { id: 'pre-post-policy', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
             { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
-            { id: 'policy-distribution', label: 'Policy Outcome Distribution Analysis', component: PolicyDistributionPage, icon: BarChart3 },
+            { id: 'policy-distribution', label: 'Policy Outcome Distribution', component: PolicyDistributionPage, icon: BarChart3 },
         ],
     },
     {
@@ -81,7 +81,7 @@ const analysisCategories = [
         icon: Megaphone,
         items: [
             { id: 'campaign-performance', label: 'Campaign Performance Evaluation', component: CampaignPerformancePage, icon: TrendingUp },
-            { id: 'segment-effectiveness', label: 'Customer Segment Effectiveness Analysis', component: SegmentEffectivenessPage, icon: Users },
+            { id: 'segment-effectiveness', label: 'Customer Segment Effectiveness', component: SegmentEffectivenessPage, icon: Users },
             { id: 'channel-efficiency', label: 'Channel Efficiency Diagnosis', component: ChannelEfficiencyPage, icon: Zap },
         ],
     },
@@ -99,8 +99,8 @@ const analysisCategories = [
         icon: Factory,
         items: [
             { id: 'process-bottleneck', label: 'Process Bottleneck Diagnosis', component: ProcessBottleneckPage, icon: Filter },
-            { id: 'process-stability', label: 'Process Stability & Quality Analysis', component: ProcessStabilityPage, icon: Activity },
-            { id: 'cost-efficiency', label: 'Cost & Efficiency Structure Analysis', component: CostEfficiencyPage, icon: DollarSign },
+            { id: 'process-stability', label: 'Process Stability & Quality', component: ProcessStabilityPage, icon: Activity },
+            { id: 'cost-efficiency', label: 'Cost & Efficiency Structure', component: CostEfficiencyPage, icon: DollarSign },
         ],
     },
     {
@@ -289,8 +289,6 @@ export default function ScenarioApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
-                onFileSelected={handleFileSelected}
-                isUploading={isUploading}
               />
           </div>
         </SidebarInset>

@@ -3,7 +3,7 @@
 import ScenarioApp from '@/components/scenario-app';
 import DashboardClientLayout from '@/components/dashboard-client-layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FlaskConical, Calculator } from 'lucide-react';
+import { ArrowLeft, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 import { UserNav } from '@/components/user-nav';
 
