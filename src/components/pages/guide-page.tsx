@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 
@@ -63,12 +63,10 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 }, {} as Record<string, typeof analysisMethods>);
 
 const STEPS = [
-    { id: 1, label: 'Variables', description: 'Select the variables you want to analyze from your dataset.' },
-    { id: 2, label: 'Settings', description: 'Configure options for the analysis, such as grouping variables or specific parameters.' },
-    { id: 3, label: 'Validation', description: 'The system checks if your data is suitable for the chosen analysis, highlighting potential issues.' },
-    { id: 4, label: 'Summary', description: 'Get a high-level, easy-to-understand summary of the key findings from the analysis.' },
-    { id: 5, label: 'Reasoning', description: 'Understand how the conclusions were reached with a step-by-step explanation.' },
-    { id: 6, label: 'Statistics', description: 'Dive deep into detailed statistical tables, charts, and downloadable reports.' }
+    { id: 1, icon: Target, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
+    { id: 2, icon: FileUp, label: 'Upload Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
+    { id: 3, icon: Settings, label: 'Configure & Validate', description: 'Select your variables, set analysis parameters, and let the system validate your data for suitability.' },
+    { id: 4, icon: FileDown, label: 'Get Results', description: 'Review your results, from high-level summaries and AI-powered insights to detailed statistical tables and charts.' }
 ];
 
 const industryApplications = [
@@ -131,7 +129,7 @@ export default function GuidePage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Standard Analysis Procedure</CardTitle>
-                    <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works, using Descriptive Statistics as an example.</CardDescription>
+                    <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.</CardDescription>
                 </CardHeader>
                 <CardContent>
                    <div className="space-y-8">
@@ -139,7 +137,7 @@ export default function GuidePage() {
                             <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
-                                        {step.id}
+                                        <step.icon className="w-8 h-8" />
                                     </div>
                                     {index < STEPS.length - 1 && (
                                         <div className="w-1 flex-1 bg-border mt-2"></div>
