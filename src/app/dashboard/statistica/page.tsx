@@ -31,7 +31,7 @@ export default function StatisticaPage() {
           </div>
         </header>
         <main className="flex-1 overflow-auto">
-          <div className="max-w-8xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <StatisticaApp />
           </div>
         </main>
