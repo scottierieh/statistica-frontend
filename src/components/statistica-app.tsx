@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -211,6 +212,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from './ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from './ui/card';
 
 export interface AnalysisPageProps {
   data: DataSet;
@@ -672,7 +674,7 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelec
                                 </button>
                             ))}
                         </div>
-                        <div className="relative mt-4 w-full h-[350px] overflow-hidden">
+                        <div className="relative mt-4 w-full h-[350px] overflow-hidden bg-slate-100 rounded-lg">
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={activeFeature}
@@ -680,7 +682,7 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelec
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ duration: 0.3 }}
-                                    className="absolute inset-0 flex flex-col items-center justify-center"
+                                    className="absolute inset-0 flex flex-col items-center justify-center p-6"
                                 >
                                     {activeFeatureData && (
                                         <div className="text-center">
@@ -762,29 +764,29 @@ export default function StatisticaApp() {
 
 
   const processData = useCallback((content: string, name: string) => {
+    setIsUploading(true);
     try {
-      const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        if (newData.length === 0 || newHeaders.length === 0) {
+          throw new Error("No valid data found in the file.");
+        }
+        setData(newData);
+        setAllHeaders(newHeaders);
+        setNumericHeaders(newNumericHeaders);
+        setCategoricalHeaders(newCategoricalHeaders);
+        setFileName(name);
+        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
 
-      if (newData.length === 0 || newHeaders.length === 0) {
-        throw new Error("No valid data found in the file.");
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
+        });
+        handleClearData();
+      } finally {
+        setIsUploading(false);
       }
-      setData(newData);
-      setAllHeaders(newHeaders);
-      setNumericHeaders(newNumericHeaders);
-      setCategoricalHeaders(newCategoricalHeaders);
-      setFileName(name);
-      toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.` });
-
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'File Processing Error',
-        description: error.message || 'Could not parse file. Please check the format.',
-      });
-      handleClearData();
-    } finally {
-      setIsUploading(false);
-    }
   }, [toast, handleClearData]);
 
   const handleFileSelected = useCallback((file: File) => {
@@ -947,7 +949,7 @@ export default function StatisticaApp() {
         <Sidebar collapsible="offcanvas">
           <SidebarHeader>
             <div className='p-2 space-y-2'>
-              <DataUploader
+              <DataUploader 
                 onFileSelected={handleFileSelected}
                 loading={isUploading}
               />
@@ -1031,12 +1033,11 @@ export default function StatisticaApp() {
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
             <header className="flex items-center justify-between md:justify-end">
                 <SidebarTrigger />
-                <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
                 <div />
             </header>
 
             {hasData && activeAnalysis !== 'guide' && activeAnalysis !== 'recommendation' && (
-              <DataPreview
+              <DataPreview 
                 fileName={fileName}
                 data={data}
                 headers={allHeaders}
@@ -1044,18 +1045,18 @@ export default function StatisticaApp() {
                 onClearData={handleClearData}
               />
             )}
-
-            <ActivePageComponent
-              data={data}
-              allHeaders={allHeaders}
-              numericHeaders={numericHeaders}
-              categoricalHeaders={categoricalHeaders}
-              onLoadExample={handleLoadExampleData}
-              onFileSelected={handleFileSelected}
-              isUploading={isUploading}
-              activeAnalysis={activeAnalysis}
-              onAnalysisComplete={setAnalysisResultForChat}
-            />
+            
+            <ActivePageComponent 
+                data={data}
+                allHeaders={allHeaders}
+                numericHeaders={numericHeaders}
+                categoricalHeaders={categoricalHeaders}
+                onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
+                isUploading={isUploading}
+                activeAnalysis={activeAnalysis}
+                onAnalysisComplete={setAnalysisResultForChat}
+              />
           </div>
         </SidebarInset>
       </div>
