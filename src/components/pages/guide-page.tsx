@@ -62,25 +62,51 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
     return acc;
 }, {} as Record<string, typeof analysisMethods>);
 
+const STEPS = [
+    { id: 1, label: 'Variables', description: 'Select the variables you want to analyze from your dataset.' },
+    { id: 2, label: 'Settings', description: 'Configure options for the analysis, such as grouping variables or specific parameters.' },
+    { id: 3, label: 'Validation', description: 'The system checks if your data is suitable for the chosen analysis, highlighting potential issues.' },
+    { id: 4, label: 'Summary', description: 'Get a high-level, easy-to-understand summary of the key findings from the analysis.' },
+    { id: 5, label: 'Reasoning', description: 'Understand how the conclusions were reached with a step-by-step explanation.' },
+    { id: 6, label: 'Statistics', description: 'Dive deep into detailed statistical tables, charts, and downloadable reports.' }
+];
+
 export default function GuidePage() {
   return (
     <div className="space-y-6">
 
 
-      <Tabs defaultValue="mindmap">
+      <Tabs defaultValue="procedure">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
+          <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
           <TabsTrigger value="byCategory">By Categories</TabsTrigger>
           <TabsTrigger value="byAnalysis">By Analysis</TabsTrigger>
         </TabsList>
-        <TabsContent value="mindmap">
+        <TabsContent value="procedure">
             <Card>
                 <CardHeader>
-                    <CardTitle>Statistical Analysis Techniques Mindmap</CardTitle>
-                    <CardDescription>An interactive visualization of the available analysis methods.</CardDescription>
+                    <CardTitle>Standard Analysis Procedure</CardTitle>
+                    <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works, using Descriptive Statistics as an example.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Mindmap />
+                   <div className="space-y-6">
+                        {STEPS.map((step, index) => (
+                            <div key={step.id} className="flex items-start gap-4">
+                                <div className="flex-shrink-0 flex flex-col items-center">
+                                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                                        {step.id}
+                                    </div>
+                                    {index < STEPS.length - 1 && (
+                                        <div className="w-0.5 h-12 bg-border mt-2"></div>
+                                    )}
+                                </div>
+                                <div className="pt-2">
+                                    <h3 className="font-semibold text-lg">{step.label}</h3>
+                                    <p className="text-muted-foreground mt-1">{step.description}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </CardContent>
             </Card>
         </TabsContent>
@@ -154,4 +180,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
