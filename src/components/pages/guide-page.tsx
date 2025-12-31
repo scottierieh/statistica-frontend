@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -6,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2, AlertTriangle
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +69,10 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
     return acc;
 }, {} as Record<string, typeof analysisMethods>);
 
-const STEPS = [
-    { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose from 40+ statistical methods' },
-    { id: 2, icon: Upload, label: 'Prepare Data', description: 'Upload your dataset or use a sample' },
-    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure, validate, and execute your chosen analysis in a guided 6-step process.' },
+const WORKFLOW_STEPS = [
+    { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose your desired statistical method from the sidebar.' },
+    { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload your dataset or select from our pre-loaded examples.' },
+    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure, validate, and execute the analysis through a guided 6-step process.' },
 ];
 
 const RUN_ANALYSIS_STEPS = [
@@ -146,14 +145,14 @@ export default function GuidePage() {
                     <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <div className="space-y-8">
-                        {STEPS.map((step, index) => (
+                    <div className="space-y-8">
+                        {WORKFLOW_STEPS.map((step, index) => (
                             <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
                                         {step.id}
                                     </div>
-                                    {index < STEPS.length - 1 && (
+                                    {index < WORKFLOW_STEPS.length - 1 && (
                                         <div className="w-1 flex-1 bg-border mt-2"></div>
                                     )}
                                 </div>
@@ -208,7 +207,7 @@ export default function GuidePage() {
                                                     )}
                                                     {step.id === 3 && (
                                                         <div className="w-full max-w-sm space-y-3">
-                                                             <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
+                                                            <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
                                                              <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
                                                                 <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
                                                                 <div>
@@ -233,12 +232,28 @@ export default function GuidePage() {
                                                         </div>
                                                     )}
                                                     {step.id === 4 && (
-                                                        <div className="w-full max-w-sm space-y-3">
-                                                            <h4 className="text-sm font-semibold text-center mb-2">Summary</h4>
-                                                            <Alert className="border-primary bg-primary/5">
-                                                                <AlertTitle className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/>Significant Result</AlertTitle>
-                                                                <AlertDescription>The analysis shows a significant relationship (p {'<'} 0.05) between your selected variables.</AlertDescription>
-                                                            </Alert>
+                                                        <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
+                                                            <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                                                                <Sparkles className="w-5 h-5 text-primary" /> Key Findings
+                                                            </h4>
+                                                            <ul className="space-y-3">
+                                                                <li className="flex items-start gap-3">
+                                                                    <span className="font-bold text-primary">•</span>
+                                                                    <p className="text-sm text-muted-foreground">You analyzed <strong className="text-foreground">5 variables</strong> across <strong className="text-foreground">150 records</strong>.</p>
+                                                                </li>
+                                                                <li className="flex items-start gap-3">
+                                                                    <span className="font-bold text-primary">•</span>
+                                                                    <p className="text-sm text-muted-foreground">Your data is complete — no missing values found!</p>
+                                                                </li>
+                                                                <li className="flex items-start gap-3">
+                                                                    <span className="font-bold text-primary">•</span>
+                                                                    <p className="text-sm text-muted-foreground">Data appears reasonably balanced — mean and median should be similar.</p>
+                                                                </li>
+                                                                <li className="flex items-start gap-3">
+                                                                    <span className="font-bold text-amber-500">•</span>
+                                                                    <p className="text-sm text-muted-foreground"><strong className="text-amber-600">Potential outliers detected</strong> — check the visualizations for unusual values.</p>
+                                                                </li>
+                                                            </ul>
                                                         </div>
                                                     )}
                                                     {step.id === 5 && (
