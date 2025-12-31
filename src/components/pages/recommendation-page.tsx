@@ -18,8 +18,8 @@ import { Checkbox } from '../ui/checkbox';
 import { analysisGoals } from '@/lib/analysis-goals';
 
 interface RecommendationPageProps {
-  onLoadExample: (example: ExampleDataSet) => void;
   onFileSelected: (file: File) => void;
+  onLoadExample: (example: ExampleDataSet) => void;
   isUploading: boolean;
   data: DataSet;
   allHeaders: string[];
@@ -77,6 +77,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
     const [summary, setSummary] = useState<any[] | null>(null);
     const [recommendations, setRecommendations] = useState<any[] | null>(null);
     const [dataDescription, setDataDescription] = useState('');
+    const [analysisGoal, setAnalysisGoal] = useState('');
     const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set());
 
     const handleAnalysis = useCallback(async () => {
@@ -84,9 +85,9 @@ export default function RecommendationPage(props: RecommendationPageProps) {
         setSummary(null);
         setRecommendations(null);
 
-        // Combine user's text description and selected goals
         const combinedDescription = [
-            dataDescription.trim(),
+            dataDescription.trim() ? `About the data: ${dataDescription.trim()}` : '',
+            analysisGoal.trim() ? `Analysis Goal: ${analysisGoal.trim()}` : '',
             ...Array.from(selectedGoals)
         ].filter(Boolean).join('\n');
 
@@ -114,7 +115,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [props.data, props.allHeaders, dataDescription, selectedGoals, toast]);
+    }, [props.data, props.allHeaders, dataDescription, analysisGoal, selectedGoals, toast]);
     
     if (!props.data || props.data.length === 0) {
         return <IntroPage onFileSelected={props.onFileSelected} onLoadExample={() => props.onLoadExample(exampleDatasets.find(e => e.id === 'iris')!)} isUploading={props.isUploading} />;
@@ -126,25 +127,37 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                 <CardHeader>
                     <CardTitle className="font-headline">Describe Your Analysis Goal</CardTitle>
                     <CardDescription>
-                        Provide more context about your data or objective to get better recommendations.
+                        Provide more context about your data and objectives to get better recommendations.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
+                    <div className="space-y-2">
                         <Label htmlFor="data-description" className="text-base font-semibold">
-                            1. What is this data about or what do you want to find out? (Optional)
+                            1. What is this data about? (Optional)
                         </Label>
                         <Textarea
                             id="data-description"
-                            placeholder="e.g., 'This is customer satisfaction data from a post-purchase survey. I want to see what drives satisfaction.'"
+                            placeholder="e.g., 'This is customer satisfaction data from a post-purchase survey.'"
                             value={dataDescription}
                             onChange={(e) => setDataDescription(e.target.value)}
-                            className="mt-2 min-h-[80px]"
+                            className="min-h-[60px]"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="analysis-goal" className="text-base font-semibold">
+                            2. What do you want to find out? (Optional)
+                        </Label>
+                        <Textarea
+                            id="analysis-goal"
+                            placeholder="e.g., 'I want to see what drives satisfaction scores.' or 'Which customer group is most likely to churn?'"
+                            value={analysisGoal}
+                            onChange={(e) => setAnalysisGoal(e.target.value)}
+                            className="min-h-[60px]"
                         />
                     </div>
                     <div>
-                         <Label className="text-base font-semibold">2. Select Your Analysis Objectives (Optional)</Label>
-                         <p className="text-sm text-muted-foreground mb-3">Choose one or more goals you want to achieve.</p>
+                         <Label className="text-base font-semibold">3. Select Your Analysis Objectives (Optional)</Label>
+                         <p className="text-sm text-muted-foreground mb-3">Choose one or more general goals.</p>
                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {analysisGoals.map(goal => (
                                 <div key={goal.id} className="flex items-center space-x-2">
