@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +53,7 @@ const analysisMethods = [
     { category: 'Time Series', method: 'Seasonal Decomposition', purpose: 'Decomposes time series into trend, seasonal, residual components', useCase: 'Identifying seasonal buying patterns' },
     { category: 'Time Series', method: 'ACF/PACF Plots', purpose: 'Examines autocorrelation patterns', useCase: 'Selecting ARIMA model parameters' },
     { category: 'Time Series', method: 'Stationarity Test (ADF)', purpose: 'Tests whether a time series is stationary', useCase: 'Preprocessing for forecasting models' },
-    { category: 'Time Series', method: 'Ljung-Box / ARCH-LM Test', purpose: 'Tests residual independence or heteroskedasticity', useCase: 'Model adequacy diagnostics' },
+    { category: 'Time Series', method: 'Ljung–Box / ARCH-LM Test', purpose: 'Tests residual independence or heteroskedasticity', useCase: 'Model adequacy diagnostics' },
     { category: 'Time Series', method: 'Exponential Smoothing', purpose: 'Short-term forecasting using weighted averages', useCase: 'Simple forecast for demand or visits' },
     { category: 'Time Series', method: 'ARIMA / SARIMAX', purpose: 'Advanced time-series forecasting models', useCase: 'Monthly sales or traffic prediction' },
     { category: 'Time Series', method: 'Forecast Model Evaluation', purpose: 'Compares prediction accuracy (RMSE, MAE, etc.)', useCase: 'Model performance comparison' },
@@ -73,7 +73,7 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 const STEPS = [
     { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
     { id: 2, icon: Upload, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
-    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables, validate assumptions, and generate results through a guided 6-step process.' },
+    { id: 3, icon: Play, label: 'Run Analysis', description: 'A guided 6-step process to configure, validate, and interpret your analysis, from variable selection to final statistical output.' },
 ];
 
 const RUN_ANALYSIS_STEPS = [
