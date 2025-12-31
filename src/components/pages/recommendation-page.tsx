@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, ChevronsUpDown, HelpCircle, Lightbulb } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +13,10 @@ import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { ScrollArea } from '../ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getAnalysisRecommendationsByGoal } from '@/app/actions';
+import { analysisGoals } from '@/lib/analysis-goals';
 
 
 interface RecommendationPageProps {
@@ -67,25 +69,121 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
     );
 };
 
-export default function RecommendationPage({ data, allHeaders, onLoadExample, onFileSelected, isUploading }: RecommendationPageProps) {
+const GoalBasedRecommendation = () => {
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
+    const [recommendations, setRecommendations] = useState<any[] | null>(null);
+    const [dataDescription, setDataDescription] = useState('');
+
+    const handleAnalysis = useCallback(async (goal?: string) => {
+        const description = goal || dataDescription;
+        if (!description.trim()) {
+            toast({
+                title: "Goal not specified",
+                description: "Please describe your analysis goal or select a common goal.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        setRecommendations(null);
+
+        try {
+            const response = await getAnalysisRecommendationsByGoal(description);
+            if (!response.success || !response.recommendations) {
+                throw new Error(response.error || 'Failed to get recommendations.');
+            }
+            setRecommendations(response.recommendations);
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [dataDescription, toast]);
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Describe Your Goal</CardTitle>
+                    <CardDescription>
+                        Explain what you want to achieve with your analysis, or choose a common objective below.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <Textarea
+                            placeholder="e.g., 'I want to see if my new marketing campaign increased sales compared to the old one.' or 'Find out which factors are most important for employee satisfaction.'"
+                            value={dataDescription}
+                            onChange={(e) => setDataDescription(e.target.value)}
+                            className="min-h-[100px]"
+                        />
+                         <h4 className="font-semibold text-sm pt-4">Or select a common goal:</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {analysisGoals.map(goal => (
+                                <Button key={goal.id} variant="outline" size="sm" onClick={() => handleAnalysis(goal.description)}>
+                                    <goal.icon className="mr-2 h-4 w-4"/>
+                                    {goal.title}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={() => handleAnalysis()} disabled={isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Get Recommendations</>}
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            {isLoading && (
+                <Card className="flex items-center justify-center p-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4 text-muted-foreground">Generating recommendations...</p>
+                </Card>
+            )}
+
+            {recommendations && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Bot />AI-Powered Analysis Recommendations</CardTitle>
+                        <CardDescription>Based on your goal, here are some suggested analyses.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {recommendations.map((rec, index) => (
+                            <Card key={index} className="flex flex-col">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">{rec.analysis_name}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex-1">
+                                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <div className="w-full">
+                                        <Label className="text-xs text-muted-foreground">Example Variables</Label>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {rec.required_variables.map((v: string, i: number) => <Badge key={i} variant="outline">{v}</Badge>)}
+                                        </div>
+                                    </div>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+};
+
+const DataBasedRecommendation = ({ data, allHeaders, onLoadExample, onFileSelected, isUploading }: any) => {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [summary, setSummary] = useState<any[] | null>(null);
     const [recommendations, setRecommendations] = useState<any[] | null>(null);
     const [dataDescription, setDataDescription] = useState('');
 
-    const hasData = useMemo(() => data && data.length > 0, [data]);
-
     const handleAnalysis = useCallback(async () => {
-        if (!hasData) {
-            toast({
-                title: "No Data",
-                description: "Please upload a dataset first.",
-                variant: "destructive"
-            });
-            return;
-        }
-
         setIsLoading(true);
         setSummary(null);
         setRecommendations(null);
@@ -114,20 +212,20 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
         } finally {
             setIsLoading(false);
         }
-    }, [data, hasData, allHeaders, dataDescription, toast]);
-
-    if (!hasData) {
+    }, [data, allHeaders, dataDescription, toast]);
+    
+    if (!data || data.length === 0) {
         const example = exampleDatasets[0];
         return <IntroPage onFileSelected={onFileSelected} onLoadExample={() => onLoadExample(example)} isUploading={isUploading} />;
     }
 
     return (
-        <div className="space-y-6">
+         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Analysis Recommendation</CardTitle>
+                    <CardTitle className="font-headline">Describe Your Data</CardTitle>
                     <CardDescription>
-                        Provide a brief description of your data (optional) for more accurate recommendations, then click "Analyze Data".
+                        Provide a brief description of your data for more accurate recommendations, then click "Analyze Data".
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -155,15 +253,6 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
                     </Button>
                 </CardFooter>
             </Card>
-            
-            {isLoading && (
-                <Card>
-                    <CardContent className="p-6 text-center">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-4 text-muted-foreground">Summarizing data and generating recommendations...</p>
-                    </CardContent>
-                </Card>
-            )}
 
             {summary && (
                 <Collapsible defaultOpen>
@@ -251,6 +340,27 @@ export default function RecommendationPage({ data, allHeaders, onLoadExample, on
                     </CardContent>
                 </Card>
             )}
+        </div>
+    );
+}
+
+export default function RecommendationPageWrapper(props: RecommendationPageProps) {
+    const [activeTab, setActiveTab] = useState('data-based');
+
+    return (
+        <div className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="data-based">From Data</TabsTrigger>
+                    <TabsTrigger value="goal-based">From Goal</TabsTrigger>
+                </TabsList>
+                <TabsContent value="data-based">
+                    <DataBasedRecommendation {...props} />
+                </TabsContent>
+                <TabsContent value="goal-based">
+                    <GoalBasedRecommendation />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
