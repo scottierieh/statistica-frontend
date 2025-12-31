@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -13,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview' },
@@ -169,22 +172,10 @@ export default function GuidePage() {
                          <div className="space-y-8">
                             {RUN_ANALYSIS_STEPS.map((step, index) => (
                                 <div key={step.id} className="grid md:grid-cols-2 gap-8 items-center">
-                                    <div className={`md:order-${index % 2 === 0 ? '1' : '2'} space-y-4`}>
-                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold flex-shrink-0">
-                                                {step.id}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-xl text-primary">{step.label}</h4>
-                                                <p className="text-muted-foreground text-sm">{step.description}</p>
-                                            </div>
-                                        </div>
-                                    </div>
                                     <div className={`md:order-${index % 2 === 0 ? '2' : '1'} `}>
                                         <Card className="overflow-hidden">
                                             <CardContent className="p-0">
                                                 <div className="bg-muted h-64 rounded-lg flex items-center justify-center p-4">
-                                                    {/* Custom visualization for each step */}
                                                     {step.id === 1 && (
                                                         <div className="w-full max-w-sm space-y-3">
                                                             <h4 className="text-sm font-semibold text-center mb-2">Select Variables</h4>
@@ -251,6 +242,17 @@ export default function GuidePage() {
                                                 </div>
                                             </CardContent>
                                         </Card>
+                                    </div>
+                                    <div className={`md:order-${index % 2 === 0 ? '1' : '2'} space-y-4`}>
+                                         <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold flex-shrink-0">
+                                                {step.id}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-xl text-primary">{step.label}</h4>
+                                                <p className="text-muted-foreground text-sm">{step.description}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
