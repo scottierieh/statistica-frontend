@@ -71,9 +71,9 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 }, {} as Record<string, typeof analysisMethods>);
 
 const STEPS = [
-    { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
-    { id: 2, icon: Upload, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
-    { id: 3, icon: Play, label: 'Run Analysis', description: 'A guided 6-step process to configure, validate, and interpret your analysis, from variable selection to final statistical output.' },
+    { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose from 40+ statistical methods' },
+    { id: 2, icon: Upload, label: 'Prepare Data', description: 'Upload your dataset or use a sample' },
+    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure, validate, and execute your chosen analysis in a guided 6-step process.' },
 ];
 
 const RUN_ANALYSIS_STEPS = [
@@ -151,7 +151,7 @@ export default function GuidePage() {
                             <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
-                                        <step.icon className="w-8 h-8" />
+                                        {step.id}
                                     </div>
                                     {index < STEPS.length - 1 && (
                                         <div className="w-1 flex-1 bg-border mt-2"></div>
@@ -159,7 +159,7 @@ export default function GuidePage() {
                                 </div>
                                 <div className="space-y-4 pt-1">
                                     <div>
-                                        <h3 className="font-semibold text-xl mb-1">{step.label}</h3>
+                                        <h3 className="font-semibold text-xl mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
                                         <p className="text-muted-foreground">{step.description}</p>
                                     </div>
                                 </div>
@@ -207,10 +207,29 @@ export default function GuidePage() {
                                                         </div>
                                                     )}
                                                     {step.id === 3 && (
-                                                        <div className="w-full max-w-sm space-y-3 text-center">
-                                                            <ShieldCheck className="w-12 h-12 text-green-500 mx-auto" />
-                                                            <h4 className="font-semibold">Data Validation</h4>
-                                                            <p className="text-sm text-muted-foreground">Checking assumptions like normality and homogeneity of variance...</p>
+                                                        <div className="w-full max-w-sm space-y-3">
+                                                             <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
+                                                             <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                                                <div>
+                                                                    <p className="font-medium text-sm">Variables selected</p>
+                                                                    <p className="text-xs text-muted-foreground">5 variable(s) selected</p>
+                                                                </div>
+                                                             </div>
+                                                              <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                                                <div>
+                                                                    <p className="font-medium text-sm">Data completeness</p>
+                                                                    <p className="text-xs text-muted-foreground">No missing values detected</p>
+                                                                </div>
+                                                             </div>
+                                                             <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                                                <div>
+                                                                    <p className="font-medium text-sm">Sample size</p>
+                                                                    <p className="text-xs text-muted-foreground">150 observations available</p>
+                                                                </div>
+                                                             </div>
                                                         </div>
                                                     )}
                                                     {step.id === 4 && (
