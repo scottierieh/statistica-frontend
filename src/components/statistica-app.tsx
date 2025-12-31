@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -11,7 +12,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenu,
-  SidebarGroupLabel
+  SidebarGroupLabel,
+  SidebarFooter
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -82,6 +84,7 @@ import {
   Filter,
   Download,
   Bot,
+  UserX,
   BookOpen,
   Building2,
   Search,
@@ -423,11 +426,11 @@ const analysisCategories = [
     items: [
       { id: 'ipa', label: 'Importance-Performance Analysis', icon: Target, component: IpaPage },
       { id: 'funnel-analysis', label: 'Funnel Analysis', icon: Filter, component: FunnelPage },
-      { id: 'nps', label: 'Net Promoter Score (NPS)', icon: Share2, component: NpsPage },
+      { id: 'nps', label: 'Net Promoter Score (NPS)', icon: ThumbsUp, component: NpsPage },
       { id: 'ltv-prediction', label: 'LTV Prediction', icon: DollarSign, component: LtvPage },
-      { id: 'association-rule', label: 'Association Rule', icon: Handshake, component: AssociationPage },
+      { id: 'association-rule', label: 'Association rule', icon: Handshake, component: AssociationPage },
       { id: 'dea', label: 'Data Envelopment Analysis (DEA)', icon: Building, component: DeaPage },
-      { id: 'roi-analysis', label: 'ROI Analysis', icon: DollarSign, component: RoiAnalysisPage },
+      { id: 'roi-analysis', label: 'ROI Analysis', icon: Percent, component: RoiAnalysisPage },
     ],
   },
   {
