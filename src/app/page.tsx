@@ -409,7 +409,7 @@ export default function LandingPage() {
                     <DropdownMenuItem asChild><Link href="/features/statistica">Statistica</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/data-editor">Data Editor</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/visualization">Visualization</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/dashboard">Dashboard</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/dashboard">Dashboard</Link></DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <DropdownMenu>
@@ -492,7 +492,7 @@ export default function LandingPage() {
                                     <DropdownMenuItem asChild><Link href="/features/statistica" onClick={() => setIsMobileMenuOpen(false)}>Statistica</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/features/data-editor" onClick={() => setIsMobileMenuOpen(false)}>Data Editor</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/features/visualization" onClick={() => setIsMobileMenuOpen(false)}>Visualization</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             <DropdownMenu>
