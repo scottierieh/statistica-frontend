@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -207,7 +208,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Input } from './ui/input';
 
-interface AnalysisPageProps {
+export interface AnalysisPageProps {
   data: DataSet;
   allHeaders: string[];
   numericHeaders: string[];
@@ -220,7 +221,39 @@ interface AnalysisPageProps {
 }
 
 
-const analysisCategories: any[] = [
+interface AnalysisItem {
+    id: string;
+    label: string;
+    icon: React.ElementType;
+    component: React.ComponentType<AnalysisPageProps>;
+}
+
+interface AnalysisSubCategory {
+    name: string;
+    items: AnalysisItem[];
+}
+
+interface BaseAnalysisCategory {
+    name: string;
+    icon: React.ElementType;
+}
+
+interface SingleLevelAnalysisCategory extends BaseAnalysisCategory {
+    isSingle?: true;
+    items: AnalysisItem[];
+    subCategories?: undefined;
+}
+
+interface MultiLevelAnalysisCategory extends BaseAnalysisCategory {
+    isSingle?: false;
+    items?: undefined;
+    subCategories: AnalysisSubCategory[];
+}
+
+type AnalysisCategory = SingleLevelAnalysisCategory | MultiLevelAnalysisCategory;
+
+
+const analysisCategories: AnalysisCategory[] = [
   {
     name: 'Overview',
     icon: BookOpen,
@@ -286,7 +319,7 @@ const analysisCategories: any[] = [
         items: [
           { id: 'mann-whitney', label: 'Mann-Whitney U Test', icon: Users, component: MannwhitneyPage },
           { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank', icon: Repeat, component: WilcoxonPage },
-          { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: KruskalPage },
+          { id: 'kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: KruskalPage },
           { id: 'friedman', label: 'Friedman Test', icon: Repeat, component: FriedmanPage },
         ]
       },
@@ -537,11 +570,11 @@ const analysisCategories: any[] = [
         ],
       },
     ]
-  }
+  },
 ];
 
 const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
-  .flatMap(category => category.isSingle ? category.items : ('items' in category ? category.items : category.subCategories.flatMap(sc => sc.items)))
+  .flatMap(category => category.isSingle ? category.items : ('items' in category && category.items ? category.items : (category.subCategories || []).flatMap((sc: AnalysisSubCategory) => sc.items)))
   .reduce((acc, item) => {
     acc[item.id] = item.component;
     return acc;
@@ -713,44 +746,47 @@ export default function StatisticaApp() {
 
   const hasData = data.length > 0;
 
-  const filteredAnalysisCategories = useMemo(() => {
+  const filteredAnalysisCategories: AnalysisCategory[] = useMemo(() => {
     if (!searchTerm) {
-      return analysisCategories;
+        return analysisCategories;
     }
     const lowercasedFilter = searchTerm.toLowerCase();
 
     return analysisCategories.map(category => {
-      if (category.isSingle) {
-        const hasMatch = category.items[0].label.toLowerCase().includes(lowercasedFilter);
-        return hasMatch ? category : null;
-      }
+        if (category.isSingle) {
+            const hasMatch = category.items[0].label.toLowerCase().includes(lowercasedFilter);
+            return hasMatch ? category : null;
+        }
 
-      if (category.items) {
-        const filteredItems = category.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
-        return filteredItems.length > 0 ? { ...category, items: filteredItems } : null;
-      }
+        if (category.items) {
+            const filteredItems = category.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+            return filteredItems.length > 0 ? { ...category, items: filteredItems } : null;
+        }
 
-      if ('subCategories' in category && category.subCategories) {
-        const filteredSubCategories = category.subCategories
-          .map((sub: any) => {
-            const filteredItems = sub.items.filter((item: any) => item.label.toLowerCase().includes(lowercasedFilter));
-            return filteredItems.length > 0 ? { ...sub, items: filteredItems } : null;
-          })
-          .filter(Boolean);
+        if (category.subCategories) {
+            const filteredSubCategories = category.subCategories
+                .map((sub: AnalysisSubCategory) => {
+                    const filteredItems = sub.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+                    return filteredItems.length > 0 ? { ...sub, items: filteredItems } : null;
+                })
+                .filter(Boolean) as AnalysisSubCategory[];
 
-        return filteredSubCategories.length > 0 ? { ...category, subCategories: filteredSubCategories } : null;
-      }
+            return filteredSubCategories.length > 0 ? { ...category, subCategories: filteredSubCategories } : null;
+        }
 
-      return null;
-    }).filter(Boolean);
+        return null;
+    }).filter(Boolean) as AnalysisCategory[];
   }, [searchTerm]);
 
   const ActivePageComponent = useMemo(() => {
     for (const category of analysisCategories) {
-        if (category.items) {
+        if (category.isSingle) {
             const found = category.items.find(item => item.id === activeAnalysis);
             if (found) return found.component;
-        } else if ('subCategories' in category && category.subCategories) {
+        } else if (category.items) {
+            const found = category.items.find(item => item.id === activeAnalysis);
+            if (found) return found.component;
+        } else if (category.subCategories) {
             for (const sub of category.subCategories) {
                 const found = sub.items.find((item: any) => item.id === activeAnalysis);
                 if(found) return found.component;
@@ -800,9 +836,9 @@ export default function StatisticaApp() {
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      {'items' in category ? (
+                      {category.items ? (
                         <SidebarMenu>
-                          {(category.items).map((item: any) => (
+                          {category.items.map((item: any) => (
                             <SidebarMenuItem key={item.id}>
                               <SidebarMenuButton
                                 onClick={() => setActiveAnalysis(item.id)}
@@ -815,7 +851,7 @@ export default function StatisticaApp() {
                           ))}
                         </SidebarMenu>
                       ) : (
-                        'subCategories' in category && category.subCategories && (
+                        category.subCategories && (
                           <SidebarMenu>
                             {category.subCategories.map((sub: any, i: number) => (
                               <div key={i}>
@@ -854,7 +890,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
 
-            {hasData && activeAnalysis !== 'guide' && (
+            {hasData && activeAnalysis !== 'guide' && activeAnalysis !== 'recommendation' && (
               <DataPreview
                 fileName={fileName}
                 data={data}
