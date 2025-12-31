@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -97,11 +98,6 @@ import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
-import { ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
-import { Input } from './ui/input';
 import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
 import GuidePage from './pages/guide-page';
 
@@ -177,7 +173,7 @@ import RiskMatrixPage from './pages/risk-matrix-page';
 import SatisfactionEngagementMatrixPage from './pages/satisfaction-engagement-matrix-page';
 import AttendanceAnalysisPage from './pages/attendance-analysis-page';
 import HeadcountStabilityPage from './pages/headcount-stability-page';
-import FinancialModelingPage from '../dashboard/financial-modeling/page';
+import FinancialModelingPage from './pages/financial-modeling-page';
 import FactorAnalysisPage from './pages/factor-analysis-page';
 import OptionsPricingPage from './pages/options-pricing-page';
 import BacktestingPage from './pages/backtesting-page';
@@ -199,6 +195,11 @@ import EOQOptimizationPage from './pages/eoq-optimization-page';
 import InventoryOptimizationPage from './pages/inventory-optimization-page';
 import LeadTimeAnalysisPage from './pages/lead-time-analysis-page';
 import FleetOptimizationPage from './pages/fleet-optimization-page';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { Input } from './ui/input';
 
 const analysisCategories = [
   {
