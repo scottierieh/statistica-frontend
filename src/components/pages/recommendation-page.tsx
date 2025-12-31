@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -5,19 +6,16 @@ import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, ChevronsUpDown, HelpCircle, Lightbulb } from 'lucide-react';
+import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, HelpCircle, Lightbulb } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAnalysisRecommendationsByGoal } from '@/app/actions';
+import { Checkbox } from '../ui/checkbox';
 import { analysisGoals } from '@/lib/analysis-goals';
-
 
 interface RecommendationPageProps {
   onLoadExample: (example: ExampleDataSet) => void;
@@ -28,6 +26,8 @@ interface RecommendationPageProps {
 }
 
 const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
+    const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
+
     return (
         <div className="flex flex-1 items-center justify-center p-6">
             <Card className="w-full max-w-2xl text-center">
@@ -47,8 +47,8 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                         The model will analyze your dataset's structure—identifying numeric and categorical variables—to provide tailored recommendations.
                     </p>
                     <div className="flex justify-center gap-4 pt-2">
-                        <Button size="lg" onClick={() => document.getElementById('recommend-upload-input')?.click()}>
-                            <FileUp className="mr-2 h-5 w-5" />
+                        <Button size="lg" onClick={() => document.getElementById('recommend-upload-input')?.click()} disabled={isUploading}>
+                            {isUploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <FileUp className="mr-2 h-5 w-5" />}
                             Upload Data
                         </Button>
                          <input
@@ -58,10 +58,12 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                             onChange={(e) => e.target.files && onFileSelected(e.target.files[0])}
                             accept=".csv,.txt,.tsv,.xlsx,.xls,.json"
                          />
-                        <Button size="lg" variant="outline" onClick={onLoadExample}>
-                            <Sparkles className="mr-2 h-5 w-5" />
-                            Use Sample
-                        </Button>
+                        {irisExample && (
+                            <Button size="lg" variant="outline" onClick={() => onLoadExample(irisExample)}>
+                                <Sparkles className="mr-2 h-5 w-5" />
+                                Use Sample
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -69,130 +71,30 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
     );
 };
 
-const GoalBasedRecommendation = () => {
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-    const [recommendations, setRecommendations] = useState<any[] | null>(null);
-    const [dataDescription, setDataDescription] = useState('');
-
-    const handleAnalysis = useCallback(async (goal?: string) => {
-        const description = goal || dataDescription;
-        if (!description.trim()) {
-            toast({
-                title: "Goal not specified",
-                description: "Please describe your analysis goal or select a common goal.",
-                variant: "destructive"
-            });
-            return;
-        }
-
-        setIsLoading(true);
-        setRecommendations(null);
-
-        try {
-            const response = await getAnalysisRecommendationsByGoal(description);
-            if (!response.success || !response.recommendations) {
-                throw new Error(response.error || 'Failed to get recommendations.');
-            }
-            setRecommendations(response.recommendations);
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [dataDescription, toast]);
-
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Describe Your Goal</CardTitle>
-                    <CardDescription>
-                        Explain what you want to achieve with your analysis, or choose a common objective below.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <Textarea
-                            placeholder="e.g., 'I want to see if my new marketing campaign increased sales compared to the old one.' or 'Find out which factors are most important for employee satisfaction.'"
-                            value={dataDescription}
-                            onChange={(e) => setDataDescription(e.target.value)}
-                            className="min-h-[100px]"
-                        />
-                         <h4 className="font-semibold text-sm pt-4">Or select a common goal:</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {analysisGoals.map(goal => (
-                                <Button key={goal.id} variant="outline" size="sm" onClick={() => handleAnalysis(goal.description)}>
-                                    <goal.icon className="mr-2 h-4 w-4"/>
-                                    {goal.title}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={() => handleAnalysis()} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Get Recommendations</>}
-                    </Button>
-                </CardFooter>
-            </Card>
-
-            {isLoading && (
-                <Card className="flex items-center justify-center p-6">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4 text-muted-foreground">Generating recommendations...</p>
-                </Card>
-            )}
-
-            {recommendations && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Bot />AI-Powered Analysis Recommendations</CardTitle>
-                        <CardDescription>Based on your goal, here are some suggested analyses.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {recommendations.map((rec, index) => (
-                            <Card key={index} className="flex flex-col">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{rec.analysis_name}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex-1">
-                                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <div className="w-full">
-                                        <Label className="text-xs text-muted-foreground">Example Variables</Label>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                          {rec.required_variables.map((v: string, i: number) => <Badge key={i} variant="outline">{v}</Badge>)}
-                                        </div>
-                                    </div>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </CardContent>
-                </Card>
-            )}
-        </div>
-    );
-};
-
-const DataBasedRecommendation = ({ data, allHeaders, onLoadExample, onFileSelected, isUploading }: any) => {
+export default function RecommendationPage(props: RecommendationPageProps) {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [summary, setSummary] = useState<any[] | null>(null);
     const [recommendations, setRecommendations] = useState<any[] | null>(null);
     const [dataDescription, setDataDescription] = useState('');
+    const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set());
 
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
         setSummary(null);
         setRecommendations(null);
 
+        // Combine user's text description and selected goals
+        const combinedDescription = [
+            dataDescription.trim(),
+            ...Array.from(selectedGoals)
+        ].filter(Boolean).join('\n');
+
         try {
             const response = await fetch('/api/analysis/data-summary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, headers: allHeaders, dataDescription }),
+                body: JSON.stringify({ data: props.data, headers: props.allHeaders, dataDescription: combinedDescription }),
             });
 
             if (!response.ok) {
@@ -212,111 +114,118 @@ const DataBasedRecommendation = ({ data, allHeaders, onLoadExample, onFileSelect
         } finally {
             setIsLoading(false);
         }
-    }, [data, allHeaders, dataDescription, toast]);
+    }, [props.data, props.allHeaders, dataDescription, selectedGoals, toast]);
     
-    if (!data || data.length === 0) {
-        const example = exampleDatasets[0];
-        return <IntroPage onFileSelected={onFileSelected} onLoadExample={() => onLoadExample(example)} isUploading={isUploading} />;
+    if (!props.data || props.data.length === 0) {
+        return <IntroPage onFileSelected={props.onFileSelected} onLoadExample={() => props.onLoadExample(exampleDatasets.find(e => e.id === 'iris')!)} isUploading={props.isUploading} />;
     }
 
     return (
          <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Describe Your Data</CardTitle>
+                    <CardTitle className="font-headline">Describe Your Analysis Goal</CardTitle>
                     <CardDescription>
-                        Provide a brief description of your data for more accurate recommendations, then click "Analyze Data".
+                        Provide more context about your data or objective to get better recommendations.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="data-description" className="text-base font-semibold">
-                                What is this data about? (Optional)
-                            </Label>
-                            <p className="text-sm text-muted-foreground mb-2">
-                                e.g., "This is customer satisfaction data from a post-purchase survey."
-                            </p>
-                            <Textarea
-                                id="data-description"
-                                placeholder="Describe your data here..."
-                                value={dataDescription}
-                                onChange={(e) => setDataDescription(e.target.value)}
-                                className="min-h-[80px]"
-                            />
-                        </div>
+                <CardContent className="space-y-6">
+                    <div>
+                        <Label htmlFor="data-description" className="text-base font-semibold">
+                            1. What is this data about or what do you want to find out? (Optional)
+                        </Label>
+                        <Textarea
+                            id="data-description"
+                            placeholder="e.g., 'This is customer satisfaction data from a post-purchase survey. I want to see what drives satisfaction.'"
+                            value={dataDescription}
+                            onChange={(e) => setDataDescription(e.target.value)}
+                            className="mt-2 min-h-[80px]"
+                        />
+                    </div>
+                    <div>
+                         <Label className="text-base font-semibold">2. Select Your Analysis Objectives (Optional)</Label>
+                         <p className="text-sm text-muted-foreground mb-3">Choose one or more goals you want to achieve.</p>
+                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {analysisGoals.map(goal => (
+                                <div key={goal.id} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={`goal-${goal.id}`} 
+                                        checked={selectedGoals.has(goal.description)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedGoals(prev => {
+                                                const newSet = new Set(prev);
+                                                if (checked) {
+                                                    newSet.add(goal.description);
+                                                } else {
+                                                    newSet.delete(goal.description);
+                                                }
+                                                return newSet;
+                                            })
+                                        }}
+                                    />
+                                    <Label htmlFor={`goal-${goal.id}`} className="flex items-center gap-2 cursor-pointer">
+                                        <goal.icon className="w-4 h-4"/>
+                                        {goal.title}
+                                    </Label>
+                                </div>
+                            ))}
+                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Analyze Data</>}
+                    <Button onClick={handleAnalysis} disabled={isLoading} size="lg">
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin" />Analyzing...</> : <><Wand2 className="mr-2" />Get Recommendations</>}
                     </Button>
                 </CardFooter>
             </Card>
 
             {summary && (
-                <Collapsible defaultOpen>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Data Summary</CardTitle>
-                                <CardDescription>A brief overview of your dataset's columns.</CardDescription>
-                            </div>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                    <ChevronsUpDown className="h-4 w-4" />
-                                    <span className="sr-only">Toggle</span>
-                                </Button>
-                            </CollapsibleTrigger>
-                        </CardHeader>
-                        <CollapsibleContent>
-                            <CardContent>
-                                <ScrollArea className="max-h-[400px]">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Variable</TableHead>
-                                                <TableHead>Type</TableHead>
-                                                <TableHead>Missing</TableHead>
-                                                <TableHead>Unique</TableHead>
-                                                <TableHead>Mean</TableHead>
-                                                <TableHead>Std Dev</TableHead>
-                                                <TableHead>Min</TableHead>
-                                                <TableHead>Max</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {summary.map((col, index) => (
-                                                <TableRow key={index}>
-                                                    <TableCell className="font-medium">{col.name}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={col.type === 'numeric' ? 'default' : 'secondary'}
-                                                          className={col.type === 'numeric' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
-                                                          {col.type}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>{col.missing_count}</TableCell>
-                                                    <TableCell>{col.unique_count}</TableCell>
-                                                    <TableCell>{col.mean?.toFixed(2) ?? '-'}</TableCell>
-                                                    <TableCell>{col.std?.toFixed(2) ?? '-'}</TableCell>
-                                                    <TableCell>{col.min ?? '-'}</TableCell>
-                                                    <TableCell>{col.max ?? '-'}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </ScrollArea>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Data Summary</CardTitle>
+                        <CardDescription>A brief overview of your dataset's columns.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="max-h-[400px]">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Missing</TableHead>
+                                        <TableHead>Unique</TableHead>
+                                        <TableHead>Mean</TableHead>
+                                        <TableHead>Std Dev</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {summary.map((col, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell className="font-medium">{col.name}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={col.type === 'numeric' ? 'default' : 'secondary'}
+                                                  className={col.type === 'numeric' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
+                                                  {col.type}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{col.missing_count}</TableCell>
+                                            <TableCell>{col.unique_count}</TableCell>
+                                            <TableCell>{col.mean?.toFixed(2) ?? '-'}</TableCell>
+                                            <TableCell>{col.std?.toFixed(2) ?? '-'}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
             )}
 
             {recommendations && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Bot />AI-Powered Analysis Recommendations</CardTitle>
-                        <CardDescription>Based on your data, here are some suggested analyses to perform.</CardDescription>
+                        <CardDescription>Based on your data and goals, here are some suggested analyses.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {recommendations.map((rec, index) => (
@@ -340,27 +249,6 @@ const DataBasedRecommendation = ({ data, allHeaders, onLoadExample, onFileSelect
                     </CardContent>
                 </Card>
             )}
-        </div>
-    );
-}
-
-export default function RecommendationPageWrapper(props: RecommendationPageProps) {
-    const [activeTab, setActiveTab] = useState('data-based');
-
-    return (
-        <div className="space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="data-based">From Data</TabsTrigger>
-                    <TabsTrigger value="goal-based">From Goal</TabsTrigger>
-                </TabsList>
-                <TabsContent value="data-based">
-                    <DataBasedRecommendation {...props} />
-                </TabsContent>
-                <TabsContent value="goal-based">
-                    <GoalBasedRecommendation />
-                </TabsContent>
-            </Tabs>
         </div>
     );
 }
