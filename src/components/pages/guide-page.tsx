@@ -1,7 +1,6 @@
-
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +8,11 @@ import {
   Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview' },
@@ -66,7 +70,7 @@ const groupedMethods = analysisMethods.reduce((acc, method) => {
 const STEPS = [
     { id: 1, icon: ListChecks, label: 'Select Analysis', description: 'Choose the statistical method that fits your research question from our extensive library.' },
     { id: 2, icon: Upload, label: 'Prepare Data', description: 'Upload your dataset in CSV or Excel format, or load one of our sample datasets to get started quickly.' },
-    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables, validate data, and get results through a guided 6-step process.' },
+    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables, validate assumptions, and generate results through a guided 6-step process.' },
 ];
 
 const RUN_ANALYSIS_STEPS = [
@@ -126,8 +130,6 @@ const industryApplications = [
 export default function GuidePage() {
   return (
     <div className="space-y-6">
-
-
       <Tabs defaultValue="procedure">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
@@ -181,8 +183,71 @@ export default function GuidePage() {
                                     <div className={`md:order-${index % 2 === 0 ? '2' : '1'} `}>
                                         <Card className="overflow-hidden">
                                             <CardContent className="p-0">
-                                                <div className="bg-muted h-64 rounded-lg flex items-center justify-center">
-                                                    <p className="text-sm text-muted-foreground">Image for Step {step.id}</p>
+                                                <div className="bg-muted h-64 rounded-lg flex items-center justify-center p-4">
+                                                    {/* Custom visualization for each step */}
+                                                    {step.id === 1 && (
+                                                        <div className="w-full max-w-sm space-y-3">
+                                                            <h4 className="text-sm font-semibold text-center mb-2">Select Variables</h4>
+                                                            <div className="p-3 bg-white rounded-md border shadow-sm">
+                                                                <Label className="text-xs text-muted-foreground">Dependent Variable</Label>
+                                                                <div className="flex items-center justify-between mt-1"><span>Satisfaction</span> <Target className="w-4 h-4 text-primary"/></div>
+                                                            </div>
+                                                            <div className="p-3 bg-white rounded-md border shadow-sm">
+                                                                <Label className="text-xs text-muted-foreground">Independent Variables</Label>
+                                                                <div className="flex items-center justify-between mt-1"><span>Price, Quality</span><Users className="w-4 h-4 text-primary"/></div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {step.id === 2 && (
+                                                        <div className="w-full max-w-sm space-y-3">
+                                                            <h4 className="text-sm font-semibold text-center mb-2">Configure Settings</h4>
+                                                            <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                                                <Label>Alpha Level</Label>
+                                                                <Badge>0.05</Badge>
+                                                            </div>
+                                                            <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                                                <Label>Post-hoc Test</Label>
+                                                                <Badge variant="outline">Tukey HSD</Badge>
+                                                            </div>
+                                                            <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                                                <Label>Confidence Interval</Label>
+                                                                <Badge variant="outline">95%</Badge>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {step.id === 3 && (
+                                                        <div className="w-full max-w-sm space-y-3 text-center">
+                                                            <ShieldCheck className="w-12 h-12 text-green-500 mx-auto" />
+                                                            <h4 className="font-semibold">Data Validation</h4>
+                                                            <p className="text-sm text-muted-foreground">Checking assumptions like normality and homogeneity of variance...</p>
+                                                        </div>
+                                                    )}
+                                                    {step.id === 4 && (
+                                                        <div className="w-full max-w-sm space-y-3">
+                                                            <h4 className="text-sm font-semibold text-center mb-2">Summary</h4>
+                                                            <Alert className="border-primary bg-primary/5">
+                                                                <AlertTitle className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/>Significant Result</AlertTitle>
+                                                                <AlertDescription>The analysis shows a significant relationship (p {'<'} 0.05) between your selected variables.</AlertDescription>
+                                                            </Alert>
+                                                        </div>
+                                                    )}
+                                                    {step.id === 5 && (
+                                                         <div className="w-full max-w-sm space-y-3">
+                                                            <h4 className="text-sm font-semibold text-center mb-2">Reasoning</h4>
+                                                            <Card className="text-left p-3">
+                                                                <p className="text-xs text-muted-foreground">The p-value is below 0.05, indicating that the observed effect is unlikely to be due to chance. This allows us to reject the null hypothesis.</p>
+                                                            </Card>
+                                                        </div>
+                                                    )}
+                                                    {step.id === 6 && (
+                                                        <div className="w-full max-w-sm space-y-3">
+                                                            <h4 className="text-sm font-semibold text-center mb-2">Full Statistics</h4>
+                                                            <Table className="text-xs bg-white rounded-md border">
+                                                                <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Value</TableHead></TableRow></TableHeader>
+                                                                <TableBody><TableRow><TableCell>F-statistic</TableCell><TableCell>4.58</TableCell></TableRow><TableRow><TableCell>p-value</TableCell><TableCell>0.042</TableCell></TableRow></TableBody>
+                                                            </Table>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
