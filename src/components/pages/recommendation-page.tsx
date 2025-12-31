@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -5,7 +6,7 @@ import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, HelpCircle, Info, Lightbulb } from 'lucide-react';
+import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, HelpCircle, Info, Lightbulb, TrendingUp, Layers, Users, ArrowLeftRight, Target, Timer } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -97,7 +98,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
     const [dataDescription, setDataDescription] = useState('');
     const [analysisGoal, setAnalysisGoal] = useState('');
     const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set());
-    const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set(props.allHeaders));
+    const [selectedVars, setSelectedVars] = useState<Set<string>>(props.allHeaders);
     
     useEffect(() => {
         if (props.allHeaders) {
@@ -170,18 +171,11 @@ export default function RecommendationPage(props: RecommendationPageProps) {
          <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Describe Your Analysis Goal</CardTitle>
+                    <CardTitle className="font-headline">AI Analysis Recommendation</CardTitle>
+                    <CardDescription>Tell the AI about your data and goals to get tailored analysis suggestions.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800">
-                        <Info className="h-4 w-4 text-sky-600" />
-                        <AlertTitle className="text-sky-800 dark:text-sky-200">Get Better Recommendations</AlertTitle>
-                        <AlertDescription className="text-sky-700 dark:text-sky-300">
-                            Providing context is optional, but it helps our AI understand your needs and suggest more accurate analyses. Tell us about your data and what you hope to discover.
-                        </AlertDescription>
-                    </Alert>
-
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label htmlFor="variable-selection" className="text-base font-semibold">
                             1. Select Variables for Analysis
                         </Label>
@@ -206,32 +200,43 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                             </div>
                         </ScrollArea>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="data-description" className="text-base font-semibold">
-                            2. What is this data about? (Optional)
-                        </Label>
-                        <Textarea
-                            id="data-description"
-                            placeholder="e.g., 'This is customer satisfaction data from a post-purchase survey.'"
-                            value={dataDescription}
-                            onChange={(e) => setDataDescription(e.target.value)}
-                            className="min-h-[60px]"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="analysis-goal" className="text-base font-semibold">
-                           3. What do you want to find out? (Optional)
-                        </Label>
-                        <Textarea
-                            id="analysis-goal"
-                            placeholder="e.g., 'I want to see what drives satisfaction scores.' or 'Which customer group is most likely to churn?'"
-                            value={analysisGoal}
-                            onChange={(e) => setAnalysisGoal(e.target.value)}
-                            className="min-h-[60px]"
-                        />
+
+                    <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800">
+                        <Info className="h-4 w-4 text-sky-600" />
+                        <AlertTitle className="text-sky-800 dark:text-sky-200">Describe Your Analysis Goal (Optional)</AlertTitle>
+                        <AlertDescription className="text-sky-700 dark:text-sky-300">
+                           Providing context helps our AI suggest more accurate analyses. If you leave this blank, recommendations will be based solely on your data's structure.
+                        </AlertDescription>
+                    </Alert>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="data-description" className="font-semibold">
+                                2. What is this data about?
+                            </Label>
+                            <Textarea
+                                id="data-description"
+                                placeholder="e.g., 'This is customer satisfaction data from a post-purchase survey.'"
+                                value={dataDescription}
+                                onChange={(e) => setDataDescription(e.target.value)}
+                                className="min-h-[80px]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="analysis-goal" className="font-semibold">
+                               3. What do you want to find out?
+                            </Label>
+                            <Textarea
+                                id="analysis-goal"
+                                placeholder="e.g., 'I want to see what drives satisfaction scores.' or 'Which customer group is most likely to churn?'"
+                                value={analysisGoal}
+                                onChange={(e) => setAnalysisGoal(e.target.value)}
+                                className="min-h-[80px]"
+                            />
+                        </div>
                     </div>
                     <div>
-                         <Label className="text-base font-semibold">4. Select Your Analysis Objectives (Optional)</Label>
+                         <Label className="font-semibold">4. Select Your Analysis Objectives</Label>
                          <p className="text-sm text-muted-foreground mb-3">Choose one or more general goals.</p>
                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {analysisGoals.map(goal => (
@@ -319,7 +324,10 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                         {recommendations.map((rec, index) => (
                             <Card key={index} className="flex flex-col">
                                 <CardHeader>
-                                    <CardTitle className="text-lg">{rec.analysis_name}</CardTitle>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-lg">{rec.analysis_name}</CardTitle>
+                                        <Badge variant="outline">{rec.category}</Badge>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="flex-1">
                                     <p className="text-sm text-muted-foreground">{rec.reason}</p>
@@ -328,7 +336,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                                     <div className="w-full">
                                         <Label className="text-xs text-muted-foreground">Example Variables</Label>
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                          {rec.required_variables.map((v: string, i: number) => <Badge key={i} variant="outline">{v}</Badge>)}
+                                          {rec.required_variables.map((v: string, i: number) => <Badge key={i} variant="secondary">{v}</Badge>)}
                                         </div>
                                     </div>
                                 </CardFooter>
