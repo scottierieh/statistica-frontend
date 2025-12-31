@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -11,50 +10,201 @@ import {
   SidebarTrigger,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenu
+  SidebarMenu,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
   Loader2,
   TrendingUp,
-  FastForward,
-  PlayCircle,
-  BarChart,
   FlaskConical,
+  Landmark,
+  Megaphone,
+  Package,
+  Factory,
+  Users,
+  ArrowLeftRight,
+  Target,
+  BarChart3,
+  Zap,
+  Layers,
+  Activity,
+  UserX,
+  Filter,
+  DollarSign
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   type DataSet,
   parseData,
+  unparseData,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// Since the pages were removed, we'll define placeholder components here for now
-// In a real scenario, these would be the actual analysis components.
-const WhatIfAnalysisPage = () => <div className="p-4"><h2 className="text-xl font-semibold">What-If Analysis</h2><p>Configure your what-if scenario here.</p></div>;
-const ThresholdOptimizationPage = () => <div className="p-4"><h2 className="text-xl font-semibold">Threshold Optimization</h2><p>Set up your threshold optimization parameters.</p></div>;
-const CostSensitivePage = () => <div className="p-4"><h2 className="text-xl font-semibold">Cost-Sensitive Analysis</h2><p>Define costs for your cost-sensitive analysis.</p></div>;
+// Import newly created pages
+import PrePostPolicyPage from './pages/scenario/pre-post-policy-page';
+import PolicyTargetImpactPage from './pages/scenario/policy-target-impact-page';
+import PolicyDistributionPage from './pages/scenario/policy-distribution-page';
+import CampaignPerformancePage from './pages/scenario/campaign-performance-page';
+import SegmentEffectivenessPage from './pages/scenario/segment-effectiveness-page';
+import ChannelEfficiencyPage from './pages/scenario/channel-efficiency-page';
+import FeatureAdoptionPage from './pages/scenario/feature-adoption-page';
+import EngagementChangePage from './pages/scenario/engagement-change-page';
+import ChurnDiagnosisPage from './pages/scenario/churn-diagnosis-page';
+import ProcessBottleneckPage from './pages/scenario/process-bottleneck-page';
+import ProcessStabilityPage from './pages/scenario/process-stability-page';
+import CostEfficiencyPage from './pages/scenario/cost-efficiency-page';
+import HrPolicyOutcomePage from './pages/scenario/hr-policy-outcome-page';
+import AttritionAnalysisPage from './pages/scenario/attrition-analysis-page';
+import PerformanceStructurePage from './pages/scenario/performance-structure-page';
 
 
-type AnalysisType = 'what-if' | 'threshold-optimization' | 'cost-sensitive';
+const analysisCategories = [
+  {
+    name: 'Policy / Institution',
+    icon: Landmark,
+    items: [
+      {
+        id: 'policy-pre-post',
+        label: 'Pre/Post Policy Comparison',
+        component: PrePostPolicyPage,
+        icon: ArrowLeftRight
+      },
+      {
+        id: 'policy-target-impact',
+        label: 'Target Group Impact Analysis',
+        component: PolicyTargetImpactPage,
+        icon: Target
+      },
+      {
+        id: 'policy-distribution',
+        label: 'Policy Outcome Distribution Analysis',
+        component: PolicyDistributionPage,
+        icon: BarChart3
+      },
+    ],
+  },
+  {
+    name: 'Marketing / Growth',
+    icon: Megaphone,
+    items: [
+      {
+        id: 'campaign-performance',
+        label: 'Campaign Performance Evaluation',
+        component: CampaignPerformancePage,
+        icon: TrendingUp
+      },
+      {
+        id: 'segment-effectiveness',
+        label: 'Customer Segment Effectiveness Analysis',
+        component: SegmentEffectivenessPage,
+        icon: Users
+      },
+      {
+        id: 'channel-efficiency',
+        label: 'Channel Efficiency Diagnosis',
+        component: ChannelEfficiencyPage,
+        icon: Zap
+      },
+    ],
+  },
+  {
+    name: 'Product / Service',
+    icon: Package,
+    items: [
+      {
+        id: 'feature-adoption',
+        label: 'Feature Adoption Analysis',
+        component: FeatureAdoptionPage,
+        icon: Layers
+      },
+      {
+        id: 'engagement-change',
+        label: 'User Engagement Change Analysis',
+        component: EngagementChangePage,
+        icon: Activity
+      },
+      {
+        id: 'churn-diagnosis',
+        label: 'Churn & Drop-off Diagnosis',
+        component: ChurnDiagnosisPage,
+        icon: UserX
+      },
+    ],
+  },
+  {
+    name: 'Operations / Process',
+    icon: Factory,
+    items: [
+      {
+        id: 'process-bottleneck',
+        label: 'Process Bottleneck Diagnosis',
+        component: ProcessBottleneckPage,
+        icon: Filter
+      },
+      {
+        id: 'process-stability',
+        label: 'Process Stability & Quality Analysis',
+        component: ProcessStabilityPage,
+        icon: Activity
+      },
+      {
+        id: 'cost-efficiency',
+        label: 'Cost & Efficiency Structure Analysis',
+        component: CostEfficiencyPage,
+        icon: DollarSign
+      },
+    ],
+  },
+  {
+    name: 'HR / Organization',
+    icon: Users,
+    items: [
+      {
+        id: 'hr-policy-outcome',
+        label: 'HR Policy Outcome Analysis',
+        component: HrPolicyOutcomePage,
+        icon: Users
+      },
+      {
+        id: 'attrition-retention',
+        label: 'Attrition & Retention Analysis',
+        component: AttritionAnalysisPage,
+        icon: UserX
+      },
+      {
+        id: 'performance-structure',
+        label: 'Performance Structure Diagnosis',
+        component: PerformanceStructurePage,
+        icon: BarChart3
+      },
+    ],
+  },
+];
 
-const analysisPages: Record<string, React.ComponentType<any>> = {
-  'what-if': WhatIfAnalysisPage,
-  'threshold-optimization': ThresholdOptimizationPage,
-  'cost-sensitive': CostSensitivePage,
-};
+
+const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
+  .flatMap(category => category.items)
+  .reduce((acc, item) => {
+    acc[item.id] = item.component;
+    return acc;
+  }, {} as Record<string, React.ComponentType<any>>);
+
 
 export default function ScenarioApp() {
   const [data, setData] = useState<DataSet>([]);
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
-  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
-  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('what-if');
+  const [activeAnalysis, setActiveAnalysis] = useState<string>('policy-pre-post');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Policy / Institution']);
+  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -70,9 +220,8 @@ export default function ScenarioApp() {
     setIsUploading(true);
     try {
         const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
-        
         if (newData.length === 0 || newHeaders.length === 0) {
-          throw new Error("No valid data found in the file.");
+            throw new Error("No valid data found in the file.");
         }
         setData(newData);
         setAllHeaders(newHeaders);
@@ -80,13 +229,8 @@ export default function ScenarioApp() {
         setCategoricalHeaders(newCategoricalHeaders);
         setFileName(name);
         toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
-
       } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'File Processing Error',
-          description: error.message || 'Could not parse file. Please check the format.',
-        });
+        toast({ variant: 'destructive', title: 'File Processing Error', description: error.message });
         handleClearData();
       } finally {
         setIsUploading(false);
@@ -94,24 +238,14 @@ export default function ScenarioApp() {
   }, [toast, handleClearData]);
 
   const handleFileSelected = useCallback((file: File) => {
-    setIsUploading(true);
     const reader = new FileReader();
-
     reader.onload = (e) => {
         const content = e.target?.result as string;
-        if (!content) {
-            toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
-            setIsUploading(false);
-            return;
-        }
         processData(content, file.name);
     };
-
-    reader.onerror = (e) => {
+    reader.onerror = () => {
         toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
-        setIsUploading(false);
-    }
-    
+    };
     if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
         reader.readAsArrayBuffer(file);
         reader.onload = (e) => {
@@ -130,12 +264,20 @@ export default function ScenarioApp() {
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
     if(example.recommendedAnalysis) {
-      setActiveAnalysis(example.recommendedAnalysis as AnalysisType);
+      setActiveAnalysis(example.recommendedAnalysis);
     }
   };
 
-  const ActivePageComponent = analysisPages[activeAnalysis] || WhatIfAnalysisPage;
+  const ActivePageComponent = analysisPages[activeAnalysis] || (() => <div>Select an analysis</div>);
   const hasData = data.length > 0;
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  };
 
   return (
     <SidebarProvider>
@@ -157,33 +299,32 @@ export default function ScenarioApp() {
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveAnalysis('what-if')}
-                  isActive={activeAnalysis === 'what-if'}
-                >
-                  <TrendingUp />
-                  <span>What-If Analysis</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveAnalysis('threshold-optimization')}
-                  isActive={activeAnalysis === 'threshold-optimization'}
-                >
-                  <FastForward />
-                  <span>Threshold Optimization</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveAnalysis('cost-sensitive')}
-                  isActive={activeAnalysis === 'cost-sensitive'}
-                >
-                  <BarChart />
-                  <span>Cost-Sensitive Analysis</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {analysisCategories.map(category => (
+                  <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold shadow-md border bg-white text-foreground hover:bg-slate-50">
+                        <category.icon className="mr-2 h-5 w-5" />
+                        <span>{category.name}</span>
+                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                       <SidebarMenu>
+                          {category.items.map(item => (
+                            <SidebarMenuItem key={item.id}>
+                              <SidebarMenuButton
+                                onClick={() => setActiveAnalysis(item.id)}
+                                isActive={activeAnalysis === item.id}
+                              >
+                                {item.icon && <item.icon className="h-4 w-4"/>}
+                                {item.label}
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                    </CollapsibleContent>
+                  </Collapsible>
+              ))}
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
@@ -212,6 +353,8 @@ export default function ScenarioApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
+                isUploading={isUploading}
               />
           </div>
         </SidebarInset>
