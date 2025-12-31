@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -31,7 +30,7 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
 
     return (
         <div className="flex flex-1 items-center justify-center p-6">
-            <Card className="w-full max-w-2xl text-center">
+            <Card className="w-full max-w-4xl text-center">
                 <CardHeader>
                     <div className="flex justify-center mb-4">
                         <div className="p-3 bg-primary/10 rounded-full">
@@ -44,15 +43,12 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <p className="text-muted-foreground">
-                        Simply upload your data, describe your goals, and get tailored recommendations instantly.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Card className="text-left bg-muted/50">
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2">
                                     <FileUp className="w-5 h-5 text-primary" />
-                                    Data-Driven
+                                    Data-Driven Recommendation
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -65,7 +61,7 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2">
                                     <Lightbulb className="w-5 h-5 text-primary" />
-                                    Goal-Driven
+                                    Goal-Driven Recommendation
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -98,7 +94,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
     const [dataDescription, setDataDescription] = useState('');
     const [analysisGoal, setAnalysisGoal] = useState('');
     const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set());
-    const [selectedVars, setSelectedVars] = useState<Set<string>>(props.allHeaders);
+    const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set(props.allHeaders));
     
     useEffect(() => {
         if (props.allHeaders) {
@@ -141,7 +137,7 @@ export default function RecommendationPage(props: RecommendationPageProps) {
             const response = await fetch('/api/analysis/data-summary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: dataForAnalysis, headers: Array.from(selectedVars), dataDescription: combinedDescription }),
+                body: JSON.stringify({ data: dataForAnalysis, dataDescription: combinedDescription }),
             });
 
             if (!response.ok) {
@@ -347,4 +343,3 @@ export default function RecommendationPage(props: RecommendationPageProps) {
             )}
         </div>
     );
-}

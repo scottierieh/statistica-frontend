@@ -19,7 +19,7 @@ const RecommendationSchema = z.object({
   reason: z
     .string()
     .describe(
-      "A brief, clear explanation of why this analysis is suitable for the given data structure and user description."
+      "A brief, clear, and easy-to-understand explanation of why this analysis is suitable. Use analogies or simple examples. For instance, instead of 'A T-Test compares means between two groups', say 'A T-Test is like comparing the average height of two basketball teams to see if one is significantly taller.'"
     ),
   required_variables: z
     .array(z.string())
@@ -48,7 +48,7 @@ export type RecommendAnalysisInput = z.infer<
 const RecommendAnalysisOutputSchema = z.object({
   recommendations: z
     .array(RecommendationSchema)
-    .describe('An array of 3-5 recommended statistical analyses.'),
+    .describe('An array of 3 to 5 recommended statistical analyses.'),
 });
 export type RecommendAnalysisOutput = z.infer<
   typeof RecommendAnalysisOutputSchema
@@ -64,7 +64,7 @@ const prompt = ai.definePrompt({
   name: 'recommendAnalysisPrompt',
   input: {schema: RecommendAnalysisInputSchema},
   output: {schema: RecommendAnalysisOutputSchema},
-  prompt: `You are an expert data analyst and statistical consultant. Your role is to analyze a summary of a dataset AND the user's description of it, then recommend the most appropriate statistical analyses.
+  prompt: `You are an expert data analyst and statistical consultant. Your role is to analyze a summary of a dataset AND the user's description of it, then recommend the most appropriate statistical analyses. Your explanations must be simple, clear, and easy for a non-statistician to understand.
 
 **User's Data Description & Goals:**
 {{{dataDescription}}}
@@ -95,7 +95,7 @@ You MUST choose from the following list of available analyses and provide the co
 2.  **Examine Data Structure:** Review the data summary to understand variable types (numeric, categorical).
 3.  **Recommend 3 to 5 Analyses:** Suggest 3 to 5 relevant statistical analyses **strictly from the "Available Statistical Analyses" list above**.
 4.  **Provide Category:** For each recommendation, you MUST specify its correct category (e.g., 'Comparison', 'Relationship').
-5.  **Provide Rationale:** For each recommendation, explain concisely why it is suitable, connecting it to both the data structure and the user's goals.
+5.  **Provide Rationale (IMPORTANT):** For each recommendation, explain concisely **in simple, non-technical language** why it is suitable. Use an analogy if possible. For example, instead of "Compares the means of two independent groups", say "This is like comparing the average test scores between two different classrooms to see if one teaching method was more effective."
 6.  **Specify Variables:** List the actual variable names from the data summary that would be required for each recommended analysis.
 `,
 });
