@@ -63,7 +63,7 @@ export default function FaqArticlePage() {
                     <div className="flex-1 flex justify-start">
                         <Link href="/" className="flex items-center justify-center gap-2">
                             <Calculator className="h-6 w-6 text-primary" />
-                            <h1 className="text-xl font-headline font-bold">Skarii</h1>
+                            <h1 className="text-xl font-headline font-bold">skari</h1>
                         </Link>
                     </div>
                     <div className="flex-1 flex justify-end">
