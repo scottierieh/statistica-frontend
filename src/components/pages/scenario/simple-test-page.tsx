@@ -40,7 +40,7 @@ export default function SimpleTestPage() {
 
             if (!response.ok) {
                 const errorResult = await response.json();
-                throw new Error(errorResult.error || 'Failed to run analysis');
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
             
             const analysisResult = await response.json();
