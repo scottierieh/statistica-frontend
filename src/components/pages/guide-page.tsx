@@ -16,6 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 const analysisMethods = [
     { category: 'Descriptive', method: 'Descriptive Statistics', purpose: 'Summarizes data using mean, SD, min, max, etc.', useCase: 'Summarizing survey responses, initial data overview' },
@@ -159,7 +161,7 @@ export default function GuidePage() {
                         {WORKFLOW_STEPS.map((step, index) => (
                             <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
                                 <div className="flex flex-col items-center">
-                                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
                                         {step.id}
                                     </div>
                                     {index < WORKFLOW_STEPS.length - 1 && (
@@ -297,15 +299,15 @@ export default function GuidePage() {
                         {STATISTICA_FEATURES.map((feature, index) => (
                             <div key={feature.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
                                 <div className="flex flex-col items-center">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                                        <feature.icon className="w-8 h-8" />
+                                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                                        <feature.icon className="w-6 h-6" />
                                     </div>
                                     {index < STATISTICA_FEATURES.length - 1 && (
                                         <div className="w-1 flex-1 bg-border mt-2"></div>
                                     )}
                                 </div>
-                                <div className="pt-2">
-                                    <h3 className="font-semibold text-xl mb-1">{feature.label}</h3>
+                                <div className="pt-1">
+                                    <h3 className="font-semibold text-lg mb-1">{feature.label}</h3>
                                     <p className="text-muted-foreground">{feature.description}</p>
                                 </div>
                             </div>
@@ -321,34 +323,33 @@ export default function GuidePage() {
               <CardDescription>Find the right tool for your research question, grouped by statistical area.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-1/6">Category</TableHead>
-                    <TableHead className="w-1/6">Analysis Method</TableHead>
-                    <TableHead className="w-1/3">Purpose / Description</TableHead>
-                    <TableHead className="w-1/3">Typical Use Case</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.entries(groupedMethods).map(([category, methods]) => (
-                    <React.Fragment key={category}>
-                      {methods.map((method, index) => (
-                        <TableRow key={method.method}>
-                          {index === 0 && (
-                            <TableCell rowSpan={methods.length} className="align-top font-semibold">
-                              {category}
-                            </TableCell>
-                          )}
-                          <TableCell>{method.method}</TableCell>
-                          <TableCell>{method.purpose}</TableCell>
-                          <TableCell>{method.useCase}</TableCell>
-                        </TableRow>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
+                <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(groupedMethods).map(([category, methods]) => (
+                        <AccordionItem value={category} key={category}>
+                            <AccordionTrigger className="text-lg font-semibold">{category}</AccordionTrigger>
+                            <AccordionContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-1/4">Method</TableHead>
+                                            <TableHead className="w-1/2">Purpose / Description</TableHead>
+                                            <TableHead className="w-1/4">Typical Use Case</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {methods.map((method) => (
+                                            <TableRow key={method.method}>
+                                                <TableCell>{method.method}</TableCell>
+                                                <TableCell>{method.purpose}</TableCell>
+                                                <TableCell>{method.useCase}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
             </CardContent>
           </Card>
         </TabsContent>
@@ -389,4 +390,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
