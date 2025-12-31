@@ -6,7 +6,6 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
   SidebarInset,
   SidebarTrigger,
   SidebarMenuItem,
@@ -47,6 +46,7 @@ import {
   Target,
   Layers,
   Map,
+  Timer,
   ScanSearch,
   Atom,
   MessagesSquare,
@@ -79,9 +79,11 @@ import {
   FileSearch,
   CheckSquare,
   Clock,
+  Filter,
   Download,
   Bot,
   BookOpen,
+  Building2,
   Search,
   ArrowLeft
 } from 'lucide-react';
@@ -156,6 +158,47 @@ import HdbscanPage from './pages/hdbscan-page';
 import HcaPage from './pages/hca-page';
 import { getSummaryReport } from '@/app/actions';
 import AIInteractionController from './AIInteractionController';
+import SentimentAnalysisPage from './pages/sentiment-analysis-page';
+import TopicModelingPage from './pages/topic-modeling-page';
+import WordCloudPage from './pages/wordcloud-page';
+import ScenarioSensitivityPage from './pages/scenario-sensitivity-page';
+import WhatIfPage from './pages/what-if-page';
+import ThresholdOptimizationPage from './pages/threshold-optimization-page';
+import CostSensitivePage from './pages/cost-sensitive-page';
+import IpaPage from './pages/ipa-page';
+import FunnelPage from './pages/funnel-page';
+import NpsPage from './pages/nps-page';
+import LtvPage from './pages/ltv-page';
+import AssociationPage from './pages/association-rule-page';
+import DeaPage from './pages/dea-page';
+import RoiAnalysisPage from './pages/roi-analysis-page';
+import TurnoverAnalysisPage from './pages/turnover-analysis-page';
+import RiskMatrixPage from './pages/risk-matrix-page';
+import SatisfactionEngagementMatrixPage from './pages/satisfaction-engagement-matrix-page';
+import AttendanceAnalysisPage from './pages/attendance-analysis-page';
+import HeadcountStabilityPage from './pages/headcount-stability-page';
+import FinancialModelingPage from '../dashboard/financial-modeling/page';
+import FactorAnalysisPage from './pages/factor-analysis-page';
+import OptionsPricingPage from './pages/options-pricing-page';
+import BacktestingPage from './pages/backtesting-page';
+import PairsTradingPage from './pages/pairs-trading-page';
+import QuantitativeRiskAnalysisPage from './pages/quantitative-risk-analysis-page';
+import CreditRiskPage from './pages/credit-risk-page';
+import SqcPage from './pages/sqc-page';
+import ProcessCapabilityPage from './pages/process-capability-page';
+import AttributeControlChartsPage from './pages/attribute-control-charts-page';
+import GageRrPage from './pages/gage-rr-page';
+import ParetoAnalysisPage from './pages/pareto-analysis-page';
+import AcceptanceSamplingPage from './pages/acceptance-sampling-page';
+import LinearProgrammingPage from './pages/linear-programming-page';
+import NonlinearPage from './pages/nonlinear-programming-page';
+import GoalProgrammingPage from './pages/goal-programming-page';
+import TransportationProblemPage from './pages/transportation-problem-page';
+import VrpTspPage from './pages/vrp-tsp-page';
+import EOQOptimizationPage from './pages/eoq-optimization-page';
+import InventoryOptimizationPage from './pages/inventory-optimization-page';
+import LeadTimeAnalysisPage from './pages/lead-time-analysis-page';
+import FleetOptimizationPage from './pages/fleet-optimization-page';
 
 const analysisCategories = [
   {
@@ -224,7 +267,7 @@ const analysisCategories = [
           { id: 'mann-whitney', label: 'Mann-Whitney U Test', icon: Users, component: MannwhitneyPage },
           { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank', icon: Repeat, component: WilcoxonPage },
           { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H-Test', icon: Users, component: KruskalPage },
-          { id: 'nonparametric-friedman', label: 'Friedman Test', icon: Repeat, component: FriedmanPage },
+          { id: 'friedman', label: 'Friedman Test', icon: Repeat, component: FriedmanPage },
         ]
       },
       {
@@ -349,7 +392,140 @@ const analysisCategories = [
       }
     ]
   },
+  {
+    name: 'Text Analysis',
+    icon: FileText,
+    items: [
+      { id: 'sentiment', label: 'Sentiment Analysis', icon: Smile, component: SentimentAnalysisPage },
+      { id: 'topic-modeling', label: 'Topic Modeling (LDA)', icon: MessagesSquare, component: TopicModelingPage },
+      { id: 'wordcloud', label: 'Word Cloud', icon: Feather, component: WordCloudPage },
+    ]
+  },
+  {
+    name: 'Business',
+    icon: Building2,
+    items: [
+      { id: 'scenario-sensitivity', label: 'Scenario Sensitivity', icon: Settings2, component: ScenarioSensitivityPage },
+      { id: 'whatif', label: 'What-If Analysis', icon: FlaskConical, component: WhatIfPage },
+      { id: 'threshold-optimization', label: 'Threshold Optimization', icon: SlidersHorizontal, component: ThresholdOptimizationPage },
+      { id: 'cost-sensitive', label: 'Cost-Sensitive', icon: DollarSign, component: CostSensitivePage }
+
+    ]
+  },
+  {
+    name: 'Marketing',
+    icon: Target,
+    items: [
+      { id: 'ipa', label: 'Importance-Performance Analysis', icon: Target, component: IpaPage },
+      { id: 'funnel-analysis', label: 'Funnel Analysis', icon: Filter, component: FunnelPage },
+      { id: 'nps', label: 'Net Promoter Score (NPS)', icon: Share2, component: NpsPage },
+      { id: 'ltv-prediction', label: 'LTV Prediction', icon: DollarSign, component: LtvPage },
+      { id: 'association-rule', label: 'Association rule', icon: Handshake, component: AssociationPage },
+      { id: 'dea', label: 'Data Envelopment Analysis (DEA)', icon: Building, component: DeaPage },
+      { id: 'roi-analysis', label: 'ROI Analysis', icon: Percent, component: RoiAnalysisPage },
+    ],
+  },
+  {
+    name: 'Human Resources',
+    icon: UserX,
+    items: [
+        { id: 'turnover-rate-analysis', label: 'Turnover/Retention Analysis', icon: TrendingUp, component: TurnoverAnalysisPage },
+        { id: 'talent-risk-matrix', label: 'Key Talent Risk Matrix', icon: Grid3x3, component: RiskMatrixPage },
+        { id: 'satisfaction-engagement-matrix', label: 'Satisfaction-Engagement Matrix', icon: Grid3x3, component: SatisfactionEngagementMatrixPage },
+        { id: 'attendance-pattern-analysis', label: 'Attendance Pattern Analysis', icon: CalendarDays, component: AttendanceAnalysisPage },
+        { id: 'headcount-stability-analysis', label: 'Headcount Stability', icon: Users, component: HeadcountStabilityPage },
+    ],
+  },
+  {
+    name: 'Finance',
+    icon: Landmark,
+    subCategories: [
+      {
+        name: 'Financial Modeling',
+        items: [
+          { id: 'portfolio-optimization', label: 'Portfolio Optimization', icon: TrendingUp, component: FinancialModelingPage },
+          { id: 'factor-analysis', label: 'Factor Analysis (Fama-French)', icon: GitBranch, component: FactorAnalysisPage }, 
+          { id: 'options-pricing', label: 'Options Pricing', icon: Calculator, component: OptionsPricingPage },
+        ]
+      },
+      {
+        name: 'Quantitative Trading',
+        items: [
+          { id: 'backtesting', label: 'Backtesting', icon: TrendingUp, component: BacktestingPage },
+          { id: 'pairs-trading', label: 'Pair Trading', icon: TrendingUp, component: PairsTradingPage },
+        ]
+      },
+      {
+        name: 'Risk Management',
+        items: [
+          { id: 'quantitative-risk-analysis', label: 'Quantitative Risk Analysis', icon: Sigma, component: QuantitativeRiskAnalysisPage },
+          { id: 'credit-risk', label: 'Credit Risk', icon: Shield, component: CreditRiskPage },
+
+        ]
+      },
+    ]
+  },
+ 
+  {
+    name: 'Quality Control',
+    icon: CheckSquare,
+    subCategories: [
+      {
+        name: 'Process Monitoring',
+        items: [
+          { id: 'sqc', label: 'Control Charts', icon: TrendingUp, component: SqcPage },
+          { id: 'process-capability', label: 'Process Capability', icon: TrendingUp, component: ProcessCapabilityPage },
+          { id: 'attribute-control-charts', label: 'Attribute Control Charts', icon: TrendingUp, component: AttributeControlChartsPage },
+          { id: 'gage-rr', label: 'Gage R&R', icon: ShieldCheck, component: GageRrPage },
+        ]
+      },
+      {
+        name: 'Quality Improvement',
+        items: [
+          { id: 'pareto-analysis', label: 'Pareto Analysis', icon: BarChart, component: ParetoAnalysisPage },
+          { id: 'acceptance-sampling', label: 'Acceptance Sampling', icon: CheckSquare, component: AcceptanceSamplingPage },
+        ]
+      }
+    ]
+  },
+  {
+    name: 'Supply Chain',
+    icon: Share2,
+    subCategories: [
+      {
+        name: 'Optimization',
+        items: [
+          { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp, component: LinearProgrammingPage },
+          { id: 'nonlinear-programming', label: 'Nonlinear Programming', icon: TrendingUp, component: NonlinearPage },
+          { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
+          { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
+          { id: 'vrp-tsp', label: 'VRP / TSP', icon: Map, component: VrpTspPage },
+        ],
+      },
+      {
+        name: 'Inventory',
+        items: [
+          { id: 'eoq-optimization', label: 'EOQ Inventory Optimization', icon: Package, component: EOQOptimizationPage },
+          { id: 'inventory-policy', label: 'Inventory Policy', icon: Container, component: InventoryOptimizationPage },
+          { id: 'lead-time-analysis', label: 'Lead Time Analysis', icon: Clock, component: LeadTimeAnalysisPage },
+        ],
+      },
+      {
+        name: 'Logistics',
+        items: [
+          { id: 'fleet-optimization', label: 'Fleet Optimization', icon: Car, component: FleetOptimizationPage },
+        ],
+      },
+    ]
+  }
 ];
+
+const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
+  .flatMap(category => category.isSingle ? category.items : ('items' in category ? category.items : category.subCategories.flatMap(sc => sc.items)))
+  .reduce((acc, item) => {
+    acc[item.id] = item.component;
+    return acc;
+  }, {} as Record<string, React.ComponentType<any>>);
 
 
 export default function StatisticaApp() {
