@@ -33,6 +33,7 @@ import {
   DollarSign,
   FlaskConical,
   Search,
+  Check,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -65,6 +66,7 @@ import CostEfficiencyPage from './pages/scenario/cost-efficiency-page';
 import HrPolicyOutcomePage from './pages/scenario/hr-policy-outcome-page';
 import AttritionAnalysisPage from './pages/scenario/attrition-analysis-page';
 import PerformanceStructurePage from './pages/scenario/performance-structure-page';
+import EffectivenessPage from './pages/EffectivenessPage';
 
 const analysisCategories = [
     {
@@ -74,6 +76,7 @@ const analysisCategories = [
             { id: 'pre-post-policy', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
             { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
             { id: 'policy-distribution', label: 'Policy Outcome Distribution', component: PolicyDistributionPage, icon: BarChart3 },
+            { id: 'effectiveness-analysis', label: 'Policy Effectiveness Analysis', component: EffectivenessPage, icon: Check },
         ],
     },
     {
