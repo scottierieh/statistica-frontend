@@ -214,6 +214,7 @@ export interface AnalysisPageProps {
   numericHeaders: string[];
   categoricalHeaders: string[];
   onLoadExample: (example: ExampleDataSet) => void;
+  onFileSelected: (file: File) => void;
   isUploading: boolean;
   activeAnalysis: string;
   onAnalysisComplete?: (result: any) => void;
@@ -576,7 +577,9 @@ const analysisCategories: AnalysisCategory[] = [
 const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
   .flatMap(category => category.isSingle ? category.items : ('items' in category && category.items ? category.items : (category.subCategories || []).flatMap((sc: AnalysisSubCategory) => sc.items)))
   .reduce((acc, item) => {
-    acc[item.id] = item.component;
+    if (item) {
+        acc[item.id] = item.component;
+    }
     return acc;
   }, {} as Record<string, React.ComponentType<any>>);
 
@@ -923,3 +926,5 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+    
