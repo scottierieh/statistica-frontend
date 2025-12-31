@@ -3,8 +3,9 @@
 import ScenarioApp from '@/components/scenario-app';
 import DashboardClientLayout from '@/components/dashboard-client-layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FlaskConical } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Calculator } from 'lucide-react';
 import Link from 'next/link';
+import { UserNav } from '@/components/user-nav';
 
 export default function ScenarioPage() {
   return (
@@ -20,12 +21,14 @@ export default function ScenarioPage() {
             </Button>
           </div>
           <div className="flex-1 flex justify-center">
-            <Link href="/dashboard/scenario" className="flex items-center justify-center gap-2">
+            <Link href="/" className="flex items-center justify-center gap-2">
               <FlaskConical className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-headline font-bold">Scenario Analysis</h1>
             </Link>
           </div>
-          <div className="w-[210px]" />
+          <div className="w-[210px] flex justify-end">
+            <UserNav />
+          </div>
         </header>
         <main className="flex-1 overflow-auto">
           <ScenarioApp />
