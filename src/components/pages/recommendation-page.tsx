@@ -5,7 +5,7 @@ import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, HelpCircle, Lightbulb } from 'lucide-react';
+import { Loader2, Wand2, Bot, FileUp, Sparkles, AlertCircle, HelpCircle, Info, Lightbulb } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,25 +39,47 @@ const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: any) => {
                     </div>
                     <CardTitle className="font-headline text-3xl">AI Analysis Recommendation</CardTitle>
                     <CardDescription className="text-base mt-2">
-                        Upload your data and let our AI suggest the best statistical analyses for your research questions.
+                        Don't know which analysis to run? Let our AI suggest the best methods for your data and research questions.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                     <p className="text-muted-foreground">
-                        The model will analyze your dataset's structure—identifying numeric and categorical variables—to provide tailored recommendations.
+                <CardContent className="space-y-6">
+                    <p className="text-muted-foreground">
+                        Simply upload your data, describe your goals, and get tailored recommendations instantly.
                     </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Card className="text-left bg-muted/50">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <FileUp className="w-5 h-5 text-primary" />
+                                    Data-Driven
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Upload your dataset and the AI will analyze its structure to suggest suitable statistical tests.
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="text-left bg-muted/50">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Lightbulb className="w-5 h-5 text-primary" />
+                                    Goal-Driven
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Describe your research objective, and the AI will recommend methods to achieve it.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
                     <div className="flex justify-center gap-4 pt-2">
-                        <DataUploader onFileSelected={onFileSelected} loading={isUploading}>
-                            <Button size="lg" disabled={isUploading}>
-                                {isUploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <FileUp className="mr-2 h-5 w-5" />}
-                                Upload Data
-                            </Button>
-                        </DataUploader>
-
+                        <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
                         {irisExample && (
                             <Button size="lg" variant="outline" onClick={() => onLoadExample(irisExample)}>
                                 <Sparkles className="mr-2 h-5 w-5" />
-                                Use Sample
+                                Use Sample Data
                             </Button>
                         )}
                     </div>
@@ -149,11 +171,16 @@ export default function RecommendationPage(props: RecommendationPageProps) {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Describe Your Analysis Goal</CardTitle>
-                    <CardDescription>
-                        Provide context about your data and objectives to get better recommendations.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800">
+                        <Info className="h-4 w-4 text-sky-600" />
+                        <AlertTitle className="text-sky-800 dark:text-sky-200">Get Better Recommendations</AlertTitle>
+                        <AlertDescription className="text-sky-700 dark:text-sky-300">
+                            Providing context is optional, but it helps our AI understand your needs and suggest more accurate analyses. Tell us about your data and what you hope to discover.
+                        </AlertDescription>
+                    </Alert>
+
                      <div className="space-y-2">
                         <Label htmlFor="variable-selection" className="text-base font-semibold">
                             1. Select Variables for Analysis
