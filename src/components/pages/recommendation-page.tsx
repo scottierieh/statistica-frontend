@@ -17,13 +17,18 @@ import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { analysisGoals } from '@/lib/analysis-goals';
 import DataUploader from '../data-uploader';
+import DataPreview from '../data-preview';
+import { unparseData } from '@/lib/stats';
+
 
 interface RecommendationPageProps {
-  onFileSelected: (file: File) => void;
-  onLoadExample: (example: ExampleDataSet) => void;
-  isUploading: boolean;
   data: DataSet;
   allHeaders: string[];
+  fileName: string;
+  onFileSelected: (file: File) => void;
+  onLoadExample: (example: ExampleDataSet) => void;
+  onClearData: () => void;
+  isUploading: boolean;
 }
 
 const IntroPage = ({ onFileSelected, onLoadExample, isUploading }: { onFileSelected: (file: File) => void; onLoadExample: (example: ExampleDataSet) => void; isUploading: boolean }) => {
@@ -106,6 +111,9 @@ export default function RecommendationPage(props: RecommendationPageProps) {
         });
     };
 
+    const selectAll = () => setSelectedVars(new Set(props.allHeaders));
+    const selectNone = () => setSelectedVars(new Set());
+
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
         setSummary(null);
@@ -150,6 +158,28 @@ export default function RecommendationPage(props: RecommendationPageProps) {
             setIsLoading(false);
         }
     }, [props.data, selectedVars, dataDescription, analysisGoal, selectedGoals, toast]);
+
+    const handleDownloadData = useCallback(() => {
+        if (props.data.length === 0) {
+          toast({ title: 'No Data to Download', description: 'There is no data currently loaded.' });
+          return;
+        }
+        try {
+          const csvContent = unparseData({ headers: props.allHeaders, data: props.data });
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = props.fileName.replace(/\.[^/.]+$/, "") + "_statistica.csv" || 'statistica_data.csv';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Failed to download data:', error);
+          toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
+        }
+    }, [props.data, props.allHeaders, props.fileName, toast]);
     
     if (!props.data || props.data.length === 0) {
         return <IntroPage onFileSelected={props.onFileSelected} onLoadExample={() => props.onLoadExample(exampleDatasets.find(e => e.id === 'iris')!)} isUploading={props.isUploading} />;
@@ -157,6 +187,15 @@ export default function RecommendationPage(props: RecommendationPageProps) {
 
     return (
         <div className="space-y-6">
+             {props.data.length > 0 && (
+                <DataPreview 
+                    fileName={props.fileName}
+                    data={props.data}
+                    headers={props.allHeaders}
+                    onDownload={handleDownloadData}
+                    onClearData={props.onClearData}
+                />
+            )}
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">AI Analysis Recommendation</CardTitle>
@@ -168,8 +207,8 @@ export default function RecommendationPage(props: RecommendationPageProps) {
                             1. Select Variables for Analysis
                         </Label>
                          <div className="flex flex-wrap gap-2 mb-2">
-                            <Button variant="outline" size="sm" onClick={() => setSelectedVars(new Set(props.allHeaders))}>Select All</Button>
-                            <Button variant="outline" size="sm" onClick={() => setSelectedVars(new Set())}>Deselect All</Button>
+                            <Button variant="outline" size="sm" onClick={selectAll}>Select All</Button>
+                            <Button variant="outline" size="sm" onClick={selectNone}>Deselect All</Button>
                         </div>
                         <ScrollArea className="h-40 border rounded-lg p-4">
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -336,3 +375,4 @@ export default function RecommendationPage(props: RecommendationPageProps) {
         </div>
     );
 }
+
