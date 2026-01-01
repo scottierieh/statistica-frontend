@@ -16,16 +16,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { HelpCircle, Search, ChevronDown, ChevronRight, UserCircle, Calculator } from "lucide-react";
+import { HelpCircle, Search, ChevronDown, UserCircle, Calculator } from "lucide-react";
 import Link from "next/link";
 import { UserNav } from "@/components/user-nav";
 import GuidePage from "@/components/pages/guide-page";
 import { faqData, type FaqArticle, type FaqCategory } from '@/lib/faq-data';
 import { cn } from '@/lib/utils';
 import DashboardClientLayout from '@/components/dashboard-client-layout';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ArticleDisplay = ({ article, category }: { article: FaqArticle, category: FaqCategory }) => {
-    // A simple function to generate a table of contents from markdown-like headers
     const getTableOfContents = (content: string) => {
         const lines = content.split('\n');
         const headings = lines.filter(line => line.startsWith('### '));
@@ -41,7 +41,6 @@ const ArticleDisplay = ({ article, category }: { article: FaqArticle, category: 
 
     const tableOfContents = getTableOfContents(article.content);
 
-    // Replace markdown-like syntax with HTML tags, including IDs for linking
     const formatContent = (content: string) => {
         return content
             .replace(/### (.*?)\n/g, (match, p1) => {
@@ -56,7 +55,6 @@ const ArticleDisplay = ({ article, category }: { article: FaqArticle, category: 
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">
             <div className="grid lg:grid-cols-4 gap-12">
-                {/* Main Content */}
                 <div className="lg:col-span-3">
                     <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">{article.title}</h1>
                     <p className="text-lg text-muted-foreground mb-8">{article.description}</p>
@@ -67,7 +65,6 @@ const ArticleDisplay = ({ article, category }: { article: FaqArticle, category: 
                     </article>
                 </div>
                 
-                {/* Table of Contents */}
                 <aside className="lg:col-span-1 lg:sticky lg:top-24 self-start">
                     <div className="p-4 bg-muted/50 rounded-lg border">
                         <h3 className="font-semibold mb-3">In this article</h3>
@@ -207,3 +204,4 @@ export default function FaqPage() {
         </DashboardClientLayout>
     );
 }
+
