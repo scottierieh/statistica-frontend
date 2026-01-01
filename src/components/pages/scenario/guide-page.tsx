@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import {
     FlaskConical,
@@ -33,10 +33,14 @@ import {
     Sigma,
     Variable,
     Lightbulb,
-    FileSearch
+    FileSearch,
+    Check
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { motion } from 'framer-motion';
 
 interface ScenarioIntroPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
@@ -234,8 +238,8 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                             <div className="grid md:grid-cols-2 items-center">
                                 <div className={`p-8 space-y-4 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                                            <step.icon className="w-5 h-5" />
+                                        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0 border-2 border-primary/20">
+                                            <step.icon className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <p className="text-xs font-semibold text-primary uppercase">STEP {step.id}</p>
@@ -258,28 +262,26 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                     <h2 className="text-3xl font-bold font-headline mb-3">Use Cases by Field</h2>
                     <p className="text-lg text-muted-foreground">How different industries leverage scenario analysis.</p>
                 </div>
-                <div className="space-y-8">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {industryApplications.map(industry => {
                         const Icon = industry.icon;
                         return (
-                            <div key={industry.industry}>
-                                <h3 className="text-2xl font-bold font-headline mb-4 flex items-center gap-3">
-                                    <Icon className="w-7 h-7 text-primary" />
-                                    {industry.industry}
-                                </h3>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    {industry.applications.map(app => (
-                                        <Card key={app.method} className="flex flex-col">
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-base">{app.method}</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="flex-1">
-                                                <p className="text-sm text-muted-foreground">{app.use}</p>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
+                            <Card key={industry.industry} className="flex flex-col">
+                                <CardHeader className="flex flex-row items-center gap-3 pb-2">
+                                    <Icon className="w-6 h-6 text-primary" />
+                                    <CardTitle className="text-base">{industry.industry}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex-1">
+                                    <ul className="space-y-2">
+                                        {industry.applications.map(app => (
+                                            <li key={app.method} className="text-sm">
+                                                <strong className="font-medium">{app.method}:</strong>
+                                                <span className="text-muted-foreground"> {app.use}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
                         );
                     })}
                 </div>
@@ -296,69 +298,3 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
         </div>
     );
 }
-
-const scenarioCategories = [
-    {
-        name: 'Overview',
-        icon: BookOpen,
-        isSingle: true,
-        items: [
-          { id: 'guide', label: 'Overview', icon: BookOpen, component: ScenarioGuidePage },
-        ]
-    },
-    {
-        name: 'Policy / Institution',
-        icon: Landmark,
-        items: [
-            { id: 'pre-post-policy', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
-            { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
-            { id: 'policy-distribution', label: 'Policy Outcome Distribution', component: PolicyDistributionPage, icon: BarChart3 },
-            { id: 'effectiveness-analysis', label: 'Policy Effectiveness Analysis', component: EffectivenessPage, icon: Check },
-        ],
-    },
-    {
-        name: 'Marketing / Growth',
-        icon: Megaphone,
-        items: [
-            { id: 'campaign-performance', label: 'Campaign Performance Evaluation', component: CampaignPerformancePage, icon: TrendingUp },
-            { id: 'segment-effectiveness', label: 'Customer Segment Effectiveness', component: SegmentEffectivenessPage, icon: Users },
-            { id: 'channel-efficiency', label: 'Channel Efficiency Diagnosis', component: ChannelEfficiencyPage, icon: Zap },
-        ],
-    },
-    {
-        name: 'Product / Service',
-        icon: Package,
-        items: [
-            { id: 'feature-adoption', label: 'Feature Adoption Analysis', component: FeatureAdoptionPage, icon: Layers },
-            { id: 'engagement-change', label: 'User Engagement Change Analysis', component: EngagementChangePage, icon: Activity },
-            { id: 'churn-diagnosis', label: 'Churn & Drop-off Diagnosis', component: ChurnDiagnosisPage, icon: UserX },
-        ],
-    },
-    {
-        name: 'Operations / Process',
-        icon: Factory,
-        items: [
-            { id: 'process-bottleneck', label: 'Process Bottleneck Diagnosis', component: ProcessBottleneckPage, icon: Filter },
-            { id: 'process-stability', label: 'Process Stability & Quality', component: ProcessStabilityPage, icon: Activity },
-            { id: 'cost-efficiency', label: 'Cost & Efficiency Structure', component: CostEfficiencyPage, icon: DollarSign },
-        ],
-    },
-    {
-        name: 'HR / Organization',
-        icon: Users,
-        items: [
-            { id: 'hr-policy-outcome', label: 'HR Policy Outcome Analysis', component: HrPolicyOutcomePage, icon: Users },
-            { id: 'attrition-retention', label: 'Attrition & Retention Analysis', component: AttritionAnalysisPage, icon: UserX },
-            { id: 'performance-structure', label: 'Performance Structure Diagnosis', component: PerformanceStructurePage, icon: BarChart3 },
-        ],
-    },
-    {
-        name: 'Testing',
-        icon: TestTube,
-        items: [
-            { id: 'simple-test', label: 'Simple Sum Analysis', component: SimpleTestPage, icon: TestTube },
-        ],
-    }
-];
-
-```
