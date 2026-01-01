@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
@@ -34,7 +35,8 @@ import {
   FlaskConical,
   Search,
   Check,
-  TestTube
+  TestTube,
+  BookOpen
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -51,7 +53,8 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 
-// Import newly created pages
+// Import scenario pages
+import ScenarioGuidePage from './pages/scenario/guide-page';
 import PrePostPolicyPage from './pages/scenario/pre-post-policy-page';
 import PolicyTargetImpactPage from './pages/scenario/policy-target-impact-page';
 import PolicyDistributionPage from './pages/scenario/policy-distribution-page';
@@ -71,6 +74,14 @@ import EffectivenessPage from './pages/EffectivenessPage';
 import SimpleTestPage from './pages/scenario/simple-test-page';
 
 const analysisCategories = [
+    {
+        name: 'Overview',
+        icon: BookOpen,
+        isSingle: true,
+        items: [
+          { id: 'guide', label: 'Overview', icon: BookOpen, component: ScenarioGuidePage },
+        ]
+    },
     {
         name: 'Policy / Institution',
         icon: Landmark,
@@ -141,8 +152,8 @@ export default function ScenarioApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<string>('pre-post-policy');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Policy / Institution']);
+  const [activeAnalysis, setActiveAnalysis] = useState<string>('guide');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Overview', 'Policy / Institution']);
   const [searchTerm, setSearchTerm] = useState('');
 
   const { toast } = useToast();
@@ -160,7 +171,7 @@ export default function ScenarioApp() {
     try {
         const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
         if (newData.length === 0 || newHeaders.length === 0) {
-            throw new Error("No valid data found in the file.");
+          throw new Error("No valid data found in the file.");
         }
         setData(newData);
         setAllHeaders(newHeaders);
@@ -219,7 +230,7 @@ export default function ScenarioApp() {
     }).filter(Boolean) as typeof analysisCategories;
   }, [searchTerm]);
 
-  const ActivePageComponent = analysisPages[activeAnalysis] || (() => <div>Select an analysis</div>);
+  const ActivePageComponent = analysisPages[activeAnalysis] || ScenarioGuidePage;
   const hasData = data.length > 0;
 
   const toggleCategory = (category: string) => {
@@ -242,13 +253,25 @@ export default function ScenarioApp() {
               />
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search analyses..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
+                <Input placeholder="Search scenarios..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
               </div>
             </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
             <SidebarMenu>
-              {filteredAnalysisCategories.map(category => (
+              {filteredAnalysisCategories.map(category =>
+                category.isSingle ? (
+                  <SidebarMenuItem key={category.name}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveAnalysis(category.items[0].id)}
+                      isActive={activeAnalysis === category.items[0].id}
+                      className="text-base font-semibold"
+                    >
+                      <category.icon className="mr-2 h-5 w-5" />
+                      {category.name}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
                   <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold shadow-md border bg-white text-foreground hover:bg-slate-50">
