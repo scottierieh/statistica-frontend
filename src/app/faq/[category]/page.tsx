@@ -27,7 +27,7 @@ export default function FaqCategoryPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200">
-            <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+             <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
                 <div className="w-full max-w-7xl mx-auto flex items-center">
                     <div className="flex-1 flex justify-start">
                         <Link href="/" className="flex items-center justify-center gap-2">
