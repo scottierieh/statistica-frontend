@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -33,19 +32,19 @@ import {
     Variable,
     Lightbulb,
     Check,
-    FileSearch,
     Wand2,
     FileUp,
     Bot,
     Sparkles,
-    FileText
+    FileSearch,
+    FileText,
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'framer-motion';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const WORKFLOW_STEPS = [
     { id: 1, icon: Layers, label: 'Select Scenario', description: 'Choose a scenario that matches your business or research question (e.g., "Evaluate Campaign Performance").' },
@@ -97,7 +96,6 @@ const industryApplications = [
         ]
     },
 ];
-
 
 export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e: ExampleDataSet) => void }) {
     const effectivenessExample = exampleDatasets.find(ex => ex.id === 'effectiveness-analysis');
