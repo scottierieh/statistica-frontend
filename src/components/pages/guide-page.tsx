@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2, AlertTriangle, ChevronDown, Sparkles, FileCode, FileType, Wand2, BarChart3
+  Sigma, BarChart, Users, CheckSquare, TrendingUp, Network, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace, Activity, Palette, Brain, Link2, ShieldCheck, FileSearch, TestTube, Briefcase, Factory, Landmark, Megaphone, FileUp, Settings, Check, FileDown, Bot, ListChecks, Upload, Database, Play, Variable, BookOpen, ChevronsRight, Milestone, Settings2, Shield, Search, Info, Lightbulb, CheckCircle2, AlertTriangle, ChevronDown, Sparkles, FileCode, FileType, Wand2, BarChart3, PieChart
 } from "lucide-react";
 import Mindmap from '@/components/mindmap';
 import { Badge } from '@/components/ui/badge';
@@ -207,7 +207,7 @@ export default function GuidePage() {
                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
                         <BarChart3 className="w-16 h-16 text-primary"/>
                         <LineChart className="w-16 h-16 text-green-500"/>
-                        <PieChartIcon className="w-16 h-16 text-amber-500"/>
+                        <PieChart className="w-16 h-16 text-amber-500"/>
                     </motion.div>
                 );
             case 'interpret':
@@ -412,10 +412,11 @@ export default function GuidePage() {
                                             className="absolute inset-0 flex flex-col items-center justify-center p-6"
                                         >
                                             {activeFeatureData && (
-                                                <div className="flex flex-col items-center justify-center h-full">
-                                                    <FeatureVisual featureId={activeFeatureData.id} />
-                                                    <p className="text-lg font-semibold mt-4">{activeFeatureData.label}</p>
-                                                    <p className="text-muted-foreground mt-1 max-w-md">{activeFeatureData.description}</p>
+                                                <div className="text-center">
+                                                     <div className="p-3 bg-primary/10 rounded-full inline-block mb-4">
+                                                        <activeFeatureData.icon className="w-8 h-8 text-primary" />
+                                                    </div>
+                                                    <p className="text-lg font-semibold max-w-lg mx-auto">{activeFeatureData.description}</p>
                                                 </div>
                                             )}
                                         </motion.div>
@@ -499,5 +500,7 @@ export default function GuidePage() {
         </div>
     );
 }
+
+    
 
     
