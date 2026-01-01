@@ -27,7 +27,8 @@ import {
     Factory,
     Milestone,
     Database,
-    Play
+    Play,
+    FileText
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 
