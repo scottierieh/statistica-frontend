@@ -1,10 +1,8 @@
-
 'use client';
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     FlaskConical,
     Target,
@@ -28,72 +26,34 @@ import {
     Milestone,
     Database,
     Play,
-    FileText
+    FileText,
+    Settings2,
+    ShieldCheck,
+    Sigma,
+    Variable,
+    Lightbulb
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
+import { Badge } from '@/components/ui/badge';
 
 interface ScenarioIntroPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
-
-const scenarioCategories = [
-    {
-        name: 'Policy / Institution',
-        icon: Landmark,
-        description: "Analyze the impact and distribution of policies and institutional changes.",
-        items: [
-            { name: "Pre/Post Policy Comparison", icon: ArrowLeftRight },
-            { name: "Target Group Impact", icon: Target },
-            { name: "Effectiveness Analysis", icon: CheckCircle },
-        ]
-    },
-    {
-        name: 'Marketing / Growth',
-        icon: Megaphone,
-        description: "Evaluate campaign performance and understand customer behavior.",
-        items: [
-            { name: "Campaign Performance", icon: TrendingUp },
-            { name: "Segment Effectiveness", icon: Users },
-            { name: "Channel Efficiency", icon: Zap },
-        ]
-    },
-    {
-        name: 'Product / Service',
-        icon: Package,
-        description: "Diagnose user engagement, feature adoption, and churn.",
-        items: [
-            { name: "Feature Adoption", icon: Layers },
-            { name: "Engagement Change", icon: Activity },
-            { name: "Churn & Drop-off", icon: UserX },
-        ]
-    },
-    {
-        name: 'Operations / Process',
-        icon: Factory,
-        description: "Identify bottlenecks and analyze cost-efficiency.",
-        items: [
-            { name: "Process Bottleneck", icon: Filter },
-            { name: "Process Stability", icon: Activity },
-            { name: "Cost Efficiency", icon: DollarSign },
-        ]
-    },
-    {
-        name: 'HR / Organization',
-        icon: Users,
-        description: "Analyze HR policies, attrition rates, and performance structures.",
-        items: [
-            { name: "HR Policy Outcomes", icon: Users },
-            { name: "Attrition & Retention", icon: UserX },
-            { name: "Performance Structure", icon: BarChart3 },
-        ]
-    },
-];
 
 const WORKFLOW_STEPS = [
     { id: 1, icon: Layers, label: 'Select Scenario', description: 'Choose a scenario that matches your business or research question (e.g., "Evaluate Campaign Performance").' },
     { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload the relevant dataset. The system will guide you on the required variables for the chosen scenario.' },
     { id: 3, icon: Play, label: 'Run Automated Analysis', description: 'The platform automatically executes a series of statistical analyses (like T-Tests, Regression, or DID) tailored to answer your question.' },
     { id: 4, icon: FileText, label: 'Get Actionable Conclusion', description: 'Receive a synthesized report that provides a clear conclusion and actionable recommendations, not just raw statistical outputs.' }
+];
+
+const RUN_ANALYSIS_STEPS = [
+    { id: 1, icon: Variable, label: 'Variables', description: 'Select the dependent and independent variables for your analysis.' },
+    { id: 2, icon: Settings2, label: 'Settings', description: 'Configure model-specific parameters, such as alpha levels or post-hoc tests.' },
+    { id: 3, icon: ShieldCheck, label: 'Validation', description: 'The system checks your data against the statistical assumptions required for the chosen test.' },
+    { id: 4, icon: FileSearch, label: 'Summary', description: 'Review a high-level, business-friendly summary of the key findings. For example: "Price and Quality positively impact Satisfaction."' },
+    { id: 5, icon: Lightbulb, label: 'Reasoning', description: 'Understand the "why" behind the summary with simple explanations of the statistical results.' },
+    { id: 6, icon: Sigma, label: 'Statistics', description: 'Dive deep into the full statistical output, including tables (e.g., ANOVA, coefficients) and charts.' }
 ];
 
 const industryApplications = [
@@ -131,141 +91,255 @@ const industryApplications = [
     },
 ];
 
-
 export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPageProps) {
     const effectivenessExample = exampleDatasets.find(ex => ex.id === 'effectiveness-analysis');
 
-    return (
-        <div className="flex flex-1 items-center justify-center p-6 bg-slate-50">
-            <Card className="w-full max-w-5xl">
-                <CardHeader className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="p-3 bg-primary/10 rounded-full">
-                            <FlaskConical className="w-8 h-8 text-primary" />
-                        </div>
-                    </div>
-                    <CardTitle className="font-headline text-3xl">Scenario Analysis</CardTitle>
-                    <CardDescription className="text-base mt-2">
-                        Diagnose problems and evaluate effectiveness through targeted analysis workflows.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Tabs defaultValue="procedure">
-                        <TabsList className="grid w-full grid-cols-4">
-                             <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
-                            <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
-                            <TabsTrigger value="use-cases">Use Cases</TabsTrigger>
-                             <TabsTrigger value="what-is">What is It?</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="procedure" className="pt-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Standard Analysis Procedure</CardTitle>
-                                    <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-8">
-                                        {WORKFLOW_STEPS.map((step, index) => (
-                                            <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
-                                                <div className="flex flex-col items-center">
-                                                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-                                                        {step.id}
-                                                    </div>
-                                                    {index < WORKFLOW_STEPS.length - 1 && (
-                                                        <div className="w-0.5 flex-1 bg-border mt-2"></div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-4 pt-1">
-                                                    <div>
-                                                        <h3 className="font-semibold text-lg mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
-                                                        <p className="text-muted-foreground">{step.description}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                        <TabsContent value="what-is" className="pt-6">
-                             <div className="bg-muted/30 rounded-lg p-6 space-y-4">
-                                <h3 className="font-semibold text-xl mb-3 flex items-center gap-2">
-                                  <HelpCircle className="w-6 h-6 text-primary" /> What is Scenario Analysis?
-                                </h3>
-                                <p className="text-muted-foreground">
-                                    Scenario Analysis provides pre-built workflows for common business and research questions. Instead of choosing individual statistical tests, you select a scenario that matches your problem.
-                                </p>
-                                <p className="text-muted-foreground">
-                                    The platform then automatically runs a series of appropriate analyses (like T-Tests, Difference-in-Differences, or regression) and presents the findings in the context of your specific question, providing a clear, actionable conclusion.
-                                </p>
-                                <div className="pt-4">
-                                    {effectivenessExample && (
-                                        <Button onClick={() => onLoadExample(effectivenessExample)} size="lg">
-                                            <FlaskConical className="mr-2 h-5 w-5" />
-                                            Load Example & Get Started
-                                        </Button>
-                                    )}
+    const VisualStep = ({ step }: { step: typeof RUN_ANALYSIS_STEPS[0] }) => {
+        return (
+            <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="bg-muted h-64 rounded-lg flex items-center justify-center p-4">
+                        {step.id === 1 && (
+                            <div className="w-full max-w-sm space-y-3">
+                                <h4 className="text-sm font-semibold text-center mb-2">Select Variables</h4>
+                                <div className="p-3 bg-white rounded-md border shadow-sm">
+                                    <Label className="text-xs text-muted-foreground">Dependent Variable</Label>
+                                    <div className="flex items-center justify-between mt-1"><span>Satisfaction</span> <Target className="w-4 h-4 text-primary"/></div>
+                                </div>
+                                <div className="p-3 bg-white rounded-md border shadow-sm">
+                                    <Label className="text-xs text-muted-foreground">Independent Variables</Label>
+                                    <div className="flex items-center justify-between mt-1"><span>Price, Quality</span><Users className="w-4 h-4 text-primary"/></div>
                                 </div>
                             </div>
-                        </TabsContent>
-                        <TabsContent value="scenarios" className="pt-6">
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {scenarioCategories.map(category => {
-                                const Icon = category.icon;
-                                return (
-                                    <Card key={category.name} className="hover:shadow-md transition-shadow">
-                                        <CardHeader>
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <Icon className="w-6 h-6 text-primary" />
-                                                <CardTitle className="text-base">{category.name}</CardTitle>
-                                            </div>
-                                            <CardDescription className="text-xs">{category.description}</CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <ul className="space-y-2">
-                                                {category.items.map(item => (
-                                                    <li key={item.name} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                        <item.icon className="w-4 h-4 text-primary/80" />
-                                                        <span>{item.name}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
+                        )}
+                        {step.id === 2 && (
+                            <div className="w-full max-w-sm space-y-3">
+                                <h4 className="text-sm font-semibold text-center mb-2">Configure Settings</h4>
+                                <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                    <Label>Alpha Level</Label>
+                                    <Badge>0.05</Badge>
+                                </div>
+                                <div className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm">
+                                    <Label>Post-hoc Test</Label>
+                                    <Badge variant="outline">Tukey HSD</Badge>
+                                </div>
                             </div>
-                        </TabsContent>
-                         <TabsContent value="use-cases" className="pt-6">
-                            <div className="space-y-8">
-                                {industryApplications.map(industry => {
-                                    const Icon = industry.icon;
-                                    return (
-                                    <div key={industry.industry}>
-                                        <h3 className="text-xl font-bold font-headline mb-4 flex items-center gap-3">
-                                            <Icon className="w-6 h-6 text-primary" />
-                                            {industry.industry}
-                                        </h3>
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                        {industry.applications.map(app => (
-                                            <Card key={app.method} className="flex flex-col">
+                        )}
+                        {step.id === 3 && (
+                            <div className="w-full max-w-sm space-y-3">
+                                <h4 className="text-sm font-semibold text-center mb-2">Data Validation</h4>
+                                <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                    <div>
+                                        <p className="font-medium text-sm">Variables selected</p>
+                                        <p className="text-xs text-muted-foreground">3 variable(s) selected</p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-white rounded-md border shadow-sm flex items-start gap-3">
+                                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"/>
+                                    <div>
+                                        <p className="font-medium text-sm">Data completeness</p>
+                                        <p className="text-xs text-muted-foreground">No missing values detected</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {step.id === 4 && (
+                            <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
+                                <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                                    <Sparkles className="w-5 h-5 text-primary" /> Key Findings
+                                </h4>
+                                <Alert className="border-primary bg-primary/5">
+                                    <AlertTitle className="flex items-center gap-2"><CheckCircle className="w-4 h-4"/>Significant Result</AlertTitle>
+                                    <AlertDescription>The analysis shows both <strong>Price</strong> and <strong>Quality</strong> have a significant positive impact on <strong>Satisfaction</strong>.</AlertDescription>
+                                </Alert>
+                            </div>
+                        )}
+                        {step.id === 5 && (
+                            <div className="w-full max-w-md p-6 bg-white rounded-lg border shadow-sm">
+                                <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                                    <Lightbulb className="w-5 h-5 text-primary" /> Why This Conclusion?
+                                </h4>
+                                <ul className="text-sm space-y-3 text-muted-foreground">
+                                    <li className="flex gap-3"><strong className="text-primary font-bold">1.</strong>Both 'Price' and 'Quality' have p-values less than 0.05, meaning their effect is not due to random chance.</li>
+                                    <li className="flex gap-3"><strong className="text-primary font-bold">2.</strong>The model's R-squared value (0.65) shows that 65% of the change in 'Satisfaction' is explained by these two factors.</li>
+                                </ul>
+                            </div>
+                        )}
+                        {step.id === 6 && (
+                            <div className="w-full max-w-sm space-y-3">
+                                <h4 className="text-sm font-semibold text-center mb-2">Full Statistics</h4>
+                                <Table className="text-xs bg-white rounded-md border">
+                                    <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coefficient</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        <TableRow><TableCell>Price</TableCell><TableCell>0.45</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
+                                        <TableRow><TableCell>Quality</TableCell><TableCell>0.62</TableCell><TableCell>&lt;0.001</TableCell></TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    return (
+        <div className="space-y-12">
+            {/* Section 1: What is it? */}
+            <section>
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold font-headline mb-3">What is Scenario Analysis?</h2>
+                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                        Instead of choosing individual statistical tests, select a scenario that matches your business question. Our platform automatically runs a series of appropriate analyses and delivers a clear, actionable conclusion.
+                    </p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-xl">The Power of Workflows</h3>
+                        <p className="text-muted-foreground">
+                            A single business question often requires multiple statistical tests to answer correctly. For example, to know if a campaign was effective, you need more than just a pre-post comparison. You need to account for external trends and ensure the results are robust.
+                        </p>
+                        <p className="text-muted-foreground">
+                            Scenario Analysis automates this entire workflow, running tests like Difference-in-Differences, Trend Analysis, and Effect Size calculations to give you a reliable, synthesized answer.
+                        </p>
+                    </div>
+                    <Card className="p-6">
+                        <div className="flex justify-center items-center h-full">
+                            <p className="text-center text-muted-foreground">Visual placeholder for workflow</p>
+                        </div>
+                    </Card>
+                </div>
+            </section>
+
+            {/* Section 2: Analysis Procedure */}
+            <section>
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold font-headline mb-3">How It Works</h2>
+                    <p className="text-lg text-muted-foreground">A simple, guided 4-step process from question to insight.</p>
+                </div>
+                <div className="grid md:grid-cols-4 gap-6">
+                    {WORKFLOW_STEPS.map(step => (
+                        <div key={step.id} className="text-center">
+                            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mx-auto mb-4 border-2 border-primary/20">
+                                <step.icon className="w-8 h-8" />
+                            </div>
+                            <h4 className="font-semibold mb-2">{step.label}</h4>
+                            <p className="text-sm text-muted-foreground">{step.description}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+             {/* Section 3: Detailed Analysis Steps */}
+            <section>
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold font-headline mb-3">Inside a Statistica Analysis</h2>
+                    <p className="text-lg text-muted-foreground">Every analysis follows a transparent, 6-step journey from setup to final statistics.</p>
+                </div>
+                <div className="space-y-8">
+                     {RUN_ANALYSIS_STEPS.map((step, index) => (
+                        <Card key={step.id} className="overflow-hidden">
+                            <div className="grid md:grid-cols-2 items-center">
+                                <div className={`p-8 space-y-4 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                            <step.icon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold text-primary uppercase">STEP {step.id}</p>
+                                            <h4 className="font-bold text-xl">{step.label}</h4>
+                                        </div>
+                                    </div>
+                                    <p className="text-muted-foreground">{step.description}</p>
+                                </div>
+                                <div className={`bg-muted h-full flex items-center justify-center p-6 ${index % 2 === 0 ? 'md:order-2' : 'md:order-1'}`}>
+                                    <VisualStep step={step} />
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+
+            {/* Section 4: Available Scenarios */}
+            <section>
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold font-headline mb-3">Available Scenarios</h2>
+                    <p className="text-lg text-muted-foreground">Find a pre-built workflow for your specific need.</p>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {scenarioCategories.filter(cat => !cat.isSingle).map(category => {
+                        const Icon = category.icon;
+                        return (
+                            <Card key={category.name} className="flex flex-col">
+                                <CardHeader>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Icon className="w-6 h-6 text-primary" />
+                                        <CardTitle className="text-base">{category.name}</CardTitle>
+                                    </div>
+                                    <CardDescription className="text-xs">{category.description}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-1">
+                                    <ul className="space-y-2">
+                                        {category.items.map(item => {
+                                            const ItemIcon = item.icon;
+                                            return (
+                                                <li key={item.name} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <ItemIcon className="w-4 h-4 text-primary/80" />
+                                                    <span>{item.name}</span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+            </section>
+
+            {/* Section 5: Use Cases */}
+            <section>
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold font-headline mb-3">Use Cases by Field</h2>
+                    <p className="text-lg text-muted-foreground">How different industries leverage scenario analysis.</p>
+                </div>
+                <div className="space-y-8">
+                    {industryApplications.map(industry => {
+                        const Icon = industry.icon;
+                        return (
+                            <div key={industry.industry}>
+                                <h3 className="text-2xl font-bold font-headline mb-4 flex items-center gap-3">
+                                    <Icon className="w-7 h-7 text-primary" />
+                                    {industry.industry}
+                                </h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    {industry.applications.map(app => (
+                                        <Card key={app.method} className="flex flex-col">
                                             <CardHeader className="pb-2">
                                                 <CardTitle className="text-base">{app.method}</CardTitle>
                                             </CardHeader>
                                             <CardContent className="flex-1">
                                                 <p className="text-sm text-muted-foreground">{app.use}</p>
                                             </CardContent>
-                                            </Card>
-                                        ))}
-                                        </div>
-                                    </div>
-                                    );
-                                })}
+                                        </Card>
+                                    ))}
+                                </div>
                             </div>
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
-            </Card>
+                        );
+                    })}
+                </div>
+            </section>
+
+            <div className="text-center pt-8">
+                {effectivenessExample && (
+                    <Button onClick={() => onLoadExample(effectivenessExample)} size="lg">
+                        <FlaskConical className="mr-2 h-5 w-5" />
+                        Load Example & Get Started
+                    </Button>
+                )}
+            </div>
         </div>
     );
-};
+}
