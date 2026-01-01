@@ -89,9 +89,10 @@ const scenarioCategories = [
 ];
 
 const WORKFLOW_STEPS = [
-    { id: 1, icon: Layers, label: 'Select Scenario', description: 'Choose a scenario that matches your research question.' },
-    { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload your dataset or use a sample.' },
-    { id: 3, icon: Play, label: 'Run Analysis', description: 'Configure variables and get automated insights.' },
+    { id: 1, icon: Layers, label: 'Select Scenario', description: 'Choose a scenario that matches your business or research question (e.g., "Evaluate Campaign Performance").' },
+    { id: 2, icon: Database, label: 'Prepare Data', description: 'Upload the relevant dataset. The system will guide you on the required variables for the chosen scenario.' },
+    { id: 3, icon: Play, label: 'Run Automated Analysis', description: 'The platform automatically executes a series of statistical analyses (like T-Tests, Regression, or DID) tailored to answer your question.' },
+    { id: 4, icon: FileText, label: 'Get Actionable Conclusion', description: 'Receive a synthesized report that provides a clear conclusion and actionable recommendations, not just raw statistical outputs.' }
 ];
 
 const industryApplications = [
@@ -148,13 +149,43 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue="what-is">
+                    <Tabs defaultValue="procedure">
                         <TabsList className="grid w-full grid-cols-4">
-                             <TabsTrigger value="what-is">What is It?</TabsTrigger>
-                            <TabsTrigger value="workflow">Workflow</TabsTrigger>
+                             <TabsTrigger value="procedure">Analysis Procedure</TabsTrigger>
                             <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
                             <TabsTrigger value="use-cases">Use Cases</TabsTrigger>
+                             <TabsTrigger value="what-is">What is It?</TabsTrigger>
                         </TabsList>
+                        <TabsContent value="procedure" className="pt-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Standard Analysis Procedure</CardTitle>
+                                    <CardDescription>Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-8">
+                                        {WORKFLOW_STEPS.map((step, index) => (
+                                            <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                                                        {step.id}
+                                                    </div>
+                                                    {index < WORKFLOW_STEPS.length - 1 && (
+                                                        <div className="w-0.5 flex-1 bg-border mt-2"></div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-4 pt-1">
+                                                    <div>
+                                                        <h3 className="font-semibold text-lg mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
+                                                        <p className="text-muted-foreground">{step.description}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                         <TabsContent value="what-is" className="pt-6">
                              <div className="bg-muted/30 rounded-lg p-6 space-y-4">
                                 <h3 className="font-semibold text-xl mb-3 flex items-center gap-2">
@@ -164,7 +195,7 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                                     Scenario Analysis provides pre-built workflows for common business and research questions. Instead of choosing individual statistical tests, you select a scenario that matches your problem.
                                 </p>
                                 <p className="text-muted-foreground">
-                                    The platform then automatically runs the appropriate analyses (like T-Tests, Difference-in-Differences, or regression) and presents the findings in the context of your specific question, providing a clear, actionable conclusion.
+                                    The platform then automatically runs a series of appropriate analyses (like T-Tests, Difference-in-Differences, or regression) and presents the findings in the context of your specific question, providing a clear, actionable conclusion.
                                 </p>
                                 <div className="pt-4">
                                     {effectivenessExample && (
@@ -174,28 +205,6 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                                         </Button>
                                     )}
                                 </div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="workflow" className="pt-6">
-                            <div className="space-y-8">
-                                {WORKFLOW_STEPS.map((step, index) => (
-                                    <div key={step.id} className="grid md:grid-cols-[auto,1fr] gap-6 items-start">
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-                                                {step.id}
-                                            </div>
-                                            {index < WORKFLOW_STEPS.length - 1 && (
-                                                <div className="w-0.5 flex-1 bg-border mt-2"></div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-4 pt-1">
-                                            <div>
-                                                <h3 className="font-semibold text-lg mb-1 flex items-center gap-2"><step.icon className="w-5 h-5"/>{step.label}</h3>
-                                                <p className="text-muted-foreground">{step.description}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
                         </TabsContent>
                         <TabsContent value="scenarios" className="pt-6">
