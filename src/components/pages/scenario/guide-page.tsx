@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import {
@@ -37,17 +37,15 @@ import {
     Wand2,
     FileUp,
     Bot,
-    Sparkles
+    Sparkles,
+    FileText
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'framer-motion';
-
-interface ScenarioIntroPageProps {
-    onLoadExample: (example: ExampleDataSet) => void;
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 const WORKFLOW_STEPS = [
     { id: 1, icon: Layers, label: 'Select Scenario', description: 'Choose a scenario that matches your business or research question (e.g., "Evaluate Campaign Performance").' },
@@ -64,7 +62,6 @@ const RUN_ANALYSIS_STEPS = [
     { id: 5, icon: Lightbulb, label: 'Reasoning', description: 'Understand the "why" behind the summary with simple explanations of the statistical results.' },
     { id: 6, icon: Sigma, label: 'Statistics', description: 'Dive deep into the full statistical output, including tables (e.g., ANOVA, coefficients) and charts.' }
 ];
-
 
 const industryApplications = [
     {
@@ -101,12 +98,13 @@ const industryApplications = [
     },
 ];
 
-export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPageProps) {
+
+export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e: ExampleDataSet) => void }) {
     const effectivenessExample = exampleDatasets.find(ex => ex.id === 'effectiveness-analysis');
 
     const VisualStep = ({ step }: { step: typeof RUN_ANALYSIS_STEPS[0] }) => {
         return (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden w-full max-w-md">
                 <CardContent className="p-0">
                     <div className="bg-muted h-64 rounded-lg flex items-center justify-center p-4">
                         {step.id === 1 && (
