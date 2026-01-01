@@ -93,30 +93,35 @@ const STATISTICA_FEATURES = [
     icon: FileUp, 
     label: 'Upload Data', 
     description: 'Easily upload your CSV, Excel, or JSON files.',
+    image: "/placeholder.svg" // Replace with actual image path
   },
   { 
     id: 'recommend', 
     icon: Wand2, 
     label: 'AI Recommendation', 
     description: 'Not sure where to start? Our AI suggests the best analysis for your data.',
+    image: "/placeholder.svg"
   },
   { 
     id: 'guided', 
     icon: Milestone, 
     label: 'Guided Analysis', 
     description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.',
+    image: "/placeholder.svg"
   },
   { 
     id: 'visualize', 
     icon: BarChart3, 
     label: 'Instant Visualization', 
     description: 'Get publication-ready charts and graphs automatically generated with your results.',
+    image: "/placeholder.svg"
   },
   { 
     id: 'interpret', 
     icon: Bot, 
     label: 'AI Interpretation', 
     description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.',
+    image: "/placeholder.svg"
   },
 ];
 
@@ -377,50 +382,47 @@ export default function GuidePage() {
                             <CardDescription>A visual walkthrough of how Statistica transforms raw data into actionable insights.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-center">
-                                <div className="flex justify-center gap-2 border-b">
-                                    {STATISTICA_FEATURES.map(feature => (
-                                        <button
-                                            key={feature.id}
-                                            onClick={() => setActiveFeature(feature.id)}
-                                            className={cn(
-                                                "py-3 px-4 text-sm font-semibold transition-colors relative",
-                                                activeFeature === feature.id ? "text-primary" : "text-muted-foreground hover:text-primary"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <feature.icon className="w-4 h-4" />
-                                                <span>{feature.label}</span>
-                                            </div>
-                                            {activeFeature === feature.id && (
-                                                <motion.div
-                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                                                    layoutId="underline-features"
-                                                />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="relative mt-4 w-full h-[350px] overflow-hidden bg-slate-100 rounded-lg">
+                            <div className="grid md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_400px] gap-8 items-center">
+                                <div className="relative w-full h-[350px] overflow-hidden bg-slate-100 rounded-lg flex items-center justify-center">
                                     <AnimatePresence mode="wait">
                                         <motion.div
                                             key={activeFeature}
-                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
                                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                            transition={{ duration: 0.3 }}
+                                            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                                            transition={{ duration: 0.35, ease: 'easeInOut' }}
                                             className="absolute inset-0 flex flex-col items-center justify-center p-6"
                                         >
-                                            {activeFeatureData && (
-                                                <div className="text-center">
-                                                     <div className="p-3 bg-primary/10 rounded-full inline-block mb-4">
-                                                        <activeFeatureData.icon className="w-8 h-8 text-primary" />
-                                                    </div>
-                                                    <p className="text-lg font-semibold max-w-lg mx-auto">{activeFeatureData.description}</p>
-                                                </div>
-                                            )}
+                                           <FeatureVisual featureId={activeFeature} />
                                         </motion.div>
                                     </AnimatePresence>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    {STATISTICA_FEATURES.map(feature => (
+                                        <button
+                                            key={feature.id}
+                                            onMouseEnter={() => setActiveFeature(feature.id)}
+                                            className={cn(
+                                                "p-4 rounded-lg text-left transition-all duration-300 border-2",
+                                                activeFeature === feature.id 
+                                                    ? 'bg-primary/10 border-primary/30 shadow-lg' 
+                                                    : 'bg-white hover:bg-slate-50 border-transparent'
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "p-2 rounded-md transition-colors",
+                                                    activeFeature === feature.id ? 'bg-primary text-primary-foreground' : 'bg-slate-100 text-slate-600'
+                                                )}>
+                                                    <feature.icon className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-semibold">{feature.label}</h4>
+                                                    <p className="text-xs text-muted-foreground">{feature.description}</p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </CardContent>
