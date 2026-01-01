@@ -27,14 +27,17 @@ import {
     Milestone,
     Database,
     Play,
-    FileText,
     Settings2,
     ShieldCheck,
     Sigma,
     Variable,
     Lightbulb,
+    Check,
     FileSearch,
-    Check
+    Wand2,
+    FileUp,
+    Bot,
+    Sparkles
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +64,7 @@ const RUN_ANALYSIS_STEPS = [
     { id: 5, icon: Lightbulb, label: 'Reasoning', description: 'Understand the "why" behind the summary with simple explanations of the statistical results.' },
     { id: 6, icon: Sigma, label: 'Statistics', description: 'Dive deep into the full statistical output, including tables (e.g., ANOVA, coefficients) and charts.' }
 ];
+
 
 const industryApplications = [
     {
