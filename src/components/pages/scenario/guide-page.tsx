@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -31,7 +32,8 @@ import {
     ShieldCheck,
     Sigma,
     Variable,
-    Lightbulb
+    Lightbulb,
+    FileSearch
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
@@ -186,17 +188,16 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
 
     return (
         <div className="space-y-12">
-            {/* Section 1: What is it? */}
             <section>
                 <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold font-headline mb-3">What is Scenario Analysis?</h2>
+                    <h2 className="text-3xl font-bold font-headline mb-3">Analysis Procedure</h2>
                     <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                        Instead of choosing individual statistical tests, select a scenario that matches your business question. Our platform automatically runs a series of appropriate analyses and delivers a clear, actionable conclusion.
+                        A scenario is not a single statistical test, but a workflow of multiple analyses designed to answer a complex business question.
                     </p>
                 </div>
                 <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">The Power of Workflows</h3>
+                        <h3 className="font-semibold text-xl">The Power of Automated Workflows</h3>
                         <p className="text-muted-foreground">
                             A single business question often requires multiple statistical tests to answer correctly. For example, to know if a campaign was effective, you need more than just a pre-post comparison. You need to account for external trends and ensure the results are robust.
                         </p>
@@ -205,33 +206,23 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                         </p>
                     </div>
                     <Card className="p-6">
-                        <div className="flex justify-center items-center h-full">
-                            <p className="text-center text-muted-foreground">Visual placeholder for workflow</p>
+                        <div className="space-y-4">
+                            {WORKFLOW_STEPS.map((step) => (
+                                <div key={step.id} className="flex items-start gap-4">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                        <step.icon className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold">{step.label}</h4>
+                                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </Card>
                 </div>
             </section>
-
-            {/* Section 2: Analysis Procedure */}
-            <section>
-                <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold font-headline mb-3">How It Works</h2>
-                    <p className="text-lg text-muted-foreground">A simple, guided 4-step process from question to insight.</p>
-                </div>
-                <div className="grid md:grid-cols-4 gap-6">
-                    {WORKFLOW_STEPS.map(step => (
-                        <div key={step.id} className="text-center">
-                            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mx-auto mb-4 border-2 border-primary/20">
-                                <step.icon className="w-8 h-8" />
-                            </div>
-                            <h4 className="font-semibold mb-2">{step.label}</h4>
-                            <p className="text-sm text-muted-foreground">{step.description}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-             {/* Section 3: Detailed Analysis Steps */}
+            
             <section>
                 <div className="text-center mb-10">
                     <h2 className="text-3xl font-bold font-headline mb-3">Inside a Statistica Analysis</h2>
@@ -261,45 +252,7 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
                     ))}
                 </div>
             </section>
-
-            {/* Section 4: Available Scenarios */}
-            <section>
-                <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold font-headline mb-3">Available Scenarios</h2>
-                    <p className="text-lg text-muted-foreground">Find a pre-built workflow for your specific need.</p>
-                </div>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {scenarioCategories.filter(cat => !cat.isSingle).map(category => {
-                        const Icon = category.icon;
-                        return (
-                            <Card key={category.name} className="flex flex-col">
-                                <CardHeader>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <Icon className="w-6 h-6 text-primary" />
-                                        <CardTitle className="text-base">{category.name}</CardTitle>
-                                    </div>
-                                    <CardDescription className="text-xs">{category.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-1">
-                                    <ul className="space-y-2">
-                                        {category.items.map(item => {
-                                            const ItemIcon = item.icon;
-                                            return (
-                                                <li key={item.name} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <ItemIcon className="w-4 h-4 text-primary/80" />
-                                                    <span>{item.name}</span>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
-            </section>
-
-            {/* Section 5: Use Cases */}
+            
             <section>
                 <div className="text-center mb-10">
                     <h2 className="text-3xl font-bold font-headline mb-3">Use Cases by Field</h2>
@@ -343,3 +296,69 @@ export default function ScenarioGuidePage({ onLoadExample }: ScenarioIntroPagePr
         </div>
     );
 }
+
+const scenarioCategories = [
+    {
+        name: 'Overview',
+        icon: BookOpen,
+        isSingle: true,
+        items: [
+          { id: 'guide', label: 'Overview', icon: BookOpen, component: ScenarioGuidePage },
+        ]
+    },
+    {
+        name: 'Policy / Institution',
+        icon: Landmark,
+        items: [
+            { id: 'pre-post-policy', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
+            { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
+            { id: 'policy-distribution', label: 'Policy Outcome Distribution', component: PolicyDistributionPage, icon: BarChart3 },
+            { id: 'effectiveness-analysis', label: 'Policy Effectiveness Analysis', component: EffectivenessPage, icon: Check },
+        ],
+    },
+    {
+        name: 'Marketing / Growth',
+        icon: Megaphone,
+        items: [
+            { id: 'campaign-performance', label: 'Campaign Performance Evaluation', component: CampaignPerformancePage, icon: TrendingUp },
+            { id: 'segment-effectiveness', label: 'Customer Segment Effectiveness', component: SegmentEffectivenessPage, icon: Users },
+            { id: 'channel-efficiency', label: 'Channel Efficiency Diagnosis', component: ChannelEfficiencyPage, icon: Zap },
+        ],
+    },
+    {
+        name: 'Product / Service',
+        icon: Package,
+        items: [
+            { id: 'feature-adoption', label: 'Feature Adoption Analysis', component: FeatureAdoptionPage, icon: Layers },
+            { id: 'engagement-change', label: 'User Engagement Change Analysis', component: EngagementChangePage, icon: Activity },
+            { id: 'churn-diagnosis', label: 'Churn & Drop-off Diagnosis', component: ChurnDiagnosisPage, icon: UserX },
+        ],
+    },
+    {
+        name: 'Operations / Process',
+        icon: Factory,
+        items: [
+            { id: 'process-bottleneck', label: 'Process Bottleneck Diagnosis', component: ProcessBottleneckPage, icon: Filter },
+            { id: 'process-stability', label: 'Process Stability & Quality', component: ProcessStabilityPage, icon: Activity },
+            { id: 'cost-efficiency', label: 'Cost & Efficiency Structure', component: CostEfficiencyPage, icon: DollarSign },
+        ],
+    },
+    {
+        name: 'HR / Organization',
+        icon: Users,
+        items: [
+            { id: 'hr-policy-outcome', label: 'HR Policy Outcome Analysis', component: HrPolicyOutcomePage, icon: Users },
+            { id: 'attrition-retention', label: 'Attrition & Retention Analysis', component: AttritionAnalysisPage, icon: UserX },
+            { id: 'performance-structure', label: 'Performance Structure Diagnosis', component: PerformanceStructurePage, icon: BarChart3 },
+        ],
+    },
+    {
+        name: 'Testing',
+        icon: TestTube,
+        items: [
+            { id: 'simple-test', label: 'Simple Sum Analysis', component: SimpleTestPage, icon: TestTube },
+        ],
+    }
+];
+
+```
