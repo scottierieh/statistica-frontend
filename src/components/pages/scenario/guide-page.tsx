@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -203,42 +202,48 @@ export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e
                         A single business question often requires multiple statistical tests. Scenario Analysis automates this entire workflow to provide a reliable, synthesized answer.
                     </p>
                 </div>
-                <div className="relative">
-                    {/* Background connecting lines */}
-                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2 hidden md:block" />
-                    <div className="grid md:grid-cols-3 gap-8 items-start relative">
-                        {/* Step 1: Question */}
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 rounded-full bg-background border-2 border-dashed flex items-center justify-center mb-4">
+                <div className="grid md:grid-cols-3 gap-8 items-start relative">
+                    {/* Step 1: Question */}
+                    <Card className="flex flex-col items-center text-center">
+                        <CardHeader>
+                            <div className="w-16 h-16 rounded-full bg-background border-2 border-dashed flex items-center justify-center mb-4 mx-auto">
                                 <HelpCircle className="w-8 h-8 text-muted-foreground" />
                             </div>
-                            <h4 className="font-semibold text-lg">1. The Question</h4>
-                            <p className="text-sm text-muted-foreground mt-1">Was our new campaign effective?</p>
-                        </div>
+                            <CardTitle className="text-lg">1. The Question</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground italic">&quot;Was our new campaign effective?&quot;</p>
+                        </CardContent>
+                    </Card>
 
-                        {/* Step 2: Analysis */}
-                        <div className="flex flex-col items-center text-center">
-                             <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-4">
+                    {/* Step 2: Analysis */}
+                    <Card className="flex flex-col items-center text-center border-2 border-primary/30 bg-primary/5">
+                        <CardHeader>
+                            <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-4 mx-auto">
                                 <Wand2 className="w-8 h-8 text-primary" />
                             </div>
-                            <h4 className="font-semibold text-lg">2. Automated Multi-Analysis</h4>
-                            <p className="text-sm text-muted-foreground mt-2">The system automatically runs:</p>
-                            <div className="space-y-2 mt-2 w-full max-w-xs">
-                                <div className="flex items-center gap-2 p-2 bg-background rounded-lg border text-xs"><GitCompare className="w-4 h-4 text-sky-500" /> Difference-in-Differences</div>
-                                <div className="flex items-center gap-2 p-2 bg-background rounded-lg border text-xs"><TrendingUp className="w-4 h-4 text-sky-500" /> Trend Analysis</div>
-                                <div className="flex items-center gap-2 p-2 bg-background rounded-lg border text-xs"><Scale className="w-4 h-4 text-sky-500" /> Effect Size Calculation</div>
-                            </div>
-                        </div>
+                            <CardTitle className="text-lg">2. Automated Multi-Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                             <p className="text-sm text-muted-foreground mb-3">The system automatically runs:</p>
+                             <Badge variant="outline" className="text-sm"><GitCompare className="w-4 h-4 mr-2" />Difference-in-Differences</Badge>
+                             <Badge variant="outline" className="text-sm"><TrendingUp className="w-4 h-4 mr-2" />Trend Analysis</Badge>
+                             <Badge variant="outline" className="text-sm"><Scale className="w-4 h-4 mr-2" />Effect Size Calculation</Badge>
+                        </CardContent>
+                    </Card>
 
-                        {/* Step 3: Conclusion */}
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 rounded-full bg-background border-2 border-dashed flex items-center justify-center mb-4">
+                    {/* Step 3: Conclusion */}
+                    <Card className="flex flex-col items-center text-center">
+                        <CardHeader>
+                            <div className="w-16 h-16 rounded-full bg-background border-2 border-dashed flex items-center justify-center mb-4 mx-auto">
                                 <FileText className="w-8 h-8 text-muted-foreground" />
                             </div>
-                            <h4 className="font-semibold text-lg">3. Synthesized Conclusion</h4>
-                            <p className="text-sm text-muted-foreground mt-1">"The campaign had a significant positive impact of +15%, even after accounting for market trends."</p>
-                        </div>
-                    </div>
+                            <CardTitle className="text-lg">3. Synthesized Conclusion</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground italic">&quot;The campaign had a significant positive impact of +15%, even after accounting for market trends.&quot;</p>
+                        </CardContent>
+                    </Card>
                 </div>
             </section>
             
