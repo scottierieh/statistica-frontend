@@ -40,7 +40,8 @@ import {
     FileSearch,
     FileText,
     GitCompare,
-    Scale
+    Scale,
+    ArrowRight
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
@@ -197,44 +198,78 @@ export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e
         <div className="space-y-12">
              <section>
                 <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold font-headline mb-3">Analysis Procedure</h2>
+                    <h2 className="text-3xl font-bold font-headline mb-3">The Power of Automated Workflows</h2>
                     <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                        A scenario is not a single statistical test, but a workflow of multiple analyses designed to answer a complex business question.
+                        A single business question often requires multiple statistical tests. Scenario Analysis automates this entire workflow to provide a reliable, synthesized answer.
                     </p>
                 </div>
-                <div className="grid md:grid-cols-2 gap-8 items-center">
-                    <div className="space-y-4">
-                         <div className="p-6 bg-white rounded-xl border-2 border-primary/20 shadow-lg">
-                            <h3 className="font-semibold text-xl mb-3 text-primary flex items-center gap-2">
-                                <Wand2 className="w-6 h-6" />
-                                The Power of Automated Workflows
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
-                                A single business question often requires multiple statistical tests to answer correctly. For example, to know if a campaign was effective, you need more than just a pre-post comparison. You need to account for external trends and ensure the results are robust.
-                            </p>
-                            <p className="text-foreground font-medium">
-                                Scenario Analysis automates this entire workflow, running tests like Difference-in-Differences, Trend Analysis, and Effect Size calculations to give you a reliable, synthesized answer.
-                            </p>
+                <div className="relative">
+                    {/* Background connecting lines */}
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2 hidden md:block" />
+                    <div className="grid md:grid-cols-3 gap-8 items-start relative">
+                        {/* Step 1: Question */}
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 rounded-full bg-background border-2 border-dashed flex items-center justify-center mb-4">
+                                <HelpCircle className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                            <h4 className="font-semibold text-lg">1. The Question</h4>
+                            <p className="text-sm text-muted-foreground mt-1">Was our new campaign effective?</p>
+                        </div>
+
+                        {/* Step 2: Analysis */}
+                        <div className="flex flex-col items-center text-center">
+                             <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-4">
+                                <Wand2 className="w-8 h-8 text-primary" />
+                            </div>
+                            <h4 className="font-semibold text-lg">2. Automated Multi-Analysis</h4>
+                            <p className="text-sm text-muted-foreground mt-2">The system automatically runs:</p>
+                            <div className="space-y-2 mt-2 w-full max-w-xs">
+                                <div className="flex items-center gap-2 p-2 bg-background rounded-lg border text-xs"><GitCompare className="w-4 h-4 text-sky-500" /> Difference-in-Differences</div>
+                                <div className="flex items-center gap-2 p-2 bg-background rounded-lg border text-xs"><TrendingUp className="w-4 h-4 text-sky-500" /> Trend Analysis</div>
+                                <div className="flex items-center gap-2 p-2 bg-background rounded-lg border text-xs"><Scale className="w-4 h-4 text-sky-500" /> Effect Size Calculation</div>
+                            </div>
+                        </div>
+
+                        {/* Step 3: Conclusion */}
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 rounded-full bg-background border-2 border-dashed flex items-center justify-center mb-4">
+                                <FileText className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                            <h4 className="font-semibold text-lg">3. Synthesized Conclusion</h4>
+                            <p className="text-sm text-muted-foreground mt-1">"The campaign had a significant positive impact of +15%, even after accounting for market trends."</p>
                         </div>
                     </div>
-                    <Card className="p-6">
-                        <div className="space-y-4">
-                            {WORKFLOW_STEPS.map((step) => (
-                                <div key={step.id} className="flex items-start gap-4">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        <step.icon className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold">{step.label}</h4>
-                                        <p className="text-sm text-muted-foreground">{step.description}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
                 </div>
             </section>
             
+            <section>
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold font-headline mb-3">Analysis Procedure</h2>
+                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                        Our platform follows a structured, step-by-step process to guide you from data to insight. Here’s how it works.
+                    </p>
+                </div>
+                <div className="space-y-8">
+                    {WORKFLOW_STEPS.map((step, index) => (
+                        <Card key={step.id} className="overflow-hidden">
+                            <div className="grid md:grid-cols-[auto,1fr] items-center">
+                                <div className="flex flex-col items-center justify-center p-6 bg-muted h-full">
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3 border-4 border-background ring-2 ring-primary/20">
+                                        <step.icon className="w-8 h-8"/>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">STEP</p>
+                                    <p className="text-3xl font-bold">{step.id}</p>
+                                </div>
+                                <div className="p-6">
+                                    <h3 className="font-bold text-xl mb-1">{step.label}</h3>
+                                    <p className="text-muted-foreground">{step.description}</p>
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+
             <section>
                 <div className="text-center mb-10">
                     <h2 className="text-3xl font-bold font-headline mb-3">Inside a Statistica Analysis</h2>
@@ -275,9 +310,11 @@ export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e
                         const Icon = industry.icon;
                         return (
                             <Card key={industry.industry} className="flex flex-col">
-                                <CardHeader className="flex flex-row items-center gap-3 pb-2">
-                                    <Icon className="w-6 h-6 text-primary" />
-                                    <CardTitle className="text-base">{industry.industry}</CardTitle>
+                                <CardHeader className="pb-2">
+                                     <div className="flex items-center gap-3 mb-2">
+                                        <Icon className="w-6 h-6 text-primary" />
+                                        <CardTitle className="text-base">{industry.industry}</CardTitle>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="flex-1">
                                     <ul className="space-y-2">
