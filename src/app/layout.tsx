@@ -22,7 +22,7 @@ const spaceGrotesk = Space_Grotesk({
 // Note: Since this is now a client component, metadata should be handled in a parent layout or pages.
 // For this app structure, we can keep it simple as it is not the primary focus.
 // export const metadata: Metadata = {
-//   title: 'Skarii',
+//   title: 'Skari',
 //   description: 'An intelligent statistical analysis tool.',
 // };
 

@@ -162,7 +162,7 @@ function DashboardHub() {
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
         <Link href="/" className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-headline font-bold">skari Dashboard</h1>
+          <h1 className="text-xl font-headline font-bold">Skari Dashboard</h1>
         </Link>
          <div className="ml-auto flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name}</span>

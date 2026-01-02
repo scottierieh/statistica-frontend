@@ -1,4 +1,5 @@
 
+
 import PricingSection from '@/components/pricing-section';
 import { Button } from '@/components/ui/button';
 import { Calculator, ArrowLeft } from 'lucide-react';
@@ -14,7 +15,7 @@ export default function PricingPage() {
             </div>
              <Link href="/" className="flex items-center justify-center gap-2">
                 <Calculator className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-headline font-bold">skari</h1>
+                <h1 className="text-xl font-headline font-bold">Skari</h1>
             </Link>
             <div className="flex-1 flex justify-end items-center gap-4">
                 {/* This div is to balance the flex layout */}
@@ -26,7 +27,7 @@ export default function PricingPage() {
       </main>
        <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-muted/40">
         <p className="text-xs text-muted-foreground">
-          &copy; 2024 skari. All rights reserved.
+          &copy; 2024 Skari. All rights reserved.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="#">Terms of Service</Link>

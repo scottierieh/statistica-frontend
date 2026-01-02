@@ -396,7 +396,7 @@ export default function LandingPage() {
             <div className="flex-1 flex justify-start">
                 <Link href="/" className="flex items-center justify-center gap-2">
                     <Calculator className="h-6 w-6 text-primary" />
-                    <h1 className="text-xl font-headline font-bold">skari</h1>
+                    <h1 className="text-xl font-headline font-bold">Skari</h1>
                 </Link>
             </div>
              <nav className="hidden lg:flex items-center gap-4 sm:gap-6 flex-1 justify-center">
@@ -1327,7 +1327,7 @@ export default function LandingPage() {
                       <Bot className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-white text-xs sm:text-base">skari AI Assistant</p>
+                      <p className="font-semibold text-white text-xs sm:text-base">Skari AI Assistant</p>
                       <p className="text-[9px] sm:text-xs text-slate-400 hidden sm:block">Ask anything about your results</p>
                     </div>
                     <div className="ml-auto flex items-center gap-1">
@@ -1500,7 +1500,7 @@ export default function LandingPage() {
                             Ready to Transform Your Data Analysis?
                         </h2>
                         <p className="text-lg md:text-xl text-primary-foreground/90 mb-8">
-                            Join thousands of researchers and analysts who trust skari for their statistical analysis needs.
+                            Join thousands of researchers and analysts who trust Skari for their statistical analysis needs.
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                             <Button size="lg" variant="secondary" asChild className="text-base px-8 py-6 w-full sm:w-auto">
@@ -1535,7 +1535,7 @@ export default function LandingPage() {
 
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-muted/40">
         <p className="text-xs text-muted-foreground">
-          &copy; 2024 skari. All rights reserved.
+          &copy; 2024 Skari. All rights reserved.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="#">Terms of Service</Link>
