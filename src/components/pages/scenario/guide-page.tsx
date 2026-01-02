@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -38,6 +39,8 @@ import {
     Sparkles,
     FileSearch,
     FileText,
+    GitCompare,
+    Scale
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
@@ -192,7 +195,7 @@ export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e
 
     return (
         <div className="space-y-12">
-            <section>
+             <section>
                 <div className="text-center mb-10">
                     <h2 className="text-3xl font-bold font-headline mb-3">Analysis Procedure</h2>
                     <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
@@ -201,13 +204,18 @@ export default function ScenarioGuidePage({ onLoadExample }: { onLoadExample: (e
                 </div>
                 <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">The Power of Automated Workflows</h3>
-                        <p className="text-muted-foreground">
-                            A single business question often requires multiple statistical tests to answer correctly. For example, to know if a campaign was effective, you need more than just a pre-post comparison. You need to account for external trends and ensure the results are robust.
-                        </p>
-                        <p className="text-muted-foreground">
-                            Scenario Analysis automates this entire workflow, running tests like Difference-in-Differences, Trend Analysis, and Effect Size calculations to give you a reliable, synthesized answer.
-                        </p>
+                         <div className="p-6 bg-white rounded-xl border-2 border-primary/20 shadow-lg">
+                            <h3 className="font-semibold text-xl mb-3 text-primary flex items-center gap-2">
+                                <Wand2 className="w-6 h-6" />
+                                The Power of Automated Workflows
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                A single business question often requires multiple statistical tests to answer correctly. For example, to know if a campaign was effective, you need more than just a pre-post comparison. You need to account for external trends and ensure the results are robust.
+                            </p>
+                            <p className="text-foreground font-medium">
+                                Scenario Analysis automates this entire workflow, running tests like Difference-in-Differences, Trend Analysis, and Effect Size calculations to give you a reliable, synthesized answer.
+                            </p>
+                        </div>
                     </div>
                     <Card className="p-6">
                         <div className="space-y-4">
