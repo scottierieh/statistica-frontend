@@ -1,13 +1,40 @@
 
 'use client';
 
-import SettingsPage from '@/components/pages/settings-page';
 import DashboardClientLayout from '@/components/dashboard-client-layout';
 import { ArrowLeft, Calculator, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+
+function AccountSettings() {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Account</CardTitle>
+                <CardDescription>
+                    Manage your account settings and set e-mail preferences.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input id="name" defaultValue="Your Name" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" defaultValue="your.email@example.com" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button>Save Changes</Button>
+            </CardFooter>
+        </Card>
+    )
+}
 
 export default function Settings() {
     return (
@@ -38,7 +65,7 @@ export default function Settings() {
                           <TabsTrigger value="team">Team</TabsTrigger>
                         </TabsList>
                         <TabsContent value="account">
-                          <SettingsPage />
+                            <AccountSettings />
                         </TabsContent>
                         <TabsContent value="team">
                           <Card>
