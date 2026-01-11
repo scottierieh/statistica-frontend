@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:8000';
 
-export async function POST(request: NextRequest) {
+async function proxyRequest(request: NextRequest, path: string = '') {
     try {
-        const body = await request.json();
+        const url = `${PYTHON_API_URL}/api/teams/invitations${path}`;
+        
+        let response: Response;
 
-        // Directly proxy to the FastAPI backend
-        const response = await fetch(`${PYTHON_API_URL}/api/teams/invitations`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+        if (request.method === 'GET' || request.method === 'DELETE') {
+            response = await fetch(url, {
+                method: request.method,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        } else {
+             const body = await request.json();
+             response = await fetch(url, {
+                method: request.method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+        }
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -19,9 +28,9 @@ export async function POST(request: NextRequest) {
             try {
                 errorJson = JSON.parse(errorText);
             } catch(e) {
-                // Not a JSON error, use the raw text
+                // Not a JSON error
             }
-            console.error(`Error from FastAPI backend for invitations:`, errorJson);
+            console.error(`Error from FastAPI backend:`, errorJson);
             return NextResponse.json(errorJson, { status: response.status });
         }
 
@@ -32,4 +41,25 @@ export async function POST(request: NextRequest) {
         console.error(`Error proxying to invitations endpoint:`, error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
+}
+
+export async function POST(request: NextRequest) {
+    return proxyRequest(request);
+}
+
+export async function GET(request: NextRequest) {
+    return proxyRequest(request);
+}
+
+// It's unconventional to get ID from body in PUT/DELETE, but for simplicity with proxy:
+export async function PUT(request: NextRequest) {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    return proxyRequest(request, `/${id}`);
+}
+
+export async function DELETE(request: NextRequest) {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    return proxyRequest(request, `/${id}`);
 }

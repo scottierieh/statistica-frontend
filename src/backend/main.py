@@ -43,6 +43,10 @@ class DescriptiveStatsPayload(BaseModel):
     variables: List[str]
     groupBy: Optional[str] = None
 
+class TeamInvitationPayload(BaseModel):
+    email: str
+    role: str = 'Member'
+
 @app.get("/")
 def read_root():
     return {"message": "Statistica Backend is running"}
@@ -88,6 +92,29 @@ async def analyze_descriptive_stats(payload: DescriptiveStatsPayload):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/teams/invitations")
+async def invite_team_member(payload: TeamInvitationPayload):
+    # This is a placeholder for the actual invitation logic.
+    print(f"Received invitation for {payload.email} with role {payload.role}")
+    return {"message": f"Invitation successfully sent to {payload.email}"}
+
+@app.get("/api/teams/invitations")
+async def get_invitations():
+    # Placeholder: In a real app, you'd fetch this from a database
+    return []
+
+@app.put("/api/teams/invitations/{invitation_id}")
+async def update_invitation(invitation_id: str, status: str):
+    # Placeholder: Update invitation status
+    print(f"Updating invitation {invitation_id} to status {status}")
+    return {"message": "Invitation status updated."}
+
+@app.delete("/api/teams/invitations/{invitation_id}")
+async def delete_invitation(invitation_id: str):
+    # Placeholder: Delete an invitation
+    print(f"Deleting invitation {invitation_id}")
+    return {"message": "Invitation deleted."}
 
 
 if __name__ == "__main__":
