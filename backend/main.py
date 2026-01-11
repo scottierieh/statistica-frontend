@@ -43,6 +43,10 @@ class DescriptiveStatsPayload(BaseModel):
     variables: List[str]
     groupBy: Optional[str] = None
 
+class TeamInvitationPayload(BaseModel):
+    email: str
+    role: str = 'Member'
+
 @app.get("/")
 def read_root():
     return {"message": "Statistica Backend is running"}
@@ -88,6 +92,17 @@ async def analyze_descriptive_stats(payload: DescriptiveStatsPayload):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/teams/invitations")
+async def invite_team_member(payload: TeamInvitationPayload):
+    # This is a placeholder for the actual invitation logic.
+    # In a real application, you would:
+    # 1. Validate the email.
+    # 2. Check if the user is already in the team.
+    # 3. Create an invitation record in your database.
+    # 4. Send an invitation email.
+    print(f"Received invitation for {payload.email} with role {payload.role}")
+    return {"message": f"Invitation successfully sent to {payload.email}"}
 
 
 if __name__ == "__main__":
