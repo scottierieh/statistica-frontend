@@ -2,7 +2,7 @@
 'use client';
 
 import DashboardClientLayout from '@/components/dashboard-client-layout';
-import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -26,11 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { PolicyDialog } from '@/components/policy-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 function AccountSettings() {
+    const [agreed, setAgreed] = useState(true);
     return (
         <Card>
             <CardHeader>
@@ -48,9 +51,22 @@ function AccountSettings() {
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" defaultValue="your.email@example.com" />
                 </div>
+                 <div className="flex items-start space-x-3 pt-2">
+                        <Checkbox id="terms-account" checked={agreed} onCheckedChange={(checked) => setAgreed(checked as boolean)} className="mt-0.5" />
+                        <label
+                            htmlFor="terms-account"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            I agree to the{' '}
+                            <PolicyDialog triggerText="Terms of Service" title="Terms of Service" />
+                            {' '}and{' '}
+                            <PolicyDialog triggerText="Privacy Policy" title="Privacy Policy" />
+                            .
+                        </label>
+                    </div>
             </CardContent>
             <CardFooter>
-                <Button>Save Changes</Button>
+                <Button disabled={!agreed}>Save Changes</Button>
             </CardFooter>
         </Card>
     )
@@ -59,7 +75,30 @@ function AccountSettings() {
 function TeamSettings() {
     const { toast } = useToast();
     const [emails, setEmails] = useState('');
+    const [invitations, setInvitations] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(true);
+
+    const fetchInvitations = async () => {
+        setIsFetching(true);
+        try {
+            const response = await fetch('/api/teams/invitations');
+            if (response.ok) {
+                const data = await response.json();
+                setInvitations(data);
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch invitations.' });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while fetching invitations.' });
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchInvitations();
+    }, []);
 
     const handleInvite = async () => {
         const emailList = emails.split(/[\s,;\n]+/).filter(email => email.trim() !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
@@ -105,6 +144,7 @@ function TeamSettings() {
                 title: 'Invitations Sent',
                 description: `${successCount} invitation(s) sent successfully.`,
             });
+            fetchInvitations();
         }
         
         if (errorCount === 0) {
@@ -113,13 +153,26 @@ function TeamSettings() {
 
         setIsLoading(false);
     };
+    
+    const handleDeleteInvitation = async (invitationId: string) => {
+        try {
+            const response = await fetch(`/api/teams/invitations?id=${invitationId}`, { method: 'DELETE' });
+            if (response.ok) {
+                toast({ title: 'Success', description: 'Invitation removed.' });
+                fetchInvitations(); // Refresh the list
+            } else {
+                throw new Error('Failed to remove invitation.');
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not remove invitation.' });
+        }
+    }
 
 
-    // Mock data for team members
+    // Mock data for current team members until backend is ready
     const teamMembers = [
         { name: 'You', email: 'your.email@example.com', role: 'Admin', avatar: '/placeholder-user.jpg' },
         { name: 'Jane Doe', email: 'jane.doe@example.com', role: 'Member', avatar: '/placeholder-user.jpg' },
-        { name: 'John Smith', email: 'john.smith@example.com', role: 'Member', avatar: '/placeholder-user.jpg' },
     ];
 
     return (
@@ -139,7 +192,7 @@ function TeamSettings() {
                             disabled={isLoading}
                         />
                          <Button onClick={handleInvite} disabled={isLoading} className="w-full sm:w-auto self-end">
-                            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlusCircle className="w-4 h-4 mr-2" />}
+                            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                             Send Invites
                         </Button>
                     </div>
@@ -148,8 +201,8 @@ function TeamSettings() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Manage Team Members</CardTitle>
-                    <CardDescription>View and manage people in your workspace.</CardDescription>
+                    <CardTitle>Team Members</CardTitle>
+                    <CardDescription>People who are currently part of your team.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -176,7 +229,7 @@ function TeamSettings() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Select defaultValue={member.role}>
+                                        <Select defaultValue={member.role} disabled={member.name === 'You'}>
                                             <SelectTrigger className="w-32">
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -187,14 +240,51 @@ function TeamSettings() {
                                         </Select>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon">
-                                            <Trash2 className="w-4 h-4 text-destructive" />
-                                        </Button>
+                                         {member.name !== 'You' && (
+                                            <Button variant="ghost" size="icon">
+                                                <Trash2 className="w-4 h-4 text-destructive" />
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Pending Invitations</CardTitle>
+                    <CardDescription>People who have been invited but have not yet joined.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isFetching ? <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div> : invitations.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {invitations.map((invite) => (
+                                    <TableRow key={invite.id}>
+                                        <TableCell>{invite.email}</TableCell>
+                                        <TableCell><Badge variant="outline">{invite.role}</Badge></TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteInvitation(invite.id)}>
+                                                <Trash2 className="w-4 h-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center p-4">No pending invitations.</p>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -224,7 +314,7 @@ export default function Settings() {
                 </header>
                 <main className="flex-1 p-4 md:p-8 lg:p-12">
                    <div className="max-w-4xl mx-auto">
-                      <Tabs defaultValue="account">
+                      <Tabs defaultValue="team">
                         <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="account">Account</TabsTrigger>
                           <TabsTrigger value="team">Team</TabsTrigger>
