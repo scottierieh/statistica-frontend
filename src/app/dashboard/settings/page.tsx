@@ -2,13 +2,30 @@
 'use client';
 
 import DashboardClientLayout from '@/components/dashboard-client-layout';
-import { ArrowLeft, Calculator, Users } from 'lucide-react';
+import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 
 function AccountSettings() {
     return (
@@ -33,6 +50,85 @@ function AccountSettings() {
                 <Button>Save Changes</Button>
             </CardFooter>
         </Card>
+    )
+}
+
+function TeamSettings() {
+    // Mock data for team members
+    const teamMembers = [
+        { name: 'You', email: 'your.email@example.com', role: 'Admin', avatar: '/placeholder-user.jpg' },
+        { name: 'Jane Doe', email: 'jane.doe@example.com', role: 'Member', avatar: '/placeholder-user.jpg' },
+        { name: 'John Smith', email: 'john.smith@example.com', role: 'Member', avatar: '/placeholder-user.jpg' },
+    ];
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Invite New Member</CardTitle>
+                    <CardDescription>Enter the email address of the person you want to invite to your team.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-muted-foreground" />
+                        <Input type="email" placeholder="new.member@example.com" className="flex-1" />
+                        <Button><PlusCircle className="w-4 h-4 mr-2" /> Send Invite</Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Manage Team Members</CardTitle>
+                    <CardDescription>View and manage people in your workspace.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Member</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {teamMembers.map((member) => (
+                                <TableRow key={member.email}>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarImage src={member.avatar} alt={member.name} />
+                                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{member.name}</p>
+                                                <p className="text-sm text-muted-foreground">{member.email}</p>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select defaultValue={member.role}>
+                                            <SelectTrigger className="w-32">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Admin">Admin</SelectItem>
+                                                <SelectItem value="Member">Member</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon">
+                                            <Trash2 className="w-4 h-4 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
     )
 }
 
@@ -64,26 +160,11 @@ export default function Settings() {
                           <TabsTrigger value="account">Account</TabsTrigger>
                           <TabsTrigger value="team">Team</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="account">
+                        <TabsContent value="account" className="mt-6">
                             <AccountSettings />
                         </TabsContent>
-                        <TabsContent value="team">
-                          <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Users />Team Management</CardTitle>
-                                <CardDescription>
-                                    Invite team members and manage their roles. This feature is coming soon!
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="text-center py-12">
-                                <div className="flex justify-center mb-4">
-                                    <div className="p-3 bg-primary/10 rounded-full">
-                                        <Users className="w-8 h-8 text-primary" />
-                                    </div>
-                                </div>
-                                <p className="text-muted-foreground">Team management features will be available here.</p>
-                            </CardContent>
-                          </Card>
+                        <TabsContent value="team" className="mt-6">
+                          <TeamSettings />
                         </TabsContent>
                       </Tabs>
                    </div>
