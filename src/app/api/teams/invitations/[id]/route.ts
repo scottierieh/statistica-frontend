@@ -5,7 +5,7 @@ const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:8000';
 
 async function proxyRequest(request: NextRequest, path: string = '') {
     try {
-        const url = `${PYTHON_API_URL}/api/teams/invitations${path}`;
+        const url = `${PYTHON_API_URL}/api/teams/invitations${path}?${request.nextUrl.searchParams.toString()}`;
         
         let response: Response;
 
@@ -49,7 +49,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return proxyRequest(request, `/${id}`);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-    const id = params.id;
-    return proxyRequest(request, `/${id}`);
+export async function DELETE(request: NextRequest) {
+    return proxyRequest(request, '');
 }
