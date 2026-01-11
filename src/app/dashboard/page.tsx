@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Calculator, BrainCircuit, Monitor, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box, Image as ImageIcon, Factory, LayoutDashboard, DatabaseZap, Paintbrush, Landmark, FlaskConical, Settings } from "lucide-react";
@@ -60,14 +59,6 @@ const tools = [
     description: "Coming soon...",
     disabled: true,
   },
-    {
-    id: "team-settings",
-    href: "/dashboard/team",
-    icon: Users,
-    title: "Team Settings",
-    description: "Manage your team members and roles.",
-    disabled: false,
-  },
   {
     id: "simulation",
     href: "/dashboard/simulation",
@@ -84,7 +75,6 @@ const tools = [
     description: "Coming soon...",
     disabled: true,
   },
-
   {
     id: "360-feedback",
     href: "#",
