@@ -50,6 +50,14 @@ const tools = [
     description: "Build and monitor custom dashboards.",
     disabled: false,
   },
+  {
+    id: "team",
+    href: "/dashboard/team",
+    icon: Users,
+    title: "Team",
+    description: "Invite and manage team members.",
+    disabled: false,
+  },
   // Coming Soon
   {
     id: "survey",
@@ -60,26 +68,10 @@ const tools = [
     disabled: true,
   },
   {
-    id: "simulation",
-    href: "/dashboard/simulation",
-    icon: FastForward,
-    title: "Simulation",
-    description: "Coming soon...",
-    disabled: true,
-  },
-  {
     id: "machine-learning",
     href: "/dashboard/machine-learning",
     icon: BrainCircuit,
     title: "Machine Learning",
-    description: "Coming soon...",
-    disabled: true,
-  },
-  {
-    id: "360-feedback",
-    href: "#",
-    icon: Repeat,
-    title: "360 Feedback",
     description: "Coming soon...",
     disabled: true,
   }
