@@ -1,0 +1,397 @@
+{
+  "entities": {
+    "UploadedFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UploadedFile",
+      "type": "object",
+      "description": "Represents a file uploaded by a user for statistical analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the uploaded file."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who uploaded this file. (Relationship: User 1:N UploadedFile)"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The original name of the uploaded file."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "The date and time when the file was uploaded.",
+          "format": "date-time"
+        },
+        "fileType": {
+          "type": "string",
+          "description": "The type of the uploaded file (e.g., CSV, TXT)."
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "The size of the uploaded file in bytes."
+        },
+        "dataColumns": {
+          "type": "array",
+          "description": "List of columns in the file.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "fileName",
+        "uploadDate",
+        "fileType",
+        "fileSize",
+        "dataColumns"
+      ]
+    },
+    "StatisticalAnalysis": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StatisticalAnalysis",
+      "type": "object",
+      "description": "Represents the statistical analysis performed on an uploaded file.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the statistical analysis."
+        },
+        "uploadedFileId": {
+          "type": "string",
+          "description": "Reference to the UploadedFile that this analysis is based on. (Relationship: UploadedFile 1:N StatisticalAnalysis)"
+        },
+        "mean": {
+          "type": "number",
+          "description": "The mean (average) value of the data."
+        },
+        "median": {
+          "type": "number",
+          "description": "The median value of the data."
+        },
+        "standardDeviation": {
+          "type": "number",
+          "description": "The standard deviation of the data."
+        },
+        "variance": {
+          "type": "number",
+          "description": "The variance of the data."
+        },
+        "minimum": {
+          "type": "number",
+          "description": "The minimum value in the data."
+        },
+        "maximum": {
+          "type": "number",
+          "description": "The maximum value in the data."
+        },
+        "percentiles": {
+          "type": "array",
+          "description": "The list of percentiles",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "uploadedFileId",
+        "mean",
+        "median",
+        "standardDeviation",
+        "variance",
+        "minimum",
+        "maximum",
+        "percentiles"
+      ]
+    },
+    "DataVisualization": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DataVisualization",
+      "type": "object",
+      "description": "Represents a visualization (chart/graph) generated from the data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the data visualization."
+        },
+        "uploadedFileId": {
+          "type": "string",
+          "description": "Reference to the UploadedFile this visualization is based on. (Relationship: UploadedFile 1:N DataVisualization)"
+        },
+        "chartType": {
+          "type": "string",
+          "description": "The type of chart or graph (e.g., histogram, box plot, scatter plot)."
+        },
+        "chartData": {
+          "type": "string",
+          "description": "The data used to generate the chart (e.g., JSON, CSV)."
+        },
+        "labels": {
+          "type": "array",
+          "description": "Labels associated with data points in the chart.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "options": {
+          "type": "string",
+          "description": "Chart options."
+        }
+      },
+      "required": [
+        "id",
+        "uploadedFileId",
+        "chartType",
+        "chartData",
+        "labels"
+      ]
+    },
+    "CorrelationAnalysis": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CorrelationAnalysis",
+      "type": "object",
+      "description": "Represents the correlation analysis performed on an uploaded file.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the correlation analysis."
+        },
+        "uploadedFileId": {
+          "type": "string",
+          "description": "Reference to the UploadedFile that this analysis is based on. (Relationship: UploadedFile 1:N CorrelationAnalysis)"
+        },
+        "correlationMatrix": {
+          "type": "string",
+          "description": "The correlation matrix data (e.g., JSON, CSV)."
+        },
+        "variables": {
+          "type": "array",
+          "description": "The names of the variables used in the correlation analysis.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "uploadedFileId",
+        "correlationMatrix",
+        "variables"
+      ]
+    },
+    "SummaryReport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SummaryReport",
+      "type": "object",
+      "description": "Represents a summary report generated for a given dataset.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the summary report."
+        },
+        "uploadedFileId": {
+          "type": "string",
+          "description": "Reference to the UploadedFile this report is based on. (Relationship: UploadedFile 1:N SummaryReport)"
+        },
+        "reportData": {
+          "type": "string",
+          "description": "The content of the summary report (e.g., text, HTML)."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time when the report was generated.",
+          "format": "date-time"
+        },
+        "format": {
+          "type": "string",
+          "description": "The file format of the report (e.g., PDF, TXT)."
+        }
+      },
+      "required": [
+        "id",
+        "uploadedFileId",
+        "reportData",
+        "creationDate",
+        "format"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "username": {
+          "type": "string",
+          "description": "The user's username."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "The date and time when the user registered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "username",
+        "registrationDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store user profiles. Each document represents a user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/uploads/{uploadId}",
+        "definition": {
+          "entityName": "UploadedFile",
+          "schema": {
+            "$ref": "#/backend/entities/UploadedFile"
+          },
+          "description": "Collection to store files uploaded by a user. The userId parameter ensures that files are isolated to the owning user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "uploadId",
+              "description": "The unique identifier of the uploaded file."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/uploads/{uploadId}/analyses/{analysisId}",
+        "definition": {
+          "entityName": "StatisticalAnalysis",
+          "schema": {
+            "$ref": "#/backend/entities/StatisticalAnalysis"
+          },
+          "description": "Collection to store statistical analyses performed on an uploaded file. Inherits authorization from the parent 'UploadedFile' document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "uploadId",
+              "description": "The unique identifier of the uploaded file."
+            },
+            {
+              "name": "analysisId",
+              "description": "The unique identifier of the statistical analysis."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/uploads/{uploadId}/visualizations/{visualizationId}",
+        "definition": {
+          "entityName": "DataVisualization",
+          "schema": {
+            "$ref": "#/backend/entities/DataVisualization"
+          },
+          "description": "Collection to store data visualizations generated from an uploaded file. Inherits authorization from the parent 'UploadedFile' document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "uploadId",
+              "description": "The unique identifier of the uploaded file."
+            },
+            {
+              "name": "visualizationId",
+              "description": "The unique identifier of the data visualization."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/uploads/{uploadId}/correlations/{correlationId}",
+        "definition": {
+          "entityName": "CorrelationAnalysis",
+          "schema": {
+            "$ref": "#/backend/entities/CorrelationAnalysis"
+          },
+          "description": "Collection to store correlation analyses performed on an uploaded file. Inherits authorization from the parent 'UploadedFile' document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "uploadId",
+              "description": "The unique identifier of the uploaded file."
+            },
+            {
+              "name": "correlationId",
+              "description": "The unique identifier of the correlation analysis."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/uploads/{uploadId}/reports/{reportId}",
+        "definition": {
+          "entityName": "SummaryReport",
+          "schema": {
+            "$ref": "#/backend/entities/SummaryReport"
+          },
+          "description": "Collection to store summary reports generated for a given dataset. Inherits authorization from the parent 'UploadedFile' document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "uploadId",
+              "description": "The unique identifier of the uploaded file."
+            },
+            {
+              "name": "reportId",
+              "description": "The unique identifier of the summary report."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying by leveraging path-based ownership. Each user has their own dedicated space for uploaded files and associated analysis data. This design promotes authorization independence by avoiding the need for `get()` calls in security rules, enabling atomic operations and simplifying debugging.\n\nThe structure follows a hierarchical pattern: `/users/{userId}/uploads/{uploadId}` for uploaded files, and subcollections for statistical analysis, data visualizations, correlation analyses, and summary reports. This approach allows for secure list operations (QAPs) as all documents within a user's path are owned by that user, simplifying security rule logic. Denormalization is not strictly required here as we're leveraging the user-centric path ownership, which implicitly grants access based on the user's ID."
+  }
+}

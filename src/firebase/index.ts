@@ -1,71 +1,50 @@
-
 'use client';
 
-import {
-  initializeApp,
-  getApps,
-  type FirebaseApp,
-  type FirebaseOptions,
-} from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { firebaseConfig } from '@/firebase/config';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore'
 
-// Explicit imports from provider and client-provider
-import { FirebaseProvider, useAuth as useFirebaseAuth, useFirebaseApp, useFirestore } from './provider';
-import { FirebaseClientProvider } from './client-provider';
+// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+export function initializeFirebase() {
+  if (!getApps().length) {
+    // Important! initializeApp() is called without any arguments because Firebase App Hosting
+    // integrates with the initializeApp() function to provide the environment variables needed to
+    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
+    // without arguments.
+    let firebaseApp;
+    try {
+      // Attempt to initialize via Firebase App Hosting environment variables
+      firebaseApp = initializeApp();
+    } catch (e) {
+      // Only warn in production because it's normal to use the firebaseConfig to initialize
+      // during development
+      if (process.env.NODE_ENV === "production") {
+        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      }
+      firebaseApp = initializeApp(firebaseConfig);
+    }
 
-// Explicit import from hooks
-import { useAuth } from '@/hooks/use-auth';
-
-
-const firebaseConfig: FirebaseOptions = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-type FirebaseServices = {
-  app: FirebaseApp;
-  auth: Auth;
-  firestore: Firestore;
-  storage: FirebaseStorage;
-};
-
-let firebaseServices: FirebaseServices | null = null;
-
-export function initializeFirebase(): FirebaseServices {
-  if (firebaseServices) {
-    return firebaseServices;
+    return getSdks(firebaseApp);
   }
 
-  if (getApps().length > 0) {
-    const app = getApps()[0];
-    const auth = getAuth(app);
-    const firestore = getFirestore(app);
-    const storage = getStorage(app);
-    firebaseServices = { app, auth, firestore, storage };
-    return firebaseServices;
-  }
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const firestore = getFirestore(app);
-  const storage = getStorage(app);
-  firebaseServices = { app, auth, firestore, storage };
-
-  return firebaseServices;
+  // If already initialized, return the SDKs with the already initialized App
+  return getSdks(getApp());
 }
 
-// Re-export necessary components and hooks explicitly
-export { 
-    FirebaseProvider, 
-    useFirebaseAuth, 
-    useFirebaseApp, 
-    useFirestore,
-    FirebaseClientProvider,
-    useAuth
-};
+export function getSdks(firebaseApp: FirebaseApp) {
+  return {
+    firebaseApp,
+    auth: getAuth(firebaseApp),
+    firestore: getFirestore(firebaseApp)
+  };
+}
+
+export * from './provider';
+export * from './client-provider';
+export * from './firestore/use-collection';
+export * from './firestore/use-doc';
+export * from './non-blocking-updates';
+export * from './non-blocking-login';
+export * from './errors';
+export * from './error-emitter';

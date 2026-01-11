@@ -1,0 +1,192 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All data is
+ * isolated within a user-specific document tree, ensuring that a user can only
+ * ever access their own information. Access is determined by the user's ID in the
+ * document path, which is a highly secure and performant pattern.
+ *
+ * Data Structure: All application data is hierarchically nested under the
+ * `/users/{userId}` path. A user's profile is the root document, and all their
+ * uploaded files, analyses, visualizations, and reports are stored in subcollections
+ * under their unique user ID.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user is completely sandboxed within their `/users/{userId}`
+ *   data tree. They cannot read or write to any other user's data.
+ * - No User Enumeration: The top-level `/users` collection is not listable,
+ *   preventing malicious actors from discovering all registered users.
+ * - Path-Based Authorization: All authorization checks are based on the `{userId}`
+ *   wildcard in the path. This avoids costly and slow `get()` calls to other
+ *   documents for permission checks.
+ * - Relational Integrity: On document creation, rules validate that internal IDs
+ *   (e.g., `userId`, `uploadedFileId`) match the IDs in the document path. These
+ *   IDs are then enforced as immutable on update to maintain data consistency.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to abstract and simplify rule logic.
+
+    /**
+     * Verifies that the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing document ownership.
+     * @param userId The ID of the user to check ownership against.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * A robust check for update/delete operations, ensuring the user is the owner
+     * AND that the document they are trying to modify actually exists.
+     * @param userId The ID of the user to check ownership against.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the `id` field within a new User profile document matches
+     * the document's ID in the path. Enforces relational integrity on creation.
+     */
+    function userProfileDataIsConsistent(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Enforces immutability of the user's `id` field after creation.
+     */
+    function isUserIdFieldImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates that the `userId` field within a new UploadedFile document
+     * matches the `userId` from the path.
+     */
+    function uploadDataIsConsistent(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * Enforces immutability of the `userId` field in an UploadedFile document.
+     */
+    function isUploaderIdFieldImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * Validates that the `uploadedFileId` field within a new subcollection document
+     * (e.g., analysis, visualization) matches the parent `uploadId` from the path.
+     */
+    function subDocumentDataIsConsistent(uploadId) {
+      return request.resource.data.uploadedFileId == uploadId;
+    }
+
+    /**
+     * Enforces immutability of the `uploadedFileId` field in a subcollection document.
+     */
+    function isParentFileIdImmutable() {
+      return request.resource.data.uploadedFileId == resource.data.uploadedFileId;
+    }
+
+    /**
+     * @description Rules for the User collection. Each document represents a single user's profile.
+     * @path /users/{userId}
+     * @allow (get, update, delete) An authenticated user `user_abc` can read or modify their own document at `/users/user_abc`.
+     * @allow (create) An authenticated user `user_abc` can create their own profile document at `/users/user_abc`.
+     * @deny (list) No user can list all documents in the `/users` collection, preventing user enumeration.
+     * @deny (get) User `user_abc` cannot read user `user_xyz`'s profile at `/users/user_xyz`.
+     * @principle Restricts access to a user's own data tree and prevents discovery of other users.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && userProfileDataIsConsistent(userId);
+      allow update: if isExistingOwner(userId) && isUserIdFieldImmutable();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for a user's uploaded files.
+       * @path /users/{userId}/uploads/{uploadId}
+       * @allow (get, list, create, update, delete) User `user_abc` can manage all their documents within `/users/user_abc/uploads`.
+       * @deny (any) User `user_xyz` cannot access any documents under `/users/user_abc/uploads`.
+       * @principle Enforces strict ownership. All file data is private to the user who uploaded it.
+       */
+      match /uploads/{uploadId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && uploadDataIsConsistent(userId);
+        allow update: if isExistingOwner(userId) && isUploaderIdFieldImmutable();
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Rules for statistical analyses derived from an uploaded file.
+         * @path /users/{userId}/uploads/{uploadId}/analyses/{analysisId}
+         * @allow (any) The owner of the parent upload document can fully manage the associated analyses.
+         * @deny (any) No other user can access these analyses.
+         * @principle Authorization is inherited from the parent document based on the path, ensuring consistent ownership.
+         */
+        match /analyses/{analysisId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && subDocumentDataIsConsistent(uploadId);
+          allow update: if isExistingOwner(userId) && isParentFileIdImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+
+        /**
+         * @description Rules for data visualizations derived from an uploaded file.
+         * @path /users/{userId}/uploads/{uploadId}/visualizations/{visualizationId}
+         * @allow (any) The owner of the parent upload document can fully manage the associated visualizations.
+         * @deny (any) No other user can access these visualizations.
+         * @principle Authorization is inherited from the parent document based on the path, ensuring consistent ownership.
+         */
+        match /visualizations/{visualizationId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && subDocumentDataIsConsistent(uploadId);
+          allow update: if isExistingOwner(userId) && isParentFileIdImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+
+        /**
+         * @description Rules for correlation analyses derived from an uploaded file.
+         * @path /users/{userId}/uploads/{uploadId}/correlations/{correlationId}
+         * @allow (any) The owner of the parent upload document can fully manage the associated correlation analyses.
+         * @deny (any) No other user can access these analyses.
+         * @principle Authorization is inherited from the parent document based on the path, ensuring consistent ownership.
+         */
+        match /correlations/{correlationId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && subDocumentDataIsConsistent(uploadId);
+          allow update: if isExistingOwner(userId) && isParentFileIdImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+
+        /**
+         * @description Rules for summary reports derived from an uploaded file.
+         * @path /users/{userId}/uploads/{uploadId}/reports/{reportId}
+         * @allow (any) The owner of the parent upload document can fully manage the associated summary reports.
+         * @deny (any) No other user can access these reports.
+         * @principle Authorization is inherited from the parent document based on the path, ensuring consistent ownership.
+         */
+        match /reports/{reportId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && subDocumentDataIsConsistent(uploadId);
+          allow update: if isExistingOwner(userId) && isParentFileIdImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+    }
+  }
+}
