@@ -167,6 +167,25 @@ function TeamSettings() {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not remove invitation.' });
         }
     }
+    
+    const handleUpdateRole = async (memberEmail: string, newRole: string) => {
+        // In a real app, you'd use a memberId instead of an email
+        toast({ title: 'Updating Role...', description: `Changing role for ${memberEmail} to ${newRole}.`});
+        try {
+            const response = await fetch(`/api/teams/invitations?id=${memberEmail}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole })
+            });
+            if (!response.ok) throw new Error("Failed to update role.");
+
+            // Here you would typically refetch the team members list
+            // For this mock-up, we'll just show a success message
+            toast({ title: 'Success!', description: `Role for ${memberEmail} updated to ${newRole}.`});
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update role.' });
+        }
+    }
 
 
     // Mock data for current team members until backend is ready
@@ -229,7 +248,11 @@ function TeamSettings() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Select defaultValue={member.role} disabled={member.name === 'You'}>
+                                        <Select 
+                                            defaultValue={member.role} 
+                                            disabled={member.name === 'You'}
+                                            onValueChange={(newRole) => handleUpdateRole(member.email, newRole)}
+                                        >
                                             <SelectTrigger className="w-32">
                                                 <SelectValue />
                                             </SelectTrigger>
