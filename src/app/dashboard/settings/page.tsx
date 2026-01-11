@@ -2,7 +2,7 @@
 'use client';
 
 import DashboardClientLayout from '@/components/dashboard-client-layout';
-import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -25,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 
 function AccountSettings() {
@@ -54,6 +56,51 @@ function AccountSettings() {
 }
 
 function TeamSettings() {
+    const { toast } = useToast();
+    const [email, setEmail] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleInvite = async () => {
+        if (!email) {
+            toast({
+                variant: 'destructive',
+                title: 'Email required',
+                description: 'Please enter an email address to send an invitation.',
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/teams/invitations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, role: 'Member' }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to send invitation.');
+            }
+            
+            const result = await response.json();
+            toast({
+                title: 'Success',
+                description: result.message,
+            });
+            setEmail('');
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'An error occurred',
+                description: error.message,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
     // Mock data for team members
     const teamMembers = [
         { name: 'You', email: 'your.email@example.com', role: 'Admin', avatar: '/placeholder-user.jpg' },
@@ -71,8 +118,18 @@ function TeamSettings() {
                 <CardContent>
                     <div className="flex items-center gap-2">
                         <Mail className="w-5 h-5 text-muted-foreground" />
-                        <Input type="email" placeholder="new.member@example.com" className="flex-1" />
-                        <Button><PlusCircle className="w-4 h-4 mr-2" /> Send Invite</Button>
+                        <Input
+                            type="email"
+                            placeholder="new.member@example.com"
+                            className="flex-1"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={isLoading}
+                        />
+                        <Button onClick={handleInvite} disabled={isLoading}>
+                            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlusCircle className="w-4 h-4 mr-2" />}
+                            Send Invite
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
