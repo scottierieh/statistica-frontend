@@ -3,40 +3,45 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:8000';
 
-async function proxyRequest(request: NextRequest, path: string = '') {
+async function proxyRequest(request: NextRequest) {
     try {
-        const url = `${PYTHON_API_URL}/api/teams/invitations${path}`;
+        const url = `${PYTHON_API_URL}/api/teams/invitations`;
         
         let response: Response;
 
-        if (request.method === 'GET' || request.method === 'DELETE') {
+        if (request.method === 'GET') {
             response = await fetch(url, {
-                method: request.method,
+                method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             });
-        } else {
+        } else if (request.method === 'POST') {
              const body = await request.json();
              response = await fetch(url, {
-                method: request.method,
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
+        } else if (request.method === 'DELETE') {
+            const id = request.nextUrl.searchParams.get('id');
+            if (!id) {
+                return NextResponse.json({ error: 'Invitation ID is required' }, { status: 400 });
+            }
+            response = await fetch(`${url}?id=${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            });
+        } else {
+            return NextResponse.json({ error: `Method ${request.method} Not Allowed`}, { status: 405 });
         }
+
+        const responseData = await response.json();
 
         if (!response.ok) {
-            const errorText = await response.text();
-            let errorJson = { error: errorText };
-            try {
-                errorJson = JSON.parse(errorText);
-            } catch(e) {
-                // Not a JSON error
-            }
-            console.error(`Error from FastAPI backend:`, errorJson);
-            return NextResponse.json(errorJson, { status: response.status });
+            console.error(`Error from FastAPI backend:`, responseData);
+            return NextResponse.json(responseData, { status: response.status });
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        return NextResponse.json(responseData);
 
     } catch (error: any) {
         console.error(`Error proxying to invitations endpoint:`, error);
@@ -49,5 +54,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+    return proxyRequest(request);
+}
+
+export async function DELETE(request: NextRequest) {
     return proxyRequest(request);
 }
