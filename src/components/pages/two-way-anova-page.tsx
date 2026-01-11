@@ -14,7 +14,8 @@ import {
   Loader2, TrendingUp, TrendingDown, HelpCircle, CheckCircle, 
   BookOpen, Activity, Info, Sparkles, Minus, FlaskConical, Calculator, XCircle, Download,
   FileSpreadsheet, ImageIcon, ChevronDown, Settings, FileSearch,
-  Target, Layers, GitCompare, Scale
+  Target, Layers, GitCompare, Scale,
+  Users
 } from 'lucide-react';
 import { type ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';

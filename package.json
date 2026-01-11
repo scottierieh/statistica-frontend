@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently \"npm:next:dev\" \"npm:fastapi:dev\"",
     "next:dev": "node scripts/setup_backend.js && node --max-old-space-size=4096 ./node_modules/.bin/next dev --port 9002 --hostname 0.0.0.0",
-    "fastapi:dev": "uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload",
+    "fastapi:dev": "backend/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
