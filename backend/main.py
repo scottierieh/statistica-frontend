@@ -22,14 +22,21 @@ except Exception as e:
     # For local development, you might use a service account file
     # Make sure to handle this securely and not commit your key file
     try:
-        cred = credentials.Certificate("path/to/your/serviceAccountKey.json") # Fallback for local dev if needed
-        firebase_admin.initialize_app(cred)
+        if not firebase_admin._apps:
+            # Fallback for local dev if needed, but avoid if already initialized
+            cred = credentials.Certificate("path/to/your/serviceAccountKey.json") 
+            firebase_admin.initialize_app(cred)
     except Exception as local_e:
         print(f"Warning: Firebase Admin SDK initialization failed. Errors: {e}, {local_e}")
         # The app can still run, but Firebase features will fail.
         pass
 
-db = firestore.client()
+db = None
+try:
+    db = firestore.client()
+except Exception as e:
+    print(f"Warning: Could not connect to Firestore: {e}")
+
 
 app = FastAPI()
 
@@ -117,6 +124,8 @@ async def analyze_descriptive_stats(payload: DescriptiveStatsPayload):
 
 @app.post("/api/teams/invitations")
 async def invite_team_member(payload: TeamInvitationPayload):
+    if not db:
+        raise HTTPException(status_code=500, detail="Firestore is not configured on the server.")
     try:
         # Assuming a single team for now, hardcode teamId
         team_id = "default_team"
@@ -141,6 +150,8 @@ async def invite_team_member(payload: TeamInvitationPayload):
 
 @app.get("/api/teams/invitations")
 async def get_invitations():
+    if not db:
+        return []
     try:
         team_id = "default_team"
         invitations_ref = db.collection('teams').document(team_id).collection('invitations')
@@ -149,7 +160,9 @@ async def get_invitations():
         # Convert timestamps to strings
         for inv in invitations:
             if 'createdAt' in inv and inv['createdAt']:
-                inv['createdAt'] = inv['createdAt'].isoformat()
+                # Timestamps from Firestore can be None if not set yet
+                if hasattr(inv['createdAt'], 'isoformat'):
+                    inv['createdAt'] = inv['createdAt'].isoformat()
 
         return invitations
     except Exception as e:
@@ -162,6 +175,8 @@ class InvitationUpdatePayload(BaseModel):
 
 @app.put("/api/teams/invitations/{invitation_id}")
 async def update_invitation(invitation_id: str, payload: InvitationUpdatePayload):
+    if not db:
+        raise HTTPException(status_code=500, detail="Firestore is not configured on the server.")
     try:
         team_id = "default_team"
         invitation_ref = db.collection('teams').document(team_id).collection('invitations').document(invitation_id)
@@ -184,6 +199,8 @@ async def update_invitation(invitation_id: str, payload: InvitationUpdatePayload
 
 @app.delete("/api/teams/invitations")
 async def delete_invitation(id: str = Query(...)):
+    if not db:
+        raise HTTPException(status_code=500, detail="Firestore is not configured on the server.")
     try:
         team_id = "default_team"
         invitation_ref = db.collection('teams').document(team_id).collection('invitations').document(id)
