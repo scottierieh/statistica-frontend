@@ -27,3 +27,4 @@ mypy-extensions
 factor_analyzer
 lifelines
 python-multipart
+firebase-admin

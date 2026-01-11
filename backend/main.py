@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -9,9 +9,31 @@ from effectiveness_analysis import run_effectiveness_analysis
 from simple_test_analysis import run_simple_test_analysis
 from descriptive_stats_analysis import run_descriptive_stats_analysis
 
+# Firebase Admin SDK
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# Initialize Firebase Admin
+try:
+    # In a deployed environment, GOOGLE_APPLICATION_CREDENTIALS will be set
+    cred = credentials.ApplicationDefault() 
+    firebase_admin.initialize_app(cred)
+except Exception as e:
+    # For local development, you might use a service account file
+    # Make sure to handle this securely and not commit your key file
+    try:
+        cred = credentials.Certificate("path/to/your/serviceAccountKey.json") # Fallback for local dev if needed
+        firebase_admin.initialize_app(cred)
+    except Exception as local_e:
+        print(f"Warning: Firebase Admin SDK initialization failed. Errors: {e}, {local_e}")
+        # The app can still run, but Firebase features will fail.
+        pass
+
+db = firestore.client()
+
 app = FastAPI()
 
-# CORS 설정
+# CORS settings
 origins = [
     "http://localhost:9002",
     "http://127.0.0.1:9002",
@@ -95,17 +117,83 @@ async def analyze_descriptive_stats(payload: DescriptiveStatsPayload):
 
 @app.post("/api/teams/invitations")
 async def invite_team_member(payload: TeamInvitationPayload):
-    # This is a placeholder for the actual invitation logic.
-    # In a real application, you would:
-    # 1. Validate the email.
-    # 2. Check if the user is already in the team.
-    # 3. Create an invitation record in your database.
-    # 4. Send an invitation email.
-    print(f"Received invitation for {payload.email} with role {payload.role}")
-    return {"message": f"Invitation successfully sent to {payload.email}"}
+    try:
+        # Assuming a single team for now, hardcode teamId
+        team_id = "default_team"
+        
+        # Create a new invitation document in Firestore
+        invitation_ref = db.collection('teams').document(team_id).collection('invitations').document()
+        
+        invitation_data = {
+            "id": invitation_ref.id,
+            "teamId": team_id,
+            "email": payload.email,
+            "role": payload.role,
+            "status": "pending",
+            "createdAt": firestore.SERVER_TIMESTAMP
+        }
+        
+        invitation_ref.set(invitation_data)
+        
+        return {"message": f"Invitation successfully sent to {payload.email}", "invitation": invitation_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create invitation: {str(e)}")
+
+@app.get("/api/teams/invitations")
+async def get_invitations():
+    try:
+        team_id = "default_team"
+        invitations_ref = db.collection('teams').document(team_id).collection('invitations')
+        invitations = [doc.to_dict() for doc in invitations_ref.stream()]
+        
+        # Convert timestamps to strings
+        for inv in invitations:
+            if 'createdAt' in inv and inv['createdAt']:
+                inv['createdAt'] = inv['createdAt'].isoformat()
+
+        return invitations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch invitations: {str(e)}")
+
+
+class InvitationUpdatePayload(BaseModel):
+    role: Optional[str] = None
+    status: Optional[str] = None
+
+@app.put("/api/teams/invitations/{invitation_id}")
+async def update_invitation(invitation_id: str, payload: InvitationUpdatePayload):
+    try:
+        team_id = "default_team"
+        invitation_ref = db.collection('teams').document(team_id).collection('invitations').document(invitation_id)
+        
+        update_data = {}
+        if payload.role:
+            update_data['role'] = payload.role
+        if payload.status:
+            update_data['status'] = payload.status
+            
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
+
+        invitation_ref.update(update_data)
+        
+        return {"message": "Invitation status updated."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update invitation: {str(e)}")
+
+
+@app.delete("/api/teams/invitations")
+async def delete_invitation(id: str = Query(...)):
+    try:
+        team_id = "default_team"
+        invitation_ref = db.collection('teams').document(team_id).collection('invitations').document(id)
+        invitation_ref.delete()
+        
+        return {"message": "Invitation deleted."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete invitation: {str(e)}")
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
