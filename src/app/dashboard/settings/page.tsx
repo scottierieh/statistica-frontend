@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
@@ -57,47 +58,60 @@ function AccountSettings() {
 
 function TeamSettings() {
     const { toast } = useToast();
-    const [email, setEmail] = useState('');
+    const [emails, setEmails] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleInvite = async () => {
-        if (!email) {
+        const emailList = emails.split(/[\s,;\n]+/).filter(email => email.trim() !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
+
+        if (emailList.length === 0) {
             toast({
                 variant: 'destructive',
-                title: 'Email required',
-                description: 'Please enter an email address to send an invitation.',
+                title: 'No valid emails',
+                description: 'Please enter at least one valid email address.',
             });
             return;
         }
 
         setIsLoading(true);
-        try {
-            const response = await fetch('/api/teams/invitations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, role: 'Member' }),
-            });
+        let successCount = 0;
+        let errorCount = 0;
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to send invitation.');
+        for (const email of emailList) {
+            try {
+                const response = await fetch('/api/teams/invitations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, role: 'Member' }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Failed to invite ${email}.`);
+                }
+                successCount++;
+            } catch (error: any) {
+                errorCount++;
+                toast({
+                    variant: 'destructive',
+                    title: `Failed to invite ${email}`,
+                    description: error.message,
+                });
             }
-            
-            const result = await response.json();
-            toast({
-                title: 'Success',
-                description: result.message,
-            });
-            setEmail('');
-        } catch (error: any) {
-            toast({
-                variant: 'destructive',
-                title: 'An error occurred',
-                description: error.message,
-            });
-        } finally {
-            setIsLoading(false);
         }
+        
+        if (successCount > 0) {
+            toast({
+                title: 'Invitations Sent',
+                description: `${successCount} invitation(s) sent successfully.`,
+            });
+        }
+        
+        if (errorCount === 0) {
+            setEmails('');
+        }
+
+        setIsLoading(false);
     };
 
 
@@ -112,23 +126,21 @@ function TeamSettings() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Invite New Member</CardTitle>
-                    <CardDescription>Enter the email address of the person you want to invite to your team.</CardDescription>
+                    <CardTitle>Invite New Members</CardTitle>
+                    <CardDescription>Enter one or more email addresses separated by commas, spaces, or new lines.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-muted-foreground" />
-                        <Input
-                            type="email"
-                            placeholder="new.member@example.com"
-                            className="flex-1"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                    <div className="grid gap-3">
+                        <Textarea
+                            placeholder="new.member@example.com, another@example.com"
+                            className="min-h-[100px]"
+                            value={emails}
+                            onChange={(e) => setEmails(e.target.value)}
                             disabled={isLoading}
                         />
-                        <Button onClick={handleInvite} disabled={isLoading}>
+                         <Button onClick={handleInvite} disabled={isLoading} className="w-full sm:w-auto self-end">
                             {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlusCircle className="w-4 h-4 mr-2" />}
-                            Send Invite
+                            Send Invites
                         </Button>
                     </div>
                 </CardContent>
