@@ -44,10 +44,12 @@ async function proxyRequest(request: NextRequest, path: string = '') {
     }
 }
 
-export async function POST(request: NextRequest) {
-    return proxyRequest(request);
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+    const id = params.id;
+    return proxyRequest(request, `/${id}`);
 }
 
-export async function GET(request: NextRequest) {
-    return proxyRequest(request);
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+    const id = params.id;
+    return proxyRequest(request, `/${id}`);
 }
