@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -435,7 +436,7 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         if (!analysisResponse) return;
         
         const pythonCode = `# Two-Way ANOVA Analysis
-# Generated: ${new Date().toLocaleDateString()}
+    # Generated: ${new Date().toLocaleDateString()}
 
 import pandas as pd
 import numpy as np
@@ -793,3 +794,9 @@ plt.show()
         </div>
     );
 }
+
+```
+  </change>
+  <change>
+    <file>src/components/pages/TwoWayAnovaPPTXExportPage.tsx</file>
+    <content><
