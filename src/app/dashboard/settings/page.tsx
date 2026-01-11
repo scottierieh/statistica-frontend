@@ -2,14 +2,12 @@
 'use client';
 
 import DashboardClientLayout from '@/components/dashboard-client-layout';
-import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Calculator, Users, Mail, PlusCircle, Trash2, Loader2, Send, KeyRound, Shield, History, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
@@ -26,288 +24,147 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { PolicyDialog } from '@/components/policy-dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-
+import { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 function AccountSettings() {
-    const [agreed, setAgreed] = useState(true);
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Account</CardTitle>
-                <CardDescription>
-                    Manage your account settings and set e-mail preferences.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" defaultValue="Your Name" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue="your.email@example.com" />
-                </div>
-                 <div className="flex items-start space-x-3 pt-2">
-                        <Checkbox id="terms-account" checked={agreed} onCheckedChange={(checked) => setAgreed(checked as boolean)} className="mt-0.5" />
-                        <label
-                            htmlFor="terms-account"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            I agree to the{' '}
-                            <PolicyDialog triggerText="Terms of Service" title="Terms of Service" />
-                            {' '}and{' '}
-                            <PolicyDialog triggerText="Privacy Policy" title="Privacy Policy" />
-                            .
-                        </label>
-                    </div>
-            </CardContent>
-            <CardFooter>
-                <Button disabled={!agreed}>Save Changes</Button>
-            </CardFooter>
-        </Card>
-    )
-}
-
-function TeamSettings() {
-    const { toast } = useToast();
-    const [emails, setEmails] = useState('');
-    const [invitations, setInvitations] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isFetching, setIsFetching] = useState(true);
-
-    const fetchInvitations = async () => {
-        setIsFetching(true);
-        try {
-            const response = await fetch('/api/teams/invitations');
-            if (response.ok) {
-                const data = await response.json();
-                setInvitations(data);
-            } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch invitations.' });
-            }
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while fetching invitations.' });
-        } finally {
-            setIsFetching(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchInvitations();
-    }, []);
-
-    const handleInvite = async () => {
-        const emailList = emails.split(/[\s,;\n]+/).filter(email => email.trim() !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
-
-        if (emailList.length === 0) {
-            toast({
-                variant: 'destructive',
-                title: 'No valid emails',
-                description: 'Please enter at least one valid email address.',
-            });
-            return;
-        }
-
-        setIsLoading(true);
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const email of emailList) {
-            try {
-                const response = await fetch('/api/teams/invitations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, role: 'Member' }),
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || `Failed to invite ${email}.`);
-                }
-                successCount++;
-            } catch (error: any) {
-                errorCount++;
-                toast({
-                    variant: 'destructive',
-                    title: `Failed to invite ${email}`,
-                    description: error.message,
-                });
-            }
-        }
-        
-        if (successCount > 0) {
-            toast({
-                title: 'Invitations Sent',
-                description: `${successCount} invitation(s) sent successfully.`,
-            });
-            fetchInvitations();
-        }
-        
-        if (errorCount === 0) {
-            setEmails('');
-        }
-
-        setIsLoading(false);
-    };
-    
-    const handleDeleteInvitation = async (invitationId: string) => {
-        try {
-            const response = await fetch(`/api/teams/invitations?id=${invitationId}`, { method: 'DELETE' });
-            if (response.ok) {
-                toast({ title: 'Success', description: 'Invitation removed.' });
-                fetchInvitations(); // Refresh the list
-            } else {
-                throw new Error('Failed to remove invitation.');
-            }
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not remove invitation.' });
-        }
-    }
-    
-    const handleUpdateRole = async (memberEmail: string, newRole: string) => {
-        // In a real app, you'd use a memberId instead of an email
-        toast({ title: 'Updating Role...', description: `Changing role for ${memberEmail} to ${newRole}.`});
-        try {
-            const response = await fetch(`/api/teams/invitations?id=${memberEmail}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role: newRole })
-            });
-            if (!response.ok) throw new Error("Failed to update role.");
-
-            // Here you would typically refetch the team members list
-            // For this mock-up, we'll just show a success message
-            toast({ title: 'Success!', description: `Role for ${memberEmail} updated to ${newRole}.`});
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not update role.' });
-        }
-    }
-
-
-    // Mock data for current team members until backend is ready
-    const teamMembers = [
-        { name: 'You', email: 'your.email@example.com', role: 'Admin', avatar: '/placeholder-user.jpg' },
-        { name: 'Jane Doe', email: 'jane.doe@example.com', role: 'Member', avatar: '/placeholder-user.jpg' },
-    ];
-
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Invite New Members</CardTitle>
-                    <CardDescription>Enter one or more email addresses separated by commas, spaces, or new lines.</CardDescription>
+                    <CardTitle>User Information</CardTitle>
+                    <CardDescription>
+                        Manage your personal details and role.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="grid gap-3">
-                        <Textarea
-                            placeholder="new.member@example.com, another@example.com"
-                            className="min-h-[100px]"
-                            value={emails}
-                            onChange={(e) => setEmails(e.target.value)}
-                            disabled={isLoading}
-                        />
-                         <Button onClick={handleInvite} disabled={isLoading} className="w-full sm:w-auto self-end">
-                            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                            Send Invites
-                        </Button>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16">
+                            <AvatarImage src="/placeholder-user.jpg" />
+                            <AvatarFallback>U</AvatarFallback>
+                        </Avatar>
+                        <div className="grid gap-2 flex-1">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input id="name" defaultValue="Your Name" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" type="email" defaultValue="your.email@example.com" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="affiliation">Affiliation</Label>
+                            <Input id="affiliation" placeholder="Company, University, or Individual" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="role">Role</Label>
+                             <Select defaultValue="analyst">
+                                <SelectTrigger id="role">
+                                    <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="admin">Administrator</SelectItem>
+                                    <SelectItem value="analyst">Analyst</SelectItem>
+                                    <SelectItem value="user">General User</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label>Registration Date</Label>
+                            <p className="text-sm text-muted-foreground pt-2">2023-01-15 10:30 AM</p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Last Login</Label>
+                            <p className="text-sm text-muted-foreground pt-2">2024-07-22 08:00 AM</p>
+                        </div>
                     </div>
                 </CardContent>
+                <CardFooter>
+                    <Button>Save Changes</Button>
+                </CardFooter>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Team Members</CardTitle>
-                    <CardDescription>People who are currently part of your team.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Shield /> Security</CardTitle>
+                    <CardDescription>Manage your password and authentication settings.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Member</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {teamMembers.map((member) => (
-                                <TableRow key={member.email}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarImage src={member.avatar} alt={member.name} />
-                                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{member.name}</p>
-                                                <p className="text-sm text-muted-foreground">{member.email}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Select 
-                                            defaultValue={member.role} 
-                                            disabled={member.name === 'You'}
-                                            onValueChange={(newRole) => handleUpdateRole(member.email, newRole)}
-                                        >
-                                            <SelectTrigger className="w-32">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Admin">Admin</SelectItem>
-                                                <SelectItem value="Member">Member</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                         {member.name !== 'You' && (
-                                            <Button variant="ghost" size="icon">
-                                                <Trash2 className="w-4 h-4 text-destructive" />
-                                            </Button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Pending Invitations</CardTitle>
-                    <CardDescription>People who have been invited but have not yet joined.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isFetching ? <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div> : invitations.length > 0 ? (
+                <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                        <h4 className="font-medium">Change Password</h4>
+                        <div className="grid md:grid-cols-3 gap-4">
+                             <div className="space-y-1">
+                                <Label htmlFor="current-password">Current Password</Label>
+                                <Input id="current-password" type="password" />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="new-password">New Password</Label>
+                                <Input id="new-password" type="password" />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="confirm-password">Confirm Password</Label>
+                                <Input id="confirm-password" type="password" />
+                            </div>
+                        </div>
+                         <Button variant="outline">Update Password</Button>
+                    </div>
+
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div>
+                            <h4 className="font-medium">Two-Factor Authentication (2FA)</h4>
+                            <p className="text-sm text-muted-foreground">Add an extra layer of security to your account.</p>
+                        </div>
+                         <Switch id="2fa-switch" />
+                    </div>
+
+                     <div className="space-y-4">
+                        <h4 className="font-medium">Login History</h4>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Role</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>Date & Time</TableHead>
+                                    <TableHead>IP Address</TableHead>
+                                    <TableHead>Device</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {invitations.map((invite) => (
-                                    <TableRow key={invite.id}>
-                                        <TableCell>{invite.email}</TableCell>
-                                        <TableCell><Badge variant="outline">{invite.role}</Badge></TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteInvitation(invite.id)}>
-                                                <Trash2 className="w-4 h-4 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                <TableRow>
+                                    <TableCell>2024-07-22 08:00 AM</TableCell>
+                                    <TableCell>192.168.1.1</TableCell>
+                                    <TableCell>Chrome on macOS</TableCell>
+                                </TableRow>
+                                 <TableRow>
+                                    <TableCell>2024-07-21 05:30 PM</TableCell>
+                                    <TableCell>10.0.0.5</TableCell>
+                                    <TableCell>Safari on iPhone</TableCell>
+                                </TableRow>
                             </TableBody>
                         </Table>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center p-4">No pending invitations.</p>
-                    )}
+                    </div>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><KeyRound /> API Key Management</CardTitle>
+                    <CardDescription>Manage API keys for external integrations.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                        <Input readOnly value="sk-••••••••••••••••••••••••1234" className="font-mono"/>
+                        <Button variant="outline" size="icon"><Eye className="w-4 h-4" /></Button>
+                    </div>
+                     <Button>Generate New Key</Button>
                 </CardContent>
             </Card>
         </div>
@@ -337,18 +194,7 @@ export default function Settings() {
                 </header>
                 <main className="flex-1 p-4 md:p-8 lg:p-12">
                    <div className="max-w-4xl mx-auto">
-                      <Tabs defaultValue="team">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="account">Account</TabsTrigger>
-                          <TabsTrigger value="team">Team</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="account" className="mt-6">
-                            <AccountSettings />
-                        </TabsContent>
-                        <TabsContent value="team" className="mt-6">
-                          <TeamSettings />
-                        </TabsContent>
-                      </Tabs>
+                      <AccountSettings />
                    </div>
                 </main>
             </div>
