@@ -22,9 +22,7 @@ cffi==1.16.0
 squarify
 linearmodels
 pydantic
-pingouin
 mypy-extensions
 factor_analyzer
-lifelines
 python-multipart
 firebase-admin
