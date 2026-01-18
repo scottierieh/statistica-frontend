@@ -47,21 +47,26 @@ Image of the SEM diagram: {{media url=diagramDataUri}}
     - **Covariances:** Specify any correlations between variables, typically between exogenous variables or error terms (\`~~\`).
 
 **Part 2: Detailed Explanation (\`explanation\`)**
-- Provide a clear, step-by-step explanation of the generated syntax using Markdown.
-- Use APA style when describing relationships (e.g., "Factor1 is predicted by Factor2 (β = ...)") if possible, while explaining the model structure.
+- Provide a clear, step-by-step explanation of the generated syntax using **Markdown**.
+- **Use bullet points** within each section for clarity and conciseness.
+- Use APA style when describing relationships (e.g., "Factor1 is predicted by Factor2 (β = ...)") where appropriate.
 - Structure your explanation with the following headings:
 
 #### Measurement Model
-Explain which observed variables (indicators) load onto each latent variable. This defines your constructs.
+- For each latent variable, list its indicators.
+- Example: *'VisualAbility' is measured by 'x1', 'x2', and 'x3'.*
 
 #### Structural Model
-Describe the causal regression paths you have modeled between the latent and/or observed variables.
+- Describe each regression path.
+- Example: *'TextualAbility' is predicted by 'VisualAbility' (Path: 'a').*
 
 #### Defined Effects
-Explain any indirect or total effects you have defined using the \`:=\` operator. Describe what each effect (e.g., 'indirect_effect') represents in the model.
+- Explain any indirect or total effects.
+- Example: *'indirect_effect' is the indirect path from 'VisualAbility' to 'SpeedAbility' via 'TextualAbility'.*
 
 #### Covariances
-List any specified correlations, typically between exogenous variables or error terms, and explain their meaning.
+- List any specified correlations and their meaning.
+- Example: *The error terms of 'x1' and 'x2' are allowed to correlate.*
 
 **Important:** If the uploaded image is not a valid structural equation model diagram, clearly state that in the \`explanation\` field and return an empty string for the \`semSyntax\` field.
 `,

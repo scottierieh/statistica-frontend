@@ -32,6 +32,7 @@ import DataPreview from '@/components/data-preview';
 import { type DataSet, parseData } from '@/lib/stats';
 import * as XLSX from 'xlsx';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import ReactMarkdown from 'react-markdown';
 
 
 // --- Sub-page Components ---
@@ -152,7 +153,9 @@ function ModelSpecView({ modelSpec, setModelSpec }: { modelSpec: string; setMode
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Card>
               <CardHeader><CardTitle>AI Explanation</CardTitle></CardHeader>
-              <CardContent className="prose prose-sm max-w-none text-muted-foreground"><div dangerouslySetInnerHTML={{ __html: result.explanation.replace(/\n/g, '<br/>') }} /></CardContent>
+              <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{result.explanation}</ReactMarkdown>
+              </CardContent>
             </Card>
           </motion.div>
         )}
