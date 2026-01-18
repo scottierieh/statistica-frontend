@@ -55,6 +55,7 @@ import {
   Share2,
   GitCommit,
   DollarSign,
+  SlidersHorizontal,
   ThumbsUp,
   ClipboardList,
   Handshake,
@@ -90,7 +91,6 @@ import {
   Search,
   ArrowLeft,
   Grid,
-  SlidersHorizontal,
   Container,
   Award,
   Truck,
@@ -218,6 +218,7 @@ import { Input } from './ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from './ui/card';
+import SemPage from './pages/sem-page';
 
 export interface AnalysisPageProps {
   data: DataSet;
@@ -421,7 +422,9 @@ const analysisCategories: AnalysisCategory[] = [
         name: 'Path Analysis',
         items: [
           { id: 'mediation', label: 'Mediation Analysis', icon: GitBranch, component: MediationAnalysisPage },
-          { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationAnalysisPage },        ]
+          { id: 'moderation', label: 'Moderation Analysis', icon: GitCommit, component: ModerationAnalysisPage },
+          { id: 'sem', label: 'Structural Equation Modeling', icon: Network, component: SemPage },
+        ]
       },
       {
         name: 'Network Analysis',
@@ -582,44 +585,6 @@ const analysisCategories: AnalysisCategory[] = [
         ],
       },
     ]
-  },
-];
-
-const STATISTICA_FEATURES = [
-  { 
-    id: 'upload', 
-    icon: FileUp, 
-    label: 'Upload Data', 
-    description: 'Easily upload your CSV, Excel, or JSON files.',
-    image: "/placeholder.svg" // Replace with actual image path
-  },
-  { 
-    id: 'recommend', 
-    icon: Wand2, 
-    label: 'AI Recommendation', 
-    description: 'Not sure where to start? Our AI suggests the best analysis for your data.',
-    image: "/placeholder.svg"
-  },
-  { 
-    id: 'guided', 
-    icon: Milestone, 
-    label: 'Guided Analysis', 
-    description: 'Follow a simple 6-step process for any statistical test, from variable selection to results.',
-    image: "/placeholder.svg"
-  },
-  { 
-    id: 'visualize', 
-    icon: BarChart3, 
-    label: 'Instant Visualization', 
-    description: 'Get publication-ready charts and graphs automatically generated with your results.',
-    image: "/placeholder.svg"
-  },
-  { 
-    id: 'interpret', 
-    icon: Bot, 
-    label: 'AI Interpretation', 
-    description: 'Receive clear, APA-formatted reports and plain-language summaries of what your results mean.',
-    image: "/placeholder.svg"
   },
 ];
 

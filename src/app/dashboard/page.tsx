@@ -77,11 +77,11 @@ const tools = [
   },
   {
     id: "sem",
-    href: "#",
+    href: "/dashboard/sem",
     icon: Network,
     title: "SEM",
-    description: "Structural Equation Modeling. Coming soon...",
-    disabled: true,
+    description: "Model complex relationships with Structural Equation Modeling.",
+    disabled: false,
   }
 ];
 
