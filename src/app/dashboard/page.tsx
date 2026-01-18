@@ -74,8 +74,15 @@ const tools = [
     title: "Machine Learning",
     description: "Coming soon...",
     disabled: true,
+  },
+  {
+    id: "sem",
+    href: "#",
+    icon: Network,
+    title: "SEM",
+    description: "Structural Equation Modeling. Coming soon...",
+    disabled: true,
   }
-
 ];
 
 function ToolCard({ tool }: { tool: typeof tools[0] }) {
