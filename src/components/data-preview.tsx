@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -19,7 +18,7 @@ interface DataPreviewProps {
 }
 
 export default function DataPreview({ fileName, data, headers, onDownload, onClearData }: DataPreviewProps) {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const previewData = data.slice(0, 100);
 
     return (
@@ -31,14 +30,14 @@ export default function DataPreview({ fileName, data, headers, onDownload, onCle
                         <CardDescription>{data.length} rows, {headers.length} columns</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="default" size="icon" onClick={onDownload} className="transition-transform hover:scale-110">
-                            <Download className="h-4 w-4 text-primary-foreground"/>
+                        <Button variant="outline" size="icon" onClick={onDownload} className="transition-transform hover:scale-110">
+                            <Download className="h-4 w-4"/>
                         </Button>
                         <Button variant="destructive" size="icon" onClick={onClearData} className="transition-transform hover:scale-110">
-                            <Trash2 className="h-4 w-4 text-destructive-foreground"/>
+                            <Trash2 className="h-4 w-4"/>
                         </Button>
                          <CollapsibleTrigger asChild>
-                            <Button variant="default" size="icon" className="transition-transform hover:scale-110">
+                            <Button variant="ghost" size="icon" className="transition-transform hover:scale-110">
                                 <ChevronsUpDown className="h-4 w-4" />
                                 <span className="sr-only">Toggle</span>
                             </Button>
