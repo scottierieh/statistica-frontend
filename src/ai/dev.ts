@@ -32,3 +32,4 @@ import '@/ai/flows/interpret-pca-3d.ts';
 import '@/ai/flows/interpret-did.ts';
 import '@/ai/flows/chat-about-analysis.ts';
 import '@/ai/flows/recommend_analysis_by_goal.ts';
+import '@/ai/flows/generate-sem-from-diagram.ts';
