@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Network, UploadCloud, Wand2, Lightbulb, Copy, Loader2, Image as ImageIcon, X, ArrowLeft, Code, PictureInPicture, PlayCircle, FileText, FileUp, Settings2, CheckSquare } from 'lucide-react';
+import { Network, UploadCloud, Wand2, Lightbulb, Copy, Loader2, Image as ImageIcon, X, ArrowLeft, Code, PictureInPicture, PlayCircle, FileText, FileUp, Settings2, CheckSquare, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { getSemFromDiagram, runSemAnalysis, type GenerateSemFromDiagramInput, type GenerateSemFromDiagramOutput } from '@/app/actions';
@@ -101,7 +102,11 @@ function ModelSpecView({ modelSpec, setModelSpec }: { modelSpec: string; setMode
       
       <Card>
         <CardHeader><CardTitle>Model Syntax (lavaan)</CardTitle><CardDescription>The generated model syntax will appear here. You can also edit it manually.</CardDescription></CardHeader>
-        <CardContent><Textarea value={modelSpec} onChange={(e) => setModelSpec(e.target.value)} placeholder={`# Measurement Model\nLatent1 =~ y1 + y2 + y3\n\n# Structural Model\nLatent2 ~ Latent1`} className="font-mono text-sm h-48" /></CardContent>
+        <CardContent><Textarea value={modelSpec} onChange={(e) => setModelSpec(e.target.value)} placeholder={`# Measurement Model (latent =~ indicators)
+VisualAbility =~ x1 + x2 + x3
+
+# Structural Model (regression paths)
+SpeedAbility ~ VisualAbility`} className="font-mono text-sm h-48" /></CardContent>
       </Card>
 
       <AnimatePresence>{result?.explanation && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}><Card><CardHeader><CardTitle>AI Explanation</CardTitle></CardHeader><CardContent className="prose prose-sm max-w-none dark:prose-invert"><ReactMarkdown>{result.explanation}</ReactMarkdown></CardContent></Card></motion.div>)}</AnimatePresence>
@@ -110,12 +115,12 @@ function ModelSpecView({ modelSpec, setModelSpec }: { modelSpec: string; setMode
 }
 
 function DataSettingsView({ onFileSelected, onLoadExample, onClearData, fileName, data, allHeaders, isUploading, estimator, setEstimator }: any) {
-  const semExample = exampleDatasets.find(d => d.id === 'sem' || d.id === 'factor-analysis');
+  const semExample = exampleDatasets.find(d => d.id === 'well-being-survey');
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader><CardTitle className="font-headline flex items-center gap-2"><FileUp className="w-6 h-6 text-primary" />Upload Data</CardTitle><CardDescription>Upload your dataset (CSV, Excel) to be used in the SEM analysis.</CardDescription></CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-4"><DataUploader onFileSelected={onFileSelected} loading={isUploading} />{semExample && <Button variant="link" onClick={() => onLoadExample(semExample)}>Load SEM Example Data</Button>}</CardContent>
+        <CardContent className="flex flex-col items-center justify-center gap-4"><DataUploader onFileSelected={onFileSelected} loading={isUploading} />{semExample && <Button variant="link" onClick={() => onLoadExample(semExample)}>Load Example Data & Model</Button>}</CardContent>
       </Card>
       
       {data.length > 0 && (<DataPreview fileName={fileName} data={data} headers={allHeaders} onDownload={() => {}} onClearData={onClearData} />)}
@@ -172,12 +177,17 @@ function SemDashboard() {
   
   const handleClearData = useCallback(() => { setData([]); setAllHeaders([]); setFileName(''); }, []);
 
+  const EXAMPLE_CFA_MODEL = `# Measurement Model
+anxiety =~ anxiety_1 + anxiety_2 + anxiety_3 + anxiety_4
+depression =~ depress_1 + depress_2 + depress_3 + depress_4
+stress =~ stress_1 + stress_2 + stress_3 + stress_4`;
+
   const processData = useCallback((content: string, name: string) => {
     try {
       const { headers: newHeaders, data: newData } = parseData(content);
       if (newData.length === 0 || newHeaders.length === 0) throw new Error("No valid data found.");
       setData(newData); setAllHeaders(newHeaders); setFileName(name);
-      toast({ title: 'Success', description: `Loaded "${name}" with ${newData.length} rows.` });
+      
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'File Error', description: error.message });
       handleClearData();
@@ -202,7 +212,14 @@ function SemDashboard() {
     else reader.readAsText(file);
   }, [processData, toast]);
 
-  const handleLoadExampleData = useCallback((example: ExampleDataSet) => { processData(example.data, example.name); setActiveSubPage('data-settings'); }, [processData]);
+  const handleLoadExampleData = useCallback((example: ExampleDataSet) => {
+      processData(example.data, example.name);
+      if (example.id === 'well-being-survey') {
+          setModelSpec(EXAMPLE_CFA_MODEL);
+      }
+      setActiveSubPage('data-settings');
+      toast({ title: 'Example Loaded', description: 'Example data and model specification have been loaded.' });
+  }, [processData, toast]);
 
   const handleAnalysis = async () => {
     setIsLoading(true); setAnalysisResult(null);
@@ -257,3 +274,5 @@ function SemDashboard() {
 export default function SemDashboardPage() {
   return (<DashboardClientLayout><SemDashboard /></DashboardClientLayout>);
 }
+
+    
