@@ -1,41 +1,316 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network } from "lucide-react";
-import Link from "next/link";
-import SemPage from '@/components/pages/sem-page';
+import React, { useState, useCallback, useRef } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { Network, UploadCloud, Wand2, Lightbulb, Copy, Loader2, Image as ImageIcon, X, ArrowLeft, Code, PictureInPicture, PlayCircle, FileText } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
+import { getSemFromDiagram, type GenerateSemFromDiagramInput, type GenerateSemFromDiagramOutput } from '@/app/actions';
+import Link from 'next/link';
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { UserNav } from "@/components/user-nav";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarInset,
+  SidebarTrigger,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenu,
+} from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
+
+
+function SemContent() {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<{ syntax: string; explanation: string } | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: 'Please upload an image smaller than 4MB.',
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImage(e.target?.result as string);
+        setFileName(file.name);
+        setResult(null); // Reset result when new image is uploaded
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!image) {
+      toast({ variant: 'destructive', title: 'No Image', description: 'Please upload a diagram image first.' });
+      return;
+    }
+    setIsLoading(true);
+    setResult(null);
+    try {
+      const response = await getSemFromDiagram({ diagramDataUri: image });
+      if (response.success && response.syntax) {
+        setResult({ syntax: response.syntax, explanation: response.explanation! });
+        toast({ title: 'Success', description: 'SEM syntax generated from your diagram.' });
+      } else {
+        throw new Error(response.error || 'Failed to generate syntax.');
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (result?.syntax) {
+      navigator.clipboard.writeText(result.syntax);
+      setIsCopied(true);
+      toast({ title: 'Copied to clipboard!' });
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
+  const clearImage = () => {
+    setImage(null);
+    setFileName(null);
+    setResult(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/png, image/jpeg, image/webp, image/gif"
+      />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-headline text-2xl">
+            <PictureInPicture className="w-6 h-6 text-primary" />
+            Diagram-to-Model: AI-Powered SEM
+          </CardTitle>
+          <CardDescription>
+            Upload a diagram of your structural equation model, and our AI will automatically generate the corresponding `lavaan` syntax.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6 items-start">
+            <div
+              className="relative aspect-video w-full rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-center p-4 hover:border-primary transition-all cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <AnimatePresence>
+                {image ? (
+                  <motion.div
+                    key="image"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="relative w-full h-full"
+                  >
+                    <Image src={image} alt="Uploaded SEM Diagram" layout="fill" objectFit="contain" className="rounded-md" />
+                    <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7 z-10" onClick={(e) => { e.stopPropagation(); clearImage(); }}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="uploader"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center text-muted-foreground"
+                  >
+                    <UploadCloud className="w-12 h-12 mb-2" />
+                    <span className="font-semibold text-primary">Click to upload</span>
+                    <span>or drag and drop your diagram</span>
+                    <span className="text-xs mt-2">PNG, JPG, GIF, WEBP up to 4MB</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <div className="space-y-4">
+              <Alert>
+                <Lightbulb className="h-4 w-4" />
+                <AlertTitle>How it Works</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1 mt-2 text-xs">
+                    <li>Use ovals/circles for latent variables.</li>
+                    <li>Use squares/rectangles for observed variables.</li>
+                    <li>Use single-headed arrows for regressions.</li>
+                    <li>Use double-headed arrows for covariances.</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+              {fileName && <p className="text-sm text-center font-medium">File: {fileName}</p>}
+              <Button onClick={handleGenerate} disabled={!image || isLoading} className="w-full" size="lg">
+                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Wand2 className="mr-2 h-5 w-5" />}
+                Generate Model Syntax
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+                <p className="text-lg font-semibold">Analyzing Diagram...</p>
+                <p className="text-sm text-muted-foreground">The AI is interpreting your model structure.</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Generated Model</CardTitle>
+                <CardDescription>Based on your diagram, here is the generated model syntax and explanation.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Lavaan Model Syntax</h3>
+                  <div className="relative group">
+                    <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto font-mono">
+                      <code>{result.syntax}</code>
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={copyToClipboard}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                 <div>
+                    <h3 className="text-sm font-semibold mb-2">Explanation</h3>
+                    <div className="prose prose-sm max-w-none text-muted-foreground">
+                        <p>{result.explanation}</p>
+                    </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SemDashboard() {
+  const [activeSubPage, setActiveSubPage] = useState('diagram-to-model');
+
+  const menuItems = [
+    { id: 'diagram-to-model', label: 'Diagram to Model', icon: PictureInPicture, disabled: false },
+    { id: 'manual-spec', label: 'Manual Specification', icon: Code, disabled: true },
+    { id: 'run', label: 'Run Analysis', icon: PlayCircle, disabled: true },
+    { id: 'results', label: 'Results Explorer', icon: FileText, disabled: true },
+  ];
+
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-2 p-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Network className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-headline font-bold">SEM</h1>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              {menuItems.map(item => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSubPage(item.id)}
+                    isActive={activeSubPage === item.id}
+                    disabled={item.disabled}
+                    className="justify-start"
+                  >
+                    <item.icon className="w-4 h-4 mr-2"/>
+                    {item.label}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+
+        <SidebarInset>
+            <div className="p-4 md:p-6 h-screen flex flex-col gap-4">
+              <header className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                      <SidebarTrigger className="md:hidden" />
+                      <Button variant="outline" asChild>
+                          <Link href="/dashboard">
+                              <ArrowLeft className="mr-2 h-4 w-4" />
+                              Back to Workspace
+                          </Link>
+                      </Button>
+                  </div>
+                  <div className="flex-1 flex justify-center">
+                       <h1 className="text-xl font-headline font-bold flex items-center gap-2">
+                          <Network className="h-6 w-6 text-primary" />
+                          Structural Equation Modeling
+                      </h1>
+                  </div>
+                  <div className="w-[210px] flex justify-end">
+                    <UserNav />
+                  </div>
+              </header>
+              <main className="flex-1 overflow-auto">
+                <div className="max-w-7xl mx-auto py-4">
+                  {activeSubPage === 'diagram-to-model' && <SemContent />}
+                </div>
+              </main>
+            </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}
+
 
 export default function SemDashboardPage() {
   return (
     <DashboardClientLayout>
-      <div className="flex flex-col min-h-screen bg-background">
-        <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
-          <div className="flex items-center gap-2">
-             <Button variant="outline" asChild>
-                  <Link href="/dashboard">
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to Workspace
-                  </Link>
-              </Button>
-          </div>
-           <div className="flex-1 flex justify-center">
-               <Link href="/" className="flex items-center justify-center gap-2">
-                  <Network className="h-6 w-6 text-primary" />
-                  <h1 className="text-xl font-headline font-bold">Structural Equation Modeling</h1>
-              </Link>
-          </div>
-          <div className="w-[180px] flex justify-end">
-            <UserNav />
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <SemPage data={[]} allHeaders={[]} numericHeaders={[]} categoricalHeaders={[]} onLoadExample={() => {}} />
-          </div>
-        </main>
-      </div>
+        <SemDashboard />
     </DashboardClientLayout>
   );
 }

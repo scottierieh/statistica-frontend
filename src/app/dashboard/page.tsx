@@ -11,14 +11,6 @@ import { cn } from "@/lib/utils";
 const tools = [
   // Data & Analysis Tools
   {
-    id: "statistica",
-    href: "/dashboard/statistica",
-    icon: Calculator,
-    title: "Statistica",
-    description: "Statistical analysis with AI insights.",
-    disabled: false,
-  },
-  {
     id: "scenario",
     href: "/dashboard/scenario",
     icon: FlaskConical,
