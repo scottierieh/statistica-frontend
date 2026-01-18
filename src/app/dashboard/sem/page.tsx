@@ -1,15 +1,14 @@
-
 'use client';
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Network, UploadCloud, Wand2, Lightbulb, Copy, Loader2, Image as ImageIcon, X, ArrowLeft, Code, PictureInPicture, PlayCircle, FileText, FileUp, Settings2, CheckSquare, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Network, UploadCloud, Wand2, Lightbulb, Copy, Loader2, Image as ImageIcon, X, ArrowLeft, Code, PictureInPicture, PlayCircle, FileText, FileUp, Settings2, CheckSquare, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { getSemFromDiagram, runSemAnalysis, type GenerateSemFromDiagramInput, type GenerateSemFromDiagramOutput } from '@/app/actions';
+import { getSemFromDiagram, runSemAnalysis } from '@/app/actions';
 import Link from 'next/link';
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { UserNav } from "@/components/user-nav";
@@ -39,13 +38,14 @@ import SEMResultsPage from '@/components/pages/sem-results-page';
 
 // --- Sub-page Components ---
 
-function ModelSpecView({ modelSpec, setModelSpec }: { modelSpec: string; setModelSpec: (spec: string) => void; }) {
+function ModelSpecView({ modelSpec, setModelSpec, onLoadExample }: { modelSpec: string; setModelSpec: (spec: string) => void; onLoadExample: (example: ExampleDataSet) => void; }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ syntax: string; explanation: string } | null>(null);
+  const semExample = exampleDatasets.find(d => d.id === 'well-being-survey');
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -101,7 +101,15 @@ function ModelSpecView({ modelSpec, setModelSpec }: { modelSpec: string; setMode
       </Card>
       
       <Card>
-        <CardHeader><CardTitle>Model Syntax (lavaan)</CardTitle><CardDescription>The generated model syntax will appear here. You can also edit it manually.</CardDescription></CardHeader>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Model Syntax (lavaan)</CardTitle>
+              <CardDescription>The generated model syntax will appear here. You can also edit it manually.</CardDescription>
+            </div>
+            {semExample && <Button variant="outline" size="sm" onClick={() => onLoadExample(semExample)}><Sparkles className="w-4 h-4 mr-2" />Load Example Model & Data</Button>}
+          </div>
+        </CardHeader>
         <CardContent><Textarea value={modelSpec} onChange={(e) => setModelSpec(e.target.value)} placeholder={`# Measurement Model (latent =~ indicators)
 VisualAbility =~ x1 + x2 + x3
 
@@ -114,13 +122,14 @@ SpeedAbility ~ VisualAbility`} className="font-mono text-sm h-48" /></CardConten
   );
 }
 
-function DataSettingsView({ onFileSelected, onLoadExample, onClearData, fileName, data, allHeaders, isUploading, estimator, setEstimator }: any) {
-  const semExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+function DataSettingsView({ onFileSelected, onClearData, fileName, data, allHeaders, isUploading, estimator, setEstimator }: any) {
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader><CardTitle className="font-headline flex items-center gap-2"><FileUp className="w-6 h-6 text-primary" />Upload Data</CardTitle><CardDescription>Upload your dataset (CSV, Excel) to be used in the SEM analysis.</CardDescription></CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-4"><DataUploader onFileSelected={onFileSelected} loading={isUploading} />{semExample && <Button variant="link" onClick={() => onLoadExample(semExample)}>Load Example Data & Model</Button>}</CardContent>
+        <CardContent className="flex flex-col items-center justify-center gap-4">
+          <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
+        </CardContent>
       </Card>
       
       {data.length > 0 && (<DataPreview fileName={fileName} data={data} headers={allHeaders} onDownload={() => {}} onClearData={onClearData} />)}
@@ -241,8 +250,8 @@ stress =~ stress_1 + stress_2 + stress_3 + stress_4`;
   ];
 
   const ActiveComponent = 
-    activeSubPage === 'diagram-to-model' ? <ModelSpecView modelSpec={modelSpec} setModelSpec={setModelSpec} /> :
-    activeSubPage === 'data-settings' ? <DataSettingsView onFileSelected={handleFileSelected} onLoadExample={handleLoadExampleData} onClearData={handleClearData} fileName={fileName} data={data} allHeaders={allHeaders} isUploading={isUploading} estimator={estimator} setEstimator={setEstimator} /> :
+    activeSubPage === 'diagram-to-model' ? <ModelSpecView modelSpec={modelSpec} setModelSpec={setModelSpec} onLoadExample={handleLoadExampleData} /> :
+    activeSubPage === 'data-settings' ? <DataSettingsView onFileSelected={handleFileSelected} onClearData={handleClearData} fileName={fileName} data={data} allHeaders={allHeaders} isUploading={isUploading} estimator={estimator} setEstimator={setEstimator} /> :
     activeSubPage === 'validate' ? <ValidationView modelSpec={modelSpec} data={data} estimator={estimator} onRunAnalysis={handleAnalysis} isLoading={isLoading} /> :
     activeSubPage === 'results' && analysisResult ? <SEMResultsPage results={analysisResult} /> :
     <div>Please complete the previous steps.</div>;
@@ -274,5 +283,3 @@ stress =~ stress_1 + stress_2 + stress_3 + stress_4`;
 export default function SemDashboardPage() {
   return (<DashboardClientLayout><SemDashboard /></DashboardClientLayout>);
 }
-
-    
