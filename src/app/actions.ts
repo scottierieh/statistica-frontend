@@ -7,6 +7,8 @@ import { interpretPca3d, InterpretPca3dInput } from "@/ai/flows/interpret-pca-3d
 import { chatAboutAnalysis, type ChatAboutAnalysisInput } from "@/ai/flows/chat-about-analysis";
 import { recommendAnalysisByGoal } from "@/ai/flows/recommend_analysis_by_goal";
 import { generateSemFromDiagram, type GenerateSemFromDiagramInput, type GenerateSemFromDiagramOutput } from "@/ai/flows/generate-sem-from-diagram";
+import { type DataSet } from '@/lib/stats';
+
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -86,5 +88,24 @@ export async function getSemFromDiagram(input: GenerateSemFromDiagramInput): Pro
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate SEM syntax from diagram." };
+    }
+}
+
+export async function runSemAnalysis(data: DataSet, model_spec: string, estimator: string) {
+    try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analysis/sem`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data, model_spec, estimator }),
+        });
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error || 'Failed to run SEM analysis');
+        }
+        const result = await response.json();
+        return { success: true, result };
+    } catch (error: any) {
+        console.error('runSemAnalysis error:', error);
+        return { success: false, error: error.message };
     }
 }
