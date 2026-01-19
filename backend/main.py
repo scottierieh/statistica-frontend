@@ -3,6 +3,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+import subprocess
+import json
+import sys
 
 # Import analysis functions
 from effectiveness_analysis import run_effectiveness_analysis
@@ -72,6 +75,11 @@ class DescriptiveStatsPayload(BaseModel):
     variables: List[str]
     groupBy: Optional[str] = None
 
+class SemPayload(BaseModel):
+    data: List[Dict[str, Any]]
+    model_spec: str
+    estimator: str
+
 class TeamInvitationPayload(BaseModel):
     email: str
     role: str = 'Member'
@@ -83,6 +91,32 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+    
+def run_script(script_name: str, payload: dict):
+    process = subprocess.Popen(
+        [sys.executable, script_name],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    stdout, stderr = process.communicate(json.dumps(payload))
+    
+    if process.returncode != 0:
+        try:
+            error_json = json.loads(stderr)
+            raise HTTPException(status_code=400, detail=error_json.get('error', 'Unknown script error'))
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=500, detail=f"Script error: {stderr}")
+
+    try:
+        return json.loads(stdout)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Failed to parse script output.")
+
+@app.post("/api/analysis/sem")
+async def analyze_sem(payload: SemPayload):
+    return run_script('sem_analysis.py', payload.dict())
 
 @app.post("/api/analysis/effectiveness")
 async def analyze_effectiveness(payload: EffectivenessPayload):
