@@ -74,18 +74,15 @@ def generate_interpretation(results):
         "overall_assessment": fit_summary
     }
 
-def main():
+def run_sem_analysis(data, model_spec, estimator='ML'):
     try:
-        payload = json.load(sys.stdin)
-        data = pd.DataFrame(payload.get('data'))
-        model_spec = payload.get('model_spec')
-        estimator = payload.get('estimator', 'ML')
+        df_data = pd.DataFrame(data)
 
-        if not model_spec or data.empty:
+        if not model_spec or df_data.empty:
             raise ValueError("Missing model specification or data.")
 
         model = semopy.Model(model_spec)
-        res = model.fit(data, obj=estimator)
+        res = model.fit(df_data, obj=estimator)
         
         # --- Fit Indices ---
         stats = semopy.calc_stats(model, res)
@@ -99,7 +96,7 @@ def main():
             "srmr": stats.loc['srmr', 'Value'],
             "aic": stats.loc['aic', 'Value'],
             "bic": stats.loc['bic', 'Value'],
-            "n": len(data)
+            "n": len(df_data)
         }
 
         # --- Coefficients ---
@@ -107,7 +104,6 @@ def main():
         
         measurement_model_raw = estimates[estimates['op'] == '=~']
         structural_model_raw = estimates[estimates['op'] == '~']
-        covariance_raw = estimates[estimates['op'] == '~~']
         
         # --- Measurement Model ---
         measurement_model = {}
@@ -115,9 +111,8 @@ def main():
             indicators = measurement_model_raw[measurement_model_raw['lval'] == factor]['rval'].tolist()
             loadings = dict(zip(indicators, measurement_model_raw[measurement_model_raw['lval'] == factor]['Estimate']))
             
-            # Cronbach's Alpha
             try:
-                factor_data = data[indicators]
+                factor_data = df_data[indicators]
                 n_items = len(indicators)
                 item_variances = factor_data.var(ddof=1).sum()
                 total_variance = factor_data.sum(axis=1).var(ddof=1)
@@ -145,24 +140,28 @@ def main():
                 'significant': row['p-value'] < 0.05
             })
             
-        # Add R-squared values for dependent variables
         dependent_vars = structural_model_raw['lval'].unique()
         for dv in dependent_vars:
-            ss_res = np.sum((model.predict(data)[dv] - data[dv])**2)
-            ss_tot = np.sum((data[dv] - data[dv].mean())**2)
-            r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
-            structural_model.append({
-                'path': f"{dv} R²", 'estimate': r2, 'is_r_squared': True,
-                'from': '', 'to': dv, 'std_error': None, 't_value': None, 'p_value': None, 'significant': None
-            })
+            try:
+                ss_res = np.sum((model.predict(df_data)[dv] - df_data[dv])**2)
+                ss_tot = np.sum((df_data[dv] - df_data[dv].mean())**2)
+                r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+                structural_model.append({
+                    'path': f"{dv} R²", 'estimate': r2, 'is_r_squared': True,
+                    'from': '', 'to': dv, 'std_error': None, 't_value': None, 'p_value': None, 'significant': None
+                })
+            except Exception:
+                continue
 
         # --- Visualization ---
+        path_diagram_b64 = None
         try:
+            # semopy.semplot can fail if graphviz is not installed system-wide
             g = semopy.semplot(model, "sem_plot.png", plot_stats=True)
             with open("sem_plot.png", "rb") as f:
                 path_diagram_b64 = base64.b64encode(f.read()).decode('utf-8')
-        except:
-            path_diagram_b64 = None
+        except Exception:
+            pass
 
         # --- Interpretation ---
         all_results = {
@@ -171,23 +170,16 @@ def main():
             "structural_model": structural_model,
             "fit_indices": fit_indices,
             "estimator": estimator,
-            "n_observations": len(data)
+            "n_observations": len(df_data)
         }
         all_results['interpretation'] = generate_interpretation(all_results)
         
         response = {
             **all_results,
             'path_diagram': path_diagram_b64,
-            'loading_heatmap': None,
-            'correlation_matrix': None,
         }
 
-        print(json.dumps(response, default=_to_native_type))
+        return json.loads(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
-
+        raise e

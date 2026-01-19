@@ -1,16 +1,14 @@
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
-import subprocess
-import json
-import sys
 
 # Import analysis functions
 from effectiveness_analysis import run_effectiveness_analysis
 from simple_test_analysis import run_simple_test_analysis
 from descriptive_stats_analysis import run_descriptive_stats_analysis
+from sem_analysis import run_sem_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -91,32 +89,20 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-    
-def run_script(script_name: str, payload: dict):
-    process = subprocess.Popen(
-        [sys.executable, script_name],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = process.communicate(json.dumps(payload))
-    
-    if process.returncode != 0:
-        try:
-            error_json = json.loads(stderr)
-            raise HTTPException(status_code=400, detail=error_json.get('error', 'Unknown script error'))
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail=f"Script error: {stderr}")
-
-    try:
-        return json.loads(stdout)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse script output.")
 
 @app.post("/api/analysis/sem")
 async def analyze_sem(payload: SemPayload):
-    return run_script('sem_analysis.py', payload.dict())
+    try:
+        results = run_sem_analysis(
+            data=payload.data,
+            model_spec=payload.model_spec,
+            estimator=payload.estimator
+        )
+        return results
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/analysis/effectiveness")
 async def analyze_effectiveness(payload: EffectivenessPayload):
@@ -232,7 +218,7 @@ async def update_invitation(invitation_id: str, payload: InvitationUpdatePayload
 
 
 @app.delete("/api/teams/invitations")
-async def delete_invitation(id: str = Query(...)):
+async def delete_invitation(id: str):
     if not db:
         raise HTTPException(status_code=500, detail="Firestore is not configured on the server.")
     try:
