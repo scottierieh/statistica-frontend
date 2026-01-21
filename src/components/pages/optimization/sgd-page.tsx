@@ -47,7 +47,7 @@ export default function SgdPage() {
 
             setResult(res);
             toast({ title: "Success", description: "SGD simulation complete." });
-        } catch (e: any) {
+        } catch (e: any) => {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
             setIsLoading(false);
@@ -62,12 +62,32 @@ export default function SgdPage() {
                     <CardDescription>Visualize SGD's optimization path. Each step uses a small batch of data, creating a more erratic but often faster convergence.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/50">
-                        <div className="space-y-2"><Label>Learning Rate</Label><Input type="number" value={learningRate} onChange={e => setLearningRate(parseFloat(e.target.value))} step="0.01"/></div>
-                        <div className="space-y-2"><Label>Epochs</Label><Input type="number" value={epochs} onChange={e => setEpochs(parseInt(e.target.value))} min="1" max="100"/></div>
-                        <div className="space-y-2"><Label>Batch Size</Label><Input type="number" value={batchSize} onChange={e => setBatchSize(parseInt(e.target.value))} min="1" max="100"/></div>
-                        <div className="space-y-2"><Label>Start X</Label><Input type="number" value={startX} onChange={e => setStartX(parseFloat(e.target.value))}/></div>
-                        <div className="space-y-2"><Label>Start Y</Label><Input type="number" value={startY} onChange={e => setStartY(parseFloat(e.target.value))}/></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/50">
+                        <div className="space-y-1">
+                            <Label>Learning Rate</Label>
+                            <CardDescription className="text-xs">Controls how large a step to take. (e.g., 0.01)</CardDescription>
+                            <Input type="number" value={learningRate} onChange={e => setLearningRate(parseFloat(e.target.value))} step="0.01"/>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Epochs</Label>
+                             <CardDescription className="text-xs">How many times to loop through the entire dataset.</CardDescription>
+                            <Input type="number" value={epochs} onChange={e => setEpochs(parseInt(e.target.value))} min="1" max="100"/>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Batch Size</Label>
+                             <CardDescription className="text-xs">Number of samples per gradient update. (1 for SGD)</CardDescription>
+                            <Input type="number" value={batchSize} onChange={e => setBatchSize(parseInt(e.target.value))} min="1" max="100"/>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Start X</Label>
+                             <CardDescription className="text-xs">Initial starting point on the X-axis.</CardDescription>
+                            <Input type="number" value={startX} onChange={e => setStartX(parseFloat(e.target.value))}/>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Start Y</Label>
+                             <CardDescription className="text-xs">Initial starting point on the Y-axis.</CardDescription>
+                            <Input type="number" value={startY} onChange={e => setStartY(parseFloat(e.target.value))}/>
+                        </div>
                     </div>
                     <Button onClick={handleSolve} disabled={isLoading}><Play className="mr-2"/>Simulate</Button>
                 </CardContent>

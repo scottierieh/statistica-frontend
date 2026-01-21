@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   FileText,
   Loader2,
+  Sigma,
+  TrendingDown,
   TrendingUp,
   Landmark,
   Megaphone,
