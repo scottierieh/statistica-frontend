@@ -47,7 +47,7 @@ export default function SgdPage() {
 
             setResult(res);
             toast({ title: "Success", description: "SGD simulation complete." });
-        } catch (e: any) => {
+        } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
             setIsLoading(false);
