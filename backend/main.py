@@ -15,6 +15,7 @@ from .linear_programming_analysis import run_linear_programming_analysis
 from .sgd_simulation import run_sgd_simulation
 from .transportation_analysis import run_transportation_analysis
 from .dynamic_programming_analysis import run_dynamic_programming_analysis
+from .convex_optimization_analysis import run_convex_optimization_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -131,6 +132,16 @@ class KnapsackItem(BaseModel):
 class DynamicProgrammingPayload(BaseModel):
     items: List[KnapsackItem]
     capacity: int
+    
+class Asset(BaseModel):
+    name: str
+    expected_return: float
+    volatility: float
+
+class ConvexOptimizationPayload(BaseModel):
+    assets: List[Asset]
+    correlation_matrix: List[List[float]]
+    target_return: float
 
 # --- API Endpoints ---
 
@@ -235,6 +246,13 @@ async def analyze_transportation(payload: TransportationPayload):
 async def analyze_dynamic_programming(payload: DynamicProgrammingPayload):
     try:
         return run_dynamic_programming_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/convex-optimization")
+async def analyze_convex_optimization(payload: ConvexOptimizationPayload):
+    try:
+        return run_convex_optimization_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
