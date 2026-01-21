@@ -24,6 +24,7 @@ from adam_analysis import run_adam_analysis
 from rmsprop_analysis import run_rmsprop_analysis
 from adagrad_analysis import run_adagrad_analysis
 from bayesian_optimization_analysis import run_bayesian_optimization_analysis
+from nonlinear_programming_analysis import run_nonlinear_programming_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -216,6 +217,16 @@ class BayesianOptimizationPayload(BaseModel):
     acq_func: Optional[str] = 'gp_hedge'
     random_state: Optional[int] = 42
 
+class NlpConstraint(BaseModel):
+    type: str
+    fun: str
+
+class NonLinearProgrammingPayload(BaseModel):
+    objective_function: str
+    constraints: List[NlpConstraint]
+    bounds: List[List[Optional[float]]]
+    initial_guess: List[float]
+
 
 # --- API Endpoints ---
 
@@ -383,6 +394,13 @@ async def analyze_adagrad(payload: AdagradPayload):
 async def analyze_bayesian_optimization(payload: BayesianOptimizationPayload):
     try:
         return run_bayesian_optimization_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/nonlinear-programming")
+async def analyze_nonlinear_programming(payload: NonLinearProgrammingPayload):
+    try:
+        return run_nonlinear_programming_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

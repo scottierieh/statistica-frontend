@@ -39,9 +39,13 @@ export async function POST(req: NextRequest) {
         } else {
           try {
             const jsonResult = JSON.parse(result);
-            resolve(NextResponse.json(jsonResult));
+            if (jsonResult.error) {
+              resolve(NextResponse.json({ error: jsonResult.error }, { status: 400 }));
+            } else {
+              resolve(NextResponse.json(jsonResult));
+            }
           } catch(e) {
-            console.error('Failed to parse python script output');
+            console.error('Failed to parse python script output for NLP');
             console.error(result);
             resolve(NextResponse.json({ error: `Failed to parse script output: ${result}` }, { status: 500 }));
           }

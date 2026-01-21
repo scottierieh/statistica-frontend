@@ -122,7 +122,7 @@ const analysisCategories = [
         items: [
             { id: 'linear-programming', label: 'Linear Programming (LP)', icon: TrendingUp },
             { id: 'integer-programming', label: 'Integer Programming (IP)', icon: Sigma },
-            { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingUp, disabled: true },
+            { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingUp, disabled: false },
             { id: 'goal-programming', label: 'Goal Programming', icon: Award },
             { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck },
             { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown },
