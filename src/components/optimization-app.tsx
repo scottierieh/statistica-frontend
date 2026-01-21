@@ -16,8 +16,6 @@ import { Button } from '@/components/ui/button';
 import {
   FileText,
   Loader2,
-  Sigma,
-  TrendingDown,
   TrendingUp,
   Landmark,
   Megaphone,
@@ -148,7 +146,7 @@ const analysisCategories = [
             { id: 'sgd', label: 'SGD', icon: TrendingDown, disabled: false },
             { id: 'adam', label: 'Adam', icon: Rocket, disabled: false },
             { id: 'rmsprop', label: 'RMSProp', icon: Wind, disabled: false },
-            { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: true },
+            { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: false },
             { id: 'bayesian-optimization', label: 'Bayesian Optimization', icon: BrainCircuit, disabled: true },
         ]
     },

@@ -22,6 +22,7 @@ from simulated_annealing_analysis import run_simulated_annealing_analysis
 from tabu_search_analysis import run_tabu_search_analysis
 from adam_analysis import run_adam_analysis
 from rmsprop_analysis import run_rmsprop_analysis
+from adagrad_analysis import run_adagrad_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -199,6 +200,13 @@ class RmsPropPayload(BaseModel):
     epsilon: Optional[float] = 1e-8
     max_iter: Optional[int] = 1000
 
+class AdagradPayload(BaseModel):
+    objective_function: str
+    bounds: List[List[float]]
+    learning_rate: Optional[float] = 0.01
+    epsilon: Optional[float] = 1e-8
+    max_iter: Optional[int] = 1000
+
 
 # --- API Endpoints ---
 
@@ -352,6 +360,13 @@ async def analyze_adam(payload: AdamPayload):
 async def analyze_rmsprop(payload: RmsPropPayload):
     try:
         return run_rmsprop_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/adagrad")
+async def analyze_adagrad(payload: AdagradPayload):
+    try:
+        return run_adagrad_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
