@@ -14,6 +14,7 @@ from .goal_programming_analysis import run_goal_programming_analysis
 from .linear_programming_analysis import run_linear_programming_analysis
 from .sgd_simulation import run_sgd_simulation
 from .transportation_analysis import run_transportation_analysis
+from .dynamic_programming_analysis import run_dynamic_programming_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -122,6 +123,15 @@ class TransportationPayload(BaseModel):
     supply: List[float]
     demand: List[float]
 
+class KnapsackItem(BaseModel):
+    name: str
+    weight: int
+    value: float
+
+class DynamicProgrammingPayload(BaseModel):
+    items: List[KnapsackItem]
+    capacity: int
+
 # --- API Endpoints ---
 
 @app.get("/")
@@ -218,6 +228,13 @@ async def analyze_sgd(payload: SgdPayload):
 async def analyze_transportation(payload: TransportationPayload):
     try:
         return run_transportation_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/dynamic-programming")
+async def analyze_dynamic_programming(payload: DynamicProgrammingPayload):
+    try:
+        return run_dynamic_programming_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

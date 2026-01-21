@@ -1,0 +1,6 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { proxyToPython } from '@/app/api/proxy';
+
+export async function POST(request: NextRequest) {
+    return proxyToPython(request, 'dynamic-programming');
+}
