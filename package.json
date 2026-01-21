@@ -54,6 +54,7 @@
     "immer": "^10.1.1",
     "jspdf": "^3.0.4",
     "jstat": "^1.9.6",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "next": "15.5.9",
     "papaparse": "^5.4.1",
@@ -66,6 +67,7 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.54.2",
+    "react-leaflet": "^5.0.0",
     "react-markdown": "^9.0.1",
     "react-plotly.js": "^2.6.0",
     "recharts": "^2.15.1",
@@ -77,6 +79,7 @@
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.15",
     "@types/plotly.js": "^2.29.1",

@@ -5,15 +5,15 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
 # Import analysis functions
-from effectiveness_analysis import run_effectiveness_analysis
-from simple_test_analysis import run_simple_test_analysis
-from descriptive_stats_analysis import run_descriptive_stats_analysis
-from sem_analysis import run_sem_analysis
-from ant_colony_analysis import run_ant_colony_analysis
-from goal_programming_analysis import run_goal_programming_analysis
-from linear_programming_analysis import run_linear_programming_analysis
-from sgd_simulation import run_sgd_simulation
-from transportation_analysis import run_transportation_analysis
+from .effectiveness_analysis import run_effectiveness_analysis
+from .simple_test_analysis import run_simple_test_analysis
+from .descriptive_stats_analysis import run_descriptive_stats_analysis
+from .sem_analysis import run_sem_analysis
+from .ant_colony_analysis import run_ant_colony_analysis
+from .goal_programming_analysis import run_goal_programming_analysis
+from .linear_programming_analysis import run_linear_programming_analysis
+from .sgd_simulation import run_sgd_simulation
+from .transportation_analysis import run_transportation_analysis
 
 # Firebase Admin SDK
 import firebase_admin
