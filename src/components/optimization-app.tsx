@@ -23,7 +23,20 @@ import {
   Sigma,
   Repeat,
   Component,
-  ArrowDown
+  ArrowDown,
+  Settings2,
+  Feather,
+  BrainCircuit,
+  GitBranch,
+  Users,
+  Thermometer,
+  Waypoints,
+  Ban,
+  Rocket,
+  Wind,
+  Scaling,
+  TrendingDown,
+  BookOpen
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -33,12 +46,12 @@ import {
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import DataUploader from '@/components/data-uploader';
-import DataPreview from '@/components/data-preview';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import DataUploader from './data-uploader';
+import DataPreview from './data-preview';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
+import { Input } from './ui/input';
 
 // Import scenario pages
 import LinearProgrammingPage from '@/components/pages/optimization/linear-programming-page';
@@ -49,7 +62,56 @@ import GradientDescentPage from '@/components/pages/optimization/gradient-descen
 import NonLinearProgrammingPage from '@/components/pages/optimization/nonlinear-programming-page';
 import DynamicProgrammingPage from '@/components/pages/optimization/dynamic-programming-page';
 import ConvexOptimizationPage from '@/components/pages/optimization/convex-optimization-page';
+import GeneticAlgorithmPage from './pages/optimization/genetic-algorithm-page';
+import ParticleSwarmPage from './pages/optimization/particle-swarm-page';
+import SimulatedAnnealingPage from './pages/optimization/simulated-annealing-page';
+import AntColonyPage from './pages/optimization/ant-colony-page';
+import TabuSearchPage from './pages/optimization/tabu-search-page';
+import SgdPage from './pages/optimization/sgd-page';
+import AdamPage from './pages/optimization/adam-page';
+import RmspropPage from './pages/optimization/rmsprop-page';
+import AdagradPage from './pages/optimization/adagrad-page';
+import BayesianOptimizationPage from './pages/optimization/bayesian-optimization-page';
 
+
+const analysisCategories = [
+    {
+        name: 'Deterministic Optimization',
+        icon: Settings2,
+        items: [
+            { id: 'linear-programming', label: 'Linear Programming (LP)', icon: TrendingUp },
+            { id: 'integer-programming', label: 'Integer Programming (IP)', icon: Sigma },
+            { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingUp, disabled: true },
+            { id: 'goal-programming', label: 'Goal Programming', icon: Award },
+            { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck },
+            { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown },
+            { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, disabled: true },
+            { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, disabled: true },
+        ]
+    },
+    {
+        name: 'Metaheuristics',
+        icon: Feather,
+        items: [
+            { id: 'genetic-algorithm', label: 'Genetic Algorithm (GA)', icon: GitBranch, disabled: true },
+            { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, disabled: true },
+            { id: 'simulated-annealing', label: 'Simulated Annealing (SA)', icon: Thermometer, disabled: true },
+            { id: 'ant-colony', label: 'Ant Colony Optimization (ACO)', icon: Waypoints, disabled: true },
+            { id: 'tabu-search', label: 'Tabu Search', icon: Ban, disabled: true },
+        ]
+    },
+    {
+        name: 'Neural Network & ML',
+        icon: BrainCircuit,
+        items: [
+            { id: 'sgd', label: 'SGD', icon: TrendingDown, disabled: true },
+            { id: 'adam', label: 'Adam', icon: Rocket, disabled: true },
+            { id: 'rmsprop', label: 'RMSProp', icon: Wind, disabled: true },
+            { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: true },
+            { id: 'bayesian-optimization', label: 'Bayesian Optimization', icon: BrainCircuit, disabled: true },
+        ]
+    }
+];
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
@@ -60,6 +122,16 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
   'nonlinear-programming': NonLinearProgrammingPage,
   'dynamic-programming': DynamicProgrammingPage,
   'convex-optimization': ConvexOptimizationPage,
+  'genetic-algorithm': GeneticAlgorithmPage,
+  'particle-swarm': ParticleSwarmPage,
+  'simulated-annealing': SimulatedAnnealingPage,
+  'ant-colony': AntColonyPage,
+  'tabu-search': TabuSearchPage,
+  'sgd': SgdPage,
+  'adam': AdamPage,
+  'rmsprop': RmspropPage,
+  'adagrad': AdagradPage,
+  'bayesian-optimization': BayesianOptimizationPage,
 };
 
 
@@ -71,6 +143,7 @@ export default function OptimizationApp() {
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<string>('linear-programming');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Deterministic Optimization', 'Metaheuristics', 'Neural Network & ML']);
 
   const { toast } = useToast();
 
@@ -134,19 +207,16 @@ export default function OptimizationApp() {
     }
   };
 
-  const analysisItems = [
-    { id: 'linear-programming', label: 'Linear Programming (LP)', icon: TrendingUp },
-    { id: 'integer-programming', label: 'Integer Programming (IP)', icon: Sigma },
-    { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingUp, disabled: true },
-    { id: 'goal-programming', label: 'Goal Programming', icon: Award },
-    { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck },
-    { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown },
-    { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, disabled: true },
-    { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, disabled: true },
-  ];
-
   const ActivePageComponent = analysisPages[activeAnalysis] || LinearProgrammingPage;
   const hasData = data.length > 0;
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  };
 
   return (
     <SidebarProvider>
@@ -160,17 +230,32 @@ export default function OptimizationApp() {
               />
             </div>
             <SidebarMenu>
-              {analysisItems.map(item => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => setActiveAnalysis(item.id)}
-                    isActive={activeAnalysis === item.id}
-                    disabled={item.disabled}
-                  >
-                    <item.icon className="h-4 w-4"/>
-                    {item.label}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {analysisCategories.map(category => (
+                <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start text-base px-2 font-semibold shadow-md border bg-white text-foreground hover:bg-slate-50">
+                      <category.icon className="mr-2 h-5 w-5" />
+                      <span>{category.name}</span>
+                      <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                     <SidebarMenu>
+                        {category.items.map(item => (
+                          <SidebarMenuItem key={item.id}>
+                            <SidebarMenuButton
+                              onClick={() => setActiveAnalysis(item.id)}
+                              isActive={activeAnalysis === item.id}
+                              disabled={item.disabled}
+                            >
+                              <item.icon className="h-4 w-4"/>
+                              {item.label}
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                  </CollapsibleContent>
+                </Collapsible>
               ))}
             </SidebarMenu>
           </SidebarContent>
@@ -178,7 +263,7 @@ export default function OptimizationApp() {
 
         <SidebarInset>
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-             <header className="flex items-center justify-between md:hidden">
+            <header className="flex items-center justify-between md:hidden">
                 <SidebarTrigger />
             </header>
             
