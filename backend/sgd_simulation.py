@@ -65,24 +65,3 @@ def run_sgd_simulation(learning_rate=0.01, epochs=20, batch_size=1, start_x=4.0,
             "batch_size": batch_size
         }
     }
-
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        
-        learning_rate = float(payload.get('learning_rate', 0.05))
-        epochs = int(payload.get('epochs', 20))
-        batch_size = int(payload.get('batch_size', 1))
-        start_x = float(payload.get('start_x', 4.0))
-        start_y = float(payload.get('start_y', 4.0))
-        
-        simulation_data = run_sgd_simulation(learning_rate, epochs, batch_size, start_x, start_y)
-        
-        print(json.dumps(simulation_data, default=_to_native_type))
-
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()

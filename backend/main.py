@@ -9,6 +9,11 @@ from effectiveness_analysis import run_effectiveness_analysis
 from simple_test_analysis import run_simple_test_analysis
 from descriptive_stats_analysis import run_descriptive_stats_analysis
 from sem_analysis import run_sem_analysis
+from ant_colony_analysis import run_ant_colony_analysis
+from goal_programming_analysis import run_goal_programming_analysis
+from linear_programming_analysis import run_linear_programming_analysis
+from sgd_simulation import run_sgd_simulation
+from transportation_analysis import run_transportation_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -58,6 +63,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Pydantic Models for Payloads ---
+
 class EffectivenessPayload(BaseModel):
     data: List[Dict[str, Any]]
     outcome: str
@@ -82,6 +89,41 @@ class TeamInvitationPayload(BaseModel):
     email: str
     role: str = 'Member'
 
+class InvitationUpdatePayload(BaseModel):
+    role: Optional[str] = None
+    status: Optional[str] = None
+
+class AntColonyPayload(BaseModel):
+    cities: List[Dict[str, Any]]
+    params: Dict[str, Any]
+
+class GoalProgrammingPayload(BaseModel):
+    goals: List[Dict[str, Any]]
+    constraints: List[Dict[str, Any]]
+
+class LinearProgrammingPayload(BaseModel):
+    c: List[float]
+    A: List[List[float]]
+    b: List[float]
+    constraint_types: List[str]
+    objective: str
+    variable_types: Optional[List[str]] = None
+    problem_type: Optional[str] = 'lp'
+
+class SgdPayload(BaseModel):
+    learning_rate: float
+    epochs: int
+    batch_size: int
+    start_x: float
+    start_y: float
+
+class TransportationPayload(BaseModel):
+    costs: List[List[float]]
+    supply: List[float]
+    demand: List[float]
+
+# --- API Endpoints ---
+
 @app.get("/")
 def read_root():
     return {"message": "Statistica Backend is running"}
@@ -89,6 +131,8 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+# --- Analysis Endpoints ---
 
 @app.post("/api/analysis/sem")
 async def analyze_sem(payload: SemPayload):
@@ -142,6 +186,44 @@ async def analyze_descriptive_stats(payload: DescriptiveStatsPayload):
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/api/analysis/ant-colony")
+async def analyze_ant_colony(payload: AntColonyPayload):
+    try:
+        return run_ant_colony_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/goal-programming")
+async def analyze_goal_programming(payload: GoalProgrammingPayload):
+    try:
+        return run_goal_programming_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/linear-programming")
+async def analyze_linear_programming(payload: LinearProgrammingPayload):
+    try:
+        return run_linear_programming_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/sgd")
+async def analyze_sgd(payload: SgdPayload):
+    try:
+        return run_sgd_simulation(**payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/transportation-problem")
+async def analyze_transportation(payload: TransportationPayload):
+    try:
+        return run_transportation_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Team Management Endpoints ---
+
 @app.post("/api/teams/invitations")
 async def invite_team_member(payload: TeamInvitationPayload):
     if not db:
@@ -188,10 +270,6 @@ async def get_invitations():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch invitations: {str(e)}")
 
-
-class InvitationUpdatePayload(BaseModel):
-    role: Optional[str] = None
-    status: Optional[str] = None
 
 @app.put("/api/teams/invitations/{invitation_id}")
 async def update_invitation(invitation_id: str, payload: InvitationUpdatePayload):

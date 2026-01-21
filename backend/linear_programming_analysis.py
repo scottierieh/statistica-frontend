@@ -5,6 +5,7 @@ import numpy as np
 
 try:
     from scipy.optimize import linprog, milp
+    from scipy.optimize import LinearConstraint
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -35,8 +36,8 @@ def solve_lp(c, A_ub, b_ub, A_eq, b_eq, bounds, objective='maximize'):
 
     return {
         "success": True,
-        "solution": res.x.tolist(),
-        "optimal_value": optimal_value,
+        "primal_solution": res.x.tolist(),
+        "primal_optimal_value": optimal_value,
     }
     
 def solve_milp(c, A_ub, b_ub, A_eq, b_eq, bounds, integrality, objective='maximize'):
@@ -45,17 +46,6 @@ def solve_milp(c, A_ub, b_ub, A_eq, b_eq, bounds, integrality, objective='maximi
     """
     c_solver = -np.array(c) if objective == 'maximize' else np.array(c)
     
-    # Correctly form constraints for milp
-    constraints = []
-    if A_ub is not None and A_ub.size > 0:
-        constraints.append(sm.milp.Constraints(A_ub, ub=b_ub))
-    if A_eq is not None and A_eq.size > 0:
-        constraints.append(sm.milp.Constraints(A_eq, lb=b_eq, ub=b_eq))
-        
-    # Use from_scipy to build constraints
-    from scipy.optimize._milp import milp
-    from scipy.optimize import LinearConstraint
-
     scipy_constraints = []
     if A_ub is not None and A_ub.size > 0:
         scipy_constraints.append(LinearConstraint(A_ub, -np.inf, b_ub))
@@ -76,70 +66,60 @@ def solve_milp(c, A_ub, b_ub, A_eq, b_eq, bounds, integrality, objective='maximi
     }
 
 
-def main():
+def run_linear_programming_analysis(payload):
     if not SCIPY_AVAILABLE:
-        print(json.dumps({"error": "SciPy library is not installed. Please install it to use this feature."}), file=sys.stderr)
-        sys.exit(1)
+        raise ImportError("SciPy library is not installed. Please install it to use this feature.")
 
-    try:
-        payload = json.load(sys.stdin)
-        c = payload.get('c')
-        A = np.array(payload.get('A'))
-        b = np.array(payload.get('b'))
-        constraint_types = payload.get('constraint_types')
-        objective = payload.get('objective', 'maximize')
-        variable_types = payload.get('variable_types') # e.g., ['continuous', 'integer']
+    c = payload.get('c')
+    A = np.array(payload.get('A'))
+    b = np.array(payload.get('b'))
+    constraint_types = payload.get('constraint_types')
+    objective = payload.get('objective', 'maximize')
+    variable_types = payload.get('variable_types')
+    problem_type = payload.get('problem_type', 'lp')
 
-        if not all([c is not None, A is not None, b is not None, constraint_types is not None]):
-            raise ValueError("Missing required parameters: c, A, b, or constraint_types")
-        
-        num_vars = len(c)
-        bounds = (0, None)
+    if not all([c is not None, A is not None, b is not None, constraint_types is not None]):
+        raise ValueError("Missing required parameters: c, A, b, or constraint_types")
+    
+    bounds = (0, None)
 
-        is_integer_problem = variable_types and any(v == 'integer' for v in variable_types)
-        
-        A_ub = [A[i] for i, t in enumerate(constraint_types) if t == '<=']
-        b_ub = [b[i] for i, t in enumerate(constraint_types) if t == '<=']
-        
-        # Add '>=' constraints by flipping signs
-        for i, t in enumerate(constraint_types):
-            if t == '>=':
-                A_ub.append(-A[i])
-                b_ub.append(-b[i])
+    is_integer_problem = problem_type == 'milp' or (variable_types and any(v == 'integer' for v in variable_types))
+    
+    A_ub = [A[i] for i, t in enumerate(constraint_types) if t == '<=']
+    b_ub = [b[i] for i, t in enumerate(constraint_types) if t == '<=']
+    
+    for i, t in enumerate(constraint_types):
+        if t == '>=':
+            A_ub.append(-A[i])
+            b_ub.append(-b[i])
 
-        A_eq = [A[i] for i, t in enumerate(constraint_types) if t == '==']
-        b_eq = [b[i] for i, t in enumerate(constraint_types) if t == '==']
+    A_eq = [A[i] for i, t in enumerate(constraint_types) if t == '==']
+    b_eq = [b[i] for i, t in enumerate(constraint_types) if t == '==']
 
-        if is_integer_problem:
-             integrality = np.array([1 if v_type == 'integer' else 0 for v_type in variable_types])
-             result = solve_milp(c, 
-                                   np.array(A_ub) if A_ub else None, 
-                                   np.array(b_ub) if b_ub else None, 
-                                   np.array(A_eq) if A_eq else None,
-                                   np.array(b_eq) if b_eq else None,
-                                   bounds, integrality, objective)
-        else: # Standard LP
-            result = solve_lp(c, 
-                                   np.array(A_ub) if A_ub else None, 
-                                   np.array(b_ub) if b_ub else None, 
-                                   np.array(A_eq) if A_eq else None,
-                                   np.array(b_eq) if b_eq else None,
-                                   bounds, objective)
+    if is_integer_problem:
+            integrality = np.array([1 if v_type == 'integer' else 0 for v_type in variable_types])
+            result = solve_milp(c, 
+                                np.array(A_ub) if A_ub else None, 
+                                np.array(b_ub) if b_ub else None, 
+                                np.array(A_eq) if A_eq else None,
+                                np.array(b_eq) if b_eq else None,
+                                bounds, integrality, objective)
+    else: # Standard LP
+        result = solve_lp(c, 
+                                np.array(A_ub) if A_ub else None, 
+                                np.array(b_ub) if b_ub else None, 
+                                np.array(A_eq) if A_eq else None,
+                                np.array(b_eq) if b_eq else None,
+                                bounds, objective)
 
-        if not result.get("success"):
-            raise ValueError(result.get("error", "An unknown error occurred in the solver."))
+    if not result.get("success"):
+        raise ValueError(result.get("error", "An unknown error occurred in the solver."))
 
-        # Rename keys for consistency
-        if "primal_solution" in result:
-            result["solution"] = result.pop("primal_solution")
-        if "primal_optimal_value" in result:
-            result["optimal_value"] = result.pop("primal_optimal_value")
+    # Rename keys for consistency if needed
+    if "primal_solution" in result:
+        result["solution"] = result.pop("primal_solution")
+    if "primal_optimal_value" in result:
+        result["optimal_value"] = result.pop("primal_optimal_value")
 
-        print(json.dumps(result, default=_to_native_type))
+    return json.loads(json.dumps(result, default=_to_native_type))
 
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()

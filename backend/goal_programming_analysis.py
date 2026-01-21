@@ -101,23 +101,14 @@ def solve_goal_programming(goals, constraints, num_vars):
     }
 
 
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        goals = payload.get('goals', [])
-        constraints = payload.get('constraints', [])
-        num_vars = len(goals[0]['coeffs']) if goals else 0
+def run_goal_programming_analysis(payload):
+    goals = payload.get('goals', [])
+    constraints = payload.get('constraints', [])
+    num_vars = len(goals[0]['coeffs']) if goals else 0
 
-        if not goals or num_vars == 0:
-            raise ValueError("Invalid goals or variable count.")
-        
-        result = solve_goal_programming(goals, constraints, num_vars)
-        
-        print(json.dumps(result, default=_to_native_type))
-
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
+    if not goals or num_vars == 0:
+        raise ValueError("Invalid goals or variable count.")
+    
+    result = solve_goal_programming(goals, constraints, num_vars)
+    
+    return json.loads(json.dumps(result, default=_to_native_type))
