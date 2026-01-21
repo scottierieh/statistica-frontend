@@ -25,4 +25,4 @@ pydantic
 mypy-extensions
 python-multipart
 firebase-admin
-
+scikit-optimize

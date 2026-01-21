@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import {
   FileText,
   Loader2,
+  TrendingDown,
   TrendingUp,
   Landmark,
   Megaphone,
@@ -41,6 +42,7 @@ import {
   Truck,
   Percent,
   Container,
+  Sigma,
   GitBranch,
   BrainCircuit,
   Repeat,

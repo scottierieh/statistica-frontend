@@ -23,6 +23,7 @@ from tabu_search_analysis import run_tabu_search_analysis
 from adam_analysis import run_adam_analysis
 from rmsprop_analysis import run_rmsprop_analysis
 from adagrad_analysis import run_adagrad_analysis
+from bayesian_optimization_analysis import run_bayesian_optimization_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -207,6 +208,14 @@ class AdagradPayload(BaseModel):
     epsilon: Optional[float] = 1e-8
     max_iter: Optional[int] = 1000
 
+class BayesianOptimizationPayload(BaseModel):
+    objective_function: str
+    bounds: List[List[float]]
+    n_calls: Optional[int] = 100
+    n_initial_points: Optional[int] = 10
+    acq_func: Optional[str] = 'gp_hedge'
+    random_state: Optional[int] = 42
+
 
 # --- API Endpoints ---
 
@@ -367,6 +376,13 @@ async def analyze_rmsprop(payload: RmsPropPayload):
 async def analyze_adagrad(payload: AdagradPayload):
     try:
         return run_adagrad_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/bayesian-optimization")
+async def analyze_bayesian_optimization(payload: BayesianOptimizationPayload):
+    try:
+        return run_bayesian_optimization_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
