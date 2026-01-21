@@ -17,6 +17,7 @@ from .transportation_analysis import run_transportation_analysis
 from .dynamic_programming_analysis import run_dynamic_programming_analysis
 from .convex_optimization_analysis import run_convex_optimization_analysis
 from .genetic_algorithm_analysis import run_genetic_algorithm_analysis
+from .particle_swarm_analysis import run_particle_swarm_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -152,6 +153,16 @@ class GeneticAlgorithmPayload(BaseModel):
     n_generations: int
     mutation_rate: float
 
+class ParticleSwarmPayload(BaseModel):
+    objective_function: str
+    n_dimensions: int
+    bounds: List[List[float]]
+    n_particles: Optional[int] = 30
+    n_iterations: Optional[int] = 100
+    w: Optional[float] = 0.5
+    c1: Optional[float] = 1.5
+    c2: Optional[float] = 1.5
+
 # --- API Endpoints ---
 
 @app.get("/")
@@ -269,6 +280,13 @@ async def analyze_convex_optimization(payload: ConvexOptimizationPayload):
 async def analyze_genetic_algorithm(payload: GeneticAlgorithmPayload):
     try:
         return run_genetic_algorithm_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/particle-swarm")
+async def analyze_particle_swarm(payload: ParticleSwarmPayload):
+    try:
+        return run_particle_swarm_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

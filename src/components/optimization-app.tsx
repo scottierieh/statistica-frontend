@@ -135,7 +135,7 @@ const analysisCategories = [
         icon: Feather,
         items: [
             { id: 'genetic-algorithm', label: 'Genetic Algorithm (GA)', icon: GitBranch, disabled: false },
-            { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, disabled: true },
+            { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, disabled: false },
             { id: 'simulated-annealing', label: 'Simulated Annealing (SA)', icon: Thermometer, disabled: true },
             { id: 'ant-colony', label: 'Ant Colony Optimization (ACO)', icon: Waypoints, disabled: false },
             { id: 'tabu-search', label: 'Tabu Search', icon: Ban, disabled: true },
