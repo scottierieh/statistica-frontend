@@ -147,7 +147,7 @@ const analysisCategories = [
         items: [
             { id: 'sgd', label: 'SGD', icon: TrendingDown, disabled: false },
             { id: 'adam', label: 'Adam', icon: Rocket, disabled: false },
-            { id: 'rmsprop', label: 'RMSProp', icon: Wind, disabled: true },
+            { id: 'rmsprop', label: 'RMSProp', icon: Wind, disabled: false },
             { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: true },
             { id: 'bayesian-optimization', label: 'Bayesian Optimization', icon: BrainCircuit, disabled: true },
         ]
