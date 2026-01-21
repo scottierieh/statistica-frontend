@@ -19,6 +19,8 @@ from convex_optimization_analysis import run_convex_optimization_analysis
 from genetic_algorithm_analysis import run_genetic_algorithm_analysis
 from particle_swarm_analysis import run_particle_swarm_analysis
 from simulated_annealing_analysis import run_simulated_annealing_analysis
+from tabu_search_analysis import run_tabu_search_analysis
+from adam_analysis import run_adam_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -172,6 +174,22 @@ class SimulatedAnnealingPayload(BaseModel):
     cooling_rate: Optional[float] = 0.99
     max_iter: Optional[int] = 1000
 
+class TabuSearchPayload(BaseModel):
+    objective_function: str
+    bounds: List[List[float]]
+    max_iter: Optional[int] = 1000
+    tabu_tenure: Optional[int] = 10
+    n_neighbors: Optional[int] = 50
+
+class AdamPayload(BaseModel):
+    objective_function: str
+    bounds: List[List[float]]
+    learning_rate: Optional[float] = 0.01
+    beta1: Optional[float] = 0.9
+    beta2: Optional[float] = 0.999
+    epsilon: Optional[float] = 1e-8
+    max_iter: Optional[int] = 1000
+
 # --- API Endpoints ---
 
 @app.get("/")
@@ -303,6 +321,20 @@ async def analyze_particle_swarm(payload: ParticleSwarmPayload):
 async def analyze_simulated_annealing(payload: SimulatedAnnealingPayload):
     try:
         return run_simulated_annealing_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/tabu-search")
+async def analyze_tabu_search(payload: TabuSearchPayload):
+    try:
+        return run_tabu_search_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/adam")
+async def analyze_adam(payload: AdamPayload):
+    try:
+        return run_adam_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
