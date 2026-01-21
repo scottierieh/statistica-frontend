@@ -150,23 +150,15 @@ export default function OptimizationApp() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex w-full">
         <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Target className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h1 className="text-xl font-headline font-bold">Decision Analytics</h1>
-            </div>
+          <SidebarContent className="flex flex-col gap-2 p-2">
              <div className='p-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
                 loading={isUploading}
               />
             </div>
-          </SidebarHeader>
-          <SidebarContent className="flex flex-col gap-2 p-2">
             <SidebarMenu>
               {analysisItems.map(item => (
                 <SidebarMenuItem key={item.id}>
@@ -186,10 +178,8 @@ export default function OptimizationApp() {
 
         <SidebarInset>
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between md:justify-end">
-                <SidebarTrigger className="md:hidden"/>
-                <h1 className="text-2xl font-headline font-bold md:hidden">Decision Analytics</h1>
-                <div />
+             <header className="flex items-center justify-between md:hidden">
+                <SidebarTrigger />
             </header>
             
             {hasData && (
