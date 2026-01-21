@@ -50,6 +50,14 @@ const tools = [
     description: "Invite and manage team members.",
     disabled: false,
   },
+  {
+    id: "optimization",
+    href: "/dashboard/optimization",
+    icon: Target,
+    title: "Decision Analytics",
+    description: "Optimize decisions with linear, goal, and transportation programming.",
+    disabled: false,
+  },
   // Coming Soon
   {
     id: "survey",

@@ -86,14 +86,6 @@ const tools = [
     disabled: true,
   },
   {
-    id: "optimization",
-    href: "/dashboard/optimization",
-    icon: Target,
-    title: "Decision Analytics",
-    description: "Optimize decisions with linear, goal, and transportation programming.",
-    disabled: false,
-  },
-  {
     id: "360-feedback",
     href: "#",
     icon: Repeat,
