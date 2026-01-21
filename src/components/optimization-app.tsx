@@ -13,31 +13,68 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   FileText,
   Loader2,
   TrendingUp,
+  Landmark,
+  Megaphone,
+  Package,
+  Factory,
+  Users,
+  ArrowLeftRight,
+  Target,
+  BarChart3,
+  Zap,
+  Layers,
+  Activity,
+  UserX,
+  Filter,
+  DollarSign,
+  FlaskConical,
+  Search,
+  Check,
+  TestTube,
+  BookOpen,
+  Building,
   Award,
   Truck,
-  Target,
-  Sigma,
+  Percent,
+  Container,
+  GitBranch,
+  BrainCircuit,
   Repeat,
   Component,
   ArrowDown,
   Settings2,
   Feather,
-  BrainCircuit,
-  GitBranch,
-  Users,
+  Smile,
+  Scaling,
+  AreaChart,
+  LineChart,
+  Car,
+  ChevronsUpDown,
+  BarChart2,
+  Calculator,
+  Brain,
+  Link2,
+  ScatterChart,
+  ShieldCheck,
+  Scissors,
+  FileSearch,
+  CheckSquare,
+  Clock,
   Thermometer,
   Waypoints,
   Ban,
   Rocket,
-  Wind,
-  Scaling,
-  TrendingDown,
-  BookOpen
+  Wind
 } from 'lucide-react';
+
+
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   type DataSet,
@@ -48,8 +85,6 @@ import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
-import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 
@@ -104,7 +139,7 @@ const analysisCategories = [
         name: 'Neural Network & ML',
         icon: BrainCircuit,
         items: [
-            { id: 'sgd', label: 'SGD', icon: TrendingDown, disabled: true },
+            { id: 'sgd', label: 'SGD', icon: TrendingDown, disabled: false },
             { id: 'adam', label: 'Adam', icon: Rocket, disabled: true },
             { id: 'rmsprop', label: 'RMSProp', icon: Wind, disabled: true },
             { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: true },
