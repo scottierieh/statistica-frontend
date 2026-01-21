@@ -1,17 +1,125 @@
+
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Ban } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Play, Ban } from 'lucide-react';
+import Plot from 'react-plotly.js';
+import { produce } from 'immer';
+
+interface TabuResult {
+    best_solution: number[];
+    best_fitness: number;
+    convergence: number[];
+}
 
 export default function TabuSearchPage() {
+    const { toast } = useToast();
+    
+    const [objectiveFn, setObjectiveFn] = useState('np.sum(x**2)');
+    const [numVars, setNumVars] = useState(2);
+    const [bounds, setBounds] = useState([['-10', '10'], ['-10', '10']]);
+    const [maxIter, setMaxIter] = useState(1000);
+    const [tabuTenure, setTabuTenure] = useState(10);
+    const [nNeighbors, setNNeighbors] = useState(50);
+
+    const [isLoading, setIsLoading] = useState(false);
+    const [result, setResult] = useState<TabuResult | null>(null);
+
+    const handleNumVarsChange = (value: string) => {
+        const val = parseInt(value, 10);
+        if (val > 0 && val <= 10) {
+            setNumVars(val);
+            setBounds(current => {
+                const newBounds = [...current];
+                while(newBounds.length < val) newBounds.push(['-10', '10']);
+                return newBounds.slice(0, val);
+            });
+        }
+    };
+
+    const handleSolve = async () => {
+        setIsLoading(true);
+        setResult(null);
+        try {
+            const payload = {
+                objective_function: objectiveFn,
+                bounds: bounds.map(r => [parseFloat(r[0]), parseFloat(r[1])]),
+                max_iter: maxIter,
+                tabu_tenure: tabuTenure,
+                n_neighbors: nNeighbors
+            };
+
+            const response = await fetch('/api/analysis/tabu-search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || 'Failed to solve.');
+            }
+            const res = await response.json();
+            if (res.error) throw new Error(res.error);
+
+            setResult(res.results);
+            toast({ title: "Success", description: "Tabu Search optimization complete." });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Ban />Tabu Search</CardTitle>
-                <CardDescription>This feature is currently under construction.</CardDescription>
+                <CardDescription>Solve combinatorial optimization problems using a metaheuristic that guides a local search to explore beyond local optima.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">A metaheuristic search method employing local search methods used for mathematical optimization.</p>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label>Objective Function (Python format, minimize)</Label>
+                    <Input value={objectiveFn} onChange={e => setObjectiveFn(e.target.value)} placeholder="e.g., np.sum(x**2)" />
+                </div>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2"><Label>Variables</Label><Input type="number" value={numVars} onChange={e => handleNumVarsChange(e.target.value)} min="1" max="10"/></div>
+                    <div className="space-y-2"><Label>Tabu Tenure</Label><Input type="number" value={tabuTenure} onChange={e => setTabuTenure(parseInt(e.target.value))} /></div>
+                    <div className="space-y-2"><Label>Neighbors</Label><Input type="number" value={nNeighbors} onChange={e => setNNeighbors(parseInt(e.target.value))} /></div>
+                    <div className="space-y-2"><Label>Iterations</Label><Input type="number" value={maxIter} onChange={e => setMaxIter(parseInt(e.target.value))} /></div>
+                </div>
+                 <div className="space-y-2">
+                    <Label>Variable Bounds</Label>
+                    {bounds.map((range, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                            <Label className="w-16">x[{i}]</Label>
+                            <Input type="number" value={range[0]} onChange={e => setBounds(produce(draft => {draft[i][0] = e.target.value}))} placeholder="Min" />
+                            <Input type="number" value={range[1]} onChange={e => setBounds(produce(draft => {draft[i][1] = e.target.value}))} placeholder="Max" />
+                        </div>
+                    ))}
+                </div>
+                <Button onClick={handleSolve} disabled={isLoading}><Play className="mr-2"/>Solve</Button>
+                {result && (
+                    <div className="pt-4 space-y-4">
+                        <p><strong>Best Solution:</strong> {result.best_solution.map(v => v.toFixed(4)).join(', ')}</p>
+                        <p><strong>Best Fitness (Minimum Value):</strong> {result.best_fitness.toFixed(4)}</p>
+                        <Plot
+                            data={[{
+                                x: Array.from({length: result.convergence.length}, (_, i) => i + 1),
+                                y: result.convergence,
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Best Fitness'
+                            }]}
+                            layout={{ title: 'Convergence over Iterations', xaxis: {title: 'Iteration'}, yaxis: {title: 'Fitness'} }}
+                            useResizeHandler className="w-full"
+                        />
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

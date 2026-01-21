@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
@@ -76,7 +77,7 @@ import {
 } from 'lucide-react';
 
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -138,7 +139,7 @@ const analysisCategories = [
             { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, disabled: false },
             { id: 'simulated-annealing', label: 'Simulated Annealing (SA)', icon: Thermometer, disabled: false },
             { id: 'ant-colony', label: 'Ant Colony Optimization (ACO)', icon: Waypoints, disabled: false },
-            { id: 'tabu-search', label: 'Tabu Search', icon: Ban, disabled: true },
+            { id: 'tabu-search', label: 'Tabu Search', icon: Ban, disabled: false },
         ]
     },
     {
