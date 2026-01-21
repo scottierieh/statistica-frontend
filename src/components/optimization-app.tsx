@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,10 +14,16 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
+  FileText,
+  Loader2,
   TrendingUp,
   Award,
   Truck,
-  Target
+  Target,
+  Sigma,
+  Repeat,
+  Component,
+  ArrowDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -27,23 +33,33 @@ import {
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import DataUploader from './data-uploader';
-import DataPreview from './data-preview';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
+import DataUploader from '@/components/data-uploader';
+import DataPreview from '@/components/data-preview';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Input } from './ui/input';
+import { Input } from '@/components/ui/input';
 
 // Import scenario pages
-import LinearProgrammingPage from './pages/optimization/linear-programming-page';
-import GoalProgrammingPage from './pages/optimization/goal-programming-page';
-import TransportationProblemPage from './pages/optimization/transportation-problem-page';
+import LinearProgrammingPage from '@/components/pages/optimization/linear-programming-page';
+import GoalProgrammingPage from '@/components/pages/optimization/goal-programming-page';
+import TransportationProblemPage from '@/components/pages/optimization/transportation-problem-page';
+import IntegerProgrammingPage from '@/components/pages/optimization/integer-programming-page';
+import GradientDescentPage from '@/components/pages/optimization/gradient-descent-page';
+import NonLinearProgrammingPage from '@/components/pages/optimization/nonlinear-programming-page';
+import DynamicProgrammingPage from '@/components/pages/optimization/dynamic-programming-page';
+import ConvexOptimizationPage from '@/components/pages/optimization/convex-optimization-page';
 
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
   'goal-programming': GoalProgrammingPage,
   'transportation-problem': TransportationProblemPage,
+  'integer-programming': IntegerProgrammingPage,
+  'gradient-descent': GradientDescentPage,
+  'nonlinear-programming': NonLinearProgrammingPage,
+  'dynamic-programming': DynamicProgrammingPage,
+  'convex-optimization': ConvexOptimizationPage,
 };
 
 
@@ -119,9 +135,14 @@ export default function OptimizationApp() {
   };
 
   const analysisItems = [
-    { id: 'linear-programming', label: 'Linear Programming', icon: TrendingUp },
+    { id: 'linear-programming', label: 'Linear Programming (LP)', icon: TrendingUp },
+    { id: 'integer-programming', label: 'Integer Programming (IP)', icon: Sigma },
+    { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingUp, disabled: true },
     { id: 'goal-programming', label: 'Goal Programming', icon: Award },
     { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck },
+    { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown },
+    { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, disabled: true },
+    { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, disabled: true },
   ];
 
   const ActivePageComponent = analysisPages[activeAnalysis] || LinearProgrammingPage;
@@ -152,6 +173,7 @@ export default function OptimizationApp() {
                   <SidebarMenuButton
                     onClick={() => setActiveAnalysis(item.id)}
                     isActive={activeAnalysis === item.id}
+                    disabled={item.disabled}
                   >
                     <item.icon className="h-4 w-4"/>
                     {item.label}
