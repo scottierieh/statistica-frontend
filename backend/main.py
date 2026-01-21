@@ -5,19 +5,20 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
 # Import analysis functions
-from .effectiveness_analysis import run_effectiveness_analysis
-from .simple_test_analysis import run_simple_test_analysis
-from .descriptive_stats_analysis import run_descriptive_stats_analysis
-from .sem_analysis import run_sem_analysis
-from .ant_colony_analysis import run_ant_colony_analysis
-from .goal_programming_analysis import run_goal_programming_analysis
-from .linear_programming_analysis import run_linear_programming_analysis
-from .sgd_simulation import run_sgd_simulation
-from .transportation_analysis import run_transportation_analysis
-from .dynamic_programming_analysis import run_dynamic_programming_analysis
-from .convex_optimization_analysis import run_convex_optimization_analysis
-from .genetic_algorithm_analysis import run_genetic_algorithm_analysis
-from .particle_swarm_analysis import run_particle_swarm_analysis
+from effectiveness_analysis import run_effectiveness_analysis
+from simple_test_analysis import run_simple_test_analysis
+from descriptive_stats_analysis import run_descriptive_stats_analysis
+from sem_analysis import run_sem_analysis
+from ant_colony_analysis import run_ant_colony_analysis
+from goal_programming_analysis import run_goal_programming_analysis
+from linear_programming_analysis import run_linear_programming_analysis
+from sgd_simulation import run_sgd_simulation
+from transportation_analysis import run_transportation_analysis
+from dynamic_programming_analysis import run_dynamic_programming_analysis
+from convex_optimization_analysis import run_convex_optimization_analysis
+from genetic_algorithm_analysis import run_genetic_algorithm_analysis
+from particle_swarm_analysis import run_particle_swarm_analysis
+from simulated_annealing_analysis import run_simulated_annealing_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -163,6 +164,14 @@ class ParticleSwarmPayload(BaseModel):
     c1: Optional[float] = 1.5
     c2: Optional[float] = 1.5
 
+class SimulatedAnnealingPayload(BaseModel):
+    objective_function: str
+    bounds: List[List[float]]
+    initial_temp: Optional[float] = 1000
+    final_temp: Optional[float] = 1
+    cooling_rate: Optional[float] = 0.99
+    max_iter: Optional[int] = 1000
+
 # --- API Endpoints ---
 
 @app.get("/")
@@ -287,6 +296,13 @@ async def analyze_genetic_algorithm(payload: GeneticAlgorithmPayload):
 async def analyze_particle_swarm(payload: ParticleSwarmPayload):
     try:
         return run_particle_swarm_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/simulated-annealing")
+async def analyze_simulated_annealing(payload: SimulatedAnnealingPayload):
+    try:
+        return run_simulated_annealing_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
