@@ -61,7 +61,10 @@ import { thresholdOptimizationData } from './example-datasets/threshold-optimiza
 import { costSensitiveData } from './example-datasets/cost-sensitive-data';
 import { decisionRulesData } from './example-datasets/decision-rules-data';
 import { reliabilityValidityData } from './example-datasets/reliability-validity-data';
-import { effectivenessAnalysisData } from './example-datasets/effectiveness-analysis-data';
+
+
+
+
 
 
 

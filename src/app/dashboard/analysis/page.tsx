@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network, Palette, Repeat, Box, Image as ImageIcon, Factory, LayoutDashboard, DatabaseZap, Paintbrush, Landmark } from "lucide-react";
@@ -91,8 +90,8 @@ const tools = [
     href: "/dashboard/optimization",
     icon: Target,
     title: "Decision Analytics",
-    description: "Coming soon...",
-    disabled: true,
+    description: "Optimize decisions with linear, goal, and transportation programming.",
+    disabled: false,
   },
   {
     id: "360-feedback",

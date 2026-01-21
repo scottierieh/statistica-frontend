@@ -23,7 +23,6 @@ squarify
 linearmodels
 pydantic
 mypy-extensions
-factor_analyzer
 python-multipart
 firebase-admin
-semopy
+
