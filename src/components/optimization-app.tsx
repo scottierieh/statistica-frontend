@@ -134,7 +134,7 @@ const analysisCategories = [
         name: 'Metaheuristics',
         icon: Feather,
         items: [
-            { id: 'genetic-algorithm', label: 'Genetic Algorithm (GA)', icon: GitBranch, disabled: true },
+            { id: 'genetic-algorithm', label: 'Genetic Algorithm (GA)', icon: GitBranch, disabled: false },
             { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, disabled: true },
             { id: 'simulated-annealing', label: 'Simulated Annealing (SA)', icon: Thermometer, disabled: true },
             { id: 'ant-colony', label: 'Ant Colony Optimization (ACO)', icon: Waypoints, disabled: false },

@@ -16,6 +16,7 @@ from .sgd_simulation import run_sgd_simulation
 from .transportation_analysis import run_transportation_analysis
 from .dynamic_programming_analysis import run_dynamic_programming_analysis
 from .convex_optimization_analysis import run_convex_optimization_analysis
+from .genetic_algorithm_analysis import run_genetic_algorithm_analysis
 
 # Firebase Admin SDK
 import firebase_admin
@@ -143,6 +144,14 @@ class ConvexOptimizationPayload(BaseModel):
     correlation_matrix: List[List[float]]
     target_return: float
 
+class GeneticAlgorithmPayload(BaseModel):
+    objective_function: str
+    n_vars: int
+    var_range: List[List[float]]
+    pop_size: int
+    n_generations: int
+    mutation_rate: float
+
 # --- API Endpoints ---
 
 @app.get("/")
@@ -253,6 +262,13 @@ async def analyze_dynamic_programming(payload: DynamicProgrammingPayload):
 async def analyze_convex_optimization(payload: ConvexOptimizationPayload):
     try:
         return run_convex_optimization_analysis(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/analysis/genetic-algorithm")
+async def analyze_genetic_algorithm(payload: GeneticAlgorithmPayload):
+    try:
+        return run_genetic_algorithm_analysis(payload.dict())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
