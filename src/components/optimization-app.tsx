@@ -13,7 +13,6 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   FileText,
   Loader2,
@@ -71,7 +70,9 @@ import {
   Waypoints,
   Ban,
   Rocket,
-  Wind
+  Wind,
+  MessageSquare,
+  Palette
 } from 'lucide-react';
 
 
@@ -109,6 +110,9 @@ import AdamPage from './pages/optimization/adam-page';
 import RmspropPage from './pages/optimization/rmsprop-page';
 import AdagradPage from './pages/optimization/adagrad-page';
 import BayesianOptimizationPage from './pages/optimization/bayesian-optimization-page';
+import SentimentAnalysisPage from './pages/optimization/sentiment-analysis-page';
+import TopicModelingPage from './pages/optimization/topic-modeling-page';
+import WordCloudPage from './pages/optimization/word-cloud-page';
 
 
 const analysisCategories = [
@@ -147,6 +151,15 @@ const analysisCategories = [
             { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: true },
             { id: 'bayesian-optimization', label: 'Bayesian Optimization', icon: BrainCircuit, disabled: true },
         ]
+    },
+    {
+        name: 'Natural Language Processing',
+        icon: MessageSquare,
+        items: [
+            { id: 'sentiment-analysis', label: 'Sentiment Analysis', icon: Smile, disabled: false },
+            { id: 'topic-modeling', label: 'Topic Modeling', icon: Layers, disabled: false },
+            { id: 'word-cloud', label: 'Word Cloud', icon: Palette, disabled: false },
+        ]
     }
 ];
 
@@ -169,6 +182,9 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
   'rmsprop': RmspropPage,
   'adagrad': AdagradPage,
   'bayesian-optimization': BayesianOptimizationPage,
+  'sentiment-analysis': SentimentAnalysisPage,
+  'topic-modeling': TopicModelingPage,
+  'word-cloud': WordCloudPage,
 };
 
 
@@ -180,7 +196,7 @@ export default function OptimizationApp() {
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<string>('linear-programming');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Deterministic Optimization', 'Metaheuristics', 'Neural Network & ML']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Deterministic Optimization', 'Metaheuristics', 'Neural Network & ML', 'Natural Language Processing']);
 
   const { toast } = useToast();
 
