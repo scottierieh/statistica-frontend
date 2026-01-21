@@ -126,8 +126,8 @@ const analysisCategories = [
             { id: 'goal-programming', label: 'Goal Programming', icon: Award },
             { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck },
             { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown },
-            { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, disabled: true },
-            { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, disabled: true },
+            { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, disabled: false },
+            { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, disabled: false },
         ]
     },
     {
@@ -316,9 +316,6 @@ export default function OptimizationApp() {
 
         <SidebarInset>
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between md:hidden">
-                <SidebarTrigger />
-            </header>
             
             {hasData && (
               <DataPreview 
