@@ -96,17 +96,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         recommendedAnalysis: 'attribute-control-charts',
         data: attributeControlChartData,
     },
-    {
-        id: 'effectiveness-analysis',
-        name: 'Effectiveness Analysis Data',
-        description: 'Dataset for tracking product defects and sample sizes over time for attribute control charts.',
-        icon: TrendingUp,
-        analysisTypes: ['attribute-control-charts'],
-        data: effectivenessAnalysisData,
-    },
-
-
-    
+   
     {
         id: 'rfm-data',
         name: 'Transactional Data',

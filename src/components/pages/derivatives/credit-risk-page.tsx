@@ -156,7 +156,7 @@ export default function CreditRiskPage() {
                 time_steps: timeSteps,
             };
 
-            const response = await fetch(`${FASTAPI_URL}/api/analysis/credit-risk`, {
+            const response = await fetch(`${FASTAPI_URL}/api/analysis/cva-dva`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
