@@ -81,7 +81,8 @@ import {
   Dice5,
   Gamepad2,
   Puzzle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Map as MapIcon,
 } from 'lucide-react';
 
 
@@ -174,7 +175,7 @@ const analysisCategories = [
   },
   {
       name: 'Spatial Optimization',
-      icon: Map,
+      icon: MapIcon,
       items: [
           { id: 'p-median', label: 'P-Median Problem', icon: MapPin, component: PMedianPage },
           { id: 'mclp', label: 'Maximal Covering (MCLP)', icon: Radio, component: MCLPPage },
