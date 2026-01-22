@@ -58,6 +58,14 @@ const tools = [
     description: "Optimize decisions with linear, goal, and transportation programming.",
     disabled: false,
   },
+  {
+    id: "derivatives",
+    href: "/dashboard/derivatives",
+    icon: DollarSign,
+    title: "Derivatives Analysis",
+    description: "Tools for options pricing, greeks, and derivatives modeling.",
+    disabled: false,
+  },
   // Coming Soon
   {
     id: "survey",
