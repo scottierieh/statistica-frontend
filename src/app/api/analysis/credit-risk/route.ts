@@ -5,24 +5,10 @@ import path from 'path';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    
-    // Validate required fields
-    if (body.equity_value === undefined || 
-        body.equity_volatility === undefined || 
-        body.debt_face_value === undefined ||
-        body.risk_free_rate === undefined) {
-      return NextResponse.json(
-        { error: 'Missing required fields: equity_value, equity_volatility, debt_face_value, risk_free_rate' },
-        { status: 400 }
-      );
-    }
 
-    // Validate positive values
-    if (body.equity_value <= 0 || body.debt_face_value <= 0 || body.equity_volatility <= 0) {
-      return NextResponse.json(
-        { error: 'equity_value, debt_face_value, and equity_volatility must be positive' },
-        { status: 400 }
-      );
+    // Basic validation
+    if (body.spot_price <= 0 || body.strike_price <= 0 || body.maturity_years <= 0 || body.volatility <= 0) {
+      return NextResponse.json({ error: 'Option parameters must be positive.' }, { status: 400 });
     }
 
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
@@ -50,7 +36,7 @@ export async function POST(req: NextRequest) {
           console.error(`Credit Risk script exited with code ${code}`);
           console.error('stderr:', error);
           try {
-            const errorJson = JSON.parse(result || error);
+            const errorJson = JSON.parse(error);
             resolve(NextResponse.json({ error: errorJson.error || 'Unknown error in Python script.' }, { status: 500 }));
           } catch {
             resolve(NextResponse.json({ error: `Script failed: ${error || 'Unknown error'}` }, { status: 500 }));
@@ -64,7 +50,7 @@ export async function POST(req: NextRequest) {
               resolve(NextResponse.json(jsonResult));
             }
           } catch (e) {
-            console.error('Failed to parse script output:', result.substring(0, 500));
+            console.error('Failed to parse script output:', result);
             resolve(NextResponse.json({ error: `Failed to parse script output` }, { status: 500 }));
           }
         }
