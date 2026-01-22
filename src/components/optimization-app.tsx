@@ -109,7 +109,13 @@ import GoalProgrammingPage from '@/components/pages/optimization/goal-programmin
 import TransportationProblemPage from '@/components/pages/optimization/transportation-problem-page';
 import GradientDescentPage from '@/components/pages/optimization/gradient-descent-page';
 import DynamicProgrammingPage from '@/components/pages/optimization/dynamic-programming-page';
-import ConvexOptimizationPage from '@/components/pages/optimization/convex-optimization-page';
+import dynamic from 'next/dynamic';
+
+const ConvexOptimizationPage = dynamic(
+  () => import('@/components/pages/optimization/convex-optimization-page'),
+  { ssr: false, loading: () => <div>Loading...</div> }
+);
+
 
 // 2. Metaheuristics (기존 목록)
 import GeneticAlgorithmPage from './pages/optimization/genetic-algorithm-page';
