@@ -72,7 +72,16 @@ import {
   Rocket,
   Wind,
   MessageSquare,
-  Palette
+  Palette,
+  MapPin,
+  Radio,
+  LayoutGrid,
+  Share2,
+  Scale,
+  Dice5,
+  Gamepad2,
+  Puzzle,
+  SlidersHorizontal
 } from 'lucide-react';
 
 
@@ -92,100 +101,112 @@ import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 
 // Import scenario pages
+// 1. Deterministic Optimization (기존 목록)
 import LinearProgrammingPage from '@/components/pages/optimization/linear-programming-page';
+import IntegerProgrammingPage from '@/components/pages/optimization/integer-programming-page';
+import NonLinearProgrammingPage from '@/components/pages/optimization/nonlinear-programming-page';
 import GoalProgrammingPage from '@/components/pages/optimization/goal-programming-page';
 import TransportationProblemPage from '@/components/pages/optimization/transportation-problem-page';
-import IntegerProgrammingPage from '@/components/pages/optimization/integer-programming-page';
 import GradientDescentPage from '@/components/pages/optimization/gradient-descent-page';
-import NonLinearProgrammingPage from '@/components/pages/optimization/nonlinear-programming-page';
 import DynamicProgrammingPage from '@/components/pages/optimization/dynamic-programming-page';
 import ConvexOptimizationPage from '@/components/pages/optimization/convex-optimization-page';
+
+// 2. Metaheuristics (기존 목록)
 import GeneticAlgorithmPage from './pages/optimization/genetic-algorithm-page';
 import ParticleSwarmPage from './pages/optimization/particle-swarm-page';
 import SimulatedAnnealingPage from './pages/optimization/simulated-annealing-page';
 import AntColonyPage from './pages/optimization/ant-colony-page';
 import TabuSearchPage from './pages/optimization/tabu-search-page';
+
+// 3. Spatial Optimization (새로 추가됨)
+import PMedianPage from './pages/optimization/p-median-page';
+import MCLPPage from './pages/optimization/mclp-page';
+import LocationAllocationPage from './pages/optimization/location-allocation-page';
+import NetworkOptimizationPage from './pages/optimization/network-optimization-page';
+
+// 4. Multi-Objective & Robust (새로 추가됨)
+import ParetoOptimizationPage from './pages/optimization/pareto-optimization-page';
+import StochasticProgrammingPage from './pages/optimization/stochastic-programming-page';
+import RobustOptimizationPage from './pages/optimization/robust-optimization-page';
+import ChanceConstrainedPage from './pages/optimization/chance-constrained-page';
+
+// 5. Neural Network & ML (기존 목록 + RL 추가)
 import SgdPage from './pages/optimization/sgd-page';
 import AdamPage from './pages/optimization/adam-page';
 import RmspropPage from './pages/optimization/rmsprop-page';
 import AdagradPage from './pages/optimization/adagrad-page';
 import BayesianOptimizationPage from './pages/optimization/bayesian-optimization-page';
-import SentimentAnalysisPage from './pages/optimization/sentiment-analysis-page';
-import TopicModelingPage from './pages/optimization/topic-modeling-page';
-import WordCloudPage from './pages/optimization/word-cloud-page';
+import ReinforcementLearningPage from './pages/optimization/reinforcement-learning-page'; 
+import HyperparameterTuningPage from './pages/optimization/hyperparameter-tuning-page'; 
 
 
 const analysisCategories = [
-    {
-        name: 'Deterministic Optimization',
-        icon: Settings2,
-        items: [
-            { id: 'linear-programming', label: 'Linear Programming (LP)', icon: TrendingUp },
-            { id: 'integer-programming', label: 'Integer Programming (IP)', icon: Sigma },
-            { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingUp, disabled: false },
-            { id: 'goal-programming', label: 'Goal Programming', icon: Award },
-            { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck },
-            { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown },
-            { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, disabled: false },
-            { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, disabled: false },
-        ]
-    },
-    {
-        name: 'Metaheuristics',
-        icon: Feather,
-        items: [
-            { id: 'genetic-algorithm', label: 'Genetic Algorithm (GA)', icon: GitBranch, disabled: false },
-            { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, disabled: false },
-            { id: 'simulated-annealing', label: 'Simulated Annealing (SA)', icon: Thermometer, disabled: false },
-            { id: 'ant-colony', label: 'Ant Colony Optimization (ACO)', icon: Waypoints, disabled: false },
-            { id: 'tabu-search', label: 'Tabu Search', icon: Ban, disabled: false },
-        ]
-    },
-    {
-        name: 'Neural Network & ML',
-        icon: BrainCircuit,
-        items: [
-            { id: 'sgd', label: 'SGD', icon: TrendingDown, disabled: false },
-            { id: 'adam', label: 'Adam', icon: Rocket, disabled: false },
-            { id: 'rmsprop', label: 'RMSProp', icon: Wind, disabled: false },
-            { id: 'adagrad', label: 'Adagrad', icon: Scaling, disabled: false },
-            { id: 'bayesian-optimization', label: 'Bayesian Optimization', icon: BrainCircuit, disabled: false },
-        ]
-    },
-    {
-        name: 'Natural Language Processing',
-        icon: MessageSquare,
-        items: [
-            { id: 'sentiment-analysis', label: 'Sentiment Analysis', icon: Smile, disabled: false },
-            { id: 'topic-modeling', label: 'Topic Modeling', icon: Layers, disabled: false },
-            { id: 'word-cloud', label: 'Word Cloud', icon: Palette, disabled: false },
-        ]
-    }
+  {
+      name: 'Deterministic Optimization',
+      icon: Settings2,
+      items: [
+          { id: 'linear-programming', label: 'Linear Programming (LP)', icon: TrendingUp, component: LinearProgrammingPage },
+          { id: 'integer-programming', label: 'Integer Programming (IP)', icon: Sigma, component: IntegerProgrammingPage },
+          { id: 'nonlinear-programming', label: 'Non-linear Programming (NLP)', icon: TrendingDown, component: NonLinearProgrammingPage },
+          { id: 'goal-programming', label: 'Goal Programming', icon: Award, component: GoalProgrammingPage },
+          { id: 'transportation-problem', label: 'Transportation Problem', icon: Truck, component: TransportationProblemPage },
+          { id: 'gradient-descent', label: 'Gradient Descent', icon: ArrowDown, component: GradientDescentPage },
+          { id: 'dynamic-programming', label: 'Dynamic Programming (DP)', icon: Repeat, component: DynamicProgrammingPage },
+          { id: 'convex-optimization', label: 'Convex Optimization', icon: Component, component: ConvexOptimizationPage },
+      ]
+  },
+  {
+      name: 'Metaheuristics',
+      icon: Feather,
+      items: [
+          { id: 'genetic-algorithm', label: 'Genetic Algorithm (GA)', icon: GitBranch, component: GeneticAlgorithmPage },
+          { id: 'particle-swarm', label: 'Particle Swarm (PSO)', icon: Users, component: ParticleSwarmPage },
+          { id: 'simulated-annealing', label: 'Simulated Annealing (SA)', icon: Thermometer, component: SimulatedAnnealingPage },
+          { id: 'ant-colony', label: 'Ant Colony Optimization (ACO)', icon: Waypoints, component: AntColonyPage },
+          { id: 'tabu-search', label: 'Tabu Search', icon: Ban, component: TabuSearchPage },
+      ]
+  },
+  {
+      name: 'Spatial Optimization',
+      icon: Map,
+      items: [
+          { id: 'p-median', label: 'P-Median Problem', icon: MapPin, component: PMedianPage },
+          { id: 'mclp', label: 'Maximal Covering (MCLP)', icon: Radio, component: MCLPPage },
+          { id: 'location-allocation', label: 'Location-Allocation', icon: LayoutGrid, component: LocationAllocationPage },
+          { id: 'network-optimization', label: 'Network Optimization', icon: Share2, component: NetworkOptimizationPage },
+      ]
+  },
+  {
+      name: 'Multi-Objective & Robust',
+      icon: Layers,
+      items: [
+          { id: 'pareto-optimization', label: 'Pareto Optimization', icon: Scale, component: ParetoOptimizationPage },
+          { id: 'stochastic-programming', label: 'Stochastic Programming', icon: Dice5, component: StochasticProgrammingPage },
+          { id: 'robust-optimization', label: 'Robust Optimization', icon: ShieldCheck, component: RobustOptimizationPage },
+          { id: 'chance-constrained', label: 'Chance-Constrained', icon: Percent, component: ChanceConstrainedPage },
+      ]
+  },
+  {
+      name: 'Neural Network & ML',
+      icon: BrainCircuit,
+      items: [
+          { id: 'sgd', label: 'SGD', icon: TrendingDown, component: SgdPage },
+          { id: 'adam', label: 'Adam', icon: Rocket, component: AdamPage },
+          { id: 'rmsprop', label: 'RMSProp', icon: Wind, component: RmspropPage },
+          { id: 'adagrad', label: 'Adagrad', icon: Scaling, component: AdagradPage },
+          { id: 'bayesian-optimization', label: 'Bayesian Optimization', icon: BrainCircuit, component: BayesianOptimizationPage },
+          { id: 'reinforcement-learning', label: 'Reinforcement Learning (RL)', icon: Gamepad2, component: ReinforcementLearningPage },
+          { id: 'hyperparameter-tuning', label: 'Hyperparameter Tuning', icon: SlidersHorizontal, component: HyperparameterTuningPage },
+      ]
+  },
 ];
 
-const analysisPages: Record<string, React.ComponentType<any>> = {
-  'linear-programming': LinearProgrammingPage,
-  'goal-programming': GoalProgrammingPage,
-  'transportation-problem': TransportationProblemPage,
-  'integer-programming': IntegerProgrammingPage,
-  'gradient-descent': GradientDescentPage,
-  'nonlinear-programming': NonLinearProgrammingPage,
-  'dynamic-programming': DynamicProgrammingPage,
-  'convex-optimization': ConvexOptimizationPage,
-  'genetic-algorithm': GeneticAlgorithmPage,
-  'particle-swarm': ParticleSwarmPage,
-  'simulated-annealing': SimulatedAnnealingPage,
-  'ant-colony': AntColonyPage,
-  'tabu-search': TabuSearchPage,
-  'sgd': SgdPage,
-  'adam': AdamPage,
-  'rmsprop': RmspropPage,
-  'adagrad': AdagradPage,
-  'bayesian-optimization': BayesianOptimizationPage,
-  'sentiment-analysis': SentimentAnalysisPage,
-  'topic-modeling': TopicModelingPage,
-  'word-cloud': WordCloudPage,
-};
+const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
+  .flatMap(category => category.items)
+  .reduce((acc, item) => {
+    acc[item.id] = item.component;
+    return acc;
+  }, {} as Record<string, React.ComponentType<any>>);
 
 
 export default function OptimizationApp() {
@@ -196,7 +217,8 @@ export default function OptimizationApp() {
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<string>('linear-programming');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Deterministic Optimization', 'Metaheuristics', 'Neural Network & ML', 'Natural Language Processing']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Deterministic Optimization', 'Metaheuristics', 'Neural Network & ML', 'Spatial Optimization', 'Multi-Objective & Robust']);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { toast } = useToast();
 
@@ -259,6 +281,18 @@ export default function OptimizationApp() {
       setActiveAnalysis(example.recommendedAnalysis);
     }
   };
+
+  const filteredAnalysisCategories = useMemo(() => {
+    if (!searchTerm) {
+      return analysisCategories;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+
+    return analysisCategories.map(category => {
+      const filteredItems = category.items.filter(item => item.label.toLowerCase().includes(lowercasedFilter));
+      return filteredItems.length > 0 ? { ...category, items: filteredItems } : null;
+    }).filter(Boolean) as typeof analysisCategories;
+  }, [searchTerm]);
 
   const ActivePageComponent = analysisPages[activeAnalysis] || LinearProgrammingPage;
   const hasData = data.length > 0;
