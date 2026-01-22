@@ -24,14 +24,14 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
 // Page Components
-import PortfolioOverviewPage from './pages/finance/portfolio-overview-page';
-import AssetAllocationPage from './pages/finance/asset-allocation-page';
-import PerformanceAnalysisPage from './pages/finance/performance-analysis-page';
-import BacktestingPage from './pages/finance/backtesting-page';
-import PairsTradingPage from './pages/finance/pairs-trading-page';
-import VarPage from './pages/finance/var-page';
-import StressTestingPage from './pages/finance/stress-testing-page';
-import CreditRiskPage from './pages/finance/credit-risk-page';
+import PortfolioOverviewPage from '../pages/finance/portfolio-overview-page';
+import AssetAllocationPage from '../pages/finance/asset-allocation-page';
+import PerformanceAnalysisPage from '../pages/finance/performance-analysis-page';
+import BacktestingPage from '../pages/finance/backtesting-page';
+import PairsTradingPage from '../pages/finance/pairs-trading-page';
+import VarPage from '../pages/finance/var-page';
+import StressTestingPage from '../pages/finance/stress-testing-page';
+import CreditRiskPage from '../pages/finance/credit-risk-page';
 
 
 const analysisCategories = [
