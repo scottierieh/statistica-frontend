@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play, Ban } from 'lucide-react';
-import Plot from 'react-plotly.js';
+import dynamic from 'next/dynamic';
 import { produce } from 'immer';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface TabuResult {
     best_solution: number[];

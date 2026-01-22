@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play, Palette } from 'lucide-react';
-import Plot from 'react-plotly.js';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface WordCloudResult {
     plots: { wordcloud: string, frequency_bar: string };

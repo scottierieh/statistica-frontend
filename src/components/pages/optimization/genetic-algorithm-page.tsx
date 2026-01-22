@@ -6,7 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play, GitBranch } from 'lucide-react';
-import Plot from 'react-plotly.js';
+import dynamic from 'next/dynamic';
+import { produce } from 'immer';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface GAResult {
     best_solution: number[];

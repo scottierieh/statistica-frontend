@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play, TrendingDown } from 'lucide-react';
-import Plot from 'react-plotly.js';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function SgdPage() {
     const { toast } = useToast();

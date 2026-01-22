@@ -3,9 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play, Smile } from 'lucide-react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface SentimentResult {
   text: string;
@@ -17,6 +22,8 @@ interface SentimentResult {
 export default function SentimentAnalysisPage() {
     const { toast } = useToast();
     const [text, setText] = useState('The food was absolutely wonderful, from preparation to presentation. The service was a bit slow, but the delicious food made up for it.\nA very disappointing experience. The pasta was overcooked and the sauce was bland.\nI had a great time with my friends. The ambiance is cozy and the staff is friendly.\nAmazing cocktails! The bartender really knows his craft. Food was okay.');
+    const [stopwords, setStopwords] = useState('a, an, the, but, is');
+    const [maxWords, setMaxWords] = useState(100);
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<{ results: SentimentResult[], plot: string } | null>(null);
 
@@ -60,6 +67,16 @@ export default function SentimentAnalysisPage() {
                     placeholder="Enter text here, one sentence per line..."
                     rows={10}
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Custom Stopwords (comma-separated)</Label>
+                        <Input value={stopwords} onChange={e => setStopwords(e.target.value)} />
+                    </div>
+                    <div>
+                        <Label>Max Words</Label>
+                        <Input type="number" value={maxWords} onChange={e => setMaxWords(parseInt(e.target.value))} min="10" max="500" />
+                    </div>
+                </div>
                 <Button onClick={handleAnalyze} disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
                     Analyze Sentiment

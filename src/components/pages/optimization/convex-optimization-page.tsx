@@ -8,7 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play, Plus, Trash2, Component, TrendingUp, TrendingDown, Target, Wallet } from 'lucide-react';
 import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import Plot from 'react-plotly.js';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface Asset {
     id: string;
