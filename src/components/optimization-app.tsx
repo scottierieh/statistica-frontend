@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,34 +14,16 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
-  FileText,
   Loader2,
-  TrendingDown,
-  TrendingUp,
-  Landmark,
-  Megaphone,
-  Package,
-  Factory,
-  Users,
-  ArrowLeftRight,
   Target,
-  BarChart3,
+  TrendingUp,
+  Activity,
   Zap,
   Layers,
-  Activity,
-  UserX,
-  Filter,
-  DollarSign,
-  FlaskConical,
-  Search,
-  Check,
-  TestTube,
-  BookOpen,
-  Building,
-  Award,
-  Truck,
-  Percent,
-  Container,
+  Users,
+  Map,
+  Timer,
+  Package,
   Sigma,
   GitBranch,
   BrainCircuit,
@@ -55,7 +37,7 @@ import {
   AreaChart,
   LineChart,
   Car,
-  ChevronsUpDown,
+  TrendingDown,
   BarChart2,
   Calculator,
   Brain,
@@ -66,13 +48,16 @@ import {
   FileSearch,
   CheckSquare,
   Clock,
-  Thermometer,
-  Waypoints,
-  Ban,
-  Rocket,
-  Wind,
-  MessageSquare,
-  Palette,
+  Filter,
+  Download,
+  Bot,
+  BookOpen,
+  Building,
+  Award,
+  Truck,
+  Percent,
+  Container,
+  Search,
   MapPin,
   Radio,
   LayoutGrid,
@@ -82,27 +67,31 @@ import {
   Gamepad2,
   Puzzle,
   SlidersHorizontal,
-  Map as MapIcon,
+  Thermometer,
+  Waypoints,
+  Ban,
+  Rocket,
+  Wind,
+  MessageSquare,
+  Palette,
+  Flag,
+  Hash
 } from 'lucide-react';
 
 
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { ChevronDown } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import {
   type DataSet,
   parseData,
-  unparseData,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 
 // Import scenario pages
-// 1. Deterministic Optimization (기존 목록)
 import LinearProgrammingPage from '@/components/pages/optimization/linear-programming-page';
 import IntegerProgrammingPage from '@/components/pages/optimization/integer-programming-page';
 import NonLinearProgrammingPage from '@/components/pages/optimization/nonlinear-programming-page';
@@ -222,7 +211,6 @@ export default function OptimizationApp() {
   const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<string>('linear-programming');
   const [openCategories, setOpenCategories] = useState<string[]>(['Deterministic Optimization', 'Metaheuristics', 'Neural Network & ML', 'Spatial Optimization', 'Multi-Objective & Robust']);
   const [searchTerm, setSearchTerm] = useState('');
@@ -238,9 +226,9 @@ export default function OptimizationApp() {
   }, []);
 
   const processData = useCallback((content: string, name: string) => {
-    setIsUploading(true);
     try {
         const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        
         if (newData.length === 0 || newHeaders.length === 0) {
           throw new Error("No valid data found in the file.");
         }
@@ -250,37 +238,16 @@ export default function OptimizationApp() {
         setCategoricalHeaders(newCategoricalHeaders);
         setFileName(name);
         toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
+
       } catch (error: any) {
-        toast({ variant: 'destructive', title: 'File Processing Error', description: error.message });
+        toast({
+          variant: 'destructive',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
+        });
         handleClearData();
-      } finally {
-        setIsUploading(false);
       }
   }, [toast, handleClearData]);
-
-  const handleFileSelected = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const content = e.target?.result as string;
-        processData(content, file.name);
-    };
-    reader.onerror = () => {
-        toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
-    };
-    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-        reader.readAsArrayBuffer(file);
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, {type: 'array'});
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const csv = XLSX.utils.sheet_to_csv(worksheet);
-            processData(csv, file.name);
-        }
-    } else {
-        reader.readAsText(file);
-    }
-  }, [processData, toast]);
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
@@ -318,10 +285,10 @@ export default function OptimizationApp() {
         <Sidebar>
           <SidebarContent className="flex flex-col gap-2 p-2">
              <div className='p-2'>
-              <DataUploader 
-                onFileSelected={handleFileSelected}
-                loading={isUploading}
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search scenarios..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
+              </div>
             </div>
             <SidebarMenu>
               {analysisCategories.map(category => (

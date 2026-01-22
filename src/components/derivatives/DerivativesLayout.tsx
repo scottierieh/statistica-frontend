@@ -37,41 +37,41 @@ const analysisCategories = [
         name: 'Risk Management',
         icon: Shield,
         items: [
-            { id: 'var', label: 'Value at Risk (VaR)', icon: TrendingDown, component: VarPage, disabled: true },
-            { id: 'stress-testing', label: 'Stress Testing', icon: Zap, component: StressTestingPage, disabled: true },
-            { id: 'credit-risk', label: 'Credit Risk (CVA/DVA)', icon: ShieldAlert, component: CreditRiskPage, disabled: true },
+            { id: 'var', label: 'Value at Risk (VaR)', icon: TrendingDown, component: VarPage, disabled: false },
+            { id: 'stress-testing', label: 'Stress Testing', icon: Zap, component: StressTestingPage, disabled: false },
+            { id: 'credit-risk', label: 'Credit Risk (CVA/DVA)', icon: ShieldAlert, component: CreditRiskPage, disabled: false },
         ]
     },
      {
         name: 'Option Pricing & Greeks',
         icon: DollarSign,
         items: [
-            { id: 'options-pricing', label: 'Options Pricing', icon: CandlestickChart, component: OptionsPricingPage, disabled: true },
-            { id: 'exotic-options', label: 'Exotic Options', icon: Layers, component: ExoticOptionsPage, disabled: true },
-            { id: 'greeks-analysis', label: 'Greeks Analysis', icon: Sigma, component: GreeksPage, disabled: true },
+            { id: 'options-pricing', label: 'Options Pricing', icon: CandlestickChart, component: OptionsPricingPage, disabled: false },
+            { id: 'exotic-options', label: 'Exotic Options', icon: Layers, component: ExoticOptionsPage, disabled: false },
+            { id: 'greeks-analysis', label: 'Greeks Analysis', icon: Sigma, component: GreeksPage, disabled: false },
         ]
     },
     {
         name: 'Fixed Income',
         icon: FileText,
         items: [
-            { id: 'bond-valuation', label: 'Bond Valuation', icon: FileText, component: BondValuationPage, disabled: true },
-            { id: 'interest-rate-sensitivity', label: 'Duration & Convexity', icon: Activity, component: InterestRateSensitivityPage, disabled: true },
-            { id: 'swaps-caps-floors', label: 'IRS, Caps & Floors', icon: Repeat, component: SwapsCapsFloorsPage, disabled: true },
+            { id: 'bond-valuation', label: 'Bond Valuation', icon: FileText, component: BondValuationPage, disabled: false },
+            { id: 'interest-rate-sensitivity', label: 'Duration & Convexity', icon: Activity, component: InterestRateSensitivityPage, disabled: false },
+            { id: 'swaps-caps-floors', label: 'IRS, Caps & Floors', icon: Repeat, component: SwapsCapsFloorsPage, disabled: false },
         ]
     },
     {
         name: 'Structured Products',
         icon: Puzzle,
         items: [
-            { id: 'structured-products', label: 'ELS/DLS Analysis', icon: Puzzle, component: StructuredProductsPage, disabled: true },
+            { id: 'structured-products', label: 'ELS/DLS Analysis', icon: Puzzle, component: StructuredProductsPage, disabled: false },
         ]
     },
     {
         name: 'Model Calibration',
         icon: SlidersHorizontal,
         items: [
-            { id: 'model-calibration', label: 'Volatility Surface', icon: GitBranch, component: ModelCalibrationPage, disabled: true },
+            { id: 'model-calibration', label: 'Volatility Surface', icon: GitBranch, component: ModelCalibrationPage, disabled: false },
         ]
     },
 ];
