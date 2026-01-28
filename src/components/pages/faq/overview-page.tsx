@@ -145,7 +145,7 @@ export default function OverviewPage() {
   return (
     <div className="relative">
       <div className="max-w-7xl mx-auto">
-        <div className="lg:grid lg:grid-cols-[1fr,256px] lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr,256px] gap-8">
           {/* 메인 콘텐츠 - 하나의 큰 Card */}
           <div className="min-w-0">
             <Card>
@@ -154,7 +154,7 @@ export default function OverviewPage() {
               {/* What is Standard Analysis */}
               <section 
                 id="what-is" 
-                ref={el => sectionRefs.current['what-is'] = el}
+                ref={el => { sectionRefs.current['what-is'] = el; }}
                 className="scroll-mt-24 mb-16"
               >
                 <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
@@ -175,7 +175,7 @@ export default function OverviewPage() {
               {/* When to Use */}
               <section 
                 id="when-to-use" 
-                ref={el => sectionRefs.current['when-to-use'] = el}
+                ref={el => { sectionRefs.current['when-to-use'] = el; }}
                 className="scroll-mt-24 mb-16 border-t pt-12"
               >
                 <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
@@ -225,7 +225,7 @@ export default function OverviewPage() {
               {/* Key Features */}
               <section 
                 id="key-features" 
-                ref={el => sectionRefs.current['key-features'] = el}
+                ref={el => { sectionRefs.current['key-features'] = el; }}
                 className="scroll-mt-24 mb-16 border-t pt-12"
               >
                 <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
@@ -252,7 +252,7 @@ export default function OverviewPage() {
               {/* How It Works: 6-Step Process */}
               <section 
                 id="how-it-works" 
-                ref={el => sectionRefs.current['how-it-works'] = el}
+                ref={el => { sectionRefs.current['how-it-works'] = el; }}
                 className="scroll-mt-24 mb-16 border-t pt-12"
               >
                 <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
@@ -261,7 +261,7 @@ export default function OverviewPage() {
                 </h2>
                 <p className="text-muted-foreground mb-8 leading-relaxed">
                   Every analysis follows the same structured workflow. This ensures you understand 
-                  <strong className="text-foreground">what the results mean</strong> and 
+                  both <strong className="text-foreground">what the results mean</strong> and 
                   <strong className="text-foreground"> why they occurred</strong>.
                 </p>
                 
@@ -303,7 +303,7 @@ export default function OverviewPage() {
               {/* Comparison */}
               <section 
                 id="comparison" 
-                ref={el => sectionRefs.current['comparison'] = el}
+                ref={el => { sectionRefs.current['comparison'] = el; }}
                 className="scroll-mt-24 mb-16 border-t pt-12"
               >
                 <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
@@ -342,29 +342,29 @@ export default function OverviewPage() {
           {/* 우측 고정 네비게이션 - 별도 Card */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-24">
-                <Card>
+              <Card>
                 <CardContent className="p-4">
-                    <nav className="space-y-1">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                  <nav className="space-y-1">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
                     On This Page
-                    </h4>
-                    {SECTIONS.map((section) => (
+                  </h4>
+                  {SECTIONS.map((section) => (
                     <button
-                        key={section.id}
-                        onClick={() => scrollToSection(section.id)}
-                        className={cn(
+                      key={section.id}
+                      onClick={() => scrollToSection(section.id)}
+                      className={cn(
                         "block w-full text-left text-sm py-2 px-3 rounded transition-colors",
                         activeSection === section.id
-                            ? 'text-primary font-medium bg-primary/10 border-l-2 border-primary'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        )}
+                          ? 'text-primary font-medium bg-primary/10 border-l-2 border-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
                     >
-                        {section.label}
+                      {section.label}
                     </button>
-                    ))}
-                    </nav>
+                  ))}
+                  </nav>
                 </CardContent>
-                </Card>
+              </Card>
             </div>
           </aside>
         </div>
