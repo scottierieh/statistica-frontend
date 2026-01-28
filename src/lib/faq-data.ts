@@ -59,22 +59,58 @@ This comprehensive guide will help you get started with Statistica. We recommend
         ]
     },
     {
-        slug: "statistical-analysis",
+        slug: "standard-analysis",
         icon: BrainCircuit,
-        title: "Statistical Analysis",
-        description: "Interpreting results, choosing tests, and understanding assumptions.",
-         articles: [
+        title: "Standard Analysis",
+        description: "A guide to using the Standard Analysis tool.",
+        articles: [
             { 
-                slug: "which-statistical-test",
-                title: "Which statistical test should I use?", 
-                description: "A guide to selecting the appropriate analysis based on your data and research question.",
-                content: "Detailed guide on choosing statistical tests goes here."
+                slug: "overview",
+                title: "Overview", 
+                description: "An overview of the Standard Analysis environment.",
+                content: "Content for Overview goes here."
             },
             { 
-                slug: "interpreting-p-values",
-                title: "Interpreting p-values and confidence intervals", 
-                description: "Understanding the key metrics of statistical significance.",
-                content: "Detailed explanation of p-values and CIs goes here."
+                slug: "recommendation",
+                title: "Recommendation", 
+                description: "How to use the analysis recommendation feature.",
+                content: "Content for Recommendation goes here."
+            },
+            { 
+                slug: "data-preparation",
+                title: "Data Preparation", 
+                description: "Preparing your data for analysis.",
+                content: "Content for Data Preparation goes here."
+            },
+            { 
+                slug: "standard-analysis-running",
+                title: "Standard Analysis", 
+                description: "Running various statistical analyses.",
+                content: "Content for Standard Analysis goes here."
+            },
+            { 
+                slug: "results",
+                title: "Results", 
+                description: "Understanding and interpreting your analysis results.",
+                content: "Content for Results goes here."
+            },
+            { 
+                slug: "examples",
+                title: "Examples", 
+                description: "Walkthroughs using example datasets.",
+                content: "Content for Examples goes here."
+            },
+            { 
+                slug: "export-sharing",
+                title: "Export & Sharing", 
+                description: "How to export and share your findings.",
+                content: "Content for Export & Sharing goes here."
+            },
+            { 
+                slug: "help-faq",
+                title: "Help & FAQ", 
+                description: "Frequently asked questions about Standard Analysis.",
+                content: "Content for Help & FAQ goes here."
             },
         ]
     },
