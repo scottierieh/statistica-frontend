@@ -33,6 +33,7 @@ import UnderstandingResultsPage from '@/components/pages/faq/understanding-resul
 import ExampleBasedAnalysisPage from '@/components/pages/faq/example-based-analysis';
 import ExportingSharingPage from '@/components/pages/faq/exporting-and-sharing';
 import TroubleshootingFaqPage from '@/components/pages/faq/troubleshooting-faq';
+import OverviewPage from '@/components/pages/faq/overview-page';
 
 // Map slugs to components
 const FaqComponents: Record<string, React.ComponentType> = {
@@ -44,6 +45,7 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'example-based-analysis': ExampleBasedAnalysisPage,
   'exporting-and-sharing': ExportingSharingPage,
   'troubleshooting-faq': TroubleshootingFaqPage,
+  'overview': OverviewPage,
 };
 
 
