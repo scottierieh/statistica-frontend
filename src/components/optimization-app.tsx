@@ -28,6 +28,7 @@ import {
   GitBranch,
   BrainCircuit,
   Repeat,
+  MapIcon,
   Component,
   ArrowDown,
   Settings2,

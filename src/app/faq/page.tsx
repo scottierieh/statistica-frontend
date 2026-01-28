@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -19,7 +18,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { HelpCircle, Search, ChevronDown, UserCircle, Calculator } from "lucide-react";
 import Link from "next/link";
 import { UserNav } from "@/components/user-nav";
-import GuidePage from "@/components/pages/guide-page";
+import GuidePage from '../../components/pages/guide-page';
 import { faqData, type FaqArticle, type FaqCategory } from '@/lib/faq-data';
 import { cn } from '@/lib/utils';
 import DashboardClientLayout from '@/components/dashboard-client-layout';
@@ -204,4 +203,3 @@ export default function FaqPage() {
         </DashboardClientLayout>
     );
 }
-
