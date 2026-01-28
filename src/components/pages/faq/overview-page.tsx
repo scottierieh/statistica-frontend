@@ -101,7 +101,7 @@ const ANALYSIS_STEPS = [
 // ============================================================
 // 메인 Overview 컴포넌트
 // ============================================================
-export default function OverviewSection() {
+export default function OverviewPage() {
   const [activeSection, setActiveSection] = useState('what-is');
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
@@ -145,9 +145,9 @@ export default function OverviewSection() {
   return (
     <div className="relative">
       <div className="max-w-7xl mx-auto">
-        <div className="flex gap-8">
+        <div className="lg:grid lg:grid-cols-[1fr,256px] lg:gap-8">
           {/* 메인 콘텐츠 - 하나의 큰 Card */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0">
             <Card>
               <CardContent className="p-8">
                 <article className="prose prose-slate max-w-none">
@@ -340,30 +340,32 @@ export default function OverviewSection() {
           </div>
 
           {/* 우측 고정 네비게이션 - 별도 Card */}
-          <aside className="hidden lg:block w-64 flex-shrink-0 self-start sticky top-6">
-            <Card>
-              <CardContent className="p-4">
-                <nav className="space-y-1">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                  On This Page
-                </h4>
-                {SECTIONS.map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => scrollToSection(section.id)}
-                    className={cn(
-                      "block w-full text-left text-sm py-2 px-3 rounded transition-colors",
-                      activeSection === section.id
-                        ? 'text-primary font-medium bg-primary/10 border-l-2 border-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    )}
-                  >
-                    {section.label}
-                  </button>
-                ))}
-                </nav>
-              </CardContent>
-            </Card>
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <div className="sticky top-24">
+                <Card>
+                <CardContent className="p-4">
+                    <nav className="space-y-1">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                    On This Page
+                    </h4>
+                    {SECTIONS.map((section) => (
+                    <button
+                        key={section.id}
+                        onClick={() => scrollToSection(section.id)}
+                        className={cn(
+                        "block w-full text-left text-sm py-2 px-3 rounded transition-colors",
+                        activeSection === section.id
+                            ? 'text-primary font-medium bg-primary/10 border-l-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        )}
+                    >
+                        {section.label}
+                    </button>
+                    ))}
+                    </nav>
+                </CardContent>
+                </Card>
+            </div>
           </aside>
         </div>
       </div>
