@@ -24,61 +24,40 @@ import { cn } from '@/lib/utils';
 import DashboardClientLayout from '@/components/dashboard-client-layout';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ArticleDisplay = ({ article, category }: { article: FaqArticle, category: FaqCategory }) => {
-    const getTableOfContents = (content: string) => {
-        const lines = content.split('\n');
-        const headings = lines.filter(line => line.startsWith('### '));
-        return headings.map(heading => {
-            const title = heading.replace('### ', '').replace(/\*\*/g, '');
-            const slug = title.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-            return {
-                title: title,
-                href: '#' + slug
-            };
-        });
-    }
+// Import all the new components
+import HowStatisticaWorksPage from '@/components/pages/faq/how-statistica-works';
+import AnalysisRecommendationPage from '@/components/pages/faq/analysis-recommendation';
+import DataPreparationPage from '@/components/pages/faq/data-preparation';
+import RunningAnalysisPage from '@/components/pages/faq/running-an-analysis';
+import UnderstandingResultsPage from '@/components/pages/faq/understanding-results';
+import ExampleBasedAnalysisPage from '@/components/pages/faq/example-based-analysis';
+import ExportingSharingPage from '@/components/pages/faq/exporting-and-sharing';
+import TroubleshootingFaqPage from '@/components/pages/faq/troubleshooting-faq';
 
-    const tableOfContents = getTableOfContents(article.content);
+// Map slugs to components
+const FaqComponents: Record<string, React.ComponentType> = {
+  'how-statistica-works': HowStatisticaWorksPage,
+  'analysis-recommendation': AnalysisRecommendationPage,
+  'data-preparation': DataPreparationPage,
+  'running-an-analysis': RunningAnalysisPage,
+  'understanding-results': UnderstandingResultsPage,
+  'example-based-analysis': ExampleBasedAnalysisPage,
+  'exporting-and-sharing': ExportingSharingPage,
+  'troubleshooting-faq': TroubleshootingFaqPage,
+};
 
-    const formatContent = (content: string) => {
-        return content
-            .replace(/### (.*?)\n/g, (match, p1) => {
-                const slug = p1.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-                return `<h3 id="${slug}" class="text-xl font-semibold mt-6 mb-3 scroll-mt-20">${p1.replace(/\*\*/g, '')}</h3>\n`;
-            })
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n\n/g, '<br/><br/>')
-            .replace(/\n/g, '<br/>');
-    };
 
-    return (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-            <div className="grid lg:grid-cols-4 gap-12">
-                <div className="lg:col-span-3">
-                    <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">{article.title}</h1>
-                    <p className="text-lg text-muted-foreground mb-8">{article.description}</p>
-                    
-                    <article className="prose prose-slate dark:prose-invert max-w-none"
-                             dangerouslySetInnerHTML={{ __html: formatContent(article.content) }}
-                    >
-                    </article>
-                </div>
-                
-                <aside className="lg:col-span-1 lg:sticky lg:top-24 self-start">
-                    <div className="p-4 bg-muted/50 rounded-lg border">
-                        <h3 className="font-semibold mb-3">In this article</h3>
-                        <ul className="space-y-2">
-                            {tableOfContents.map(item => (
-                                <li key={item.href}>
-                                    <a href={item.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">{item.title}</a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </aside>
+const ArticleDisplay = ({ article }: { article: FaqArticle }) => {
+    const Component = FaqComponents[article.slug];
+    if (!Component) {
+        return (
+            <div className="max-w-6xl mx-auto px-4 py-8">
+                <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Content not found</h1>
+                <p>The page for "{article.title}" could not be loaded.</p>
             </div>
-        </div>
-    );
+        );
+    }
+    return <Component />;
 };
 
 
@@ -188,7 +167,6 @@ export default function FaqPage() {
                                         {selectedArticle ? (
                                             <ArticleDisplay 
                                                 article={selectedArticle.article}
-                                                category={selectedArticle.category}
                                             />
                                         ) : (
                                             <GuidePage />
