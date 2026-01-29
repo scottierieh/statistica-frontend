@@ -53,7 +53,7 @@ export default function FaqArticleLayout({ children, tocItems }: FaqArticleLayou
   };
 
   return (
-    <div className="flex items-start gap-12">
+    <div className="flex gap-12">
       <main className="flex-1 min-w-0">
         {children}
       </main>
