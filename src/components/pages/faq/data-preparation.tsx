@@ -1,31 +1,103 @@
 'use client';
 
-export default function DataPreparationPage() {
+import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Upload,
+  FileSpreadsheet,
+  Eye,
+  CheckCircle2,
+  BookOpen,
+  Info,
+  AlertCircle,
+  FileJson,
+  Table,
+  Sparkles
+} from 'lucide-react';
+
+export const SECTIONS = [
+  { id: 'what-is', label: 'What is Data Preparation?' },
+  { id: 'uploading-data', label: 'Uploading Data' },
+  { id: 'example-datasets', label: 'Example Datasets' },
+  { id: 'data-preview', label: 'Data Preview' },
+  { id: 'requirements', label: 'Data Requirements' }
+];
+
+const SUPPORTED_FORMATS = [
+  { icon: FileSpreadsheet, label: 'CSV', description: 'Comma-separated values (.csv)' },
+  { icon: FileSpreadsheet, label: 'Excel', description: 'Excel workbook (.xlsx, .xls)' },
+  { icon: FileJson, label: 'JSON', description: 'JavaScript Object Notation (.json)' }
+];
+
+export default function DataPreparationOverviewSection() {
   return (
-    <article className="prose prose-slate dark:prose-invert max-w-none">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Data Preparation</h1>
-        <p className="text-lg text-muted-foreground mb-8">Preparing your data for analysis.</p>
+    <Card>
+      <CardContent className="p-8">
+        <article className="prose prose-slate max-w-none">
+          
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">Data Preparation</h1>
+            <p className="text-lg text-muted-foreground">
+              Preparing your data for statistical analysis
+            </p>
+          </div>
 
-        <h3 id="data-preparation-is-key" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Data Preparation is Key</h3>
-        <p>Good analysis starts with good data. The <strong>Data Preparation</strong> section allows you to upload, view, and clean your dataset before analysis.</p>
+          <div className="mb-12 pb-8 border-b">
+            <blockquote className="border-l-4 border-primary pl-6 py-2">
+              <p className="text-xl italic leading-relaxed text-foreground mb-3">
+                "Upload your own data or start with example datasets to begin your statistical analysis journey."
+              </p>
+              <p className="text-base text-muted-foreground font-medium not-italic">
+                Upload. Preview. Analyze.
+              </p>
+            </blockquote>
+          </div>
 
-        <h3 id="uploading-data" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Uploading Data</h3>
-        <ul>
-            <li>You can upload data from <strong>CSV, TSV, and Excel (.xlsx, .xls)</strong> files.</li>
-            <li>Drag and drop your file onto the designated area or click to browse.</li>
-            <li>The system automatically detects headers and data types.</li>
-        </ul>
+          <section id="what-is" className="scroll-mt-24 mb-16">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <BookOpen className="w-7 h-7 text-primary" />
+              What is Data Preparation?
+            </h2>
+            <div className="space-y-4 text-base text-muted-foreground leading-relaxed">
+              <p>
+                Data Preparation is the first step in any statistical analysis. It involves <strong className="text-foreground">getting your data into the platform</strong> so you can run analyses on it.
+              </p>
+            </div>
+          </section>
 
-        <h3 id="data-preview" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Data Preview</h3>
-        <p>Once uploaded, you'll see a preview of your dataset, including:</p>
-        <ul>
-            <li><strong>File Name and Dimensions:</strong> See the name of your file, number of rows, and number of columns.</li>
-            <li><strong>Variable Summary:</strong> A quick count of numeric and categorical variables detected.</li>
-            <li><strong>Data Table:</strong> A scrollable view of the first 100 rows of your data.</li>
-        </ul>
+          <section id="uploading-data" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Upload className="w-7 h-7 text-primary" />
+              Uploading Your Data
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
 
-        <h3 id="basic-cleaning" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Basic Cleaning</h3>
-        <p>From the data preview screen, you can perform basic cleaning operations like clearing the dataset to start over. For more advanced cleaning, use the <strong>DataPrep</strong> tool from the main dashboard.</p>
-    </article>
+          <section id="example-datasets" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Sparkles className="w-7 h-7 text-primary" />
+              Using Example Datasets
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+
+          <section id="data-preview" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Eye className="w-7 h-7 text-primary" />
+              Data Preview & Management
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+
+          <section id="requirements" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Info className="w-7 h-7 text-primary" />
+              Data Requirements
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+        </article>
+      </CardContent>
+    </Card>
   );
 }

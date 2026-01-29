@@ -16,129 +16,59 @@ export interface FaqCategory {
 
 export const faqData: FaqCategory[] = [
     {
-        slug: "getting-started",
+        slug: "standard-analysis-guide",
         icon: BookOpen,
-        title: "Getting Started",
-        description: "Everything you need to know to get started with our platform.",
-        articles: [
-            { 
-                slug: "how-statistica-works",
-                title: "How does Standard Analysis work?", 
-                description: "An overview of the analysis process from data upload to insight generation."
-            },
-        ]
-    },
-    {
-        slug: "standard-analysis",
-        icon: BrainCircuit,
-        title: "Standard Analysis",
-        description: "A guide to using the Standard Analysis tool.",
+        title: "Standard Analysis Guide",
+        description: "Learn how to use the Standard Analysis tool from start to finish.",
         articles: [
             { 
                 slug: "overview",
                 title: "Overview", 
-                description: "An overview of the Standard Analysis environment."
+                description: "What is Standard Analysis and when should you use it?"
             },
             { 
                 slug: "analysis-recommendation",
                 title: "Recommendation", 
-                description: "How to use the analysis recommendation feature."
+                description: "Let AI suggest the best analysis for your data and goals."
             },
             { 
                 slug: "data-preparation",
                 title: "Data Preparation", 
-                description: "Preparing your data for analysis."
+                description: "How to upload and prepare your data for analysis."
             },
             { 
                 slug: "running-an-analysis",
-                title: "Standard Analysis", 
-                description: "Running various statistical analyses."
+                title: "Running an Analysis", 
+                description: "A step-by-step guide to configuring and executing analyses."
             },
             { 
                 slug: "understanding-results",
-                title: "Results", 
-                description: "Understanding and interpreting your analysis results."
-            },
-            { 
-                slug: "example-based-analysis",
-                title: "Examples", 
-                description: "Walkthroughs using example datasets."
+                title: "Understanding Results", 
+                description: "How to interpret the three layers of results: Summary, Reasoning, and Statistics."
             },
             { 
                 slug: "exporting-and-sharing",
                 title: "Export & Sharing", 
-                description: "How to export and share your findings."
+                description: "How to download and share your findings in different formats."
             },
             { 
-                slug: "troubleshooting-faq",
-                title: "Help & FAQ", 
-                description: "Frequently asked questions about Standard Analysis."
+                slug: "guide-terminology",
+                title: "Guides & Terminology", 
+                description: "Using built-in analysis guides and statistical term definitions."
             },
         ]
     },
     {
-        slug: "survey-features",
-        icon: ClipboardList,
-        title: "Survey & Features",
-        description: "Details on question types, advanced analysis, and survey distribution.",
-        articles: [
-            { 
-                slug: "setup-conjoint-analysis",
-                title: "How to set up a Conjoint Analysis survey", 
-                description: "A step-by-step guide to creating attributes and levels for CBC."
-            },
-        ]
-    },
-    {
-        slug: "account",
-        icon: UserCircle,
-        title: "Account",
-        description: "Settings, security, and profile management.",
-        articles: [
-            { 
-                slug: "change-password",
-                title: "How do I change my password?", 
-                description: "A guide to updating your account security settings."
-            },
-        ]
-    },
-    {
-        slug: "plans-billing",
-        icon: CreditCard,
-        title: "Plans & Billing",
-        description: "Pricing, invoices, payment options, and refunds.",
-        articles: [
-            { 
-                slug: "plan-differences",
-                title: "What is the difference between Free and Pro plans?", 
-                description: "A detailed comparison of features available in each plan."
-            },
-        ]
-    },
-    {
-        slug: "technical-issues",
+        slug: "troubleshooting",
         icon: Wrench,
-        title: "Technical Issues",
-        description: "Troubleshooting, error messages, and performance tips.",
+        title: "Troubleshooting & FAQ",
+        description: "Find solutions to common issues and answers to frequently asked questions.",
         articles: [
-            { 
-                slug: "results-not-showing",
-                title: "Why are my analysis results not showing?", 
-                description: "Common reasons for analysis failures and how to fix them."
+             { 
+                slug: "common-errors",
+                title: "Common Analysis Errors", 
+                description: "Why your analysis might fail and how to fix it."
             },
         ]
-    },
-    {
-        slug: "contact-support",
-        icon: MessageSquare,
-        title: "Contact Support",
-        description: "Get help from our support team and provide feedback.",
-        articles: [
-            { 
-                slug: "how-to-contact-support",
-                title: "How to contact the support team", 
-                description: "The best ways to get in touch for quick assistance."
-            },
-        ]
-    },
+    }
 ];

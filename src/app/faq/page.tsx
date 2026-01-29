@@ -1,5 +1,5 @@
 'use client';
-import GuidePage from '@/components/pages/guide-page';
+import GuidePage from '@/components/pages/faq/guide-page';
 import { motion } from 'framer-motion';
 
 export default function FaqIndexPage() {

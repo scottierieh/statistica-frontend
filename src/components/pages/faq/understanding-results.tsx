@@ -1,24 +1,72 @@
 'use client';
 
+import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  FileSearch,
+  Lightbulb,
+  Sigma,
+  BookOpen,
+  Target
+} from 'lucide-react';
+
+export const SECTIONS = [
+  { id: 'what-is', label: 'What are Results?' },
+  { id: 'step-summary', label: 'Step 4: Summary' },
+  { id: 'step-reasoning', label: 'Step 5: Reasoning' },
+  { id: 'step-statistics', label: 'Step 6: Statistics' },
+  { id: 'how-to-use', label: 'How to Use Results' }
+];
+
 export default function UnderstandingResultsPage() {
   return (
-    <article className="prose prose-slate dark:prose-invert max-w-none">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Results</h1>
-        <p className="text-lg text-muted-foreground mb-8">Understanding and interpreting your analysis results.</p>
-        
-        <h3 id="understanding-your-results" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Understanding Your Results</h3>
-        <p>After running an analysis, the results are presented in a structured and easy-to-digest format.</p>
+    <Card>
+      <CardContent className="p-8">
+        <article className="prose prose-slate max-w-none">
+          <h1 className="text-4xl font-bold mb-4">Understanding Results</h1>
+          <p className="text-lg text-muted-foreground mb-8">How to interpret your analysis results.</p>
 
-        <h3 id="key-components" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Key Components of the Results Page:</h3>
-        <ul>
-            <li><strong>Summary Cards:</strong> At the top, you'll find key metrics and the main conclusion of the analysis (e.g., "Statistically Significant" or "Not Significant").</li>
-            <li><strong>Visualizations:</strong> Interactive charts and graphs are provided to help you visually understand the data and relationships.</li>
-            <li><strong>Statistical Tables:</strong> Detailed tables from the analysis (e.g., ANOVA table, coefficient tables) are presented clearly.</li>
-            <li><strong>AI-Powered Report:</strong> A narrative summary and interpretation of the findings, written in plain language and following APA style for statistical reporting.</li>
-        </ul>
+          <section id="what-is" className="scroll-mt-24 mb-16">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <BookOpen className="w-7 h-7 text-primary" />
+              What are Results?
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
 
-        <h3 id="interactive-elements" className="text-xl font-semibold mt-6 mb-3 scroll-mt-20">Interactive Elements</h3>
-        <p>Many charts are interactive. You can hover over data points for more details, zoom in on specific areas, and toggle series on and off through the legend. This allows for deeper exploration of your results.</p>
-    </article>
+          <section id="step-summary" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <FileSearch className="w-7 h-7 text-primary" />
+              Step 4: Summary
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+
+          <section id="step-reasoning" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Lightbulb className="w-7 h-7 text-primary" />
+              Step 5: Reasoning
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+
+          <section id="step-statistics" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Sigma className="w-7 h-7 text-primary" />
+              Step 6: Statistics
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+          
+          <section id="how-to-use" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <Target className="w-7 h-7 text-primary" />
+              How to Use Results
+            </h2>
+            <p>Content for this section goes here.</p>
+          </section>
+        </article>
+      </CardContent>
+    </Card>
   );
 }
