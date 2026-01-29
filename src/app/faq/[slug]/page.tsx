@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Dynamically import all FAQ components
 const FaqComponents: Record<string, React.ComponentType> = {
@@ -15,7 +16,25 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'understanding-results': React.lazy(() => import('@/components/pages/faq/understanding-results')),
   'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/exporting-and-sharing')),
   'guide-terminology': React.lazy(() => import('@/components/pages/faq/guide-terminology')),
+  // New Strategic Decision Guide pages
+  'strategic-overview': React.lazy(() => import('@/components/pages/faq/strategic-overview')),
+  'use-cases-by-domain': React.lazy(() => import('@/components/pages/faq/use-cases-by-domain')),
+  'strategic-data-requirements': React.lazy(() => import('@/components/pages/faq/strategic-data-requirements')),
+  'optimization-methods': React.lazy(() => import('@/components/pages/faq/optimization-methods')),
+  'interpreting-solutions': React.lazy(() => import('@/components/pages/faq/interpreting-solutions')),
+  'strategic-best-practices': React.lazy(() => import('@/components/pages/faq/strategic-best-practices')),
 };
+
+const LoadingSkeleton = () => (
+  <div className="space-y-6">
+    <Skeleton className="h-12 w-3/4" />
+    <Skeleton className="h-6 w-1/2" />
+    <div className="space-y-4">
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  </div>
+);
 
 export default function FaqArticlePage() {
     const params = useParams();
@@ -26,7 +45,11 @@ export default function FaqArticlePage() {
     }, [slug]);
 
     if (!ActiveComponent) {
-        return <div>Article not found.</div>;
+        return (
+          <FaqArticleLayout>
+            <div>Article not found. Please select an article from the sidebar.</div>
+          </FaqArticleLayout>
+        )
     }
 
     return (
@@ -37,7 +60,7 @@ export default function FaqArticlePage() {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.2 }}
         >
-            <React.Suspense fallback={<div>Loading...</div>}>
+            <React.Suspense fallback={<LoadingSkeleton />}>
                 <ActiveComponent />
             </React.Suspense>
         </motion.div>

@@ -1,4 +1,6 @@
-import { BookOpen, BrainCircuit, ClipboardList, UserCircle, CreditCard, Wrench, MessageSquare, LucideIcon } from 'lucide-react';
+'use client';
+
+import { BookOpen, BrainCircuit, ClipboardList, UserCircle, CreditCard, Wrench, MessageSquare, LucideIcon, Sigma } from 'lucide-react';
 
 export interface FaqArticle {
     slug: string;
@@ -56,6 +58,44 @@ export const faqData: FaqCategory[] = [
                 title: "Guides & Terminology", 
                 description: "Using built-in analysis guides and statistical term definitions."
             },
+        ]
+    },
+    {
+        slug: "strategic-decision-guide",
+        icon: Sigma,
+        title: "📊 Strategic Decision Guide",
+        description: "Leverage optimization and simulation to make data-driven strategic decisions.",
+        articles: [
+            {
+                slug: "strategic-overview",
+                title: "Overview",
+                description: "What is Strategic Decision-Making and how does it work?"
+            },
+            {
+                slug: "use-cases-by-domain",
+                title: "Use Cases by Domain",
+                description: "Examples in logistics, finance, marketing, and operations."
+            },
+            {
+                slug: "strategic-data-requirements",
+                title: "Data Requirements",
+                description: "How to structure your data for optimization problems."
+            },
+            {
+                slug: "optimization-methods",
+                title: "Optimization Methods",
+                description: "Understanding LP, IP, NLP, and metaheuristics."
+            },
+            {
+                slug: "interpreting-solutions",
+                title: "Interpreting Solutions",
+                description: "How to read optimal solutions and sensitivity reports."
+            },
+            {
+                slug: "strategic-best-practices",
+                title: "Best Practices",
+                description: "Tips for formulating and solving decision problems."
+            }
         ]
     },
     {
