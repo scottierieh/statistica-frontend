@@ -31,7 +31,7 @@ export default function FaqArticleLayout({ children }: FaqArticleLayoutProps) {
       level: parseInt(heading.tagName.substring(1)),
     }));
     setTocItems(sections);
-  }, [pathname, children]); // Re-run when children change to catch dynamic content
+  }, [pathname, children]); 
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,9 +79,9 @@ export default function FaqArticleLayout({ children }: FaqArticleLayoutProps) {
                   On This Page
                 </h4>
                 <nav className="space-y-1">
-                  {tocItems.map((section) => (
+                  {tocItems.map((section, index) => (
                     <a
-                      key={section.id}
+                      key={section.id || `toc-item-${index}`}
                       href={`#${section.id}`}
                       onClick={(e) => scrollToSection(e, section.id)}
                       className={cn(

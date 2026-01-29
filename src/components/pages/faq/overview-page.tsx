@@ -2,13 +2,6 @@
 
 import React from 'react';
 import {
-  Calculator,
-  ShieldCheck,
-  FileText,
-  Variable,
-  Settings2,
-  FileSearch,
-  Lightbulb,
   Sigma,
   CheckCircle2,
   BookOpen,
@@ -18,6 +11,10 @@ import {
   Layers,
   BrainCircuit,
   Database,
+  Settings2,
+  FileSearch,
+  Wrench,
+  Lightbulb,
 } from 'lucide-react';
 import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
 
@@ -52,6 +49,8 @@ const KEY_FEATURES = [
         description: 'Download results, charts, and interpretations in formats ready for your papers or reports.',
     },
 ];
+
+const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
 export default function OverviewPage() {
   return (
@@ -180,7 +179,7 @@ export default function OverviewPage() {
                     <feature.icon className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-base mb-1">
+                    <h3 id={slugify(feature.label)} className="font-semibold text-base mb-1">
                     {feature.label}
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
