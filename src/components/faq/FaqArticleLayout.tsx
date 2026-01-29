@@ -13,23 +13,25 @@ export interface Section {
 
 interface FaqArticleLayoutProps {
   children: React.ReactNode;
-  tocItems: Section[];
+  tocItems?: Section[];
 }
 
-export default function FaqArticleLayout({ children, tocItems }: FaqArticleLayoutProps) {
+export default function FaqArticleLayout({ children, tocItems = [] }: FaqArticleLayoutProps) {
   const [activeId, setActiveId] = useState<string>('');
   const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
       let currentId = '';
-      for (let i = tocItems.length - 1; i >= 0; i--) {
-        const item = tocItems[i];
-        if (!item.id) continue;
-        const element = document.getElementById(item.id);
-        if (element && element.getBoundingClientRect().top < 150) {
-          currentId = item.id;
-          break;
+      if (tocItems) {
+        for (let i = tocItems.length - 1; i >= 0; i--) {
+          const item = tocItems[i];
+          if (!item.id) continue;
+          const element = document.getElementById(item.id);
+          if (element && element.getBoundingClientRect().top < 150) {
+            currentId = item.id;
+            break;
+          }
         }
       }
       setActiveId(currentId);
