@@ -122,7 +122,7 @@ export default function FaqLayout({
                                 </div>
                                 <UserNav />
                             </header>
-                            <main className="flex-1 overflow-auto">
+                            <main className="flex-1">
                                 {children}
                             </main>
                         </div>
