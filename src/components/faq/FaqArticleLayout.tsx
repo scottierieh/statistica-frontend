@@ -13,31 +13,19 @@ export interface Section {
 
 interface FaqArticleLayoutProps {
   children: React.ReactNode;
+  tocItems: Section[];
 }
 
-export default function FaqArticleLayout({ children }: FaqArticleLayoutProps) {
-  const [tocItems, setTocItems] = useState<Section[]>([]);
+export default function FaqArticleLayout({ children, tocItems }: FaqArticleLayoutProps) {
   const [activeId, setActiveId] = useState<string>('');
   const pathname = usePathname();
-
-  useEffect(() => {
-    const mainContent = document.querySelector('main > article');
-    if (!mainContent) return;
-
-    const headings = Array.from(mainContent.querySelectorAll('h2, h3'));
-    const sections: Section[] = headings.map((heading: Element) => ({
-      id: heading.id,
-      label: heading.textContent || '',
-      level: parseInt(heading.tagName.substring(1)),
-    }));
-    setTocItems(sections);
-  }, [pathname, children]); 
 
   useEffect(() => {
     const handleScroll = () => {
       let currentId = '';
       for (let i = tocItems.length - 1; i >= 0; i--) {
         const item = tocItems[i];
+        if (!item.id) continue;
         const element = document.getElementById(item.id);
         if (element && element.getBoundingClientRect().top < 150) {
           currentId = item.id;
@@ -65,40 +53,38 @@ export default function FaqArticleLayout({ children }: FaqArticleLayoutProps) {
   };
 
   return (
-    <div className="flex flex-row gap-12">
+    <div className="max-w-7xl mx-auto flex w-full flex-row gap-12 px-4">
       <main className="flex-1 min-w-0">
         {children}
       </main>
       
       {tocItems.length > 0 && (
-        <aside className="hidden lg:block w-64 shrink-0">
-          <div className="sticky top-24">
-            <Card>
-              <CardContent className="p-4">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                  On This Page
-                </h4>
-                <nav className="space-y-1">
-                  {tocItems.map((section, index) => (
-                    <a
-                      key={section.id || `toc-item-${index}`}
-                      href={`#${section.id}`}
-                      onClick={(e) => scrollToSection(e, section.id)}
-                      className={cn(
-                        "block w-full text-left text-sm py-1.5 px-3 rounded-md transition-colors",
-                        section.id === activeId
-                          ? "text-primary bg-primary/10 font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                        section.level === 3 && "pl-6"
-                      )}
-                    >
-                      {section.label}
-                    </a>
-                  ))}
-                </nav>
-              </CardContent>
-            </Card>
-          </div>
+        <aside className="sticky top-24 hidden h-fit lg:block w-64 shrink-0">
+          <Card>
+            <CardContent className="p-4">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                On This Page
+              </h4>
+              <nav className="space-y-1">
+                {tocItems.map((section, index) => (
+                  <a
+                    key={section.id || `toc-item-${index}`}
+                    href={`#${section.id}`}
+                    onClick={(e) => scrollToSection(e, section.id)}
+                    className={cn(
+                      "block w-full text-left text-sm py-1.5 px-3 rounded-md transition-colors",
+                      section.id === activeId
+                        ? "text-primary bg-primary/10 font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      section.level === 3 && "pl-6"
+                    )}
+                  >
+                    {section.label}
+                  </a>
+                ))}
+              </nav>
+            </CardContent>
+          </Card>
         </aside>
       )}
     </div>
