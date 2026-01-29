@@ -16,7 +16,6 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'understanding-results': React.lazy(() => import('@/components/pages/faq/understanding-results')),
   'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/exporting-and-sharing')),
   'guide-terminology': React.lazy(() => import('@/components/pages/faq/guide-terminology')),
-  // Add other pages here as they are created
 };
 
 interface Section {
@@ -108,7 +107,7 @@ export default function FaqArticlePage() {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.2 }}
         >
-            <div className="grid lg:grid-cols-[1fr_280px] gap-8 items-start">
+            <div className="grid lg:grid-cols-[1fr_280px] gap-8">
                 <div ref={articleRef} className="min-w-0">
                     <React.Suspense fallback={<div>Loading...</div>}>
                         <ActiveComponent />
@@ -116,7 +115,8 @@ export default function FaqArticlePage() {
                 </div>
                 
                 {sections.length > 0 && (
-                    <aside className="hidden lg:block self-start sticky top-24">
+                    <aside className="hidden lg:block">
+                      <div className="sticky top-24">
                         <Card>
                             <CardContent className="p-4">
                                 <nav className="space-y-1">
@@ -141,6 +141,7 @@ export default function FaqArticlePage() {
                                 </nav>
                             </CardContent>
                         </Card>
+                      </div>
                     </aside>
                 )}
             </div>
