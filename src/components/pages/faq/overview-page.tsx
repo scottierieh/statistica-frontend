@@ -15,6 +15,9 @@ import {
   Info,
   HelpCircle,
   TrendingUp,
+  Layers,
+  BrainCircuit,
+  Database,
 } from 'lucide-react';
 import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 
@@ -26,6 +29,37 @@ const SECTIONS: Section[] = [
     { id: 'how-it-works', label: 'How It Works: 6-Step Process', level: 2 },
 ];
 
+const ANALYSIS_STEPS = [
+    { id: 1, label: 'Data', icon: Database },
+    { id: 2, label: 'Model', icon: Layers },
+    { id: 3, label: 'Settings', icon: Settings2 },
+    { id: 4, label: 'Validation', icon: ShieldCheck },
+    { id: 5, label: 'Summary', icon: FileSearch },
+    { id: 6, label: 'Statistics', icon: Sigma },
+];
+
+const KEY_FEATURES = [
+    {
+        icon: Sigma,
+        label: 'Comprehensive Methods',
+        description: 'Access over 100 statistical tests, from basic t-tests to advanced SEM.',
+    },
+    {
+        icon: BrainCircuit,
+        label: 'AI-Powered Interpretations',
+        description: 'Get automated, APA-formatted explanations and actionable insights for your results.',
+    },
+    {
+        icon: ShieldCheck,
+        label: 'Built-in Validation',
+        description: 'Automatic assumption checks (e.g., normality, homogeneity) ensure your analysis is robust.',
+    },
+    {
+        icon: FileText,
+        label: 'Publication-Ready Exports',
+        description: 'Download results, charts, and interpretations in formats ready for your papers or reports.',
+    },
+];
 
 export default function OverviewPage() {
   return (
@@ -109,19 +143,19 @@ export default function OverviewPage() {
             {[
                 {
                 title: 'You know which statistical method you need',
-                desc: "You're familiar with t-tests, ANOVA, regression, or want to learn a specific method",
+                description: "You're familiar with t-tests, ANOVA, regression, or want to learn a specific method",
                 },
                 {
                 title: 'You want full control over parameters',
-                desc: 'You need to customize alpha levels, post-hoc tests, confidence intervals, and other settings',
+                description: 'You need to customize alpha levels, post-hoc tests, confidence intervals, and other settings',
                 },
                 {
                 title: 'You need complete statistical output',
-                desc: 'For academic papers, research reports, or professional presentations',
+                description: 'For academic papers, research reports, or professional presentations',
                 },
                 {
                 title: 'You want to validate assumptions',
-                desc: 'Built-in checks ensure your data meets statistical requirements before running tests',
+                description: 'Built-in checks ensure your data meets statistical requirements before running tests',
                 },
             ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -129,7 +163,7 @@ export default function OverviewPage() {
                 <div>
                     <p className="font-semibold text-base mb-1">{item.title}</p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                    {item.desc}
+                    {item.description}
                     </p>
                 </div>
                 </div>
