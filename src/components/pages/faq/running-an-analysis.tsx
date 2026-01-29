@@ -9,13 +9,6 @@ import {
   Info,
 } from 'lucide-react';
 
-export const SECTIONS = [
-  { id: 'what-is', label: 'What is Running Analysis?' },
-  { id: 'step-variables', label: 'Step 1: Variables' },
-  { id: 'step-settings', label: 'Step 2: Settings' },
-  { id: 'step-validation', label: 'Step 3: Validation' }
-];
-
 export default function RunningAnalysisPage() {
   return (
     <Card>

@@ -15,14 +15,6 @@ import {
   Sparkles
 } from 'lucide-react';
 
-export const SECTIONS = [
-  { id: 'what-is', label: 'What is Data Preparation?' },
-  { id: 'uploading-data', label: 'Uploading Data' },
-  { id: 'example-datasets', label: 'Example Datasets' },
-  { id: 'data-preview', label: 'Data Preview' },
-  { id: 'requirements', label: 'Data Requirements' }
-];
-
 const SUPPORTED_FORMATS = [
   { icon: FileSpreadsheet, label: 'CSV', description: 'Comma-separated values (.csv)' },
   { icon: FileSpreadsheet, label: 'Excel', description: 'Excel workbook (.xlsx, .xls)' },

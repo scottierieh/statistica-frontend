@@ -10,13 +10,6 @@ import {
   MessageCircleQuestion,
 } from 'lucide-react';
 
-export const SECTIONS = [
-  { id: 'what-is', label: 'What are Guides & Terminology?' },
-  { id: 'analysis-guides', label: 'Analysis Guides' },
-  { id: 'statistical-glossary', label: 'Statistical Glossary' },
-  { id: 'how-to-access', label: 'How to Access' }
-];
-
 export default function TroubleshootingFaqPage() {
   return (
     <Card>

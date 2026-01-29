@@ -11,14 +11,6 @@ import {
   BookOpen,
 } from 'lucide-react';
 
-export const SECTIONS = [
-  { id: 'what-is', label: 'What is Export & Sharing?' },
-  { id: 'word-export', label: 'Word Report' },
-  { id: 'python-code', label: 'Python Code' },
-  { id: 'data-export', label: 'Data & Tables' },
-  { id: 'charts-export', label: 'Results Screenshot' }
-];
-
 export default function ExportingSharingPage() {
   return (
     <Card>

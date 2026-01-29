@@ -3,13 +3,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Bot, Sparkles, CheckCircle2, BookOpen, Info, HelpCircle, Target, Layers, Lightbulb, Database, Settings2, FileSearch } from 'lucide-react';
 
-export const SECTIONS = [
-  { id: 'what-is', label: 'What is Recommendation?' },
-  { id: 'what-you-can-do', label: 'What You Can Do' },
-  { id: 'when-to-use', label: 'When to Use' },
-  { id: 'how-it-works', label: 'How It Works' }
-];
-
 const ANALYSIS_STEPS = [
   { id: 1, icon: Database, label: 'Variables', description: 'Select which columns you want AI to examine' },
   { id: 2, icon: Settings2, label: 'Analysis', description: 'Optionally describe your data and goals, then run AI analysis' },

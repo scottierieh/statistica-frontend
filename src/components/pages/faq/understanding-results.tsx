@@ -10,14 +10,6 @@ import {
   Target
 } from 'lucide-react';
 
-export const SECTIONS = [
-  { id: 'what-is', label: 'What are Results?' },
-  { id: 'step-summary', label: 'Step 4: Summary' },
-  { id: 'step-reasoning', label: 'Step 5: Reasoning' },
-  { id: 'step-statistics', label: 'Step 6: Statistics' },
-  { id: 'how-to-use', label: 'How to Use Results' }
-];
-
 export default function UnderstandingResultsPage() {
   return (
     <Card>
