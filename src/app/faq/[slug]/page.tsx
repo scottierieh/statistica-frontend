@@ -9,12 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 // Dynamically import all FAQ components
 const FaqComponents: Record<string, React.ComponentType> = {
   'overview': React.lazy(() => import('@/components/pages/faq/overview-page')),
-  'how-statistica-works': React.lazy(() => import('@/components/pages/faq/how-statistica-works')),
-  'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/analysis-recommendation')),
-  'data-preparation': React.lazy(() => import('@/components/pages/faq/data-preparation')),
-  'running-an-analysis': React.lazy(() => import('@/components/pages/faq/running-an-analysis')),
-  'understanding-results': React.lazy(() => import('@/components/pages/faq/understanding-results')),
-  'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/exporting-and-sharing')),
+  'how-statistica-works': React.lazy(() => import('@/components/pages/faq/statistical analysis/how-statistica-works')),
+  'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/statistical analysis/analysis-recommendation')),
+  'data-preparation': React.lazy(() => import('@/components/pages/faq/statistical analysis/data-preparation')),
+  'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical analysis/running-an-analysis')),
+  'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical analysis/understanding-results')),
+  'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/statistical analysis/exporting-and-sharing')),
   'guide-terminology': React.lazy(() => import('@/components/pages/faq/guide-terminology')),
   // New Strategic Decision Guide pages
   'strategic-overview': React.lazy(() => import('@/components/pages/faq/strategic-overview')),

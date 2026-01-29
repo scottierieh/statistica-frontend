@@ -63,7 +63,7 @@ export const faqData: FaqCategory[] = [
     {
         slug: "strategic-decision-guide",
         icon: Sigma,
-        title: "📊 Strategic Decision Guide",
+        title: "Strategic Analysis Guide",
         description: "Leverage optimization and simulation to make data-driven strategic decisions.",
         articles: [
             {
