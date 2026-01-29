@@ -73,22 +73,22 @@ export const faqData: FaqCategory[] = [
             },
             {
                 slug: "use-cases-by-domain",
-                title: "Use Cases by Domain",
+                title: "Domains & Use Cases",
                 description: "Examples in logistics, finance, marketing, and operations."
             },
             {
                 slug: "strategic-data-requirements",
-                title: "Data Requirements",
+                title: "Data Preparation",
                 description: "How to structure your data for optimization problems."
             },
             {
                 slug: "optimization-methods",
-                title: "Optimization Methods",
+                title: "Running an Analysis",
                 description: "Understanding LP, IP, NLP, and metaheuristics."
             },
             {
                 slug: "interpreting-solutions",
-                title: "Interpreting Solutions",
+                title: "Understanding Results",
                 description: "How to read optimal solutions and sensitivity reports."
             },
             {
