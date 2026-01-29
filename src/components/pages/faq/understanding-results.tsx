@@ -8,11 +8,19 @@ import {
   BookOpen,
   Target
 } from 'lucide-react';
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
+
+const SECTIONS: Section[] = [
+    { id: 'what-is', label: 'What are Results?', level: 2 },
+    { id: 'step-summary', label: 'Step 4: Summary', level: 2 },
+    { id: 'step-reasoning', label: 'Step 5: Reasoning', level: 2 },
+    { id: 'step-statistics', label: 'Step 6: Statistics', level: 2 },
+    { id: 'how-to-use', label: 'How to Use Results', level: 2 },
+];
 
 export default function UnderstandingResultsPage() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate max-w-none">
             <h1 className="text-4xl font-bold mb-4">Understanding Results</h1>
             <p className="text-lg text-muted-foreground mb-8">How to interpret your analysis results.</p>

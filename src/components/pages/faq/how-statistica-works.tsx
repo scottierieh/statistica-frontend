@@ -1,10 +1,17 @@
 'use client';
 
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
+
+const SECTIONS: Section[] = [
+    { id: 'what-is-standard-analysis', label: "What is Standard Analysis?", level: 2 },
+    { id: 'when-to-use', label: "When to Use Standard Analysis", level: 2 },
+    { id: 'overall-flow', label: "Overall Analysis Flow", level: 2 },
+    { id: 'quick-start', label: "Quick Start with Sample Data", level: 2 },
+];
 
 export default function HowStatisticaWorksPage() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate dark:prose-invert max-w-none">
             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">How does Standard Analysis work?</h1>
             <p className="text-lg text-muted-foreground mb-8">An overview of the analysis process from data upload to insight generation.</p>

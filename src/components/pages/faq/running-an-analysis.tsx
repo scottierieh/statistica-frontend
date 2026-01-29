@@ -7,11 +7,18 @@ import {
   ShieldCheck,
   Info,
 } from 'lucide-react';
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
+
+const SECTIONS: Section[] = [
+    { id: 'what-is', label: 'What is Running Analysis?', level: 2 },
+    { id: 'step-variables', label: 'Step 1: Variables', level: 2 },
+    { id: 'step-settings', label: 'Step 2: Settings', level: 2 },
+    { id: 'step-validation', label: 'Step 3: Validation', level: 2 },
+];
 
 export default function RunningAnalysisPage() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate max-w-none">
             <h1 className="text-4xl font-bold mb-4">Running an Analysis</h1>
             <p className="text-lg text-muted-foreground mb-8">A step-by-step guide to executing analyses.</p>

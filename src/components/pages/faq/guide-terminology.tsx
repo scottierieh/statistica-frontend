@@ -7,11 +7,18 @@ import {
   FileText,
   Search,
 } from 'lucide-react';
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
+
+const SECTIONS: Section[] = [
+    { id: 'what-is', label: 'What are Guides & Terminology?', level: 2 },
+    { id: 'analysis-guides', label: 'Analysis Guides', level: 2 },
+    { id: 'statistical-glossary', label: 'Statistical Glossary', level: 2 },
+    { id: 'how-to-access', label: 'How to Access Guides & Terminology', level: 2 },
+];
 
 export default function TroubleshootingFaqPage() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate max-w-none">
             <h1 className="text-4xl font-bold mb-4">Guides & Terminology</h1>
             <p className="text-lg text-muted-foreground mb-8">Understanding analysis methods and statistical concepts</p>

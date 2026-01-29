@@ -10,11 +10,19 @@ import {
   FileJson,
   Sparkles
 } from 'lucide-react';
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
+
+const SECTIONS: Section[] = [
+    { id: 'what-is', label: 'What is Data Preparation?', level: 2 },
+    { id: 'uploading-data', label: 'Uploading Your Data', level: 2 },
+    { id: 'example-datasets', label: 'Using Example Datasets', level: 2 },
+    { id: 'data-preview', label: 'Data Preview & Management', level: 2 },
+    { id: 'requirements', label: 'Data Requirements', level: 2 },
+];
 
 export default function DataPreparationOverviewSection() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate max-w-none">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold mb-2">Data Preparation</h1>

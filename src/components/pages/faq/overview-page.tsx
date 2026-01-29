@@ -18,16 +18,7 @@ import {
   Wrench,
   Lightbulb,
 } from 'lucide-react';
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
-
-const ANALYSIS_STEPS = [
-    { id: 1, label: 'Data', icon: Database },
-    { id: 2, label: 'Model', icon: Layers },
-    { id: 3, label: 'Settings', icon: Settings2 },
-    { id: 4, label: 'Validation', icon: ShieldCheck },
-    { id: 5, label: 'Summary', icon: FileSearch },
-    { id: 6, label: 'Statistics', icon: Sigma },
-];
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 
 const KEY_FEATURES = [
     {
@@ -52,11 +43,28 @@ const KEY_FEATURES = [
     },
 ];
 
+const ANALYSIS_STEPS = [
+    { id: 1, label: 'Data', icon: Database },
+    { id: 2, label: 'Model', icon: Layers },
+    { id: 3, label: 'Settings', icon: Settings2 },
+    { id: 4, label: 'Validation', icon: ShieldCheck },
+    { id: 5, label: 'Summary', icon: FileSearch },
+    { id: 6, label: 'Statistics', icon: Sigma },
+];
+
+const SECTIONS: Section[] = [
+  { id: "what-is", label: "What is Standard Analysis?", level: 2 },
+  { id: "comparison", label: "What You Can Do", level: 2 },
+  { id: "when-to-use", label: "When to Use", level: 2 },
+  { id: "key-features", label: "Key Features", level: 2 },
+  { id: "how-it-works", label: "How It Works: 6-Step Process", level: 2 },
+];
+
 const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
 export default function OverviewPage() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate max-w-none">
         {/* HEADER */}
         <div className="mb-8">

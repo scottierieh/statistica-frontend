@@ -68,9 +68,9 @@ export default function FaqArticleLayout({ children, tocItems = [] }: FaqArticle
                 On This Page
               </h4>
               <nav className="space-y-1">
-                {tocItems.map((section, index) => (
+                {tocItems.map((section) => (
                   <a
-                    key={section.id || `toc-item-${index}`}
+                    key={section.id || section.label}
                     href={`#${section.id}`}
                     onClick={(e) => scrollToSection(e, section.id)}
                     className={cn(

@@ -1,11 +1,18 @@
 'use client';
 
 import { Bot, Sparkles, CheckCircle2, BookOpen, Info, HelpCircle, Target, Layers, Lightbulb, Database, Settings2, FileSearch } from 'lucide-react';
-import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
+import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
+
+const SECTIONS: Section[] = [
+    { id: 'what-is', label: 'What is Recommendation?', level: 2 },
+    { id: 'what-you-can-do', label: 'What You Can Do', level: 2 },
+    { id: 'when-to-use', label: 'When to Use', level: 2 },
+    { id: 'how-it-works', label: 'How It Works: 3-Step Process', level: 2 },
+];
 
 export default function AnalysisRecommendationPage() {
   return (
-    <FaqArticleLayout>
+    <FaqArticleLayout tocItems={SECTIONS}>
         <article className="prose prose-slate max-w-none">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold mb-2">Recommendation</h1>
