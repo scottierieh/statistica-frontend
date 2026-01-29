@@ -58,7 +58,7 @@ const ANALYSIS_STEPS = [
   { id: 6, icon: Sigma, label: 'Statistics' }
 ];
 
-export default function OverviewSection() {
+export default function OverviewPage() {
   return (
     <Card>
       <CardContent className="p-8">
