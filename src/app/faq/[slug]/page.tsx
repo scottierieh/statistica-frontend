@@ -42,23 +42,27 @@ export default function FaqArticlePage() {
 
     // Effect to scrape headers and build the table of contents
     useEffect(() => {
-        if (articleRef.current) {
-            const headingElements = Array.from(articleRef.current.querySelectorAll('h2, h3'));
-            const newSections: Section[] = headingElements.map((el) => {
-                const label = el.textContent || '';
-                const id = el.id || slugToKebabCase(label);
-                if (!el.id) {
-                    el.id = id; // Ensure headers have an ID for scrolling and observation
-                }
-                return {
-                    id,
-                    label,
-                    level: parseInt(el.tagName.substring(1), 10),
-                };
-            });
-            setSections(newSections);
-        }
-    }, [ActiveComponent]); // Rerun when the component changes
+        setSections([]); // Reset on component change
+        const timeoutId = setTimeout(() => {
+            if (articleRef.current) {
+                const headingElements = Array.from(articleRef.current.querySelectorAll('h2, h3'));
+                const newSections: Section[] = headingElements.map((el) => {
+                    const label = el.textContent || '';
+                    const id = el.id || slugToKebabCase(label);
+                    if (!el.id) {
+                        el.id = id; // Ensure headers have an ID
+                    }
+                    return {
+                        id,
+                        label,
+                        level: parseInt(el.tagName.substring(1), 10),
+                    };
+                });
+                setSections(newSections);
+            }
+        }, 100); // Delay to allow component to render
+        return () => clearTimeout(timeoutId);
+    }, [ActiveComponent]);
 
     // Effect for intersection observer to highlight active section
     useEffect(() => {
@@ -107,15 +111,15 @@ export default function FaqArticlePage() {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.2 }}
         >
-            <div className="grid lg:grid-cols-[1fr_280px] gap-8">
-                <div ref={articleRef} className="min-w-0">
+            <div className="flex flex-row items-start gap-8">
+                <div ref={articleRef} className="flex-1 min-w-0">
                     <React.Suspense fallback={<div>Loading...</div>}>
                         <ActiveComponent />
                     </React.Suspense>
                 </div>
                 
                 {sections.length > 0 && (
-                    <aside className="hidden lg:block">
+                    <aside className="hidden lg:block w-[280px] shrink-0">
                       <div className="sticky top-24">
                         <Card>
                             <CardContent className="p-4">
@@ -128,10 +132,10 @@ export default function FaqArticlePage() {
                                             key={section.id}
                                             onClick={() => scrollToSection(section.id)}
                                             className={cn(
-                                                "block w-full text-left text-sm py-2 px-3 rounded transition-colors",
+                                                "block w-full text-left text-sm py-2 px-3 rounded-md transition-colors",
                                                 activeSection === section.id
                                                     ? 'text-primary font-medium bg-primary/10 border-l-2 border-primary'
-                                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
                                                 section.level === 3 && "pl-6" // Indent h3
                                             )}
                                         >
