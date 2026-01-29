@@ -19,15 +19,7 @@ import {
   BrainCircuit,
   Database,
 } from 'lucide-react';
-import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
-
-const SECTIONS: Section[] = [
-    { id: 'what-is', label: 'What is Standard Analysis?', level: 2 },
-    { id: 'comparison', label: 'What You Can Do', level: 2 },
-    { id: 'when-to-use', label: 'When to Use', level: 2 },
-    { id: 'key-features', label: 'Key Features', level: 2 },
-    { id: 'how-it-works', label: 'How It Works: 6-Step Process', level: 2 },
-];
+import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
 
 const ANALYSIS_STEPS = [
     { id: 1, label: 'Data', icon: Database },
@@ -63,7 +55,7 @@ const KEY_FEATURES = [
 
 export default function OverviewPage() {
   return (
-    <FaqArticleLayout tocItems={SECTIONS}>
+    <FaqArticleLayout>
         <article className="prose prose-slate max-w-none">
         {/* HEADER */}
         <div className="mb-8">
@@ -86,7 +78,7 @@ export default function OverviewPage() {
 
         {/* WHAT IS */}
         <section id="what-is" className="scroll-mt-24 mb-16">
-            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <h2 id="what-is" className="text-3xl font-bold mb-6 flex items-center gap-3">
             <BookOpen className="w-7 h-7 text-primary" />
             What is Standard Analysis?
             </h2>
@@ -115,7 +107,7 @@ export default function OverviewPage() {
 
         {/* WHAT YOU CAN DO */}
         <section id="comparison" className="scroll-mt-24 mb-16 border-t pt-12">
-            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <h2 id="comparison" className="text-3xl font-bold mb-6 flex items-center gap-3">
             <TrendingUp className="w-7 h-7 text-primary" />
             What You Can Do
             </h2>
@@ -124,7 +116,7 @@ export default function OverviewPage() {
 
         {/* WHEN TO USE */}
         <section id="when-to-use" className="scroll-mt-24 mb-16 border-t pt-12">
-            <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
+            <h2 id="when-to-use" className="text-3xl font-bold mb-4 flex items-center gap-3">
             <HelpCircle className="w-7 h-7 text-primary" />
             When to Use
             </h2>
@@ -173,7 +165,7 @@ export default function OverviewPage() {
 
         {/* KEY FEATURES */}
         <section id="key-features" className="scroll-mt-24 mb-16 border-t pt-12">
-            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <h2 id="key-features" className="text-3xl font-bold mb-6 flex items-center gap-3">
             <Info className="w-7 h-7 text-primary" />
             Key Features
             </h2>
@@ -202,7 +194,7 @@ export default function OverviewPage() {
 
         {/* HOW IT WORKS */}
         <section id="how-it-works" className="scroll-mt-24 mb-16 border-t pt-12">
-            <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
+            <h2 id="how-it-works" className="text-3xl font-bold mb-4 flex items-center gap-3">
             <Settings2 className="w-7 h-7 text-primary" />
             How It Works: 6-Step Process
             </h2>

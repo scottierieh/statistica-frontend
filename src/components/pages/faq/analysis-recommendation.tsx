@@ -1,18 +1,11 @@
 'use client';
 
 import { Bot, Sparkles, CheckCircle2, BookOpen, Info, HelpCircle, Target, Layers, Lightbulb, Database, Settings2, FileSearch } from 'lucide-react';
-import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
-
-const SECTIONS: Section[] = [
-    { id: 'what-is', label: 'What is Recommendation?', level: 2 },
-    { id: 'what-you-can-do', label: 'What You Can Do', level: 2 },
-    { id: 'when-to-use', label: 'When to Use', level: 2 },
-    { id: 'how-it-works', label: 'How It Works', level: 2 },
-];
+import FaqArticleLayout from '@/components/faq/FaqArticleLayout';
 
 export default function AnalysisRecommendationPage() {
   return (
-    <FaqArticleLayout tocItems={SECTIONS}>
+    <FaqArticleLayout>
         <article className="prose prose-slate max-w-none">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold mb-2">Recommendation</h1>
@@ -33,7 +26,7 @@ export default function AnalysisRecommendationPage() {
             </div>
 
             <section id="what-is" className="scroll-mt-24 mb-16">
-                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                <h2 id="what-is" className="text-3xl font-bold mb-6 flex items-center gap-3">
                 <BookOpen className="w-7 h-7 text-primary" />
                 What is Recommendation?
                 </h2>
@@ -51,7 +44,7 @@ export default function AnalysisRecommendationPage() {
             </section>
 
             <section id="what-you-can-do" className="scroll-mt-24 mb-16 border-t pt-12">
-                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                <h2 id="what-you-can-do" className="text-3xl font-bold mb-6 flex items-center gap-3">
                 <Sparkles className="w-7 h-7 text-primary" />
                 What You Can Do
                 </h2>
@@ -59,7 +52,7 @@ export default function AnalysisRecommendationPage() {
             </section>
 
             <section id="when-to-use" className="scroll-mt-24 mb-16 border-t pt-12">
-                <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
+                <h2 id="when-to-use" className="text-3xl font-bold mb-4 flex items-center gap-3">
                 <HelpCircle className="w-7 h-7 text-primary" />
                 When to Use
                 </h2>
@@ -81,7 +74,7 @@ export default function AnalysisRecommendationPage() {
             </section>
 
             <section id="how-it-works" className="scroll-mt-24 mb-16 border-t pt-12">
-                <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
+                <h2 id="how-it-works" className="text-3xl font-bold mb-4 flex items-center gap-3">
                 <Bot className="w-7 h-7 text-primary" />
                 How It Works: 3-Step Process
                 </h2>
