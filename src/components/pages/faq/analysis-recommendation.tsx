@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Bot, Sparkles, CheckCircle2, BookOpen, Info, HelpCircle, Target, Layers, Lightbulb, Database, Settings2, FileSearch } from 'lucide-react';
 
 export default function AnalysisRecommendationPage() {
