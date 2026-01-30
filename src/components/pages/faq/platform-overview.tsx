@@ -25,6 +25,8 @@ import {
   Wand2,
   Bot,
   Sparkles,
+  FileText,
+  Code,
 } from 'lucide-react';
 import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -245,13 +247,31 @@ export default function PlatformOverviewPage() {
                         Confused by a term like "p-value" or "coefficient"? Click the help icon next to any statistical term for a simple, clear definition.
                     </p>
                 </div>
-                <div className="p-6 rounded-lg border bg-background col-span-1 md:col-span-2">
+                <div className="p-6 rounded-lg border bg-background">
                     <div className="flex items-center gap-3 mb-3">
                         <Bot className="w-6 h-6 text-primary" />
                         <h4 className="font-semibold text-lg">AI Chat for Results Interpretation</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
                         After running an analysis, chat with our AI assistant. Ask questions about your results in plain language and get expert-level explanations instantly.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <FileText className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">Publication-Ready Reports</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Download complete analysis results as formatted Word documents (.docx), including APA-style text, tables, and high-resolution charts.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Code className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">Reproducible Python Code</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Export the exact Python code used for your analysis. Perfect for assignments, peer review, or customizing in your own environment.
                     </p>
                 </div>
             </div>
