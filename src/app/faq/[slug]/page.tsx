@@ -16,8 +16,7 @@ const FaqComponents: Record<string, React.ComponentType> = {
   // Getting Started
   'sign-up': React.lazy(() => import('@/components/pages/faq/sign-up')),
   'login': React.lazy(() => import('@/components/pages/faq/login')),
-  'pricing-billing': React.lazy(() => import('@/components/pages/faq/pricing-billing')),
-
+  
   // Workspace Basics
   'dashboard-overview': React.lazy(() => import('@/components/pages/faq/dashboard-overview')),
   'projects-datasets': React.lazy(() => import('@/components/pages/faq/projects-datasets')),
@@ -40,7 +39,7 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical-analysis/running-an-analysis')),
   'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical-analysis/understanding-results')),
   'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/statistical-analysis/exporting-and-sharing')),
-  'guide-terminology': React.lazy(() => import('@/components/pages/faq/guide-terminology')),
+  'guide-terminology': React.lazy(() => import('@/components/pages/faq/statistical-analysis/guide-terminology')),
 
   // Strategic Decision Analysis
   'strategic-overview': React.lazy(() => import('@/components/pages/faq/strategic-overview')),
@@ -62,9 +61,15 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'effect-size': React.lazy(() => import('@/components/pages/faq/effect-size')),
   'practical-implications': React.lazy(() => import('@/components/pages/faq/practical-implications')),
   
-  // Account & Settings
+  // Settings
   'profile-management': React.lazy(() => import('@/components/pages/faq/profile-management')),
+  'payment-settings': React.lazy(() => import('@/components/pages/faq/settings/payment-settings')),
   'security-data-policy': React.lazy(() => import('@/components/pages/faq/security-data-policy')),
+
+  // Subscription & Plans
+  'plan-features': React.lazy(() => import('@/components/pages/faq/subscription-plans/plan-features')),
+  'change-plan': React.lazy(() => import('@/components/pages/faq/subscription-plans/change-plan')),
+  'refund-policy': React.lazy(() => import('@/components/pages/faq/subscription-plans/refund-policy')),
 
   // Troubleshooting
   'common-errors': React.lazy(() => import('@/components/pages/faq/troubleshooting/common-errors')),

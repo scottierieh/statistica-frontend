@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-    BookOpen, Rocket, LayoutDashboard, Wrench, Sigma, Target, Network, Lightbulb, UserCircle, HelpCircle, LucideIcon 
+    BookOpen, Rocket, LayoutDashboard, Wrench, Sigma, Target, Network, Lightbulb, HelpCircle, LucideIcon, Settings, CreditCard 
 } from 'lucide-react';
 
 export interface FaqArticle {
@@ -27,7 +27,6 @@ export const faqData: FaqCategory[] = [
         articles: [
             { slug: "platform-overview", title: "Platform Overview", description: "A high-level look at what our platform does." },
             { slug: "login", title: "Sign Up & Login", description: "Creating and accessing your account." },
-            { slug: "pricing-billing", title: "Pricing & Billing", description: "Understanding our plans and managing your subscription." },
             { slug: "user-types", title: "User Types", description: "Understanding roles for analysts, students, and business users." },
             { slug: "end-to-end-workflow", title: "End-to-End Workflow", description: "From data upload to generating insights." }
         ]
@@ -113,13 +112,25 @@ export const faqData: FaqCategory[] = [
         ]
     },
     {
-        slug: "account-and-settings",
-        icon: UserCircle,
-        title: "Account & Settings",
-        description: "Manage your profile, billing, and security.",
+        slug: "settings",
+        icon: Settings,
+        title: "Settings",
+        description: "Manage your profile, security, and payment methods.",
         articles: [
-            { slug: "profile-management", title: "Profile Management", description: "Updating your personal information." },
+            { slug: "profile-management", title: "Account Settings", description: "Updating your personal information." },
+            { slug: "payment-settings", title: "Payment Settings", description: "Manage billing details and payment methods." },
             { slug: "security-data-policy", title: "Security & Data Policy", description: "Managing your security settings and our data policy." }
+        ]
+    },
+    {
+        slug: "subscription-plans",
+        icon: CreditCard,
+        title: "Subscription & Plans",
+        description: "Manage your subscription, change plans, and understand our policies.",
+        articles: [
+            { slug: "plan-features", title: "Plan Features", description: "Compare features across different subscription plans." },
+            { slug: "change-plan", title: "Change Plan", description: "How to upgrade, downgrade, or cancel your plan." },
+            { slug: "refund-policy", title: "Refund Policy", description: "Our policy on refunds and credits." }
         ]
     },
     {
