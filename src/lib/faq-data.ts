@@ -55,10 +55,10 @@ export const faqData: FaqCategory[] = [
     {
         slug: "data-preparation",
         icon: Wrench,
-        title: "Data Preparation",
+        title: "DataPrep",
         description: "Cleaning and preparing your data for analysis.",
         articles: [
-            { slug: "data-prep-overview", title: "Overview - What is Data Editing?", description: "An introduction to the Data Preparation tool." },
+            { slug: "data-prep-overview", title: "DataPrep Overview", description: "An introduction to the Data Preparation tool." },
             { slug: "data-prep-loading", title: "Loading Data", description: "How to upload and import your datasets." },
             { slug: "data-prep-editing", title: "Editing Data", description: "Manipulating rows, columns, and cells." },
             { slug: "data-prep-cleaning", title: "Cleaning Data", description: "Handling duplicates and missing values." },
@@ -70,7 +70,7 @@ export const faqData: FaqCategory[] = [
     {
         slug: "statistical-analysis",
         icon: Sigma,
-        title: "Statistical Analysis",
+        title: "Standard Analysis",
         description: "Learn how to use the Standard Analysis tool from start to finish.",
         articles: [
             { slug: "overview", title: "Overview", description: "What is Standard Analysis and when should you use it?" },
@@ -100,7 +100,7 @@ export const faqData: FaqCategory[] = [
     {
         slug: "sem",
         icon: Network,
-        title: "Structural Equation Modeling (SEM)",
+        title: "Structural Equation Modeling",
         description: "Model complex, multi-variable relationships.",
         articles: [
             { slug: "sem-overview", title: "Overview", description: "What is SEM and when to use it." },
