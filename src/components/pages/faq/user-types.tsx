@@ -10,13 +10,14 @@ import {
   BarChart3,
   FileText,
   Target,
+  Sigma
 } from 'lucide-react';
 import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 
 const SECTIONS: Section[] = [
-  { id: "what-are-user-types", label: "What are User Types?", level: 2 },
+  { id: "what-is-user-types", label: "What are User Types?", level: 2 },
   { id: "data-analyst", label: "Data Analyst", level: 2 },
-  { id: "student-researcher", label: "Student & Researcher", level: 2 },
+  { id: "student-researcher", label: "Student & Learner", level: 2 },
   { id: "business-user", label: "Business User & Decision Maker", level: 2 },
 ];
 
@@ -33,7 +34,7 @@ export default function UserTypesPage() {
         </div>
 
         {/* WHAT ARE USER TYPES */}
-        <section id="what-are-user-types" className="scroll-mt-24 mb-16">
+        <section id="what-is-user-types" className="scroll-mt-24 mb-16">
             <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
             <BookOpen className="w-7 h-7 text-primary" />
             What are User Types?
@@ -96,21 +97,39 @@ export default function UserTypesPage() {
             </div>
         </section>
 
-        {/* STUDENT & RESEARCHER */}
+        {/* STUDENT & LEARNER */}
         <section id="student-researcher" className="scroll-mt-24 mb-16 border-t pt-12">
             <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
             <GraduationCap className="w-7 h-7 text-primary" />
-            Student & Researcher
+            Student & Learner
             </h2>
             
             <div className="space-y-6">
               <p className="text-base text-muted-foreground leading-relaxed">
-                For students and academics who need a reliable tool for coursework, dissertations, and research publications.
+                For students, researchers, and anyone eager to learn statistics. Our platform provides reliable tools for academic work and guided learning experiences.
               </p>
 
               <div>
                 <h3 className="text-xl font-semibold mb-4">Key Benefits</h3>
                 <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Sigma className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Explore Statistical Methods with Examples</p>
+                      <p className="text-sm text-muted-foreground">
+                        Use <strong>Standard Analysis</strong> with pre-loaded example datasets to see how different tests work, what the results look like, and how to interpret them in practice.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Learn Strategic Business Applications</p>
+                      <p className="text-sm text-muted-foreground">
+                        Explore the <strong>Strategic Decision</strong> modules and their built-in guides to understand how statistical optimization is applied to solve real-world business problems.
+                      </p>
+                    </div>
+                  </div>
                   <div className="flex items-start gap-3">
                     <BookOpen className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
