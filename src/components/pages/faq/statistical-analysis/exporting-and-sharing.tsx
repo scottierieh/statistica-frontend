@@ -32,7 +32,7 @@ export default function ExportSharingOverviewPage() {
         <article className="prose prose-slate max-w-none">
         {/* HEADER */}
         <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Overview</h1>
+            <h1 className="text-4xl font-bold mb-2">Export & Sharing</h1>
             <p className="text-lg text-muted-foreground">
             Exporting and sharing your analysis results
             </p>

@@ -72,7 +72,8 @@ export const faqData: FaqCategory[] = [
         description: "Learn how to use the Standard Analysis tool from start to finish.",
         articles: [
             { slug: "overview", title: "Overview", description: "What is Standard Analysis and when should you use it?" },
-            { slug: "analysis-recommendation", title: "Analysis Categories", description: "Browse the different types of available analyses." },
+            { slug: "analysis-categories", title: "Analysis Categories", description: "Browse the different types of available analyses." },
+            { slug: "analysis-recommendation", title: "AI Analysis Recommendation", description: "Get AI-powered suggestions for which analysis to run." },
             { slug: "data-preparation", title: "Data Requirements", description: "How to upload and prepare your data for analysis." },
             { slug: "running-an-analysis", title: "Running an Analysis", description: "A step-by-step guide to configuring and executing analyses." },
             { slug: "understanding-results", title: "Understanding Results", description: "How to interpret the three layers of results: Summary, Reasoning, and Statistics." },
