@@ -32,17 +32,6 @@ export const faqData: FaqCategory[] = [
         ]
     },
     {
-        slug: "workspace-basics",
-        icon: LayoutDashboard,
-        title: "Workspace Basics",
-        description: "Navigating your dashboard and managing data.",
-        articles: [
-            { slug: "dashboard-overview", title: "Dashboard Overview", description: "Navigating the main dashboard and tools." },
-            { slug: "projects-datasets", title: "Projects & Datasets", description: "Organizing your work and data files." },
-            { slug: "data-upload", title: "Data Upload", description: "How to upload and manage your data." }
-        ]
-    },
-    {
         slug: "data-preparation",
         icon: Wrench,
         title: "DataPrep",
@@ -98,17 +87,6 @@ export const faqData: FaqCategory[] = [
             { slug: "model-estimation", title: "Model Estimation", description: "Understanding estimators like ML, GLS, and WLS." },
             { slug: "sem-result-interpretation", title: "Result Interpretation", description: "Making sense of fit indices and path coefficients." },
             { slug: "sem-model-diagnostics", title: "Model Diagnostics", description: "Checking for model fit and potential issues." }
-        ]
-    },
-    {
-        slug: "results-interpretation-guide",
-        icon: Lightbulb,
-        title: "Results Interpretation Guide",
-        description: "Deep dive into understanding statistical outputs.",
-        articles: [
-            { slug: "statistical-significance", title: "Statistical Significance", description: "Understanding p-values and their meaning." },
-            { slug: "effect-size", title: "Effect Size", description: "Gauging the magnitude and importance of your findings." },
-            { slug: "practical-implications", title: "Practical Implications", description: "Translating results into real-world actions." }
         ]
     },
     {
