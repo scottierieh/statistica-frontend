@@ -75,7 +75,7 @@ export default function StandardAnalysisOverviewPage() {
         <article className="prose prose-slate max-w-none">
         {/* HEADER */}
         <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Overview</h1>
+            <h1 id="overview" className="text-4xl font-bold mb-2">Overview</h1>
             <p className="text-lg text-muted-foreground">
             Understanding Standard Analysis and when to use it
             </p>
@@ -448,11 +448,11 @@ export default function StandardAnalysisOverviewPage() {
                 key={step.id}
                 className="p-4 rounded-lg border bg-background"
                 >
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
                     {step.id}
                     </div>
-                    <step.icon className="w-5 h-5 text-primary" />
+                    <step.icon className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <p className="font-medium text-sm mb-1">{step.label}</p>
                 <p className="text-xs text-muted-foreground">{step.description}</p>
@@ -462,7 +462,7 @@ export default function StandardAnalysisOverviewPage() {
 
             <div className="p-5 bg-primary/5 border-l-4 border-primary rounded">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Want more details?</strong> Each step has its own dedicated guide explaining exactly how to select variables, configure settings, interpret validation results, and understand your outputs.
+                <strong className="text-foreground">What happens next?</strong> Use the recommendations as a guide to select the appropriate analysis from Standard Analysis. The AI tells you which methods fit your data, then you can run those analyses with full control over settings and parameters.
               </p>
             </div>
         </section>
