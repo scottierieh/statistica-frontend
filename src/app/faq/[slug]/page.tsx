@@ -33,6 +33,7 @@ const FaqComponents: Record<string, React.ComponentType> = {
   // Statistical Analysis
   'overview': React.lazy(() => import('@/components/pages/faq/statistical-analysis/overview-page')),
   'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/statistical-analysis/analysis-recommendation')),
+  'analysis-categories': React.lazy(() => import('@/components/pages/faq/statistical-analysis/analysis-categories')),
   'data-preparation': React.lazy(() => import('@/components/pages/faq/statistical-analysis/data-preparation')),
   'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical-analysis/running-an-analysis')),
   'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical-analysis/understanding-results')),
