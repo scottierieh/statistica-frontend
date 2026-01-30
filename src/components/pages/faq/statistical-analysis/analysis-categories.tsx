@@ -11,7 +11,9 @@ import {
   Calendar,
   Sparkles,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle,
+  BookOpen
 } from 'lucide-react';
 import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 
@@ -19,56 +21,56 @@ const ANALYSIS_CATEGORIES_DATA = [
   {
       icon: BarChart3,
       title: "Descriptive",
-      description: "Summarize and describe your data without making inferences.",
-      includes: "Frequency tables, descriptive statistics, distributions."
+      description: "Summarize and describe your data's main features without making inferences about the broader population.",
+      includes: "Frequency tables, descriptive statistics (mean, median, std dev), and data distributions."
   },
   {
       icon: CheckCircle2,
       title: "Assumptions",
-      description: "Test whether your data meets requirements for other analyses.",
-      includes: "Normality tests, homogeneity of variance, independence checks."
+      description: "Test whether your data meets the underlying requirements for specific parametric statistical tests.",
+      includes: "Normality tests (Shapiro-Wilk), homogeneity of variance (Levene's), linearity checks, and outlier detection."
   },
   {
       icon: Users,
       title: "Comparison",
-      description: "Compare means, medians, or distributions between groups.",
-      includes: "t-tests, ANOVA, Mann-Whitney U, Kruskal-Wallis, Chi-Square."
+      description: "Compare the means, medians, or distributions of two or more groups to see if they are significantly different.",
+      includes: "t-tests, ANOVA, Mann-Whitney U, Kruskal-Wallis, Chi-Square tests."
   },
   {
       icon: TrendingUp,
       title: "Relationship",
-      description: "Examine associations and relationships between variables.",
-      includes: "Correlation, regression, chi-square test of independence."
+      description: "Examine the associations, correlations, and predictive relationships between two or more variables.",
+      includes: "Correlation analysis (Pearson, Spearman), and various regression models (Linear, Logistic, Polynomial)."
   },
   {
       icon: Target,
       title: "Predictive",
-      description: "Build models to predict outcomes or classify observations.",
-      includes: "Linear/logistic regression, decision trees, random forests."
+      description: "Build models to predict future outcomes or classify observations into different categories based on predictor variables.",
+      includes: "Linear/logistic regression, discriminant analysis, decision trees, and survival analysis."
   },
   {
       icon: Database,
       title: "Econometrics",
-      description: "Specialized methods for economic and panel data analysis.",
-      includes: "Fixed effects, instrumental variables, difference-in-differences."
+      description: "Utilize specialized methods for economic and panel data analysis, accounting for time and individual effects.",
+      includes: "Fixed/Random effects models, Instrumental Variables (IV), Difference-in-Differences (DID), and spatial models (SAR, SEM)."
   },
   {
       icon: Layers,
       title: "Structural",
-      description: "Model complex relationships and latent variables.",
-      includes: "Factor analysis, SEM, path analysis, confirmatory factor analysis."
+      description: "Model complex, unobservable (latent) variables and their causal relationships.",
+      includes: "Factor Analysis (EFA, PCA), Path Analysis, Mediation, Moderation, and full Structural Equation Modeling (SEM)."
   },
   {
       icon: Sparkles,
       title: "Clustering",
-      description: "Discover natural groups or patterns in your data.",
-      includes: "K-means, hierarchical clustering, DBSCAN."
+      description: "Discover natural groupings or segments in your data without pre-defined labels.",
+      includes: "K-Means, Hierarchical Clustering (HCA), and density-based methods like DBSCAN."
   },
   {
       icon: Calendar,
       title: "Time Series",
-      description: "Analyze temporal patterns and forecast future values.",
-      includes: "ARIMA, exponential smoothing, trend analysis."
+      description: "Analyze temporal data to identify trends, seasonality, and forecast future values.",
+      includes: "Trend analysis, seasonal decomposition, ARIMA, and exponential smoothing."
   }
 ];
 
@@ -90,10 +92,22 @@ export default function AnalysisCategoriesPage() {
             </p>
         </div>
 
+        {/* INTRO QUOTE */}
+        <div className="mb-12 pb-8 border-b">
+            <blockquote className="border-l-4 border-primary pl-6 py-2">
+            <p className="text-xl italic leading-relaxed text-foreground mb-3">
+                "Instead of searching through a long list of tests, you can browse analyses based on your research goal—whether it's comparing groups, finding relationships, or predicting outcomes."
+            </p>
+            <p className="text-base text-muted-foreground font-medium not-italic">
+                Navigate by objective, not by name.
+            </p>
+            </blockquote>
+        </div>
+
         {/* WHAT ARE CATEGORIES */}
         <section id="what-are-categories" className="scroll-mt-24 mb-16">
             <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <Layers className="w-7 h-7 text-primary" />
+            <BookOpen className="w-7 h-7 text-primary" />
             What are Analysis Categories?
             </h2>
 
@@ -119,7 +133,7 @@ export default function AnalysisCategoriesPage() {
             </p>
             
             <div className="space-y-4">
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                   1
                 </div>
@@ -130,7 +144,7 @@ export default function AnalysisCategoriesPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                   2
                 </div>
@@ -141,7 +155,7 @@ export default function AnalysisCategoriesPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                   3
                 </div>
