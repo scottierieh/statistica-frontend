@@ -29,7 +29,7 @@ export default function FaqLayout({
   children: React.ReactNode
 }) {
     const pathname = usePathname();
-    const [openCategories, setOpenCategories] = useState<string[]>(faqData.map(c => c.slug));
+    const [openCategories, setOpenCategories] = useState<string[]>(['introduction']);
     const [searchTerm, setSearchTerm] = useState('');
 
     const toggleCategory = (category: string) => {
