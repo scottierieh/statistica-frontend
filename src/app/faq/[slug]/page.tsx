@@ -31,12 +31,12 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'data-validation': React.lazy(() => import('@/components/pages/faq/data-validation')),
 
   // Statistical Analysis
-  'overview': React.lazy(() => import('@/components/pages/faq/statistical analysis/overview-page')),
-  'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/statistical analysis/analysis-recommendation')),
-  'data-preparation': React.lazy(() => import('@/components/pages/faq/statistical analysis/data-preparation')),
-  'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical analysis/running-an-analysis')),
-  'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical analysis/understanding-results')),
-  'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/statistical analysis/exporting-and-sharing')),
+  'overview': React.lazy(() => import('@/components/pages/faq/statistical-analysis/overview-page')),
+  'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/statistical-analysis/analysis-recommendation')),
+  'data-preparation': React.lazy(() => import('@/components/pages/faq/statistical-analysis/data-preparation')),
+  'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical-analysis/running-an-analysis')),
+  'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical-analysis/understanding-results')),
+  'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/statistical-analysis/exporting-and-sharing')),
   'guide-terminology': React.lazy(() => import('@/components/pages/faq/guide-terminology')),
 
   // Strategic Decision Analysis
@@ -64,9 +64,9 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'security-data-policy': React.lazy(() => import('@/components/pages/faq/security-data-policy')),
 
   // Troubleshooting
-  'common-errors': React.lazy(() => import('@/components/pages/faq/common-errors')),
-  'data-issues': React.lazy(() => import('@/components/pages/faq/data-issues')),
-  'billing-issues': React.lazy(() => import('@/components/pages/faq/billing-issues')),
+  'common-errors': React.lazy(() => import('@/components/pages/faq/troubleshooting/common-errors')),
+  'data-issues': React.lazy(() => import('@/components/pages/faq/troubleshooting/data-issues')),
+  'billing-issues': React.lazy(() => import('@/components/pages/faq/troubleshooting/billing-issues')),
 };
 
 const LoadingSkeleton = () => (

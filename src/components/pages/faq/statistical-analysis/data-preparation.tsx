@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -88,7 +89,7 @@ export default function DataPreparationOverviewPage() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-semibold mb-4">Supported File Formats</h3>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   {SUPPORTED_FORMATS.map((format, index) => (
                     <div key={index} className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
                       <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
@@ -121,7 +122,7 @@ export default function DataPreparationOverviewPage() {
                     </div>
                     <div>
                       <p className="font-medium">Select your file from your computer</p>
-                      <p className="text-sm text-muted-foreground">Choose a CSV or Excel file with your business data</p>
+                      <p className="text-sm text-muted-foreground">Choose a CSV or Excel file</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -130,7 +131,7 @@ export default function DataPreparationOverviewPage() {
                     </div>
                     <div>
                       <p className="font-medium">Wait for the upload to complete</p>
-                      <p className="text-sm text-muted-foreground">You'll see a preview of your data once it's loaded and proceed to configuration</p>
+                      <p className="text-sm text-muted-foreground">You'll see a preview of your data once it's loaded</p>
                     </div>
                   </div>
                 </div>
@@ -140,13 +141,12 @@ export default function DataPreparationOverviewPage() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-amber-800 dark:text-amber-200 mb-1">File Upload Tips for Strategic Analyses</p>
+                    <p className="font-semibold text-amber-800 dark:text-amber-200 mb-1">File Upload Tips</p>
                     <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
-                      <li>• Include all relevant business fields (customer ID, dates, amounts, categories)</li>
-                      <li>• Use column headers that clearly describe the data (e.g., "customer_id", "purchase_date", "revenue")</li>
-                      <li>• Ensure dates are in consistent format (YYYY-MM-DD preferred)</li>
-                      <li>• Keep numeric fields clean (no currency symbols or commas in numbers)</li>
-                      <li>• File sizes under 50MB work best for optimal performance</li>
+                      <li>• Make sure your data has column headers in the first row</li>
+                      <li>• Avoid special characters in column names</li>
+                      <li>• Keep file sizes under 50MB for optimal performance</li>
+                      <li>• Use consistent data formats within each column</li>
                     </ul>
                   </div>
                 </div>
@@ -254,7 +254,7 @@ export default function DataPreparationOverviewPage() {
             
             <div className="space-y-6">
               <p className="text-base text-muted-foreground leading-relaxed">
-                Don't have your own data yet? No problem! Each strategic analysis comes with a <strong className="text-foreground">tailored example dataset</strong> that demonstrates exactly how that analysis works with realistic business data.
+                Don't have your own data yet? No problem! We provide several curated example datasets that you can use to explore different analyses and learn how the platform works.
               </p>
 
               <div>
@@ -263,29 +263,22 @@ export default function DataPreparationOverviewPage() {
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium">Learn how each analysis works</p>
-                      <p className="text-sm text-muted-foreground">See real business scenarios like customer churn, marketing optimization, or inventory planning</p>
+                      <p className="font-medium">Learn without risk</p>
+                      <p className="text-sm text-muted-foreground">Practice analyses on clean, well-structured data before using your own</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium">Understand data requirements</p>
-                      <p className="text-sm text-muted-foreground">See exactly what columns and formats each analysis expects</p>
+                      <p className="font-medium">Understand different data structures</p>
+                      <p className="text-sm text-muted-foreground">See examples of numeric vs categorical variables, different sample sizes, etc.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium">Explore safely before using your data</p>
-                      <p className="text-sm text-muted-foreground">Test different settings and configurations without risking your actual business data</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Get inspired for your own analysis</p>
-                      <p className="text-sm text-muted-foreground">See how insights are generated and adapt the approach to your business</p>
+                      <p className="font-medium">Test specific analyses</p>
+                      <p className="text-sm text-muted-foreground">Each example dataset is suited for certain types of statistical tests</p>
                     </div>
                   </div>
                 </div>
@@ -295,14 +288,14 @@ export default function DataPreparationOverviewPage() {
                 <h3 className="text-xl font-semibold mb-4">How to Load Example Data</h3>
                 <div className="p-4 bg-muted/30 rounded-lg">
                   <p className="text-sm text-muted-foreground mb-3">
-                    On each analysis intro page, look for the <strong className="text-foreground">"Load Sample Data"</strong> button. Click it to instantly load a dataset specifically designed for that analysis. The example data is pre-configured with realistic values and the right column structure.
+                    Look for the "Load Example Dataset" button or dropdown menu. Select from options like:
                   </p>
-                  <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded">
-                    <Lightbulb className="w-4 h-4 text-primary flex-shrink-0" />
-                    <p className="text-xs text-muted-foreground">
-                      After loading sample data, the analysis will automatically move to the configuration step with appropriate default settings already selected.
-                    </p>
-                  </div>
+                  <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                    <li>• <strong className="text-foreground">Iris Dataset:</strong> Classic dataset for classification and clustering</li>
+                    <li>• <strong className="text-foreground">Tips Dataset:</strong> Restaurant tipping data for regression analysis</li>
+                    <li>• <strong className="text-foreground">Titanic Dataset:</strong> Survival data for logistic regression</li>
+                    <li>• And more depending on what you're learning</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -396,7 +389,7 @@ export default function DataPreparationOverviewPage() {
             
             <div className="space-y-6">
               <p className="text-base text-muted-foreground leading-relaxed">
-                Strategic analyses have specific data requirements depending on the business domain and analysis type. While requirements vary by analysis, here are general guidelines.
+                To ensure your analyses run smoothly, your data should meet certain basic requirements.
               </p>
 
               <div>
@@ -406,21 +399,21 @@ export default function DataPreparationOverviewPage() {
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium">Column headers required</p>
-                      <p className="text-sm text-muted-foreground">First row should contain clear, descriptive column names</p>
+                      <p className="text-sm text-muted-foreground">First row should contain variable names (e.g., "Age", "Gender", "Score")</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium">Minimum sample size</p>
-                      <p className="text-sm text-muted-foreground">Most analyses require at least 50-100 records for reliable results (varies by analysis)</p>
+                      <p className="text-sm text-muted-foreground">Most analyses require at least 5-10 observations, though more is better for reliable results</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium">Required business fields</p>
-                      <p className="text-sm text-muted-foreground">Each analysis specifies which columns it needs (e.g., customer ID, date, revenue)</p>
+                      <p className="font-medium">At least one variable</p>
+                      <p className="text-sm text-muted-foreground">You need at least one column to analyze, though most analyses require 2+ variables</p>
                     </div>
                   </div>
                 </div>
@@ -432,11 +425,11 @@ export default function DataPreparationOverviewPage() {
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-primary font-bold">•</span>
-                      <span>Use snake_case or camelCase for column names (e.g., customer_id or customerId)</span>
+                      <span>Use clear, descriptive column names without special characters</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary font-bold">•</span>
-                      <span>Keep data formats consistent within each column (all dates in same format, all numbers clean)</span>
+                      <span>Keep data formats consistent within each column (don't mix numbers and text)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary font-bold">•</span>
@@ -444,11 +437,7 @@ export default function DataPreparationOverviewPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary font-bold">•</span>
-                      <span>For date columns, use ISO format (YYYY-MM-DD) or consistent MM/DD/YYYY</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">•</span>
-                      <span>For numeric columns, remove currency symbols ($, €) and thousand separators (,)</span>
+                      <span>For CSV files, use standard comma delimiters</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary font-bold">•</span>
@@ -460,7 +449,7 @@ export default function DataPreparationOverviewPage() {
 
               <div className="p-5 bg-primary/5 border-l-4 border-primary rounded">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  <strong className="text-foreground">Note:</strong> Each strategic analysis has its own specific requirements. These are checked during the Validation step before running the analysis. If your data doesn't meet the requirements, you'll see clear error messages explaining what needs to be fixed.
+                  <strong className="text-foreground">Note:</strong> Different analyses have different requirements. For example, t-tests need at least two groups, regression needs numeric variables, etc. These specific requirements will be checked during the analysis validation step.
                 </p>
               </div>
             </div>
