@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -27,6 +28,8 @@ import {
   Sparkles,
   FileText,
   Code,
+  LayoutDashboard,
+  ArrowRight,
 } from 'lucide-react';
 import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,88 +41,82 @@ const CORE_MODULES: {
   status: 'beta' | 'coming_soon' | 'live';
   slug?: string;
 }[] = [
-  {
-    title: "Data Preparation",
-    description: "Refine and validate your raw data to ensure a reliable foundation.",
-    icon: Database,
-    status: 'beta',
-    slug: 'transformation-overview',
-  },
-  {
-    title: "Standard Analytics",
-    description: "Execute fundamental statistical tests to identify patterns.",
-    icon: Calculator,
-    status: 'beta',
-    slug: 'overview',
-  },
-  {
-    title: "Strategic Decision",
-    description: "Solve complex business problems with domain-specific optimization.",
-    icon: Target,
-    status: 'beta',
-    slug: 'strategic-overview',
-  },
-  {
-    title: "Structural Equation Modeling (SEM)",
-    description: "Build and estimate SEM models by uploading path diagram images.",
-    icon: Network,
-    status: 'beta',
-    slug: 'sem-overview',
-  },
-  {
-    title: "Visual Communication",
-    description: "Transform complex analytical results into clear visual narratives.",
-    icon: Presentation,
-    status: 'coming_soon',
-  },
-  {
-    title: "Integrated Assessment",
-    description: "Synthesize multi-dimensional data to evaluate overall performance.",
-    icon: Repeat,
-    status: 'coming_soon',
-  },
-  {
-    title: "Survey Tool",
-    description: "Create surveys and transform responses into statistical and decision-ready analyses.",
-    icon: ClipboardList,
-    status: 'coming_soon',
-  },
-  {
-    title: "Decision Analytics",
-    description: "Optimize decisions with linear, goal, and transportation programming.",
-    icon: Waypoints,
-    status: 'coming_soon',
-  },
-  {
-    title: "Derivatives Analysis",
-    description: "Tools for options pricing, greeks, and derivatives modeling.",
-    icon: DollarSign,
-    status: 'coming_soon',
-  },
-  {
-    title: "Continuous Monitoring",
-    description: "Establish real-time dashboards to track key metrics.",
-    icon: Monitor,
-    status: 'coming_soon',
-  },
-  {
-    title: "What-if Exploration",
-    description: "Simulate strategic alternatives and explore potential future scenarios.",
-    icon: FlaskConical,
-    status: 'coming_soon',
-  },
-  {
-    title: "Predictive Modeling",
-    description: "Leverage machine learning to forecast future trends.",
-    icon: BrainCircuit,
-    status: 'coming_soon',
-  },
+    {
+        title: "Scenario",
+        description: "Explore what-if scenarios and simulations.",
+        icon: FlaskConical,
+        status: 'live',
+        slug: '/dashboard/scenario',
+    },
+    {
+        title: "DataPrep",
+        description: "Clean, transform, and prepare your data.",
+        icon: Database,
+        status: 'live',
+        slug: '/dashboard/data-preprocessing',
+    },
+    {
+        title: "Visualization",
+        description: "Create insightful charts and graphs.",
+        icon: Presentation,
+        status: 'live',
+        slug: '/dashboard/visualization',
+    },
+    {
+        title: "Dashboards",
+        description: "Build and monitor custom business dashboards.",
+        icon: Monitor,
+        status: 'live',
+        slug: '/dashboard/dashboards',
+    },
+    {
+        title: "Team",
+        description: "Invite and manage team members.",
+        icon: Users,
+        status: 'live',
+        slug: '/dashboard/team',
+    },
+    {
+        title: "Decision Analytics",
+        description: "Optimize decisions with programming models.",
+        icon: Waypoints,
+        status: 'live',
+        slug: '/dashboard/optimization',
+    },
+    {
+        title: "Derivatives Analysis",
+        description: "Tools for options pricing and risk.",
+        icon: DollarSign,
+        status: 'live',
+        slug: '/dashboard/derivatives',
+    },
+    {
+        title: "SEM",
+        description: "Model complex structural equations.",
+        icon: Network,
+        status: 'live',
+        slug: '/dashboard/sem',
+    },
+    {
+        title: "Survey Tool",
+        description: "Coming soon...",
+        icon: ClipboardList,
+        status: 'coming_soon',
+    },
+    {
+        title: "Machine Learning",
+        description: "Coming soon...",
+        icon: BrainCircuit,
+        status: 'coming_soon',
+    },
 ];
 
 const SECTIONS: Section[] = [
   { id: 'introduction', label: 'Introduction', level: 2 },
-  { id: 'core-modules', label: 'Core Modules', level: 2 },
+  { id: 'workspace', label: 'The Workspace', level: 2},
+  { id: 'workspace-tools', label: 'Workspace Tools', level: 2 },
   { id: "why-skari", label: "Why It's Different", level: 2 },
+  { id: 'common-actions', label: 'Common Actions', level: 2},
   { id: 'getting-started', label: 'Getting Started', level: 2 },
 ];
 
@@ -153,7 +150,7 @@ const ModuleCard = ({
   );
 
   return isClickable ? (
-    <Link href={`/faq/${slug}`} className="block h-full no-underline">
+    <Link href={`${slug}`} className="block h-full no-underline">
       {cardContent}
     </Link>
   ) : (
@@ -188,8 +185,26 @@ export default function PlatformOverviewPage() {
           </div>
         </section>
 
-        <section id="core-modules" className="scroll-mt-24 mb-16 border-t pt-12">
-          <h2 className="text-3xl font-bold mb-6">Core Modules</h2>
+        <section id="workspace" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                <LayoutDashboard className="w-7 h-7 text-primary" />
+                The Workspace
+            </h2>
+            <div className="space-y-4 text-base text-muted-foreground leading-relaxed">
+                <p>
+                    The Workspace is the first screen you see after logging in. It's designed to be your <strong className="text-foreground">central hub</strong> or "mission control center" for all activities on the platform. From here, you can launch different analysis tools, manage your projects, and access account settings.
+                </p>
+                <p>
+                    Think of it as the main menu of a powerful software suite. Each tool is designed for a specific purpose, and the workspace provides a unified entry point to all of them.
+                </p>
+            </div>
+        </section>
+
+        <section id="workspace-tools" className="scroll-mt-24 mb-16 border-t pt-12">
+          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <Wrench className="w-7 h-7 text-primary" />
+            Workspace Tools
+          </h2>
           <p className="text-base text-muted-foreground leading-relaxed mb-8">
               Each module is a gateway to a specific set of tools. Click on any card to learn more about its features and use cases.
           </p>
@@ -203,7 +218,7 @@ export default function PlatformOverviewPage() {
         <section id="why-skari" className="scroll-mt-24 mb-16 border-t pt-12">
             <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                 <Sparkles className="w-7 h-7 text-primary" />
-                Why Skari is Different
+                Why It's Different
             </h2>
             <div className="space-y-4 text-base text-muted-foreground leading-relaxed">
                 <p>
@@ -286,6 +301,36 @@ export default function PlatformOverviewPage() {
             </div>
         </section>
 
+        <section id="common-actions" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                <HelpCircle className="w-7 h-7 text-primary" />
+                Common Actions
+            </h2>
+            <div className="space-y-4 text-base text-muted-foreground leading-relaxed">
+                <div className="flex items-start gap-4">
+                    <ArrowRight className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                        <h4 className="font-semibold text-foreground">Starting an Analysis</h4>
+                        <p>Simply click on one of the tool cards (e.g., "Scenario," "DataPrep," "Optimization") to launch that specific workspace.</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4">
+                    <ArrowRight className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                        <h4 className="font-semibold text-foreground">Managing Your Account</h4>
+                        <p>Click on your user icon in the top-right corner to access your profile, settings, and billing information, or to log out.</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4">
+                    <ArrowRight className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                        <h4 className="font-semibold text-foreground">Getting Help</h4>
+                        <p>The "Support" or "Help Center" links in the main navigation or user menu will take you to this documentation.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="getting-started" className="scroll-mt-24 mb-16 border-t pt-12">
           <h2 className="text-3xl font-bold mb-6">Getting Started</h2>
           <div className="text-base text-muted-foreground leading-relaxed">
@@ -293,9 +338,9 @@ export default function PlatformOverviewPage() {
               The best way to start is by selecting a module that aligns with your current goal.
             </p>
             <ul className="list-disc pl-5 space-y-2">
-              <li><strong>New to data analysis?</strong> Begin with <code className="bg-muted px-1.5 py-0.5 rounded-sm">Data Preparation</code> to clean your dataset, then move to <code className="bg-muted px-1.5 py-0.5 rounded-sm">Standard Analytics</code> to explore basic patterns.</li>
-              <li><strong>Have a specific business problem?</strong> Jump into <code className="bg-muted px-1.5 py-0.5 rounded-sm">Strategic Decision</code> or <code className="bg-muted px-1.5 py-0.5 rounded-sm">Decision Analytics</code> to find optimal solutions.</li>
-              <li><strong>Working with complex models?</strong> Use <code className="bg-muted px-1.5 py-0.5 rounded-sm">Structural Equation Modeling</code> for advanced causal analysis.</li>
+              <li><strong>New to data analysis?</strong> Begin with <code className="bg-muted px-1.5 py-0.5 rounded-sm">DataPrep</code> to clean your dataset, then move to an analysis tool.</li>
+              <li><strong>Have a specific business problem?</strong> Jump into <code className="bg-muted px-1.5 py-0.5 rounded-sm">Decision Analytics</code> to find optimal solutions.</li>
+              <li><strong>Working with complex models?</strong> Use <code className="bg-muted px-1.5 py-0.5 rounded-sm">SEM</code> for advanced causal analysis.</li>
             </ul>
           </div>
         </section>
