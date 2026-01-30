@@ -271,7 +271,16 @@ export default function PlatformOverviewPage() {
                         <h4 className="font-semibold text-lg">Reproducible Python Code</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        Export the exact Python code used for your analysis. Perfect for assignments, peer review, or customizing in your own environment.
+                        Export any analysis as clean, executable Python code to integrate into your existing data pipelines or for further customization.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Wrench className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">Integrated Data Preparation</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Clean, transform, handle missing values, and prepare your data for analysis without leaving the platform.
                     </p>
                 </div>
             </div>
