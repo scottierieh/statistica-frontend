@@ -17,6 +17,14 @@ import {
   FlaskConical,
   BrainCircuit,
   LucideIcon,
+  HelpCircle,
+  Settings,
+  Users,
+  Wrench,
+  Rocket,
+  Wand2,
+  Bot,
+  Sparkles,
 } from 'lucide-react';
 import FaqArticleLayout, { type Section } from '@/components/faq/FaqArticleLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,6 +117,7 @@ const CORE_MODULES: {
 const SECTIONS: Section[] = [
   { id: 'introduction', label: 'Introduction', level: 2 },
   { id: 'core-modules', label: 'Core Modules', level: 2 },
+  { id: "why-skari", label: "Why It's Different", level: 2 },
   { id: 'getting-started', label: 'Getting Started', level: 2 },
 ];
 
@@ -184,6 +193,65 @@ export default function PlatformOverviewPage() {
               <ModuleCard key={module.title} {...module} />
             ))}
           </div>
+        </section>
+
+        <section id="why-skari" className="scroll-mt-24 mb-16 border-t pt-12">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                <Sparkles className="w-7 h-7 text-primary" />
+                Why Skari is Different
+            </h2>
+            <div className="space-y-4 text-base text-muted-foreground leading-relaxed">
+                <p>
+                    Our platform is built to make data analysis accessible and insightful. Here’s what makes Skari unique:
+                </p>
+            </div>
+            <div className="mt-8 grid md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Wand2 className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">AI Analysis Recommendation</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Not sure where to start? Upload your data, and our AI will suggest the most appropriate statistical methods, guiding you to the right analysis.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Database className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">Learn with Example Datasets</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Explore any analysis with pre-loaded, relevant sample data. See how it works and what results to expect before using your own files.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <BookOpen className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">Built-in Analysis Guides</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Every analysis comes with a guide explaining the method, its use cases, and how to interpret the results—no statistics degree required.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background">
+                    <div className="flex items-center gap-3 mb-3">
+                        <HelpCircle className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">Interactive Glossary</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Confused by a term like "p-value" or "coefficient"? Click the help icon next to any statistical term for a simple, clear definition.
+                    </p>
+                </div>
+                <div className="p-6 rounded-lg border bg-background col-span-1 md:col-span-2">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Bot className="w-6 h-6 text-primary" />
+                        <h4 className="font-semibold text-lg">AI Chat for Results Interpretation</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        After running an analysis, chat with our AI assistant. Ask questions about your results in plain language and get expert-level explanations instantly.
+                    </p>
+                </div>
+            </div>
         </section>
 
         <section id="getting-started" className="scroll-mt-24 mb-16 border-t pt-12">
