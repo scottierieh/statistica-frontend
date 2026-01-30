@@ -8,21 +8,65 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 // Dynamically import all FAQ components
 const FaqComponents: Record<string, React.ComponentType> = {
-  'overview': React.lazy(() => import('@/components/pages/faq/overview-page')),
-  'how-statistica-works': React.lazy(() => import('@/components/pages/faq/statistical analysis/how-statistica-works')),
-  'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/statistical analysis/analysis-recommendation')),
-  'data-preparation': React.lazy(() => import('@/components/pages/faq/statistical analysis/data-preparation')),
-  'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical analysis/running-an-analysis')),
-  'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical analysis/understanding-results')),
-  'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/statistical analysis/exporting-and-sharing')),
+  // Introduction
+  'platform-overview': React.lazy(() => import('@/components/pages/faq/platform-overview')),
+  'user-types': React.lazy(() => import('@/components/pages/faq/user-types')),
+  'end-to-end-workflow': React.lazy(() => import('@/components/pages/faq/end-to-end-workflow')),
+
+  // Getting Started
+  'sign-up': React.lazy(() => import('@/components/pages/faq/sign-up')),
+  'login': React.lazy(() => import('@/components/pages/faq/login')),
+  'pricing-billing': React.lazy(() => import('@/components/pages/faq/pricing-billing')),
+
+  // Workspace Basics
+  'dashboard-overview': React.lazy(() => import('@/components/pages/faq/dashboard-overview')),
+  'projects-datasets': React.lazy(() => import('@/components/pages/faq/projects-datasets')),
+  'data-upload': React.lazy(() => import('@/components/pages/faq/data-upload')),
+
+  // Data Transformation
+  'transformation-overview': React.lazy(() => import('@/components/pages/faq/transformation-overview')),
+  'missing-value-handling': React.lazy(() => import('@/components/pages/faq/missing-value-handling')),
+  'variable-transformation': React.lazy(() => import('@/components/pages/faq/variable-transformation')),
+  'encoding-scaling': React.lazy(() => import('@/components/pages/faq/encoding-scaling')),
+  'data-validation': React.lazy(() => import('@/components/pages/faq/data-validation')),
+
+  // Statistical Analysis
+  'overview': React.lazy(() => import('@/components/pages/faq/statistical-analysis/overview-page')),
+  'analysis-recommendation': React.lazy(() => import('@/components/pages/faq/statistical-analysis/analysis-recommendation')),
+  'data-preparation': React.lazy(() => import('@/components/pages/faq/statistical-analysis/data-preparation')),
+  'running-an-analysis': React.lazy(() => import('@/components/pages/faq/statistical-analysis/running-an-analysis')),
+  'understanding-results': React.lazy(() => import('@/components/pages/faq/statistical-analysis/understanding-results')),
+  'exporting-and-sharing': React.lazy(() => import('@/components/pages/faq/statistical-analysis/exporting-and-sharing')),
   'guide-terminology': React.lazy(() => import('@/components/pages/faq/guide-terminology')),
-  // New Strategic Decision Guide pages
-  'strategic-overview': React.lazy(() => import('@/components/pages/faq/strategic-overview')),
-  'use-cases-by-domain': React.lazy(() => import('@/components/pages/faq/use-cases-by-domain')),
-  'strategic-data-requirements': React.lazy(() => import('@/components/pages/faq/strategic-data-requirements')),
-  'optimization-methods': React.lazy(() => import('@/components/pages/faq/optimization-methods')),
-  'interpreting-solutions': React.lazy(() => import('@/components/pages/faq/interpreting-solutions')),
-  'strategic-best-practices': React.lazy(() => import('@/components/pages/faq/strategic-best-practices')),
+
+  // Strategic Decision Analysis
+  'strategic-overview': React.lazy(() => import('@/components/pages/faq/strategic/strategic-overview')),
+  'use-cases-by-domain': React.lazy(() => import('@/components/pages/faq/strategic/use-cases-by-domain')),
+  'strategic-data-requirements': React.lazy(() => import('@/components/pages/faq/strategic/strategic-data-requirements')),
+  'optimization-methods': React.lazy(() => import('@/components/pages/faq/strategic/optimization-methods')),
+  'interpreting-solutions': React.lazy(() => import('@/components/pages/faq/strategic/interpreting-solutions')),
+  'strategic-best-practices': React.lazy(() => import('@/components/pages/faq/strategic/strategic-best-practices')),
+
+  // SEM
+  'sem-overview': React.lazy(() => import('@/components/pages/faq/sem-overview')),
+  'path-diagram-upload': React.lazy(() => import('@/components/pages/faq/path-diagram-upload')),
+  'model-estimation': React.lazy(() => import('@/components/pages/faq/model-estimation')),
+  'sem-result-interpretation': React.lazy(() => import('@/components/pages/faq/sem-result-interpretation')),
+  'sem-model-diagnostics': React.lazy(() => import('@/components/pages/faq/sem-model-diagnostics')),
+
+  // Results Interpretation Guide
+  'statistical-significance': React.lazy(() => import('@/components/pages/faq/statistical-significance')),
+  'effect-size': React.lazy(() => import('@/components/pages/faq/effect-size')),
+  'practical-implications': React.lazy(() => import('@/components/pages/faq/practical-implications')),
+  
+  // Account & Settings
+  'profile-management': React.lazy(() => import('@/components/pages/faq/profile-management')),
+  'security-data-policy': React.lazy(() => import('@/components/pages/faq/security-data-policy')),
+
+  // Troubleshooting
+  'common-errors': React.lazy(() => import('@/components/pages/faq/troubleshooting/common-errors')),
+  'data-issues': React.lazy(() => import('@/components/pages/faq/data-issues')),
+  'billing-issues': React.lazy(() => import('@/components/pages/faq/billing-issues')),
 };
 
 const LoadingSkeleton = () => (

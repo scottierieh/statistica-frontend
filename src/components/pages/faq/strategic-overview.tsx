@@ -340,94 +340,66 @@ export default function StrategicDecisionOverviewPage() {
             How It Works
             </h2>
 
-            <div className="space-y-8">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+            <p className="text-base text-muted-foreground mb-8 leading-relaxed">
+                Every Strategic Decision analysis follows a <strong className="text-foreground">5-step workflow</strong> that guides you from configuring your analysis to exporting complete results.
+            </p>
+
+            <div className="mb-8 grid md:grid-cols-3 gap-4">
+              <div className="p-5 rounded-lg border bg-background">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
                     1
                   </div>
-                  <div className="w-0.5 flex-1 bg-border mt-3 min-h-[40px]"></div>
+                  <Target className="w-5 h-5 text-muted-foreground" />
                 </div>
-
-                <div className="flex-1 pb-4">
-                  <h3 className="font-semibold text-xl mb-3">Select a business scenario</h3>
-                  <p className="text-muted-foreground leading-relaxed mb-4">
-                    Browse by domain (Marketing, Operations, Finance, etc.) and choose the analysis that matches your business challenge.
-                  </p>
-                  <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Example:</strong> "Customer Lifetime Value Forecasting" for predicting long-term customer value
-                    </p>
-                  </div>
-                </div>
+                <h3 className="font-semibold mb-1">Config</h3>
+                <p className="text-sm text-muted-foreground">Map columns and set parameters</p>
               </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+              <div className="p-5 rounded-lg border bg-background">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
                     2
                   </div>
-                  <div className="w-0.5 flex-1 bg-border mt-3 min-h-[40px]"></div>
+                  <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
                 </div>
-
-                <div className="flex-1 pb-4">
-                  <h3 className="font-semibold text-xl mb-3">Provide your data</h3>
-                  <p className="text-muted-foreground leading-relaxed mb-4">
-                    Upload your business data or use example datasets to explore how the analysis works. Each scenario specifies what data columns are needed.
-                  </p>
-                  <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Example data:</strong> Customer ID, purchase history, engagement metrics, demographics
-                    </p>
-                  </div>
-                </div>
+                <h3 className="font-semibold mb-1">Validation</h3>
+                <p className="text-sm text-muted-foreground">Verify data and run analysis</p>
               </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+              <div className="p-5 rounded-lg border bg-background">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
                     3
                   </div>
-                  <div className="w-0.5 flex-1 bg-border mt-3 min-h-[40px]"></div>
+                  <TrendingUp className="w-5 h-5 text-muted-foreground" />
                 </div>
-
-                <div className="flex-1 pb-4">
-                  <h3 className="font-semibold text-xl mb-3">Configure analysis parameters</h3>
-                  <p className="text-muted-foreground leading-relaxed mb-4">
-                    Set objectives, constraints, and preferences specific to your business context (e.g., budget limits, target metrics, risk tolerance).
-                  </p>
-                  <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Example settings:</strong> Forecast horizon, discount rate, risk threshold, optimization constraints
-                    </p>
-                  </div>
-                </div>
+                <h3 className="font-semibold mb-1">Summary</h3>
+                <p className="text-sm text-muted-foreground">Review key findings</p>
               </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+              <div className="p-5 rounded-lg border bg-background">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
                     4
                   </div>
+                  <Lightbulb className="w-5 h-5 text-muted-foreground" />
                 </div>
-
-                <div className="flex-1">
-                  <h3 className="font-semibold text-xl mb-3">Review actionable insights</h3>
-                  <p className="text-muted-foreground leading-relaxed mb-4">
-                    Get clear recommendations, visualizations, and decision support. Results include what actions to take and the expected business impact.
-                  </p>
-                  <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Example output:</strong> "Increase budget for Channel A by 15% to maximize ROI" or "Top 20% customers have 80% churn risk—prioritize retention offers"
-                    </p>
+                <h3 className="font-semibold mb-1">Methodology</h3>
+                <p className="text-sm text-muted-foreground">Understand the approach</p>
+              </div>
+              <div className="p-5 rounded-lg border bg-background">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
+                    5
                   </div>
+                  <Award className="w-5 h-5 text-muted-foreground" />
                 </div>
+                <h3 className="font-semibold mb-1">Report</h3>
+                <p className="text-sm text-muted-foreground">Export complete analysis</p>
               </div>
             </div>
 
-            <div className="mt-8 p-5 bg-primary/5 border-l-4 border-primary rounded">
+            <div className="p-5 bg-primary/5 border-l-4 border-primary rounded">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Result format:</strong> Strategic Decision analyses provide business-focused outputs—prioritized recommendations, optimized plans, forecasts with confidence intervals, and visualizations designed for stakeholder communication.
+                <strong className="text-foreground">Progressive workflow:</strong> Navigate between steps using the progress bar at the top. Jump to Summary for quick insights, or dive into Methodology and Report for complete details. Each step builds on the previous one to guide you from configuration to actionable results.
               </p>
             </div>
         </section>

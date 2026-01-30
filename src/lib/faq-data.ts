@@ -1,6 +1,8 @@
 'use client';
 
-import { BookOpen, BrainCircuit, ClipboardList, UserCircle, CreditCard, Wrench, MessageSquare, LucideIcon, Sigma } from 'lucide-react';
+import { 
+    BookOpen, Rocket, LayoutDashboard, Wrench, Sigma, Target, Network, Lightbulb, UserCircle, HelpCircle, LucideIcon 
+} from 'lucide-react';
 
 export interface FaqArticle {
     slug: string;
@@ -18,97 +20,123 @@ export interface FaqCategory {
 
 export const faqData: FaqCategory[] = [
     {
-        slug: "standard-analysis-guide",
+        slug: "introduction",
         icon: BookOpen,
-        title: "Standard Analysis Guide",
+        title: "Introduction",
+        description: "Get to know the platform and its capabilities.",
+        articles: [
+            { slug: "platform-overview", title: "Platform Overview", description: "A high-level look at what our platform does." },
+            { slug: "user-types", title: "User Types", description: "Understanding roles for analysts, students, and business users." },
+            { slug: "end-to-end-workflow", title: "End-to-End Workflow", description: "From data upload to generating insights." }
+        ]
+    },
+    {
+        slug: "getting-started",
+        icon: Rocket,
+        title: "Getting Started",
+        description: "Your first steps to using the platform.",
+        articles: [
+            { slug: "sign-up", title: "Sign Up", description: "Creating your account." },
+            { slug: "login", title: "Login", description: "Accessing your workspace." },
+            { slug: "pricing-billing", title: "Pricing & Billing", description: "Understanding our plans and managing your subscription." }
+        ]
+    },
+    {
+        slug: "workspace-basics",
+        icon: LayoutDashboard,
+        title: "Workspace Basics",
+        description: "Navigating your dashboard and managing data.",
+        articles: [
+            { slug: "dashboard-overview", title: "Dashboard Overview", description: "Navigating the main dashboard and tools." },
+            { slug: "projects-datasets", title: "Projects & Datasets", description: "Organizing your work and data files." },
+            { slug: "data-upload", title: "Data Upload", description: "How to upload and manage your data." }
+        ]
+    },
+    {
+        slug: "data-transformation",
+        icon: Wrench,
+        title: "Data Transformation",
+        description: "Cleaning and preparing your data for analysis.",
+        articles: [
+            { slug: "transformation-overview", title: "Overview", description: "Why data transformation is important." },
+            { slug: "missing-value-handling", title: "Missing Value Handling", description: "Techniques for imputing or removing missing data." },
+            { slug: "variable-transformation", title: "Variable Transformation", description: "Applying log, sqrt, and other transformations." },
+            { slug: "encoding-scaling", title: "Encoding & Scaling", description: "Preparing categorical and numeric data for models." },
+            { slug: "data-validation", title: "Data Validation", description: "Ensuring your data quality is high." }
+        ]
+    },
+    {
+        slug: "statistical-analysis",
+        icon: Sigma,
+        title: "Statistical Analysis",
         description: "Learn how to use the Standard Analysis tool from start to finish.",
         articles: [
-            { 
-                slug: "overview",
-                title: "Overview", 
-                description: "What is Standard Analysis and when should you use it?"
-            },
-            { 
-                slug: "analysis-recommendation",
-                title: "Recommendation", 
-                description: "Let AI suggest the best analysis for your data and goals."
-            },
-            { 
-                slug: "data-preparation",
-                title: "Data Preparation", 
-                description: "How to upload and prepare your data for analysis."
-            },
-            { 
-                slug: "running-an-analysis",
-                title: "Running an Analysis", 
-                description: "A step-by-step guide to configuring and executing analyses."
-            },
-            { 
-                slug: "understanding-results",
-                title: "Understanding Results", 
-                description: "How to interpret the three layers of results: Summary, Reasoning, and Statistics."
-            },
-            { 
-                slug: "exporting-and-sharing",
-                title: "Export & Sharing", 
-                description: "How to download and share your findings in different formats."
-            },
-            { 
-                slug: "guide-terminology",
-                title: "Guides & Terminology", 
-                description: "Using built-in analysis guides and statistical term definitions."
-            },
+            { slug: "overview", title: "Overview", description: "What is Standard Analysis and when should you use it?" },
+            { slug: "analysis-recommendation", title: "Analysis Categories", description: "Browse the different types of available analyses." },
+            { slug: "data-preparation", title: "Data Requirements", description: "How to upload and prepare your data for analysis." },
+            { slug: "running-an-analysis", title: "Running an Analysis", description: "A step-by-step guide to configuring and executing analyses." },
+            { slug: "understanding-results", title: "Understanding Results", description: "How to interpret the three layers of results: Summary, Reasoning, and Statistics." },
+            { slug: "exporting-and-sharing", title: "Export & Sharing", description: "How to download and share your findings in different formats." },
+            { slug: "guide-terminology", title: "Glossary & Terminology", description: "Using built-in analysis guides and statistical term definitions." },
         ]
     },
     {
-        slug: "strategic-decision-guide",
-        icon: Sigma,
-        title: "Strategic Analysis Guide",
+        slug: "strategic-decision-analysis",
+        icon: Target,
+        title: "Strategic Decision Analysis",
         description: "Leverage optimization and simulation to make data-driven strategic decisions.",
         articles: [
-            {
-                slug: "strategic-overview",
-                title: "Overview",
-                description: "What is Strategic Decision-Making and how does it work?"
-            },
-            {
-                slug: "use-cases-by-domain",
-                title: "Domains & Use Cases",
-                description: "Examples in logistics, finance, marketing, and operations."
-            },
-            {
-                slug: "strategic-data-requirements",
-                title: "Data Preparation",
-                description: "How to structure your data for optimization problems."
-            },
-            {
-                slug: "optimization-methods",
-                title: "Running an Analysis",
-                description: "Understanding LP, IP, NLP, and metaheuristics."
-            },
-            {
-                slug: "interpreting-solutions",
-                title: "Understanding Results",
-                description: "How to read optimal solutions and sensitivity reports."
-            },
-            {
-                slug: "strategic-best-practices",
-                title: "Best Practices",
-                description: "Tips for formulating and solving decision problems."
-            }
+            { slug: "strategic-overview", title: "Overview", description: "What is Strategic Decision-Making and how does it work?" },
+            { slug: "use-cases-by-domain", title: "Domains & Use Cases", description: "Examples in logistics, finance, marketing, and operations." },
+            { slug: "strategic-data-requirements", title: "Data Requirements", description: "How to structure your data for optimization problems." },
+            { slug: "optimization-methods", title: "Running an Analysis", description: "Understanding LP, IP, NLP, and metaheuristics." },
+            { slug: "interpreting-solutions", title: "Understanding Results", description: "How to read optimal solutions and sensitivity reports." },
+            { slug: "strategic-best-practices", title: "Best Practices", description: "Tips for formulating and solving decision problems." }
         ]
     },
     {
-        slug: "troubleshooting",
-        icon: Wrench,
-        title: "Troubleshooting & FAQ",
+        slug: "sem",
+        icon: Network,
+        title: "Structural Equation Modeling (SEM)",
+        description: "Model complex, multi-variable relationships.",
+        articles: [
+            { slug: "sem-overview", title: "Overview", description: "What is SEM and when to use it." },
+            { slug: "path-diagram-upload", title: "Path Diagram Upload", description: "Generating a model from a visual diagram." },
+            { slug: "model-estimation", title: "Model Estimation", description: "Understanding estimators like ML, GLS, and WLS." },
+            { slug: "sem-result-interpretation", title: "Result Interpretation", description: "Making sense of fit indices and path coefficients." },
+            { slug: "sem-model-diagnostics", title: "Model Diagnostics", description: "Checking for model fit and potential issues." }
+        ]
+    },
+    {
+        slug: "results-interpretation-guide",
+        icon: Lightbulb,
+        title: "Results Interpretation Guide",
+        description: "Deep dive into understanding statistical outputs.",
+        articles: [
+            { slug: "statistical-significance", title: "Statistical Significance", description: "Understanding p-values and their meaning." },
+            { slug: "effect-size", title: "Effect Size", description: "Gauging the magnitude and importance of your findings." },
+            { slug: "practical-implications", title: "Practical Implications", description: "Translating results into real-world actions." }
+        ]
+    },
+    {
+        slug: "account-and-settings",
+        icon: UserCircle,
+        title: "Account & Settings",
+        description: "Manage your profile, billing, and security.",
+        articles: [
+            { slug: "profile-management", title: "Profile Management", description: "Updating your personal information." },
+            { slug: "security-data-policy", title: "Security & Data Policy", description: "Managing your security settings and our data policy." }
+        ]
+    },
+    {
+        slug: "faq-and-troubleshooting",
+        icon: HelpCircle,
+        title: "FAQ & Troubleshooting",
         description: "Find solutions to common issues and answers to frequently asked questions.",
         articles: [
-             { 
-                slug: "common-errors",
-                title: "Common Analysis Errors", 
-                description: "Why your analysis might fail and how to fix it."
-            },
+             { slug: "common-errors", title: "Analysis Errors", description: "Why your analysis might fail and how to fix it." },
+             { slug: "data-issues", title: "Data Issues", description: "Resolving common data formatting and quality problems." },
+             { slug: "billing-issues", title: "Billing Issues", description: "Understanding and managing your subscription." },
         ]
     }
 ];
