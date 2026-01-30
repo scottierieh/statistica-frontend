@@ -20,25 +20,16 @@ export interface FaqCategory {
 
 export const faqData: FaqCategory[] = [
     {
-        slug: "introduction",
-        icon: BookOpen,
-        title: "Introduction",
-        description: "Get to know the platform and its capabilities.",
-        articles: [
-            { slug: "platform-overview", title: "Platform Overview", description: "A high-level look at what our platform does." },
-            { slug: "user-types", title: "User Types", description: "Understanding roles for analysts, students, and business users." },
-            { slug: "end-to-end-workflow", title: "End-to-End Workflow", description: "From data upload to generating insights." }
-        ]
-    },
-    {
         slug: "getting-started",
         icon: Rocket,
         title: "Getting Started",
-        description: "Your first steps to using the platform.",
+        description: "An introduction to the platform, from creating an account to understanding the core workflow.",
         articles: [
-            { slug: "sign-up", title: "Sign Up", description: "Creating your account." },
-            { slug: "login", title: "Login", description: "Accessing your workspace." },
-            { slug: "pricing-billing", title: "Pricing & Billing", description: "Understanding our plans and managing your subscription." }
+            { slug: "platform-overview", title: "Platform Overview", description: "A high-level look at what our platform does." },
+            { slug: "login", title: "Sign Up & Login", description: "Creating and accessing your account." },
+            { slug: "pricing-billing", title: "Pricing & Billing", description: "Understanding our plans and managing your subscription." },
+            { slug: "user-types", title: "User Types", description: "Understanding roles for analysts, students, and business users." },
+            { slug: "end-to-end-workflow", title: "End-to-End Workflow", description: "From data upload to generating insights." }
         ]
     },
     {
