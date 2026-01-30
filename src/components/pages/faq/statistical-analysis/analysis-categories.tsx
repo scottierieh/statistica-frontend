@@ -160,7 +160,7 @@ export default function AnalysisCategoriesPage() {
                   <div>
                     <p className="font-semibold text-sky-800 dark:text-sky-200 mb-1">Still Not Sure?</p>
                     <p className="text-sm text-sky-700 dark:text-sky-300">
-                      If you're unsure which category or analysis to use, the <strong>AI Analysis Recommendation</strong> tool is your best starting point.
+                      Use the <strong>AI Analysis Recommendation</strong> tool to describe your research question and get AI-powered suggestions for which analyses to try.
                     </p>
                   </div>
                 </div>
