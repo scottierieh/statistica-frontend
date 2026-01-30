@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   BookOpen,
   Database,
@@ -25,30 +26,35 @@ const CORE_MODULES: {
   description: string;
   icon: LucideIcon;
   status: 'beta' | 'coming_soon' | 'live';
+  slug?: string;
 }[] = [
   {
     title: "Data Preparation",
     description: "Refine and validate your raw data to ensure a reliable foundation.",
     icon: Database,
     status: 'beta',
+    slug: 'transformation-overview',
   },
   {
     title: "Standard Analytics",
     description: "Execute fundamental statistical tests to identify patterns.",
     icon: Calculator,
     status: 'beta',
+    slug: 'overview',
   },
   {
     title: "Strategic Decision",
     description: "Solve complex business problems with domain-specific optimization.",
     icon: Target,
     status: 'beta',
+    slug: 'strategic-overview',
   },
   {
     title: "Structural Equation Modeling (SEM)",
     description: "Build and estimate SEM models by uploading path diagram images.",
     icon: Network,
     status: 'beta',
+    slug: 'sem-overview',
   },
   {
     title: "Visual Communication",
@@ -111,25 +117,39 @@ const ModuleCard = ({
   description,
   icon: Icon,
   status,
-}: typeof CORE_MODULES[0]) => (
-  <Card className="h-full transition-all hover:shadow-lg hover:-translate-y-1">
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-base font-medium">{title}</CardTitle>
-      {status === 'beta' && (
-        <div className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">BETA</div>
-      )}
-      {status === 'coming_soon' && (
-        <div className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">COMING SOON</div>
-      )}
-    </CardHeader>
-    <CardContent className="flex items-start gap-4">
-      <div className="p-2 bg-primary/10 rounded-lg">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </CardContent>
-  </Card>
-);
+  slug,
+}: typeof CORE_MODULES[0]) => {
+  const isClickable = slug && status !== 'coming_soon';
+
+  const cardContent = (
+    <Card className={`h-full transition-all ${isClickable ? 'hover:shadow-lg hover:-translate-y-1' : 'opacity-60 cursor-not-allowed'}`}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-base font-medium">{title}</CardTitle>
+        {status === 'beta' && (
+          <div className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">BETA</div>
+        )}
+        {status === 'coming_soon' && (
+          <div className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">COMING SOON</div>
+        )}
+      </CardHeader>
+      <CardContent className="flex items-start gap-4">
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Icon className="w-5 h-5 text-primary" />
+        </div>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+
+  return isClickable ? (
+    <Link href={`/faq/${slug}`} className="block h-full no-underline">
+      {cardContent}
+    </Link>
+  ) : (
+    <div className="h-full">{cardContent}</div>
+  );
+};
+
 
 export default function PlatformOverviewPage() {
   return (
