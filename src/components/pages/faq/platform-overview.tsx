@@ -188,6 +188,9 @@ export default function PlatformOverviewPage() {
 
         <section id="core-modules" className="scroll-mt-24 mb-16 border-t pt-12">
           <h2 className="text-3xl font-bold mb-6">Core Modules</h2>
+          <p className="text-base text-muted-foreground leading-relaxed mb-8">
+              Each module is a gateway to a specific set of tools. Click on any card to learn more about its features and use cases.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {CORE_MODULES.map((module) => (
               <ModuleCard key={module.title} {...module} />
