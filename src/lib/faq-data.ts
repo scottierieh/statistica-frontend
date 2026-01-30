@@ -53,16 +53,18 @@ export const faqData: FaqCategory[] = [
         ]
     },
     {
-        slug: "data-transformation",
+        slug: "data-preparation",
         icon: Wrench,
-        title: "Data Transformation",
+        title: "Data Preparation",
         description: "Cleaning and preparing your data for analysis.",
         articles: [
-            { slug: "transformation-overview", title: "Overview", description: "Why data transformation is important." },
-            { slug: "missing-value-handling", title: "Missing Value Handling", description: "Techniques for imputing or removing missing data." },
-            { slug: "variable-transformation", title: "Variable Transformation", description: "Applying log, sqrt, and other transformations." },
-            { slug: "encoding-scaling", title: "Encoding & Scaling", description: "Preparing categorical and numeric data for models." },
-            { slug: "data-validation", title: "Data Validation", description: "Ensuring your data quality is high." }
+            { slug: "data-prep-overview", title: "Overview - What is Data Editing?", description: "An introduction to the Data Preparation tool." },
+            { slug: "data-prep-loading", title: "Loading Data", description: "How to upload and import your datasets." },
+            { slug: "data-prep-editing", title: "Editing Data", description: "Manipulating rows, columns, and cells." },
+            { slug: "data-prep-cleaning", title: "Cleaning Data", description: "Handling duplicates and missing values." },
+            { slug: "data-prep-transforming", title: "Transforming Data", description: "Applying normalization, encoding, and functions." },
+            { slug: "data-prep-merging-export", title: "Merging & Export", description: "Combining datasets and exporting results." },
+            { slug: "data-prep-tips", title: "Tips & Shortcuts", description: "Work faster with keyboard shortcuts and tips." }
         ]
     },
     {

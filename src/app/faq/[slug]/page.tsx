@@ -23,12 +23,14 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'projects-datasets': React.lazy(() => import('@/components/pages/faq/projects-datasets')),
   'data-upload': React.lazy(() => import('@/components/pages/faq/data-upload')),
 
-  // Data Transformation
-  'transformation-overview': React.lazy(() => import('@/components/pages/faq/transformation-overview')),
-  'missing-value-handling': React.lazy(() => import('@/components/pages/faq/missing-value-handling')),
-  'variable-transformation': React.lazy(() => import('@/components/pages/faq/variable-transformation')),
-  'encoding-scaling': React.lazy(() => import('@/components/pages/faq/encoding-scaling')),
-  'data-validation': React.lazy(() => import('@/components/pages/faq/data-validation')),
+  // Data Preparation
+  'data-prep-overview': React.lazy(() => import('@/components/pages/faq/data-prep-overview')),
+  'data-prep-loading': React.lazy(() => import('@/components/pages/faq/data-prep-loading')),
+  'data-prep-editing': React.lazy(() => import('@/components/pages/faq/data-prep-editing')),
+  'data-prep-cleaning': React.lazy(() => import('@/components/pages/faq/data-prep-cleaning')),
+  'data-prep-transforming': React.lazy(() => import('@/components/pages/faq/data-prep-transforming')),
+  'data-prep-merging-export': React.lazy(() => import('@/components/pages/faq/data-prep-merging-export')),
+  'data-prep-tips': React.lazy(() => import('@/components/pages/faq/data-prep-tips')),
 
   // Statistical Analysis
   'overview': React.lazy(() => import('@/components/pages/faq/statistical-analysis/overview-page')),
