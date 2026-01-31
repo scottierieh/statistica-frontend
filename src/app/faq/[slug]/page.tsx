@@ -51,6 +51,7 @@ const FaqComponents: Record<string, React.ComponentType> = {
   
   // Settings
   'profile-management': React.lazy(() => import('@/components/pages/faq/profile-management')),
+  'team-settings': React.lazy(() => import('@/components/pages/faq/team-settings')),
   'payment-settings': React.lazy(() => import('@/components/pages/faq/settings/payment-settings')),
   'security-data-policy': React.lazy(() => import('@/components/pages/faq/security-data-policy')),
 
@@ -58,9 +59,6 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'plan-features': React.lazy(() => import('@/components/pages/faq/subscription-plans/plan-features')),
   'change-plan': React.lazy(() => import('@/components/pages/faq/subscription-plans/change-plan')),
   'refund-policy': React.lazy(() => import('@/components/pages/faq/subscription-plans/refund-policy')),
-
-  // Team Plan
-  'team-plan-overview': React.lazy(() => import('@/components/pages/faq/team-plan-overview')),
 
   // Troubleshooting
   'common-errors': React.lazy(() => import('@/components/pages/faq/troubleshooting/common-errors')),

@@ -94,6 +94,7 @@ export const faqData: FaqCategory[] = [
         description: "Manage your profile, security, and payment methods.",
         articles: [
             { slug: "profile-management", title: "Account Settings", description: "Updating your personal information." },
+            { slug: "team-settings", title: "Team Settings", description: "Inviting and managing team members." },
             { slug: "payment-settings", title: "Payment Settings", description: "Manage billing details and payment methods." },
             { slug: "security-data-policy", title: "Security & Data Policy", description: "Managing your security settings and our data policy." }
         ]
@@ -107,15 +108,6 @@ export const faqData: FaqCategory[] = [
             { slug: "plan-features", title: "Plan Features", description: "Compare features across different subscription plans." },
             { slug: "change-plan", title: "Change Plan", description: "How to upgrade, downgrade, or cancel your plan." },
             { slug: "refund-policy", title: "Refund Policy", description: "Our policy on refunds and credits." }
-        ]
-    },
-    {
-        slug: "team-plan",
-        icon: Users,
-        title: "Team Plan",
-        description: "Collaborate with your team members.",
-        articles: [
-            { slug: "team-plan-overview", title: "Overview", description: "Learn about team features." },
         ]
     },
     {
