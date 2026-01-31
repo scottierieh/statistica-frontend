@@ -8,20 +8,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 // Dynamically import all FAQ components
 const FaqComponents: Record<string, React.ComponentType> = {
-  // Introduction
+  // Getting Started
   'platform-overview': React.lazy(() => import('@/components/pages/faq/platform-overview')),
   'user-types': React.lazy(() => import('@/components/pages/faq/user-types')),
   'end-to-end-workflow': React.lazy(() => import('@/components/pages/faq/end-to-end-workflow')),
-
-  // Getting Started
-  'sign-up': React.lazy(() => import('@/components/pages/faq/sign-up')),
+  'sign-up': React.lazy(() => import('@/components/pages/faq/login')),
   'login': React.lazy(() => import('@/components/pages/faq/login')),
   
-  // Workspace Basics
-  'dashboard-overview': React.lazy(() => import('@/components/pages/faq/dashboard-overview')),
-  'projects-datasets': React.lazy(() => import('@/components/pages/faq/projects-datasets')),
-  'data-upload': React.lazy(() => import('@/components/pages/faq/data-upload')),
-
   // Data Preparation
   'data-prep-overview': React.lazy(() => import('@/components/pages/faq/data-prep-overview')),
   'data-prep-loading': React.lazy(() => import('@/components/pages/faq/data-prep-loading')),
@@ -56,11 +49,6 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'sem-result-interpretation': React.lazy(() => import('@/components/pages/faq/sem-result-interpretation')),
   'sem-model-diagnostics': React.lazy(() => import('@/components/pages/faq/sem-model-diagnostics')),
   
-  // Results Interpretation Guide
-  'statistical-significance': React.lazy(() => import('@/components/pages/faq/statistical-significance')),
-  'effect-size': React.lazy(() => import('@/components/pages/faq/effect-size')),
-  'practical-implications': React.lazy(() => import('@/components/pages/faq/practical-implications')),
-  
   // Settings
   'profile-management': React.lazy(() => import('@/components/pages/faq/profile-management')),
   'payment-settings': React.lazy(() => import('@/components/pages/faq/settings/payment-settings')),
@@ -70,6 +58,9 @@ const FaqComponents: Record<string, React.ComponentType> = {
   'plan-features': React.lazy(() => import('@/components/pages/faq/subscription-plans/plan-features')),
   'change-plan': React.lazy(() => import('@/components/pages/faq/subscription-plans/change-plan')),
   'refund-policy': React.lazy(() => import('@/components/pages/faq/subscription-plans/refund-policy')),
+
+  // Team Plan
+  'team-plan-overview': React.lazy(() => import('@/components/pages/faq/team-plan-overview')),
 
   // Troubleshooting
   'common-errors': React.lazy(() => import('@/components/pages/faq/troubleshooting/common-errors')),

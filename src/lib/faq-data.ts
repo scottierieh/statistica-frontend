@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-    BookOpen, Rocket, LayoutDashboard, Wrench, Sigma, Target, Network, Lightbulb, HelpCircle, LucideIcon, Settings, CreditCard 
+    BookOpen, Rocket, LayoutDashboard, Wrench, Sigma, Target, Network, Lightbulb, HelpCircle, LucideIcon, Settings, CreditCard, Users 
 } from 'lucide-react';
 
 export interface FaqArticle {
@@ -26,9 +26,7 @@ export const faqData: FaqCategory[] = [
         description: "An introduction to the platform, from creating an account to understanding the core workflow.",
         articles: [
             { slug: "platform-overview", title: "Platform Overview", description: "A high-level look at what our platform does." },
-            { slug: "login", title: "Sign Up & Login", description: "Creating and accessing your account." },
-            { slug: "user-types", title: "User Types", description: "Understanding roles for analysts, students, and business users." },
-            { slug: "end-to-end-workflow", title: "End-to-End Workflow", description: "From data upload to generating insights." }
+            { slug: "sign-up", title: "Sign Up & Login", description: "Creating and accessing your account." },
         ]
     },
     {
@@ -109,6 +107,15 @@ export const faqData: FaqCategory[] = [
             { slug: "plan-features", title: "Plan Features", description: "Compare features across different subscription plans." },
             { slug: "change-plan", title: "Change Plan", description: "How to upgrade, downgrade, or cancel your plan." },
             { slug: "refund-policy", title: "Refund Policy", description: "Our policy on refunds and credits." }
+        ]
+    },
+    {
+        slug: "team-plan",
+        icon: Users,
+        title: "Team Plan",
+        description: "Collaborate with your team members.",
+        articles: [
+            { slug: "team-plan-overview", title: "Overview", description: "Learn about team features." },
         ]
     },
     {
