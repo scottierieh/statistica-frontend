@@ -8,6 +8,7 @@ import {
   AlertCircle,
   TrendingUp,
   Hash,
+  FileText,
   Type,
   Calendar,
   XCircle,
@@ -111,6 +112,7 @@ export default function DataPrepCleaningPage() {
                         <Calculator className="w-5 h-5 text-primary" />
                       </div>
                       <h4 className="font-semibold text-lg">Mean</h4>
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">numeric only</span>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       Fills missing values with the average of all non-null values. Best for numeric columns with normal distribution.
@@ -131,6 +133,8 @@ export default function DataPrepCleaningPage() {
                         <BarChart3 className="w-5 h-5 text-primary" />
                       </div>
                       <h4 className="font-semibold text-lg">Median</h4>
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">numeric only</span>
+
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       Fills with the middle value when sorted. More robust to outliers than mean.
@@ -151,6 +155,8 @@ export default function DataPrepCleaningPage() {
                         <TrendingUp className="w-5 h-5 text-primary" />
                       </div>
                       <h4 className="font-semibold text-lg">Mode</h4>
+                      <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">numeric & text</span>
+
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       Fills with the most frequently occurring value. Works for both numeric and text.
@@ -171,6 +177,8 @@ export default function DataPrepCleaningPage() {
                         <Hash className="w-5 h-5 text-primary" />
                       </div>
                       <h4 className="font-semibold text-lg">Zero</h4>
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">numeric only</span>
+
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       Fills all missing values with 0 (numeric) or empty string (text).
@@ -191,6 +199,8 @@ export default function DataPrepCleaningPage() {
                         <ArrowRight className="w-5 h-5 text-primary" />
                       </div>
                       <h4 className="font-semibold text-lg">Forward Fill</h4>
+                      <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">numeric & text</span>
+
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       Copies the last non-null value forward to fill gaps.
@@ -211,6 +221,8 @@ export default function DataPrepCleaningPage() {
                         <ArrowLeft className="w-5 h-5 text-primary" />
                       </div>
                       <h4 className="font-semibold text-lg">Backward Fill</h4>
+                      <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">numeric & text</span>
+
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       Copies the next non-null value backward to fill gaps.

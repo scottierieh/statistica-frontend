@@ -83,7 +83,13 @@ const analysisCategories = [
     color: 'from-violet-500 to-violet-600',
     subcategories: [
       { name: 'Correlation', items: ['Correlation Analysis', 'Crosstab & Chi-Squared'] },
-      { name: 'Regression', items: ['Simple Linear', 'Multiple Linear', 'Polynomial', 'Logistic', 'Lasso', 'Ridge', 'Robust', 'GLM'] },
+      {
+        name: 'Regression',
+        items: [
+          'Simple Linear', 'Multiple Linear', 'Polynomial', 'Logistic', 
+          'Lasso', 'Ridge', 'Robust', 'GLM'
+        ]
+      },
       { name: 'Interpretation', items: ['Relative Importance', 'Feature Importance'] },
     ],
   },
@@ -93,7 +99,10 @@ const analysisCategories = [
     icon: Brain,
     color: 'from-rose-500 to-rose-600',
     subcategories: [
-      { name: 'Classification', items: ['Linear Discriminant Analysis', 'Decision Tree', 'Gradient Boosting', 'Random Forest'] },
+      {
+        name: 'Classification',
+        items: ['Linear Discriminant Analysis', 'Decision Tree', 'Gradient Boosting', 'Random Forest']
+      },
       { name: 'Survival', items: ['Survival Analysis'] },
       { name: 'Evaluation', items: ['Cross-Validation'] },
     ],
@@ -104,9 +113,8 @@ const analysisCategories = [
     icon: Layers,
     color: 'from-amber-500 to-amber-600',
     subcategories: [
-      { name: 'Factor Analysis', items: ['Reliability (Cronbach)', 'Exploratory (EFA)', 'Principal Component (PCA)', 'Reliability & Validity'] },
-      { name: 'Path Analysis', items: ['Mediation Analysis', 'Moderation Analysis'] },
-      { name: 'Network', items: ['Social Network Analysis'] },
+      { name: 'Factor Analysis', items: ['Reliability (Cronbach\'s Alpha)', 'Exploratory (EFA)', 'Principal Component (PCA)', 'Reliability & Validity'] },
+      { name: 'Path Analysis', items: ['Mediation Analysis', 'Moderation Analysis', 'Social Network Analysis'] },
     ],
   },
   {
@@ -126,7 +134,7 @@ const analysisCategories = [
     icon: Timer,
     color: 'from-indigo-500 to-indigo-600',
     subcategories: [
-      { name: 'Exploratory', items: ['Trend Analysis', 'Seasonal Decomposition', 'Rolling Statistics', 'Structural Break', 'Change Point Detection'] },
+      { name: 'Exploratory', items: ['Trend Analysis', 'Seasonal Decomposition', 'Rolling Statistics'] },
       { name: 'Diagnostic', items: ['ACF/PACF', 'ADF Test', 'Ljung-Box Test', 'ARCH-LM Test'] },
       { name: 'Modeling', items: ['Exponential Smoothing', 'ARIMA / SARIMAX'] },
       { name: 'Forecasting', items: ['Forecast Evaluation', 'Demand Forecasting', 'Forecast Horizon'] },
@@ -145,7 +153,6 @@ const analysisCategories = [
     id: 'business',
     name: 'Business',
     icon: Briefcase,
-    color: 'from-slate-600 to-slate-700',
     subcategories: [
       { name: 'Scenario Analysis', items: ['What-If Analysis', 'Threshold Optimization', 'Cost-Sensitive Analysis'] },
     ],
@@ -176,7 +183,7 @@ const analysisCategories = [
     icon: Wallet,
     color: 'from-green-600 to-green-700',
     subcategories: [
-      { name: 'Modeling', items: ['Portfolio Optimization', 'Fama-French Factor', 'Options Pricing'] },
+      { name: 'Modeling', items: ['Portfolio Optimization', 'Factor Analysis', 'Options Pricing'] },
       { name: 'Trading', items: ['Backtesting', 'Pair Trading'] },
       { name: 'Risk', items: ['Quantitative Risk Analysis', 'Credit Risk'] },
     ],
@@ -317,7 +324,7 @@ export default function LandingPage() {
       },
       { 
         id: 'analyze', 
-        label: 'Statistica', 
+        label: 'Standard Analysis', 
         image: analyzeImage,
         title: 'Statistical Analysis',
         features: [
@@ -334,30 +341,12 @@ export default function LandingPage() {
           ]   },
       { 
         id: 'visualize', 
-        label: 'Visualization', 
+        label: 'Strategic Decision', 
         image: VisualImage,
         title: 'Visualization',
         features: ['Interactive Charts', 'Export to PNG/PDF', 'Custom Themes', 'Dashboard Builder', 'Real-time Preview', 'Template Library']
-      },
-      { 
-        id: 'dashboard', 
-        label: 'Dashboard', 
-        image: dashboardImage,
-        title: 'Dashboard',
-        features: [
-          'Real-time Analytics',
-          'Customizable Widgets',
-          'KPI Monitoring',
-          'Team Collaboration',
-          'Scheduled Reports',
-          'Data Source Integration',
-          'Role-based Access',
-          'Export & Sharing',
-          'Alert Notifications',
-          'Historical Trends'
-        ]
-      },
-  ];
+      }
+     ];
 
   const currentProcessTab = processTabs.find(t => t.id === activeProcessTab);
 
@@ -407,47 +396,10 @@ export default function LandingPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem asChild><Link href="/features/statistica">Statistica</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/data-editor">Data Editor</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/visualization">Visualization</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/dashboard">Dashboard</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link href="/features/dataprep">DataPrep</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/features/standard">Standard Analysis</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/features/strategic">Strategic Decision</Link></DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="text-sm font-medium">
-                        Solutions <ChevronDown className="w-4 h-4 ml-1" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[480px] p-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <DropdownMenuGroup>
-                          <DropdownMenuLabel className="flex items-center gap-2">
-                            <Globe className="w-4 h-4" />
-                            By Industry
-                          </DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/marketing">Marketing</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/hr">HR</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/manufacturing">Manufacturing</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/logistics">Logistics</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/education">Education</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/finance">Finance</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/economics">Economics</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/industry/healthcare">Healthcare</Link></DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuGroup>
-                          <DropdownMenuLabel className="flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            By Role
-                          </DropdownMenuLabel>
-                           <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild><Link href="/solutions/role/data-analyst">Data Analyst</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/role/consultant">Consultant</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href="/solutions/role/student">Student</Link></DropdownMenuItem>
-                        </DropdownMenuGroup>
-                      </div>
-                    </DropdownMenuContent>
                 </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <DropdownMenu>
@@ -461,15 +413,10 @@ export default function LandingPage() {
                       <Link href="/faq">Help Center</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/faq/analysis-list">Analysis List</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/glossary">Glossary</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link href="/blog">Blog</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/whats-new">What's New</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/crosschecking">Cross-checking</Link></DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
             </nav>
@@ -490,12 +437,12 @@ export default function LandingPage() {
                            <DropdownMenu>
                                 <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Features <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                    <DropdownMenuItem asChild><Link href="/features/statistica" onClick={() => setIsMobileMenuOpen(false)}>Statistica</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/data-editor" onClick={() => setIsMobileMenuOpen(false)}>Data Editor</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/visualization" onClick={() => setIsMobileMenuOpen(false)}>Visualization</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/data-editor" onClick={() => setIsMobileMenuOpen(false)}>DataPrep</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/statistica" onClick={() => setIsMobileMenuOpen(false)}>Standard Analysis</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/visualization" onClick={() => setIsMobileMenuOpen(false)}>Strategic Decision</Link></DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            <Link href="/why-skari" className="text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Why Statistica</Link>
                             <DropdownMenu>
                                 <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Solutions <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-[280px] p-3">
@@ -530,10 +477,9 @@ export default function LandingPage() {
                                 <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Support <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
                                 <DropdownMenuContent>
                                     <DropdownMenuItem asChild><Link href="/faq" onClick={() => setIsMobileMenuOpen(false)}>Help Center</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/faq/analysis-list" onClick={() => setIsMobileMenuOpen(false)}>Analysis List</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/glossary" onClick={() => setIsMobileMenuOpen(false)}>Glossary</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/whats-new" onClick={() => setIsMobileMenuOpen(false)}>What's New</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/crosschecking" onClick={() => setIsMobileMenuOpen(false)}>Cross-checking</Link></DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             <Separator className="my-2" />
@@ -1105,7 +1051,7 @@ export default function LandingPage() {
                   {totalAnalyses}+
                 </motion.span>
                 <span className="text-xl md:text-2xl font-semibold text-slate-700">
-                  statistical analyses<br />with automated reports
+                  statistical analysis + business analysis<br />with automated reports
                 </span>
               </div>
             </motion.div>
@@ -1327,7 +1273,7 @@ export default function LandingPage() {
                       <Bot className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-white text-xs sm:text-base">Skari AI Assistant</p>
+                      <p className="font-semibold text-white text-xs sm:text-base">Statistica AI Assistant</p>
                       <p className="text-[9px] sm:text-xs text-slate-400 hidden sm:block">Ask anything about your results</p>
                     </div>
                     <div className="ml-auto flex items-center gap-1">
@@ -1500,7 +1446,7 @@ export default function LandingPage() {
                             Ready to Transform Your Data Analysis?
                         </h2>
                         <p className="text-lg md:text-xl text-primary-foreground/90 mb-8">
-                            Join thousands of researchers and analysts who trust Skari for their statistical analysis needs.
+                            Join thousands of researchers and analysts who trust Statistica for their statistical analysis needs.
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                             <Button size="lg" variant="secondary" asChild className="text-base px-8 py-6 w-full sm:w-auto">
@@ -1535,7 +1481,7 @@ export default function LandingPage() {
 
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-muted/40">
         <p className="text-xs text-muted-foreground">
-          &copy; 2024 Skari. All rights reserved.
+          &copy; 2024 Statistica. All rights reserved.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="#">Terms of Service</Link>

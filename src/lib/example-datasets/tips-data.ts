@@ -68,4 +68,3 @@ export const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 
-```

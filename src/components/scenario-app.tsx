@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
@@ -18,32 +17,75 @@ import {
   FileText,
   Loader2,
   TrendingUp,
+  Backpack,
   Landmark,
   Megaphone,
-  Package,
   Factory,
   Users,
   ArrowLeftRight,
   Target,
   BarChart3,
+  Route,
+  Package,
   Zap,
   Layers,
   Activity,
   UserX,
-  Filter,
   DollarSign,
   FlaskConical,
   Search,
   Check,
   TestTube,
-  BookOpen
+  BookOpen,
+  LineChart,
+  PieChart,
+  Gauge,
+  Settings,
+  GitBranch,
+  Boxes,
+  ShoppingCart,
+  Workflow,
+  MousePointerClick,
+  Scale,
+  Filter,
+  Wallet,
+  CircleDollarSign,
+  TrendingDown,
+  MapPin,
+  Percent,
+  Calculator,
+  Calendar,
+  GraduationCap,
+  Heart,
+  UserCheck,
+  ClipboardList,
+  AlertTriangle,
+  ShieldAlert,
+  CreditCard,
+  Radar,
+  Grid3X3,
+  Clock,
+  BarChart2,
+  Truck,
+  Users2,
+  Building2,
+  FileBarChart,
+  Timer,
+  Baby,
+  Briefcase,
+  Store,
+  Car,
+  TrainFront,
+  ParkingCircle,
+  Cloud,
+  Flame,
+  Shield,
+  Map,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
-  type DataSet,
-  parseData,
-  unparseData,
-} from '@/lib/stats';
+  type DataSet,  parseData, unparseData} from '@/lib/stats';
+
 import { useToast } from '@/hooks/use-toast';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
@@ -59,91 +101,168 @@ import PrePostPolicyPage from './pages/scenario/pre-post-policy-page';
 import PolicyTargetImpactPage from './pages/scenario/policy-target-impact-page';
 import PolicyDistributionPage from './pages/scenario/policy-distribution-page';
 import CampaignPerformancePage from './pages/scenario/campaign-performance-page';
-import SegmentEffectivenessPage from './pages/scenario/segment-effectiveness-page';
 import ChannelEfficiencyPage from './pages/scenario/channel-efficiency-page';
 import FeatureAdoptionPage from './pages/scenario/feature-adoption-page';
 import EngagementChangePage from './pages/scenario/engagement-change-page';
 import ChurnDiagnosisPage from './pages/scenario/churn-diagnosis-page';
-import ProcessBottleneckPage from './pages/scenario/process-bottleneck-page';
-import ProcessStabilityPage from './pages/scenario/process-stability-page';
-import CostEfficiencyPage from './pages/scenario/cost-efficiency-page';
 import HrPolicyOutcomePage from './pages/scenario/hr-policy-outcome-page';
-import AttritionAnalysisPage from './pages/scenario/attrition-analysis-page';
-import PerformanceStructurePage from './pages/scenario/performance-structure-page';
-import EffectivenessPage from './pages/EffectivenessPage';
-import SimpleTestPage from './pages/scenario/simple-test-page';
+import LtvPage from './pages/scenario/ltv-prediction-page';
+import MarketBasketAnalysisPage from './pages/scenario/market_basket_analysis';
+import DemandElasticityPage from './pages/scenario/demand_elasticity_page';
+import LeadScoringPage from './pages/scenario/lead-scoring-page';
+import AhaMomentPage from './pages/scenario/aha_moment_page';
+import NextBestActionPage from './pages/scenario/next_best_action_page';
+
+// Import NEW analysis pages (15)
+import SPCPage from './pages/scenario/SPCPage';
+import GageRRPage from './pages/scenario/GageRRPage';
+import YieldAnalysisPage from './pages/scenario/YieldAnalysisPage';
+import OEEPage from './pages/scenario/OEEPage';
+import ProcessCapabilityPage from './pages/scenario/ProcessCapabilityPage';
+import PortfolioOptimizationPage from './pages/scenario/PortfolioOptimizationPage';
+import CohortAnalysisPage from './pages/scenario/CohortAnalysisPage';
+import CustomerSegmentationPage from './pages/scenario/CustomerSegmentationPage';
+import SalesForecastPage from './pages/scenario/SalesForecastPage';
+import MMMPage from './pages/scenario/MMMPage';
+import PromotionOptimizationPage from './pages/scenario/PromotionOptimizationPage';
+import ConversionRatePage from './pages/scenario/ConversionRatePage';
+import BreakevenAnalysisPage from './pages/scenario/BreakevenAnalysisPage';
+import InventoryOptimizationPage from './pages/scenario/InventoryOptimizationPage';
+
+// Import HR Analytics pages
+import AttritionPredictionPage from './pages/scenario/AttritionPredictionPage';
+import CompensationAnalysisPage from './pages/scenario/CompensationAnalysisPage';
+import FunnelAnalysisPage from "./pages/scenario/funnel_analysis";
+import EngagementSurveyPage from './pages/scenario/EngagementSurveyPage';
+import DiversityInclusionPage from './pages/scenario/DiversityInclusionPage';
+import AbsenteeismAnalysisPage from './pages/scenario/AbsenteeismAnalysisPage';
+import CreditRiskPage from './pages/scenario/CreditRiskPage';
+import AnomalyDetectionPage from './pages/scenario/AnomalyDetectionPage';
+import VaRPage from './pages/scenario/VaRPage';
+
+import KPIPage from './pages/scenario/KPIPage';
+import ProcessingPage from './pages/scenario/process-mining-page';
+import VRPAnalysisPage from './pages/scenario/vrp_analysis';
+import SchedulingAnalysisPage from './pages/scenario/scheduling_analysis';
+import BinPackingPage from './pages/scenario/bin_packing';
+import KnapsackPage from './pages/scenario/knapsack';
+import TSPPage from './pages/scenario/tsp';
+import AssignmentPage from './pages/scenario/assignment';
+import DEAPage from './pages/scenario/DEAPage';
+
+// Import Public Sector Analysis pages
+import WelfarePolicyImpactPage from './pages/scenario/WelfarePolicyImpactPage';
+import BudgetExecutionPage from './pages/scenario/BudgetExecutionPage';
+import ComplaintProcessingPage from './pages/scenario/ComplaintProcessingPage';
+import PublicServiceTrendPage from './pages/scenario/PublicServiceTrendPage';
+import AgingAnalysisPage from './pages/scenario/AgingAnalysisPage';
+import BirthDeathTrendPage from './pages/scenario/BirthDeathTrendPage';
+import PopulationMigrationPage from './pages/scenario/PopulationMigrationPage';
+import YouthUnemploymentPage from './pages/scenario/YouthUnemploymentPage';
+import RegionalIncomePage from './pages/scenario/RegionalIncomePage';
+import SmallBusinessSalesPage from './pages/scenario/SmallBusinessSalesPage';
+import EmploymentIndustryPage from './pages/scenario/EmploymentIndustryPage';
+import TrafficVolumeAnalysisPage from './pages/scenario/TrafficVolumeAnalysisPage';
+import TransitCongestionPage from './pages/scenario/TransitCongestionPage';
+import AccidentHotspotPage from './pages/scenario/AccidentHotspotPage';
+import ParkingDemandPage from './pages/scenario/ParkingDemandPage';
+import AirQualityAnalysisPage from './pages/scenario/AirQualityAnalysisPage';
+import WeatherAccidentCorrelationPage from './pages/scenario/WeatherAccidentCorrelationPage';
+import DisasterPatternPage from './pages/scenario/DisasterPatternPage';
+import CrimeHotspotPage from './pages/scenario/CrimeHotspotPage';
 
 const analysisCategories = [
-    {
-        name: 'Overview',
-        icon: BookOpen,
-        isSingle: true,
-        items: [
-          { id: 'guide', label: 'Overview', icon: BookOpen, component: ScenarioGuidePage },
-        ]
-    },
-    {
-        name: 'Policy / Institution',
-        icon: Landmark,
-        items: [
-            { id: 'pre-post-policy', label: 'Pre/Post Policy Comparison', component: PrePostPolicyPage, icon: ArrowLeftRight },
-            { id: 'policy-target-impact', label: 'Target Group Impact Analysis', component: PolicyTargetImpactPage, icon: Target },
-            { id: 'policy-distribution', label: 'Policy Outcome Distribution', component: PolicyDistributionPage, icon: BarChart3 },
-            { id: 'effectiveness-analysis', label: 'Policy Effectiveness Analysis', component: EffectivenessPage, icon: Check },
-        ],
-    },
-    {
-        name: 'Marketing / Growth',
-        icon: Megaphone,
-        items: [
-            { id: 'campaign-performance', label: 'Campaign Performance Evaluation', component: CampaignPerformancePage, icon: TrendingUp },
-            { id: 'segment-effectiveness', label: 'Customer Segment Effectiveness', component: SegmentEffectivenessPage, icon: Users },
-            { id: 'channel-efficiency', label: 'Channel Efficiency Diagnosis', component: ChannelEfficiencyPage, icon: Zap },
-        ],
-    },
-    {
-        name: 'Product / Service',
+      {
+          name: 'Overview',
+          icon: BookOpen,
+          isSingle: true,
+          items: [
+            { id: 'guide', label: 'Overview', icon: BookOpen, component: ScenarioGuidePage },
+          ]
+      },
+      {
+          name: 'Marketing & Sales',
+          icon: Megaphone,
+          items: [
+              { id: 'ltv-prediction', label: 'Customer Lifetime Value Forecasting', component: LtvPage, icon: DollarSign },
+              { id: 'mmm', label: 'Marketing Mix Modeling', component: MMMPage, icon: BarChart3 },
+              { id: 'demand-elasticity', label: 'Pricing Optimization', component: DemandElasticityPage, icon: Percent },
+              { id: 'promotion-optimization', label: 'Promotion Optimization', component: PromotionOptimizationPage, icon: Percent },
+              { id: 'next-best-action', label: 'Next Best Action', component: NextBestActionPage,icon: ShoppingCart },
+              { id: 'lead-scoring', label: 'Lead Scoring', component: LeadScoringPage, icon: UserCheck },
+              { id: 'sales-forecast', label: 'Sales Forecast', component: SalesForecastPage, icon: TrendingUp },
+            ],
+      },
+      {
+        name: 'Customer & Engagement',
         icon: Package,
         items: [
+          { id: 'customer-segmentation', label: 'Customer Segmentation', icon: PieChart, component: CustomerSegmentationPage },
+          { id: 'churn-diagnosis', label: 'Churn & Drop-off Diagnosis', component: ChurnDiagnosisPage, icon: UserX },
+          { id: 'aha-moment', label: 'Aha-Moment', component: AhaMomentPage, icon: Zap},
+          { id: 'cohort-analysis', label: 'Cohort Analysis', component: CohortAnalysisPage, icon: Users },
+            { id: 'funnel-analysis', label: 'Funnel Analysis', component: FunnelAnalysisPage, icon: Filter },
+            { id: 'conversion-rate', label: 'Conversion Rate Analysis', component: ConversionRatePage, icon: MousePointerClick },
+            { id: 'association-rule', label: 'Market Basket Analysis', component: MarketBasketAnalysisPage, icon: GitBranch },
             { id: 'feature-adoption', label: 'Feature Adoption Analysis', component: FeatureAdoptionPage, icon: Layers },
             { id: 'engagement-change', label: 'User Engagement Change Analysis', component: EngagementChangePage, icon: Activity },
-            { id: 'churn-diagnosis', label: 'Churn & Drop-off Diagnosis', component: ChurnDiagnosisPage, icon: UserX },
-        ],
+          ],
     },
-    {
-        name: 'Operations / Process',
-        icon: Factory,
-        items: [
-            { id: 'process-bottleneck', label: 'Process Bottleneck Diagnosis', component: ProcessBottleneckPage, icon: Filter },
-            { id: 'process-stability', label: 'Process Stability & Quality', component: ProcessStabilityPage, icon: Activity },
-            { id: 'cost-efficiency', label: 'Cost & Efficiency Structure', component: CostEfficiencyPage, icon: DollarSign },
-        ],
-    },
-    {
-        name: 'HR / Organization',
-        icon: Users,
-        items: [
-            { id: 'hr-policy-outcome', label: 'HR Policy Outcome Analysis', component: HrPolicyOutcomePage, icon: Users },
-            { id: 'attrition-retention', label: 'Attrition & Retention Analysis', component: AttritionAnalysisPage, icon: UserX },
-            { id: 'performance-structure', label: 'Performance Structure Diagnosis', component: PerformanceStructurePage, icon: BarChart3 },
-        ],
-    },
-    {
-        name: 'Testing',
-        icon: TestTube,
-        items: [
-            { id: 'simple-test', label: 'Simple Sum Analysis', component: SimpleTestPage, icon: TestTube },
-        ],
-    }
-];
+      {
+          name: 'Operations & Logistics',
+          icon: Factory,
+          items: [
+              { id: 'process-mining', label: 'Process Mining', component: ProcessingPage, icon: Workflow },
+              { id: 'vrp-analysis', label: 'Vehicle Routing (VRP)', component: VRPAnalysisPage, icon: Route },
+              { id: 'tsp', label: 'Traveling Salesman (TSP)', component: TSPPage, icon: MapPin },
+              { id: 'inventory-optimization', label: 'Inventory Optimization', component: InventoryOptimizationPage, icon: Boxes },
+              { id: 'scheduling-analysis', label: 'Job Shop Scheduling', component: SchedulingAnalysisPage, icon: Calendar },
+              { id: 'bin-packing', label: 'Bin Packing', component: BinPackingPage, icon: Package },
+              { id: 'assignment', label: 'Assignment Problem', component: AssignmentPage, icon: UserCheck },
+              { id: 'knapsack', label: 'Knapsack Problem', component: KnapsackPage, icon: Backpack },
+            ],
+      },
+      {
+          name: 'Finance & Risk',
+          icon: Wallet,
+          items: [
+              { id: 'portfolio-optimization', label: 'Portfolio Optimization', component: PortfolioOptimizationPage, icon: PieChart },
+              { id: 'var-analysis', label: 'Value at Risk (VaR)', component: VaRPage, icon: TrendingDown },
+              { id: 'credit-risk', label: 'Credit Risk Scoring', component: CreditRiskPage, icon: CreditCard },
+              { id: 'anomaly-detection', label: 'Anomaly Detection', component: AnomalyDetectionPage, icon: Radar },
+              { id: 'breakeven-analysis', label: 'Break-even Analysis', component: BreakevenAnalysisPage, icon: Scale },
+          ],
+      },
+      {
+          name: 'Quality & Manufacturing',
+          icon: Gauge,
+          items: [
+              { id: 'spc', label: 'SPC Control Charts', component: SPCPage, icon: LineChart },
+              { id: 'gage-rr', label: 'MSA / Gage R&R', component: GageRRPage, icon: Settings },
+              { id: 'yield-analysis', label: 'Yield & Defect Analysis', component: YieldAnalysisPage, icon: Target },
+              { id: 'oee', label: 'OEE Analysis', component: OEEPage, icon: Gauge },
+              { id: 'process-capability', label: 'Process Capability (Cp/Cpk)', component: ProcessCapabilityPage, icon: BarChart3 },
+          ],
+      },
+      {
+          name: 'HR & Organization',
+          icon: Users,
+          items: [
+              { id: 'attrition-prediction', label: 'Attrition Modeling', component: AttritionPredictionPage, icon: TrendingDown },
+              { id: 'compensation-analysis', label: 'Compensation Analysis', component: CompensationAnalysisPage, icon: DollarSign },
+              { id: 'engagement-survey', label: 'Employee Engagement Survey', component: EngagementSurveyPage, icon: ClipboardList },
+              { id: 'diversity-inclusion', label: 'Diversity & Inclusion Analysis', component: DiversityInclusionPage, icon: Heart },
+              { id: 'absenteeism-analysis', label: 'Absenteeism Analysis', component: AbsenteeismAnalysisPage, icon: Calendar },
+          ],
+      },
+  ];
 
-const analysisPages: Record<string, React.ComponentType<any>> = analysisCategories
-  .flatMap(category => category.items)
-  .reduce((acc, item) => {
-    acc[item.id] = item.component;
-    return acc;
-  }, {} as Record<string, React.ComponentType<any>>);
-
+const analysisPages: Record<string, React.ComponentType<any>> = {};
+analysisCategories.forEach(category => {
+  category.items.forEach(item => {
+    analysisPages[item.id] = item.component;
+  });
+});
 
 export default function ScenarioApp() {
   const [data, setData] = useState<DataSet>([]);
@@ -186,6 +305,28 @@ export default function ScenarioApp() {
         setIsUploading(false);
       }
   }, [toast, handleClearData]);
+
+  const handleDownloadData = useCallback(() => {
+    if (data.length === 0) {
+      toast({ title: 'No Data to Download', description: 'There is no data currently loaded.' });
+      return;
+    }
+    try {
+      const csvContent = unparseData({ headers: allHeaders, data });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace(/\.[^/.]+$/, "") + "_scenario.csv" || 'scenario_data.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download data:', error);
+      toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
+    }
+  }, [data, allHeaders, fileName, toast]);
 
   const handleFileSelected = useCallback((file: File) => {
     const reader = new FileReader();
@@ -246,11 +387,7 @@ export default function ScenarioApp() {
       <div className="flex min-h-screen w-full">
         <Sidebar>
           <SidebarHeader>
-            <div className='p-2 space-y-2'>
-              <DataUploader 
-                onFileSelected={handleFileSelected}
-                loading={isUploading}
-              />
+            <div className='p-2'>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search scenarios..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
@@ -313,7 +450,7 @@ export default function ScenarioApp() {
                 fileName={fileName}
                 data={data}
                 headers={allHeaders}
-                onDownload={() => {}}
+                onDownload={handleDownloadData} 
                 onClearData={handleClearData}
               />
             )}

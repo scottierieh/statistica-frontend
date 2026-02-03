@@ -3,7 +3,7 @@
     {
       "id": "empty-state-chart",
       "description": "An abstract representation of data charts and graphs.",
-      "imageUrl": "https://images.unsplash.com/photo-1531169509526-f8f1fdaa4a67?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkYXRhJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY4MDYwMDQ2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://picsum.photos/seed/stat1/600/400",
       "imageHint": "data abstract"
     },
     {
@@ -15,7 +15,7 @@
     {
       "id": "security-feature",
       "description": "An image representing data security and compliance certifications.",
-      "imageUrl": "https://images.unsplash.com/photo-1588892487050-67d92a5f4136?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c2VjdXJpdHklMjBwcml2YWN5fGVufDB8fHx8MTc2ODE1MzI0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://picsum.photos/seed/security/600/500",
       "imageHint": "security privacy"
     },
     {
@@ -27,7 +27,7 @@
     {
       "id": "survey-start-default",
       "description": "A default image for a survey start page.",
-      "imageUrl": "https://images.unsplash.com/photo-1764183298213-23b6c5bedf46?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3ZWxjb21lJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY4MTUzMjQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://picsum.photos/seed/survey_start/800/400",
       "imageHint": "welcome abstract"
     },
     {
@@ -65,12 +65,6 @@
       "description": "A watercolor landscape painting to be used as a background for the help center.",
       "imageUrl": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&h=400&fit=crop",
       "imageHint": "watercolor landscape"
-    },
-    {
-      "id": "user-avatar-placeholder",
-      "description": "A generic placeholder for user avatars.",
-      "imageUrl": "https://images.unsplash.com/photo-1664634178711-79e1c44c36c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx1c2VyJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzY4MTUzMjQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "user portrait"
     }
   ]
 }

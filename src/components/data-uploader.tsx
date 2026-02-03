@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
@@ -73,13 +74,12 @@ export default function DataUploader({ onFileSelected, loading }: DataUploaderPr
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       className={cn(
-        "relative group flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-4 text-center transition-colors",
+        "relative group flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-2 text-center transition-colors",
         isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-accent"
       )}
     >
       <UploadCloud className={cn("mb-2 h-8 w-8 text-muted-foreground transition-transform group-hover:scale-110", isDragging && "text-primary scale-110")} />
-      <h3 className="mb-2 text-sm font-semibold">Upload Data</h3>
-       <p className="text-xs text-muted-foreground mb-3">Drag & drop or click to upload</p>
+      <h3 className="mb-1 text-sm font-semibold">Upload Data</h3>
        <input
         ref={fileInputRef}
         type="file"

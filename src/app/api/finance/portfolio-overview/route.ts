@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
+export const dynamic = "force-dynamic";  // 👈 이 줄 추가
+
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();

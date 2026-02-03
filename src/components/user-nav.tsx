@@ -31,7 +31,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="https://picsum.photos/seed/user/100/100" alt={user.name} />
+            <AvatarImage src="/placeholder-user.jpg" alt={user.name} />
             <AvatarFallback>{user.name?.[0].toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>

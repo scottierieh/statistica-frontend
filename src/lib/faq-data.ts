@@ -75,19 +75,6 @@ export const faqData: FaqCategory[] = [
         ]
     },
     {
-        slug: "sem",
-        icon: Network,
-        title: "Structural Equation Modeling",
-        description: "Model complex, multi-variable relationships.",
-        articles: [
-            { slug: "sem-overview", title: "Overview", description: "What is SEM and when to use it." },
-            { slug: "path-diagram-upload", title: "Path Diagram Upload", description: "Generating a model from a visual diagram." },
-            { slug: "model-estimation", title: "Model Estimation", description: "Understanding estimators like ML, GLS, and WLS." },
-            { slug: "sem-result-interpretation", title: "Result Interpretation", description: "Making sense of fit indices and path coefficients." },
-            { slug: "sem-model-diagnostics", title: "Model Diagnostics", description: "Checking for model fit and potential issues." }
-        ]
-    },
-    {
         slug: "settings",
         icon: Settings,
         title: "Settings",

@@ -30,41 +30,38 @@ import { deaBankData } from "./example-datasets/dea-data";
 import { cbcData } from "./example-datasets/cbc-data";
 import { ahpData } from "./example-datasets/ahp-data";
 import { didData } from "./example-datasets/did-data";
-import { mcnemarData } from './example-datasets/mcnemar-data';
-import { turfData } from './example-datasets/turf-data';
-import { csatData } from './example-datasets/csat-data';
-import { brandFunnelData } from './example-datasets/brand-funnel-data';
-import { panelData } from './example-datasets/panel-data';
-import { rfmData } from './example-datasets/rfm-data';
+import { mcnemarData } from "./example-datasets/mcnemar-data";
+import { turfData } from "./example-datasets/turf-data";
+import { csatData } from "./example-datasets/csat-data";
+import { brandFunnelData } from "./example-datasets/brand-funnel-data";
+import { panelData } from "./example-datasets/panel-data";
+import { rfmData } from "./example-datasets/rfm-data";
 import { sqcData } from "./example-datasets/sqc-data";
 import { attributeControlChartData } from "./example-datasets/attribute-control-chart-data";
-import { ltvData } from './example-datasets/ltv-data';
-import { paretoData } from './example-datasets/pareto-data';
-import { gageRrData } from './example-datasets/gage-rr-data';
-import { marketBasket100Data } from './example-datasets/market-basket-100';
-import { irisData } from './example-datasets/iris-data';
-import { associationData } from './example-datasets/association-data';
-import { marketingAnalysisData } from './example-datasets/marketing-analysis-data';
-import { hrTurnoverData } from './example-datasets/hr-turnover-data';
-import { satisfactionEngagementData } from './example-datasets/satisfaction-engagement-data';
-import { attendanceData } from './example-datasets/attendance-data';
-import { headcountStabilityData } from './example-datasets/headcount-stability-data';
+import { ltvData } from "./example-datasets/ltv-data";
+import { paretoData } from "./example-datasets/pareto-data";
+import { gageRrData } from "./example-datasets/gage-rr-data";
+import { marketBasket100Data } from "./example-datasets/market-basket-100";
+import { irisData } from "./example-datasets/iris-data";
+import { associationData } from "./example-datasets/association-data";
+import { marketingAnalysisData } from "./example-datasets/marketing-analysis-data";
+import { hrTurnoverData } from "./example-datasets/hr-turnover-data";
+import { satisfactionEngagementData } from "./example-datasets/satisfaction-engagement-data";
+import { attendanceData } from "./example-datasets/attendance-data";
+import { headcountStabilityData } from "./example-datasets/headcount-stability-data";
 import { psmMarketingData } from "./example-datasets/psmMarketing-data";
-import { demandForecastData } from './example-datasets/demand-forecast-data';
-import { portfolioOptimizationData } from './example-datasets/portfolio-optimization-data';
-import { factorAnalysisData } from './example-datasets/factor-analysis-data';
-import { pairsTradingData } from './example-datasets/pairs-trading-data';
-import { backtestingData } from './example-datasets/backtesting-data';
-import { leadTimeData } from './example-datasets/lead-time-data';
-import { eoqData } from './example-datasets/eoq-data';
-import { thresholdOptimizationData } from './example-datasets/threshold-optimization-data';
-import { costSensitiveData } from './example-datasets/cost-sensitive-data';
-import { decisionRulesData } from './example-datasets/decision-rules-data';
-import { reliabilityValidityData } from './example-datasets/reliability-validity-data';
-
-
-
-
+import { demandForecastData } from "./example-datasets/demand-forecast-data";
+import { portfolioOptimizationData } from "./example-datasets/portfolio-optimization-data";
+import { factorAnalysisData } from "./example-datasets/factor-analysis-data";
+import { pairsTradingData } from "./example-datasets/pairs-trading-data";
+import { backtestingData } from "./example-datasets/backtesting-data";
+import { leadTimeData } from "./example-datasets/lead-time-data";
+import { eoqData } from "./example-datasets/eoq-data";
+import { thresholdOptimizationData } from "./example-datasets/threshold-optimization-data";
+import { costSensitiveData } from "./example-datasets/cost-sensitive-data";
+import { decisionRulesData } from "./example-datasets/decision-rules-data";
+import { reliabilityValidityData } from "./example-datasets/reliability-validity-data";
+import { effectivenessAnalysisData } from "./example-datasets/effectiveness-analysis-data";
 
 
 
@@ -96,7 +93,17 @@ export const exampleDatasets: ExampleDataSet[] = [
         recommendedAnalysis: 'attribute-control-charts',
         data: attributeControlChartData,
     },
-   
+    {
+        id: 'effectiveness-analysis',
+        name: 'Effectiveness Analysis Data',
+        description: 'Dataset for tracking product defects and sample sizes over time for attribute control charts.',
+        icon: TrendingUp,
+        analysisTypes: ['attribute-control-charts'],
+        data: effectivenessAnalysisData,
+    },
+
+
+    
     {
         id: 'rfm-data',
         name: 'Transactional Data',
