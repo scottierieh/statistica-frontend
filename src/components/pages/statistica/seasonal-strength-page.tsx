@@ -29,7 +29,7 @@ import { Separator } from '@/components/ui/separator';
 
 
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-dm6treznqq-du.a.run.app';
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-577472426399.us-central1.run.app';
 
 const metricDefinitions: Record<string, string> = {
     seasonal_strength_index: "SSI measures how much variation is due to seasonal patterns. SSI = 1 - Var(Residual)/Var(Detrended). Values closer to 1 indicate stronger seasonality.",

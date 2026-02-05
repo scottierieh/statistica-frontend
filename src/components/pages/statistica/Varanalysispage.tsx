@@ -22,7 +22,7 @@ import Image from 'next/image';
 import { Tabs, TabsTrigger, TabsList, TabsContent } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || 'https://statistica-api-dm6treznqq-du.a.run.app';
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || 'https://statistica-api-577472426399.us-central1.run.app';
 
 interface StationarityTest { variable: string; adf_statistic: number; p_value: number; stationary: boolean; }
 interface LagSelection { aic: number; bic: number; hqic: number; fpe: number; recommended: number; }

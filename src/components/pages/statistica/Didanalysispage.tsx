@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-577472426399.us-central1.run.app";
 
 const metricDefinitions: Record<string, string> = {
   did_estimate: "The Difference-in-Differences treatment effect estimate. Represents the causal impact of treatment on the outcome, calculated as (Treated_Post - Treated_Pre) - (Control_Post - Control_Pre).",

@@ -17,7 +17,7 @@ import { Checkbox } from '../../ui/checkbox';
 import { Skeleton } from '../../ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-dm6treznqq-du.a.run.app';
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-577472426399.us-central1.run.app';
 
 interface IpaMatrixItem {
     attribute: string;

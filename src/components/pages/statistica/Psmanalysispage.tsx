@@ -25,7 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-577472426399.us-central1.run.app";
 
 const metricDefinitions: Record<string, string> = {
   propensity_score: "The estimated probability of receiving treatment given observed covariates. Calculated via logistic regression. Ranges from 0 to 1.",

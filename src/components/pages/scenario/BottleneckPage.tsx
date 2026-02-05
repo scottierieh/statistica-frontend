@@ -16,7 +16,7 @@ import {
   Target, BarChart3, Clock, Zap, Layers, Timer, Gauge,
 } from "lucide-react";
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-995604437166.asia-northeast3.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
 
 interface DataRow { [key: string]: string | number | null; }
 interface KeyInsight { title: string; description: string; status: "positive" | "neutral" | "warning"; }

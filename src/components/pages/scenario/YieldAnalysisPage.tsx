@@ -19,7 +19,7 @@ import {
   ListChecks, BarChart2, CircleDot, BookOpen, BookMarked
 } from "lucide-react";
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-995604437166.asia-northeast3.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
 
 // ============ TYPES ============
 interface DataRow { [key: string]: string | number | null; }

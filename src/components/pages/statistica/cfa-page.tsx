@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "hhttps://statistica-api-dm6treznqq-du.a.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "hhttps://statistica-api-577472426399.us-central1.run.app";
 
 
 

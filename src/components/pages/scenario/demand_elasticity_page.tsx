@@ -18,7 +18,7 @@ import {
   ArrowDownCircle, MinusCircle
 } from "lucide-react";
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || "https://statistica-api-995604437166.asia-northeast3.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
 
 interface DataRow { [key: string]: string | number | null; }
 interface ValidationCheck { name: string; passed: boolean; message: string; }

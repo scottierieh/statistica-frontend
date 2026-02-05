@@ -10,18 +10,18 @@ import { Button } from '@/components/ui/button';
 import { Users, BarChart, Settings, FileSearch, CheckCircle, XCircle, Lightbulb, AlertTriangle, HelpCircle, TrendingUp, Target, Activity, Layers, BookOpen, FlaskConical, Info, Scale, Sigma, Download, FileSpreadsheet, ImageIcon, Database, Settings2, Shield, FileText, BarChart3, ChevronRight, ChevronLeft, CheckCircle2, Sparkles, Check, ArrowRight, ChevronDown, FileCode, FileType } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
-import { Label } from '../../ui/label';
-import { Skeleton } from '../../ui/skeleton';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '../../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
-import { Badge } from '../../ui/badge';
+import { Badge } from '@/components/ui/badge';
 import Papa from 'papaparse';
 
 // ✅ FastAPI Cloud Run URL
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || 'https://statistica-api-dm6treznqq-du.a.run.app';
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || 'https://statistica-api-577472426399.us-central1.run.app';
 
 
 interface WelchsTTestResults {

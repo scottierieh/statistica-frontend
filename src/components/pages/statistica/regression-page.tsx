@@ -20,7 +20,7 @@ import { Checkbox } from '../../ui/checkbox';
 import { Badge } from '../../ui/badge';
 import Papa from 'papaparse';
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-dm6treznqq-du.a.run.app';
+const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://statistica-api-577472426399.us-central1.run.app';
 
 interface RegressionMetrics {
     r2: number;

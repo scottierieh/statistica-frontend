@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 
 
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-577472426399.us-central1.run.app";
 
 // ============================================
 // Type Definitions (matching backend response)

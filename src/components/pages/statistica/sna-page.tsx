@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false, loading: () => <Skeleton className="w-full h-[600px]" /> });
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-dm6treznqq-du.a.run.app";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://statistica-api-577472426399.us-central1.run.app";
 
 // Firebase Storage URL for Python code
 const PYTHON_CODE_URL = "https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/sna_analysis.py?alt=media";
