@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
   Calculator, BrainCircuit, Briefcase, Monitor, Repeat, 
-  DatabaseZap, Paintbrush, FlaskConical, LayoutDashboard, 
+  DatabaseZap, Paintbrush, FlaskConical, Landmark, LayoutDashboard, 
   ArrowUpRight, LucideIcon, Network, ClipboardList, Target, DollarSign
 } from "lucide-react";
 
@@ -50,6 +50,15 @@ const tools: ToolItem[] = [
     icon: Briefcase,
     title: "Strategic Decision",
     description: "Solve complex business problems with domain-specific optimization.",
+    disabled: false,
+    badge: "Beta"
+  },
+  {
+    id: "finance",
+    href: "/dashboard/finance",
+    icon: Landmark,
+    title: "Financial Modeling",
+    description: "Optimize portfolios and manage financial risks with professional models.",
     disabled: false,
     badge: "Beta"
   },
