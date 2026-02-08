@@ -55,7 +55,7 @@ const tools: ToolItem[] = [
   },
   {
     id: "finance",
-    href: "/dashboard/finance",
+    href: "/dashboard/financial-modeling",
     icon: Landmark,
     title: "Financial Modeling",
     description: "Optimize portfolios and manage financial risks with professional models.",
