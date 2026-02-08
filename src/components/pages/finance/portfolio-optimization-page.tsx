@@ -719,9 +719,9 @@ export default function PortfolioOptimizationPage({ data, numericHeaders, catego
               const delta = optW - curW;
               const rr = a.stdDev > 0 ? a.expectedReturn / a.stdDev : 0;
               return (
-                <tr key={a.ticker} className="border-b">
-                  <td className="p-2 font-medium"><div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />{a.ticker}</div></td>
-                  <td className="p-2 text-muted-foreground">{a.assetClass}</td>
+                  <tr key={a.id} className="border-b">
+                  <td className="p-2 font-medium"><div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />{a.name}</div></td>
+                  <td className="p-2 text-muted-foreground">{CLASS_LABELS[a.assetClass]}</td>                  <td className="p-2 text-muted-foreground">{a.assetClass}</td>
                   <td className="p-2 text-right font-mono">{curW.toFixed(1)}%</td>
                   <td className="p-2 text-right font-mono">{optW.toFixed(1)}%</td>
                   <td className={`p-2 text-right font-mono font-semibold ${delta > 1 ? 'text-green-600' : delta < -1 ? 'text-red-600' : 'text-muted-foreground'}`}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)}%</td>
