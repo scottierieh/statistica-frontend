@@ -293,8 +293,7 @@ export default function CostForecastPage({ onNavigateHome }: CostForecastPagePro
           const parsed: CostRow[] = rows.map((r, i) => ({
             period: String(r[periodCol]).trim(),
             category: catCol ? String(r[catCol]).trim() : 'Total',
-            costType: costTypeCol && /var/i.test(String(r[costTypeCol])) ? 'variable' : 'fixed',
-            amount: Math.round(parseFloat(String(r[amtCol]).replace(/[$,]/g, '')) || 0),
+            costType: (costTypeCol && /var/i.test(String(r[costTypeCol])) ? 'variable' : 'fixed') as CostRow['costType'],            amount: Math.round(parseFloat(String(r[amtCol]).replace(/[$,]/g, '')) || 0),
             sortKey: i,
           })).filter(d => d.amount > 0);
           if (parsed.length < 3) throw new Error('Need at least 3 valid rows');

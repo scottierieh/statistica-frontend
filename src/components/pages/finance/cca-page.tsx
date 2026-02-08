@@ -1272,9 +1272,9 @@ export default function CCAPage({ data, numericHeaders, categoricalHeaders, onLo
                   Peer median trading multiples are: <strong>EV/EBITDA {fmtX(stats.find(s=>s.metric==='EV/EBITDA')?.median??null)}</strong>, EV/Revenue {fmtX(stats.find(s=>s.metric==='EV/Revenue')?.median??null)}, P/E {fmtX(stats.find(s=>s.metric==='P/E')?.median??null)}, P/B {fmtX(stats.find(s=>s.metric==='P/B')?.median??null)}.
                   {(() => {
                     const evEbitda = stats.find(s => s.metric === 'EV/EBITDA');
-                    if (evEbitda?.high != null && evEbitda?.low != null) {
-                      const spread = evEbitda.high - evEbitda.low;
-                      return ` The EV/EBITDA range spans ${evEbitda.low.toFixed(1)}x to ${evEbitda.high.toFixed(1)}x (${spread.toFixed(1)}x spread), ${spread > 5 ? 'indicating meaningful valuation dispersion among peers.' : 'reflecting relatively tight peer consensus.'}`;
+                    if (evEbitda?.max != null && evEbitda?.min != null) {
+                      const spread = evEbitda.max - evEbitda.min;
+                      return ` The EV/EBITDA range spans ${evEbitda.min.toFixed(1)}x to ${evEbitda.max.toFixed(1)}x (${spread.toFixed(1)}x spread), ${spread > 5 ? 'indicating meaningful valuation dispersion among peers.' : 'reflecting relatively tight peer consensus.'}`;
                     }
                     return '';
                   })()}
@@ -1293,23 +1293,21 @@ export default function CCAPage({ data, numericHeaders, categoricalHeaders, onLo
                     target.revenue > 0 && stats.find(s => s.metric === 'EBITDA Margin (%)')?.median != null
                       ? ((target.ebitda / target.revenue) * 100 > stats.find(s => s.metric === 'EBITDA Margin (%)')!.median! ? 'above' : 'below')
                       : 'comparable to'
-                  } the peer median ({fmtP(stats.find(s => s.metric === 'EBITDA Margin (%)')?.median ?? null)}){
-                    target.revenue > 0 && stats.find(s => s.metric === 'Revenue Growth (%)')?.median != null
-                      ? `, and its revenue growth (${fmtP(target.revenueGrowth)}) is ${target.revenueGrowth > stats.find(s => s.metric === 'Revenue Growth (%)')!.median! ? 'above' : 'below'} the peer median (${fmtP(stats.find(s => s.metric === 'Revenue Growth (%)')!.median)})`
-                      : ''
-                  }.
-                  {' '}{
+                  } the peer median ({fmtP(stats.find(s => s.metric === 'EBITDA Margin (%)')?.median ?? null)}){''}.
+                   {' '}{
                     target.revenue > 0 && stats.find(s => s.metric === 'EBITDA Margin (%)')?.median != null
                       ? ((target.ebitda / target.revenue) * 100 > stats.find(s => s.metric === 'EBITDA Margin (%)')!.median! ? 'This superior profitability profile may justify a premium to peer median multiples.' : 'This may warrant a modest discount to peer median multiples, partially offset by other qualitative factors.')
                       : 'This suggests valuation broadly in line with peer multiples.'
                   }
                 </p>
                 {(() => {
-                  const highComp = includedCompanies.reduce((a, b) => (a.evToEbitda ?? 0) > (b.evToEbitda ?? 0) ? a : b);
-                  const lowComp = includedCompanies.reduce((a, b) => (a.evToEbitda ?? Infinity) < (b.evToEbitda ?? Infinity) ? a : b);
+                  const withEbitda = multiples.filter(m => m.evToEbitda != null);
+                  if (withEbitda.length < 2) return null;
+                  const highComp = withEbitda.reduce((a, b) => (a.evToEbitda ?? 0) > (b.evToEbitda ?? 0) ? a : b);
+                  const lowComp = withEbitda.reduce((a, b) => (a.evToEbitda ?? Infinity) < (b.evToEbitda ?? Infinity) ? a : b);
                   return (
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      <strong>Notable peers:</strong> {highComp.name} trades at the highest EV/EBITDA ({fmtX(highComp.evToEbitda ?? null)}), likely reflecting {highComp.revenueGrowth > 20 ? 'superior growth expectations' : 'premium market positioning'}, while {lowComp.name} ({fmtX(lowComp.evToEbitda ?? null)}) trades at the low end{lowComp.ebitdaMargin != null && lowComp.ebitdaMargin < 15 ? ', potentially reflecting margin compression concerns' : ''}.
+                      <strong>Notable peers:</strong> {highComp.name} trades at the highest EV/EBITDA ({fmtX(highComp.evToEbitda)}), likely reflecting premium market positioning, while {lowComp.name} ({fmtX(lowComp.evToEbitda)}) trades at the low end{lowComp.ebitdaMargin != null && lowComp.ebitdaMargin < 15 ? ', potentially reflecting margin compression concerns' : ''}.
                     </p>
                   );
                 })()}

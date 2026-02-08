@@ -134,8 +134,8 @@ function buildDefaultFixedCosts(): FixedCost[] {
 const DEFAULT_SETTINGS: CMSettings = {
   companyName: 'Acme SaaS',
   fiscalYear: new Date().getFullYear(),
-  currentMonth: 12,
-  scenarioVolumePct: 0,
+  currentMonth: 12 as number,
+  scenarioVolumePct: 0 as number,
 };
 
 
@@ -335,11 +335,10 @@ function parseCMcsv(csvText: string): Product[] | null {
       if (totalVC > 0) variableCosts.push({ id: `vc${items.length}_0`, name: 'Variable Cost', perUnit: totalVC });
     }
     const monthlyUnits: number[] = [];
-    for (const m of MONTHS) monthlyUnits.push(parseFloat(row[`Units_${m}`] || row[m]) || 0);
+    for (const m of MONTHS) monthlyUnits.push(Number(parseFloat(row[`Units_${m}`] || row[m])) || 0);
     if (monthlyUnits.every(u => u === 0)) {
       const ann = parseFloat(row['AnnualUnits'] || row['Units']) || 1200;
-      seasonality.forEach((sv, i) => monthlyUnits[i] = Math.round((ann / 12) * sv));
-    }
+      seasonality.forEach((sv, i) => { monthlyUnits[i] = Math.round((ann / 12) * sv) as number; });    }
     items.push({ id: `p${items.length}`, name, category, unitPrice, variableCosts, monthlyUnits });
   }
   return items.length >= 2 ? items : null;
@@ -558,8 +557,7 @@ export default function ContributionMarginPage({ data, numericHeaders, categoric
   const removeProduct = useCallback((id: string) => { setProducts(prev => prev.filter(p => p.id !== id)); if (expandedProduct === id) setExpandedProduct(null); }, [expandedProduct]);
 
   const updateFC = useCallback((id: string, updates: Partial<FixedCost>) => { setFixedCosts(prev => prev.map(fc => fc.id === id ? { ...fc, ...updates } : fc)); }, []);
-  const addFC = useCallback((cat: FixedCost['category']) => { setFixedCosts(prev => [...prev, { id: `fc${Date.now()}`, name: 'New Fixed Cost', category: cat, monthlyAmount: 10 }]); }, []);
-  const removeFC = useCallback((id: string) => { setFixedCosts(prev => prev.filter(fc => fc.id !== id)); }, []);
+  const addFC = useCallback((cat: FixedCost['category']) => { const newFC: FixedCost = { id: `fc${Date.now()}`, name: 'New Fixed Cost', category: cat, monthlyAmount: 10 }; setFixedCosts(prev => [...prev, newFC]); }, []);  const removeFC = useCallback((id: string) => { setFixedCosts(prev => prev.filter(fc => fc.id !== id)); }, []);
 
   // ── Export ──
   const handleDownloadPNG = useCallback(async () => {
@@ -606,11 +604,11 @@ export default function ContributionMarginPage({ data, numericHeaders, categoric
             <div className="space-y-1.5"><Label className="text-xs">Company</Label><Input value={settings.companyName} onChange={e => setSettings(p => ({ ...p, companyName: e.target.value }))} className="h-8 text-sm" /></div>
             <div className="space-y-1.5"><Label className="text-xs">Fiscal Year</Label><Input type="number" value={settings.fiscalYear} onChange={e => setSettings(p => ({ ...p, fiscalYear: parseInt(e.target.value) || 2025 }))} className="h-8 text-sm" /></div>
             <div className="space-y-1.5"><Label className="text-xs">Months</Label>
-              <div className="flex items-center gap-2"><Slider value={[settings.currentMonth]} onValueChange={([v]) => setSettings(p => ({ ...p, currentMonth: v }))} min={1} max={12} step={1} className="flex-1" /><span className="text-sm font-mono w-6">{cm}</span></div>
+              <div className="flex items-center gap-2"><Slider value={[settings.currentMonth]} onValueChange={(val) => setSettings(p => ({ ...p, currentMonth: Number(val[0]) }))}  min={1} max={12} step={1} className="flex-1" /><span className="text-sm font-mono w-6">{cm}</span></div>
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Volume Scenario</Label>
               <div className="flex items-center gap-2">
-                <Slider value={[settings.scenarioVolumePct]} onValueChange={([v]) => setSettings(p => ({ ...p, scenarioVolumePct: v }))} min={-50} max={50} step={5} className="flex-1" />
+                <Slider value={[settings.scenarioVolumePct]} onValueChange={(val) => setSettings(p => ({ ...p, scenarioVolumePct: Number(val[0]) }))}min={-50} max={50} step={5} className="flex-1" />
                 <span className={`text-sm font-mono w-10 ${settings.scenarioVolumePct > 0 ? 'text-green-600' : settings.scenarioVolumePct < 0 ? 'text-red-600' : ''}`}>{settings.scenarioVolumePct >= 0 ? '+' : ''}{settings.scenarioVolumePct}%</span>
               </div>
             </div>
