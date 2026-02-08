@@ -161,8 +161,8 @@ function parseCustomerCSV(csvText: string): CustomerSegment[] | null {
     const life = parseFloat(row['Lifespan'] || row['AvgYears']) || 3;
     const monthlyRevenue: number[] = [];
     for (const m of MONTHS) monthlyRevenue.push(parseFloat(row[`Rev_${m}`]) || 0);
-    if (monthlyRevenue.every(r => r === 0)) {
-      const annRev = count * arpc;
+    if (monthlyRevenue.every(r => r === 0 as number)) {
+    const annRev = count * arpc;
       s.forEach((sv, i) => monthlyRevenue[i] = Math.round(annRev / 12 * sv));
     }
     items.push({ id: `s${items.length}`, name, tier, customerCount: count, avgRevenuePerCustomer: arpc, acquisitionCost: cac, onboardingCost: onb, supportCost: sup, accountMgmtCost: am, annualRetentionRate: ret, avgLifespanYears: life, monthlyRevenue });
