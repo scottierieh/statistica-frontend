@@ -336,7 +336,7 @@ function parseCMcsv(csvText: string): Product[] | null {
     }
     const monthlyUnits: number[] = [];
     for (const m of MONTHS) monthlyUnits.push(Number(parseFloat(row[`Units_${m}`] || row[m])) || 0);
-    if (monthlyUnits.every(u => u === 0)) {
+    if (monthlyUnits.every(u => u === 0 as number)) {
       const ann = parseFloat(row['AnnualUnits'] || row['Units']) || 1200;
       seasonality.forEach((sv, i) => { monthlyUnits[i] = Math.round((ann / 12) * sv) as number; });    }
     items.push({ id: `p${items.length}`, name, category, unitPrice, variableCosts, monthlyUnits });
