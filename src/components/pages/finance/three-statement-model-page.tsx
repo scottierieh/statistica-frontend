@@ -1052,7 +1052,7 @@ export default function ThreeStatementPage({ data, numericHeaders, categoricalHe
                 const ebitdaMargin = lastProj?.revenue > 0 ? (lastEBITDA / lastProj.revenue * 100) : 0;
                 items.push(`EBITDA reaches ${fmt(lastEBITDA)} with ${fmtP(ebitdaMargin)} margin. Net Income: ${fmt(lastProj?.netIncome)} by Y${A.projectionYears}.`);
                 items.push(`Cash balance: ${fmt(historical[hLen - 1]?.cash)} → ${fmt(lastProj?.cash)}. ${lastProj?.cash > historical[hLen - 1]?.cash ? 'Strong cash generation.' : '⚠️ Cash declining — monitor liquidity.'}`);
-                items.push(`Debt: ${fmt(historical[hLen - 1]?.ltd)} → ${fmt(lastProj?.longTermDebt)}. ${A.debtRepayment > 0 ? `Repaying ${fmt(A.debtRepayment)}/yr — deleveraging.` : 'No scheduled repayment.'}`);
+                items.push(`Debt: ${fmt(historical[hLen - 1]?.longTermDebt)} → ${fmt(lastProj?.longTermDebt)}. ${A.debtRepayment > 0 ? `Repaying ${fmt(A.debtRepayment)}/yr — deleveraging.` : 'No scheduled repayment.'}`);
                 items.push(`Balance check: ${projected.every(p => Math.abs(p.balanceCheck) < 1) ? '✅ All projected years balanced — model integrity confirmed.' : '⚠️ Imbalance detected — review assumptions.'}`);
                 return items.map((text, i) => (
                   <div key={i} className="flex items-start gap-3"><span className="font-bold text-primary">•</span><p className="text-sm">{text}</p></div>
