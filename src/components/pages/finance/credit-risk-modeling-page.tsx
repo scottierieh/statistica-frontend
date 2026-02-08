@@ -719,8 +719,7 @@ export default function CreditRiskPage({ data, numericHeaders, categoricalHeader
               const pctOfTotal = totalExposure > 0 ? (c.exposure / totalExposure * 100) : 0;
               const isIG = ['AAA', 'AA', 'A', 'BBB'].includes(c.rating);
               return (
-                <tr key={c.id} className={`border-b ${c.status === 'default' ? 'bg-red-50/30 dark:bg-red-950/10' : c.status === 'watch' ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}`}>
-                  <td className="p-2 font-medium whitespace-nowrap">{c.borrower_name}</td>
+<tr key={c.borrower_id} className={`border-b ${c.status === 'default' ? 'bg-red-50/30 dark:bg-red-950/10' : c.status === 'watch' ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}`}>                  <td className="p-2 font-medium whitespace-nowrap">{c.borrower_name}</td>
                   <td className="p-2 text-muted-foreground">{c.sector}</td>
                   <td className="p-2 text-center"><span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${isIG ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{c.rating}</span></td>
                   <td className="p-2 text-right font-mono font-semibold">{fmt(c.exposure)}</td>
