@@ -12,7 +12,7 @@ import {
   FileSpreadsheet, ImageIcon, ChevronDown, Sparkles, Info,
   HelpCircle, Calculator, ChevronRight, Upload,
   Plus, X, Settings2, CheckCircle2, Layers,
-  AlertTriangle, Activity, Shield, Clock,
+  AlertTriangle, Activity, Shield, Clock, Lightbulb,
   ArrowUpRight, ArrowDownRight, BarChart3, Gauge,
   Wallet, CreditCard, Calendar, Landmark, Lock, Unlock, Zap
 } from 'lucide-react';

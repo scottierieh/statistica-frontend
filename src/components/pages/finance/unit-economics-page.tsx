@@ -853,7 +853,8 @@ export default function UnitEconomicsPage({ data, numericHeaders, categoricalHea
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'LTV:CAC', value: ltvCacRatio === Infinity ? '∞' : `${ltvCacRatio.toFixed(1)}x`, sub: ltvCacRatio >= 3 ? 'Healthy (≥3x)' : ltvCacRatio >= 1 ? 'Below target' : 'Negative', color: ltvCacRatio >= 3 ? 'text-green-600' : ltvCacRatio >= 1 ? 'text-amber-600' : 'text-red-600' },
-            { label: 'Customer LTV', value: `$${Math.round(ltvNPV).toLocaleString()}`, sub: `NPV at ${settings.discountRate}%`, color: 'text-primary' },
+            { label: 'Customer LTV', value: `$${Math.round(ltvNPV).toLocaleString()}`, sub: `NPV at ${settings.discountRateAnnual}%`
+            , color: 'text-primary' },
             { label: 'Blended CAC', value: `$${Math.round(fullCAC).toLocaleString()}`, sub: `${totalAcquired} customers/mo`, color: 'text-primary' },
             { label: 'Payback', value: paybackMonths === Infinity ? '—' : `${paybackMonths.toFixed(1)}mo`, sub: paybackMonths <= 12 ? 'Sustainable' : paybackMonths <= 18 ? 'Acceptable' : 'Long — cash risk', color: paybackMonths <= 12 ? 'text-green-600' : paybackMonths <= 18 ? 'text-amber-600' : 'text-red-600' },
           ].map(({ label, value, sub, color }) => (
@@ -927,7 +928,7 @@ export default function UnitEconomicsPage({ data, numericHeaders, categoricalHea
                 {(() => {
                   const items: string[] = [];
                   items.push(`LTV:CAC ratio: ${ltvCacRatio === Infinity ? '∞' : ltvCacRatio.toFixed(1)}x${ltvCacRatio >= 3 ? ' — healthy (≥3x benchmark).' : ltvCacRatio >= 1 ? ' — below 3x target, monitor closely.' : ' — unit economics are negative.'}`);
-                  items.push(`Customer LTV: $${Math.round(ltvNPV).toLocaleString()} (NPV at ${settings.discountRate}% discount). Blended CAC: $${Math.round(fullCAC).toLocaleString()} (acquisition + $${settings.onboardingCostPerCustomer} onboarding).`);
+                  items.push(`Customer LTV: $${Math.round(ltvNPV).toLocaleString()} (NPV at ${settings.discountRateAnnual}% discount). Blended CAC: $${Math.round(fullCAC).toLocaleString()} (acquisition + $${settings.onboardingCostPerCustomer} onboarding).`);
                   items.push(`Payback period: ${paybackMonths === Infinity ? '—' : paybackMonths.toFixed(1) + ' months'}${paybackMonths <= 12 ? ' — sustainable.' : paybackMonths <= 18 ? ' — acceptable but room to improve.' : ' — long payback, cash flow risk.'}`);
                   items.push(`ARPU $${arpu}/mo × ${settings.grossMarginPct}% gross margin = $${monthlyGP.toFixed(0)}/mo gross profit per customer. Avg lifespan: ${lifespan.toFixed(0)} months (${(settings.monthlyChurnRate).toFixed(1)}% monthly churn).`);
                   const bestCh = channels.reduce((a, b) => (a.customersAcquired / (a.spend || 1)) > (b.customersAcquired / (b.spend || 1)) ? a : b);

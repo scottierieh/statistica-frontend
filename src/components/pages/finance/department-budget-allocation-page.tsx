@@ -175,7 +175,6 @@ const glossaryItems: Record<string, string> = {
   "Personnel Cost": "Headcount × Average Salary. Usually the largest portion of any department budget.",
   "Category Split": "How each department's allocation is divided: Personnel vs OpEx vs CapEx.",
   "Prior-Year Spend": "Last year's actual expenditure per department. Useful as a baseline for current year allocation.",
-  "Prior-Year Spend": "Last year's actual spending — baseline for comparison and trend analysis.",
   "YoY Change": "(Current Allocation − Prior Year) ÷ Prior Year × 100%. Growth or contraction.",
   "Cost per Head": "Department Budget ÷ Headcount. Efficiency metric across departments.",
   "Scenario Planning": "Testing allocation under different total budgets: Base, Growth (+15%), Austerity (−15%).",

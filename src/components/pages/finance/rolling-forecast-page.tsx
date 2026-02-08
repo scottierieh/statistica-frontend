@@ -994,8 +994,7 @@ export default function ForecastPage({ data, numericHeaders, categoricalHeaders,
                   items.push(`Full-year revenue outlook: ${fmt(fullYearRev)} vs budget ${fmt(fullYearBudgetRev)} (${fullYearVar >= 0 ? '+' : ''}${fullYearVar.toFixed(1)}%).`);
                   items.push(`Gross margin ${fullYearGPMargin.toFixed(1)}% — gross profit of ${fmt(fullYearGP)} on ${fmt(fullYearRev)} revenue.`);
                   items.push(`Operating income: ${fmt(fullYearOI)} (${fullYearOIMargin.toFixed(1)}% margin). ${fullYearOI >= 0 ? 'Profitable forecast.' : 'Forecast deficit.'}`);
-                  items.push(`Forecast method: ${assumptions.forecastMethod === 'moving_avg' ? 'Moving Average' : assumptions.forecastMethod === 'linear_trend' ? 'Linear Trend' : 'Budget-Based'}. ${futureMonths.length} months forecasted, ${lockedMonths.length} months with actuals.`);
-                  const cogsPct = fullYearRev > 0 ? (fullYearCOGS / fullYearRev * 100) : 0;
+                  items.push(`Forecast method: ${assumptions.forecastMethod === 'run-rate' ? 'Run-Rate' : assumptions.forecastMethod === 'trend' ? 'Trend' : 'Budget-Based'}. ${futureMonths.length} months forecasted, ${lockedMonths.length} months with actuals.`);                  const cogsPct = fullYearRev > 0 ? (fullYearCOGS / fullYearRev * 100) : 0;
                   items.push(`COGS ratio ${cogsPct.toFixed(1)}% (${fmt(fullYearCOGS)}) — ${cogsPct > 60 ? 'elevated cost pressure.' : 'within healthy range.'}`);
                   return items.map((text, i) => (
                     <div key={i} className="flex items-start gap-3"><span className="font-bold text-primary">•</span><p className="text-sm">{text}</p></div>
