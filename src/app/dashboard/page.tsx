@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { 
   Calculator, BrainCircuit, Briefcase, Monitor, Repeat, 
   DatabaseZap, Paintbrush, FlaskConical, Landmark, LayoutDashboard, 
-  ArrowUpRight, LucideIcon, Network, ClipboardList, Target, DollarSign
+  ArrowUpRight, LucideIcon, Network, Map, ClipboardList, Target, DollarSign
 } from "lucide-react";
 
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
@@ -89,6 +89,15 @@ const tools: ToolItem[] = [
     description: "Create surveys and transform responses into statistical and decision-ready analyses.",
     disabled: true,
     badge: "Coming Soon"
+  },
+  {
+    id: "geospatial",
+    href: "/dashboard/map-analysis",
+    icon: Map,
+    title: "Geospatial Analysis",
+    description: "Visualize location data and perform spatial analysis through interactive maps.",
+    disabled: false,
+    badge: "New"
   },
   {
     id: "sem",
