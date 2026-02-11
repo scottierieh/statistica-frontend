@@ -345,7 +345,26 @@ export default function LandingPage() {
         image: VisualImage,
         title: 'Visualization',
         features: ['Interactive Charts', 'Export to PNG/PDF', 'Custom Themes', 'Dashboard Builder', 'Real-time Preview', 'Template Library']
+      },
+      {                                                        // ← 추가
+        id: 'mapanalysis',
+        label: 'Map Analysis',
+        image: dashboardImage,
+        title: 'Spatial Analysis',
+        features: [
+          '31 Spatial Analysis Tools',
+          'OSRM Road-Network Routing',
+          'Heatmap & Flow Map',
+          'DBSCAN & Outlier Detection',
+          'Isochrone Reachability',
+          'TSP Route Optimization',
+          'Buffer Zone & Spatial Join',
+          'Screenshot & CSV Export',
+          'Drag & Drop CSV/Excel',
+          '100% Client-Side Processing'
+        ]
       }
+
      ];
 
   const currentProcessTab = processTabs.find(t => t.id === activeProcessTab);
@@ -399,6 +418,8 @@ export default function LandingPage() {
                   <DropdownMenuItem asChild><Link href="/features/dataprep">DataPrep</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/standard">Standard Analysis</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/strategic">Strategic Decision</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/features/map-analysis">Map Analysis</Link></DropdownMenuItem>  // ← 추가
+
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
@@ -440,6 +461,8 @@ export default function LandingPage() {
                                     <DropdownMenuItem asChild><Link href="/features/data-editor" onClick={() => setIsMobileMenuOpen(false)}>DataPrep</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/features/statistica" onClick={() => setIsMobileMenuOpen(false)}>Standard Analysis</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/features/visualization" onClick={() => setIsMobileMenuOpen(false)}>Strategic Decision</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/map-analysis">Map Analysis</Link></DropdownMenuItem>  
+
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             <Link href="/why-skari" className="text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Why Statistica</Link>
