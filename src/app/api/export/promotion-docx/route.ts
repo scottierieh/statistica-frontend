@@ -155,7 +155,7 @@ function createDataCell(
   text: string, 
   width: number, 
   isAlt: boolean = false, 
-  align: AlignmentType = AlignmentType.LEFT,
+  align: (typeof AlignmentType)[keyof typeof AlignmentType] = AlignmentType.LEFT,
   textColor?: string
 ): TableCell {
   return new TableCell({
