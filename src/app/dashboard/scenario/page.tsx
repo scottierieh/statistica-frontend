@@ -23,7 +23,7 @@ export default function ScenarioPage() {
           <div className="flex-1 flex justify-center">
             <Link href="/" className="flex items-center justify-center gap-2">
               <FlaskConical className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-headline font-bold">Scenario Analysis</h1>
+              <h1 className="text-xl font-headline font-bold">Strategic Decision</h1>
             </Link>
           </div>
           <div className="w-[210px] flex justify-end">
