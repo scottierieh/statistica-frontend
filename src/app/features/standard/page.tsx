@@ -216,10 +216,19 @@ const categories = [
   },
 ];
 
+const showcaseTabs = [
+  { key: 'validation', label: 'Validation' },
+  { key: 'summary', label: 'Summary' },
+  { key: 'reasoning', label: 'Reasoning' },
+  { key: 'statistics', label: 'Statistics' },
+  { key: 'guide', label: 'Guide' },
+] as const;
+
 export default function StandardAnalysisFeaturePage() {
   const featureKeys = Object.keys(features);
   const [activeFeature, setActiveFeature] = useState(featureKeys[0]);
   const [isHovering, setIsHovering] = useState(false);
+  const [activeShowcaseTab, setActiveShowcaseTab] = useState('statistics');
 
   useEffect(() => {
     if (isHovering) return;
@@ -279,8 +288,102 @@ export default function StandardAnalysisFeaturePage() {
               </p>
             </div>
 
+{/* Scrollable Report Showcase */}
+<div className="mb-12 rounded-2xl overflow-hidden bg-slate-100 p-8 md:p-12">
+  {/* Tabs */}
+  <div className="flex flex-wrap gap-2 mb-6">
+    {showcaseTabs.map((tab) => (
+      <button
+        key={tab.key}
+        onClick={() => setActiveShowcaseTab(tab.key)}
+        className={cn(
+          "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+          activeShowcaseTab === tab.key
+            ? "bg-primary text-primary-foreground shadow-md"
+            : "bg-white text-muted-foreground hover:bg-white/80 hover:text-foreground border border-border"
+        )}
+      >
+        {tab.label}
+      </button>
+    ))}
+  </div>
+
+  {activeShowcaseTab === 'validation' ? (
+    /* Validation 탭 - 가운데 배치 */
+    <div className="flex items-center justify-center min-h-[600px]">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-3xl w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FScreenshot%20Capture%20-%202026-02-11%20-%2021-38-53.png?alt=media&token=ab32b93d-f98c-4e4c-a2a5-f88e45b9589b"
+          alt="Validation"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  ) : activeShowcaseTab === 'summary' ? (
+    /* Summary 탭 - 가운데 배치 */
+    <div className="flex items-center justify-center min-h-[600px]">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-3xl w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FScreenshot%20Capture%20-%202026-02-11%20-%2020-14-41.png?alt=media&token=d61c414c-16a8-4bc8-9835-51c1f9597764"
+          alt="Result Summary"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  ) : activeShowcaseTab === 'reasoning' ? (
+    /* Reasoning 탭 - 가운데 배치 */
+    <div className="flex items-center justify-center min-h-[600px]">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-3xl w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FScreenshot%20Capture%20-%202026-02-10%20-%2011-56-31.png?alt=media&token=e2a651f7-8e92-440c-a58a-a88492a547c1"
+          alt="Reasoning"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  ) : activeShowcaseTab === 'guide' ? (
+    /* Guide 탭 - 가운데 배치 */
+    <div className="flex items-center justify-center min-h-[600px]">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-3xl w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FScreenshot%20Capture%20-%202026-02-11%20-%2021-40-05.png?alt=media&token=c4008d83-90eb-4b5f-ab91-749e983e369f"
+          alt="Guide"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  ) : (
+    /* Statistics 등 기본 탭 - 리포트 가운데 크게 */
+    <div className="flex items-center justify-center min-h-[600px]">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-4xl w-full">
+        <div
+          className="h-[700px] overflow-y-auto"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FTwo_Way_ANOVA_2026-02-11.png?alt=media&token=22efaf99-cebf-407e-99a7-3ad8a3245bef"
+            alt="Two-Way ANOVA Analysis Report"
+            className="w-full h-auto"
+            loading="lazy"
+          />
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
             <div className="grid lg:grid-cols-2 gap-8 items-start">
-              {/* Feature List */}
+            
+             {/* Feature List */}
               <div className="space-y-3">
                 {Object.entries(features).map(([key, feature]) => (
                   <FeatureCard
@@ -353,50 +456,51 @@ export default function StandardAnalysisFeaturePage() {
                         )}
 
                         {/* Clear Explanations Demo */}
-                        {activeFeature === 'interpretation' && (
-                          <div className="h-full flex flex-col p-4">
-                            <div className="mb-3">
-                              <div className="text-sm font-semibold">Analysis Results</div>
-                              <div className="text-xs text-muted-foreground">With plain-language explanations</div>
-                            </div>
+{activeFeature === 'interpretation' && (
+  <div className="h-full flex flex-col p-4">
+    <div className="mb-3">
+      <div className="text-sm font-semibold">Analysis Results</div>
+      <div className="text-xs text-muted-foreground">With plain-language explanations</div>
+    </div>
 
-                            <div className="flex-1 overflow-y-auto space-y-3">
-                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <div className="text-xs font-semibold mb-2">📊 Key Findings</div>
-                                <p className="text-xs text-slate-700 leading-relaxed">
-                                  The analysis shows a <strong>statistically significant difference</strong> between groups (p = 0.023). 
-                                  This means there's only a 2.3% chance this occurred by random chance.
-                                </p>
-                              </div>
+    <div className="flex-1 overflow-y-auto space-y-3">
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="text-xs font-semibold mb-2">📊 Key Findings</div>
+        <p className="text-xs text-slate-700 leading-relaxed">
+          The analysis shows a <strong>statistically significant difference</strong> between groups (p = 0.023). 
+          This means there's only a 2.3% chance this occurred by random chance.
+        </p>
+      </div>
 
-                              <div className="p-3 bg-white border rounded-lg">
-                                <div className="text-xs font-semibold mb-2">📖 Statistical Terms</div>
-                                <div className="space-y-2">
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-xs font-medium min-w-16">p-value:</span>
-                                    <span className="text-xs text-muted-foreground">Probability of result by chance</span>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-xs font-medium min-w-16">t-statistic:</span>
-                                    <span className="text-xs text-muted-foreground">Test statistic value = 2.34</span>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-xs font-medium min-w-16">Cohen's d:</span>
-                                    <span className="text-xs text-muted-foreground">Effect size (0.67 = medium)</span>
-                                  </div>
-                                </div>
-                              </div>
+      <div className="p-3 bg-white border rounded-lg">
+        <div className="text-xs font-semibold mb-2">📖 Statistical Terms</div>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="text-xs font-medium min-w-16">p-value:</span>
+            <span className="text-xs text-muted-foreground">Probability of result by chance</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-xs font-medium min-w-16">t-statistic:</span>
+            <span className="text-xs text-muted-foreground">Test statistic value = 2.34</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-xs font-medium min-w-16">Cohen's d:</span>
+            <span className="text-xs text-muted-foreground">Effect size (0.67 = medium)</span>
+          </div>
+        </div>
+      </div>
 
-                              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <div className="text-xs font-semibold mb-2">✅ Interpretation</div>
-                                <p className="text-xs text-slate-700">
-                                  Your results are statistically significant with a medium-to-large effect size. 
-                                  This provides strong evidence for your hypothesis.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div className="text-xs font-semibold mb-2">✅ Interpretation</div>
+        <p className="text-xs text-slate-700">
+          Your results are statistically significant with a medium-to-large effect size. 
+          This provides strong evidence for your hypothesis.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
 
                         {/* AI Chat Demo */}
                         {activeFeature === 'chat' && (

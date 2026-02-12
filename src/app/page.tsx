@@ -346,9 +346,27 @@ export default function LandingPage() {
         title: 'Visualization',
         features: ['Interactive Charts', 'Export to PNG/PDF', 'Custom Themes', 'Dashboard Builder', 'Real-time Preview', 'Template Library']
       },
+      {
+        id: 'financialmodeling',
+        label: 'Financial Modeling',
+        image: dashboardImage,  // 또는 별도 이미지
+        title: 'Financial Modeling',
+        features: [
+          '26 Financial Planning Tools',
+          '4 Forecasting Methods',
+          'DCF & Comparable Valuation',
+          'Budget & Variance Analysis',
+          'Monte Carlo Risk Simulation',
+          'Portfolio Optimization',
+          'CSV Import + Sample Data',
+          'Summary Cards & Key Findings',
+          'PNG & CSV Export',
+          'Built-in Guide & Glossary'
+        ]
+      }, 
       {                                                        // ← 추가
         id: 'mapanalysis',
-        label: 'Map Analysis',
+        label: 'Spatial Analysis',
         image: dashboardImage,
         title: 'Spatial Analysis',
         features: [
@@ -418,7 +436,9 @@ export default function LandingPage() {
                   <DropdownMenuItem asChild><Link href="/features/dataprep">DataPrep</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/standard">Standard Analysis</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/strategic">Strategic Decision</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/map-analysis">Map Analysis</Link></DropdownMenuItem>  // ← 추가
+                    <DropdownMenuItem asChild><Link href="/features/financial-modeling">Financial Modeling</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/features/map-analysis">Spatial Analysis</Link></DropdownMenuItem> 
+
 
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -458,10 +478,12 @@ export default function LandingPage() {
                            <DropdownMenu>
                                 <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Features <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                    <DropdownMenuItem asChild><Link href="/features/data-editor" onClick={() => setIsMobileMenuOpen(false)}>DataPrep</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/statistica" onClick={() => setIsMobileMenuOpen(false)}>Standard Analysis</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/visualization" onClick={() => setIsMobileMenuOpen(false)}>Strategic Decision</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/dataprep" onClick={() => setIsMobileMenuOpen(false)}>DataPrep</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/standard" onClick={() => setIsMobileMenuOpen(false)}>Standard Analysis</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/strategic" onClick={() => setIsMobileMenuOpen(false)}>Strategic Decision</Link></DropdownMenuItem>
+                                    <DropdownMenuItem asChild><Link href="/features/financial-modeling">Financial Modeling</Link></DropdownMenuItem>
                                     <DropdownMenuItem asChild><Link href="/features/map-analysis">Map Analysis</Link></DropdownMenuItem>  
+
 
                                 </DropdownMenuContent>
                             </DropdownMenu>
