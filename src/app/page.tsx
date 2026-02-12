@@ -339,13 +339,22 @@ export default function LandingPage() {
             'Real-time Results',
             'No Coding Required'
           ]   },
-      { 
-        id: 'visualize', 
-        label: 'Strategic Decision', 
-        image: VisualImage,
-        title: 'Visualization',
-        features: ['Interactive Charts', 'Export to PNG/PDF', 'Custom Themes', 'Dashboard Builder', 'Real-time Preview', 'Template Library']
-      },
+          { 
+            id: 'visualize', 
+            label: 'Strategic Decision', 
+            image: null,
+            title: 'Strategic Decision',
+            features: [
+              'What-If Analysis',
+              'Threshold Optimization',
+              'Cost-Sensitive Analysis',
+              'Scenario Comparison',
+              'Decision Matrix',
+              'Risk Assessment',
+              'ROI Forecasting',
+              'Sensitivity Analysis'
+            ]
+          },
       {
         id: 'financialmodeling',
         label: 'Financial Modeling',
@@ -756,15 +765,208 @@ export default function LandingPage() {
                                    transition={{ duration: 0.4, ease: 'easeInOut' }}
                                    className="absolute inset-0"
                                  >
-                                   {currentProcessTab?.image && (
-                                     <Image
-                                       src={currentProcessTab.image.imageUrl}
-                                       alt={currentProcessTab.image.imageHint}
-                                       fill
-                                       className="object-cover object-top sm:object-center"
-                                       data-ai-hint={currentProcessTab.image.imageHint}
-                                     />
-                                   )}
+                                   {activeProcessTab === 'edit' ? (
+  /* Before → After Data Cleaning Visual */
+  <div className="w-full h-full flex flex-col items-center justify-center px-3 sm:px-6 py-4 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="w-full max-w-2xl grid grid-cols-[1fr,auto,1fr] gap-2 sm:gap-4 items-center">
+      
+      {/* BEFORE Table */}
+      <div className="rounded-lg border border-red-200 bg-white overflow-hidden shadow-sm">
+        <div className="px-2 sm:px-3 py-1.5 bg-red-50 border-b border-red-200 flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+          <span className="text-[9px] sm:text-[10px] font-bold text-red-600 uppercase tracking-wider">Before</span>
+          <span className="ml-auto text-[8px] sm:text-[9px] text-red-400 hidden sm:inline">3 issues</span>
+        </div>
+        <div className="text-[9px] sm:text-[10px]">
+          <div className="grid grid-cols-4 bg-slate-50 border-b">
+            {['Name', 'Age', 'City', '$'].map((h) => (
+              <div key={h} className="px-1.5 sm:px-2 py-1 font-semibold text-slate-500 border-r last:border-r-0 truncate">{h}</div>
+            ))}
+          </div>
+          {[
+            { cells: ['Alice', '25', 'NYC', '52k'], issues: [] },
+            { cells: ['Bob', null, 'LA', '71k'], issues: [1] },
+            { cells: ['Charlie', '28', null, '49k'], issues: [2] },
+            { cells: ['Bob', null, 'LA', '71k'], issues: [1], dup: true },
+            { cells: ['Diana', '35', 'CHI', null], issues: [3] },
+            { cells: ['Eve', '42', 'NYC', '63k'], issues: [] },
+          ].map((row, i) => (
+            <div key={i} className={cn(
+              "grid grid-cols-4 border-b last:border-b-0",
+              row.dup && "bg-amber-50/80"
+            )}>
+              {row.cells.map((cell, j) => (
+                <div key={j} className={cn(
+                  "px-1.5 sm:px-2 py-1 border-r last:border-r-0 truncate",
+                  cell === null && "bg-red-50",
+                  row.dup && j === 0 && "text-amber-600"
+                )}>
+                  {cell ?? <span className="text-red-400 italic text-[8px]">NULL</span>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Arrow */}
+      <div className="flex flex-col items-center gap-1.5">
+        <Wand2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+        <div className="flex items-center gap-0">
+          <div className="w-4 sm:w-6 h-[2px] bg-primary rounded" />
+          <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-primary" />
+        </div>
+        <span className="text-[8px] sm:text-[9px] font-bold text-primary uppercase tracking-wider">Clean</span>
+      </div>
+
+      {/* AFTER Table */}
+      <div className="rounded-lg border border-emerald-200 bg-white overflow-hidden shadow-sm">
+        <div className="px-2 sm:px-3 py-1.5 bg-emerald-50 border-b border-emerald-200 flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-wider">After</span>
+          <span className="ml-auto text-[8px] sm:text-[9px] text-emerald-400 hidden sm:inline">Clean</span>
+        </div>
+        <div className="text-[9px] sm:text-[10px]">
+          <div className="grid grid-cols-4 bg-slate-50 border-b">
+            {['Name', 'Age', 'City', '$'].map((h) => (
+              <div key={h} className="px-1.5 sm:px-2 py-1 font-semibold text-slate-500 border-r last:border-r-0 truncate">{h}</div>
+            ))}
+          </div>
+          {[
+            { cells: ['Alice', '25', 'NYC', '52k'], fixed: [] },
+            { cells: ['Bob', '32', 'LA', '71k'], fixed: [1] },
+            { cells: ['Charlie', '28', 'NYC', '49k'], fixed: [2] },
+            { cells: ['Diana', '35', 'CHI', '59k'], fixed: [3] },
+            { cells: ['Eve', '42', 'NYC', '63k'], fixed: [] },
+          ].map((row, i) => (
+            <div key={i} className="grid grid-cols-4 border-b last:border-b-0">
+              {row.cells.map((cell, j) => (
+                <div key={j} className={cn(
+                  "px-1.5 sm:px-2 py-1 border-r last:border-r-0 truncate",
+                  row.fixed.includes(j) && "bg-emerald-50 text-emerald-700 font-semibold"
+                )}>
+                  {cell}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Legend */}
+    <div className="flex gap-3 sm:gap-5 mt-3 text-[8px] sm:text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-1">
+        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-red-50 border border-red-200" />
+        <span>Missing</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-amber-50 border border-amber-200" />
+        <span>Duplicate</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-emerald-50 border border-emerald-200" />
+        <span>Fixed</span>
+      </div>
+    </div>
+  </div>
+
+) : activeProcessTab === 'analyze' ? (
+  <div
+    className="w-full h-full overflow-hidden flex items-start justify-center pt-10 md:pt-16 px-4 md:px-6 pb-4"
+    style={{
+      backgroundImage: `url('https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FKakaoTalk_Photo_2026-02-11-21-02-49.png?alt=media&token=a0ae2058-47a4-4c2c-bdd1-1cea9a9786c7')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'left center',
+    }}
+  >
+    <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-md translate-x-4 md:translate-x-12">
+      <div
+        className="h-[250px] sm:h-[320px] md:h-[380px] overflow-y-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FTwo_Way_ANOVA_2026-02-11.png?alt=media&token=22efaf99-cebf-407e-99a7-3ad8a3245bef"
+          alt="Statistical Analysis Report"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </div>  
+
+) : activeProcessTab === 'visualize' ? (
+  <div
+    className="w-full h-full overflow-hidden flex items-start justify-center pt-10 md:pt-16 px-4 md:px-6 pb-4"
+    style={{
+      backgroundImage: `url('https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FKakaoTalk_Photo_2026-02-11-22-59-49.png?alt=media&token=d645df83-84f8-4129-99b8-af34135ea318')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'left center',
+    }}
+  >
+    <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-md translate-x-4 md:translate-x-12">
+      <div
+        className="h-[250px] sm:h-[320px] md:h-[380px] overflow-y-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2Fimgonline-com-ua-twotoone-iiDnAwAZrP1.jpg?alt=media&token=90e36173-241d-4445-946f-10674a162d75"
+          alt="Strategic Decision Analysis Report"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </div>
+
+
+) : activeProcessTab === 'mapanalysis' ? (
+  <div className="w-full h-full">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FScreenshot%20Capture%20-%202026-02-11%20-%2022-35-10.png?alt=media&token=935ab2f1-6429-4429-8e8e-29b463788f1a"
+      alt="Dashboard Analytics Overview"
+      className="w-full h-full object-cover object-left-top"
+      loading="lazy"
+    />
+  </div>
+
+) : activeProcessTab === 'financialmodeling' ? (
+  <div
+    className="w-full h-full overflow-hidden flex items-start justify-center pt-10 md:pt-16 px-4 md:px-6 pb-4"
+    style={{
+      backgroundImage: `url('https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2FKakaoTalk_Photo_2026-02-11-22-59-49.png?alt=media&token=d645df83-84f8-4129-99b8-af34135ea318')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'left center',
+    }}
+  >
+    <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-md translate-x-4 md:translate-x-12">
+      <div
+        className="h-[250px] sm:h-[320px] md:h-[380px] overflow-y-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src="https://firebasestorage.googleapis.com/v0/b/restart2-98207181-3e3a5.firebasestorage.app/o/images%2Fimgonline-com-ua-twotoone-iiDnAwAZrP1.jpg?alt=media&token=90e36173-241d-4445-946f-10674a162d75"
+          alt="Financial Modeling Report"
+          className="w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </div>
+
+) : currentProcessTab?.image ? (
+  <Image
+    src={currentProcessTab.image.imageUrl}
+    alt={currentProcessTab.image.imageHint}
+    fill
+    className="object-cover object-top sm:object-center"
+    data-ai-hint={currentProcessTab.image.imageHint}
+  />
+) : null}
                                  </motion.div>
                                </AnimatePresence>
                              </div>
@@ -792,8 +994,22 @@ export default function LandingPage() {
                                        </li>
                                      ))}
                                      {(currentProcessTab?.features?.length ?? 0) > 6 && (
-                                       <li className="text-primary text-xs">+{(currentProcessTab?.features?.length ?? 0) - 6} more</li>
-                                     )}
+                                        <li>
+                                          <Link 
+                                            href={
+                                              activeProcessTab === 'edit' ? '/features/dataprep' :
+                                              activeProcessTab === 'analyze' ? '/features/standard' :
+                                              activeProcessTab === 'visualize' ? '/features/strategic' :
+                                              activeProcessTab === 'financialmodeling' ? '/features/financial-modeling' :
+                                              activeProcessTab === 'mapanalysis' ? '/features/map-analysis' :
+                                              '#'
+                                            }
+                                            className="text-primary text-xs hover:underline"
+                                          >
+                                            +{(currentProcessTab?.features?.length ?? 0) - 6} more →
+                                          </Link>
+                                        </li>
+                                      )}
                                    </ul>
                                  </motion.div>
                                </AnimatePresence>
