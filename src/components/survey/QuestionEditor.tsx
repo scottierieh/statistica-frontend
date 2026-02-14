@@ -25,7 +25,7 @@ export default function QuestionEditor({ question: initialQuestion, onSave, onCa
   };
 
   const removeOption = (index: number) => {
-    const newOptions = (question.options || []).filter((_, i) => i !== index);
+    const newOptions = (question.options || []).filter((_: string, i: number) => i !== index);
     setQuestion({ ...question, options: newOptions });
   };
 
