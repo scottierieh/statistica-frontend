@@ -3,21 +3,34 @@ export interface Survey {
   title: string;
   description: string;
   questions: Question[];
-  status: 'draft' | 'active' | 'closed';
+  status: 'draft' | 'active' | 'closed' | 'scheduled';
   created_date: string;
   startDate?: string;
   endDate?: string;
   styles?: any;
+  template?: string;
   showStartPage?: boolean;
+  startPage?: {
+    title?: string;
+    description?: string;
+    buttonText?: string;
+    logo?: {
+      src?: string;
+      alt?: string;
+    };
+    imageUrl?: string;
+  };
 }
 
 export interface SurveyResponse {
   id: string;
   survey_id: string;
-  submittedAt: string; // Changed from submitted_at
+  submittedAt: string;
   answers: {
     [questionId: string]: any;
   };
+  completionTime?: number;
+  qualityFlags?: ('fast_completion' | 'straight_lining')[];
 }
 
 export interface ConjointAttribute {
@@ -25,6 +38,8 @@ export interface ConjointAttribute {
   name: string;
   levels: string[];
 }
+
+export type ScaleItem = { value: number; label: string };
 
 export interface Question {
   id: string;
@@ -35,15 +50,22 @@ export interface Question {
   options?: string[];
   items?: string[];
   columns?: string[];
-  scale?: string[];
+  scale?: ScaleItem[];
   required?: boolean;
+  randomizeOptions?: boolean;
   content?: string;
   imageUrl?: string;
-  rows?: string[];
-  // For Conjoint Analysis
+  rows?: string[] | { left: string; right: string }[];
+  numScalePoints?: number;
+  leftLabel?: string;
+  rightLabel?: string;
   attributes?: ConjointAttribute[];
-  designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid';
+  designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid' | 'd-efficient';
   sets?: number;
   cardsPerSet?: number;
-  profiles?: any[]; // For generated profiles
+  profiles?: any[];
+  tasks?: any[];
+  criteria?: { id: string; name: string; subCriteria?: { id: string; name: string }[] }[];
+  alternatives?: string[];
+  servqualType?: 'Expectation' | 'Perception';
 }

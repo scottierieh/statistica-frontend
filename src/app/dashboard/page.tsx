@@ -63,6 +63,15 @@ const tools: ToolItem[] = [
     badge: "Beta"
   },
   {
+    id: "survey",
+    href: "/dashboard/survey2",
+    icon: ClipboardList,
+    title: "Survey Tool",
+    description: "Create surveys and transform responses into statistical and decision-ready analyses.",
+    disabled: false,
+    badge: "Beta"
+  },
+  {
     id: "visualize",
     href: "/dashboard/visualization",
     icon: Paintbrush,
@@ -80,15 +89,6 @@ const tools: ToolItem[] = [
     disabled: true,
     badge: "Coming Soon"
     
-  },
-  {
-    id: "survey",
-    href: "/dashboard/survey2",
-    icon: ClipboardList,
-    title: "Survey Tool",
-    description: "Create surveys and transform responses into statistical and decision-ready analyses.",
-    disabled: true,
-    badge: "Coming Soon"
   },
   {
     id: "geospatial",

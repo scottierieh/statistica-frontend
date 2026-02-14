@@ -30,21 +30,23 @@ export type Question = {
     options?: string[];
     items?: string[];
     columns?: string[];
-    scale?: string[];
+    scale?: ScaleItem[];
     required?: boolean;
+    randomizeOptions?: boolean;
     content?: string;
     imageUrl?: string;
-    rows?: string[];
+    rows?: string[] | { left: string; right: string }[];
     numScalePoints?: number;
     // NPS labels
     leftLabel?: string;
     rightLabel?: string;
     // For Conjoint Analysis
     attributes?: ConjointAttribute[];
-    designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid';
+    designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid' | 'd-efficient';
     sets?: number;
     cardsPerSet?: number;
     profiles?: any[]; // For generated profiles
+    tasks?: any[];
     // For AHP
     criteria?: Criterion[];
     alternatives?: string[];
@@ -61,11 +63,12 @@ export interface Survey {
   title: string;
   description: string;
   questions: Question[];
-  status: 'draft' | 'active' | 'closed';
+  status: 'draft' | 'active' | 'closed' | 'scheduled';
   created_date: string;
   startDate?: string;
   endDate?: string;
   styles?: any;
+  template?: string;
   showStartPage?: boolean;
   startPage?: {
     title?: string;
@@ -82,10 +85,23 @@ export interface Survey {
 export interface SurveyResponse {
   id: string;
   survey_id: string;
-  submittedAt: string; // Changed from submitted_at
+  submittedAt: string;
   answers: {
     [questionId: string]: any;
   };
+  completionTime?: number;
+  qualityFlags?: ('fast_completion' | 'straight_lining')[];
+}
+
+export type ScaleItem = { value: number; label: string };
+
+export type RowItem = { left: string; right: string };
+
+export interface CvmBidSet {
+  id: string;
+  initialBid: number;
+  higherBid: number;
+  lowerBid: number;
 }
 
 export interface ConjointAttribute {

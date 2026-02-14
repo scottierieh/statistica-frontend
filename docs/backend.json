@@ -52,6 +52,42 @@
         "registrationDate": { "type": "string", "format": "date-time", "description": "The date and time when the user registered." }
       },
       "required": ["id", "email", "username", "registrationDate"]
+    },
+    "Survey": {
+      "title": "Survey",
+      "type": "object",
+      "description": "A survey definition containing questions and settings.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active", "closed"] },
+        "created_date": { "type": "string", "format": "date-time" },
+        "questions": { "type": "array" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "styles": { "type": "object" },
+        "showStartPage": { "type": "boolean" },
+        "startPage": { "type": "object" },
+        "template": { "type": "string" },
+        "metadata": { "type": "object" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["title", "status", "ownerId"]
+    },
+    "SurveyResponse": {
+      "title": "SurveyResponse",
+      "type": "object",
+      "description": "A response to a survey.",
+      "properties": {
+        "id": { "type": "string" },
+        "survey_id": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "answers": { "type": "object" },
+        "completionTime": { "type": "number" },
+        "qualityFlags": { "type": "array" }
+      },
+      "required": ["survey_id", "submittedAt", "answers"]
     }
   },
   "auth": {
@@ -92,6 +128,22 @@
           "entityName": "Invitation",
           "schema": { "$ref": "#/backend/entities/Invitation" },
           "description": "Stores pending and accepted invitations for a team."
+        }
+      },
+      {
+        "path": "/surveys/{surveyId}",
+        "definition": {
+          "entityName": "Survey",
+          "schema": { "$ref": "#/backend/entities/Survey" },
+          "description": "Collection of surveys."
+        }
+      },
+      {
+        "path": "/surveys/{surveyId}/responses/{responseId}",
+        "definition": {
+          "entityName": "SurveyResponse",
+          "schema": { "$ref": "#/backend/entities/SurveyResponse" },
+          "description": "Sub-collection of responses for a specific survey."
         }
       }
     ]
