@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, RowItem, ScaleItem } from "@/entities/Survey";
@@ -52,11 +51,11 @@ export default function MatrixQuestion({
 
     useEffect(() => {
         if (isPreview) {
-            const unansweredItems = (question.rows || []).map((_, index) => `item-${index}`)
-                .filter(itemValue => {
+            const unansweredItems = (question.rows || []).map((_: any, index: number) => `item-${index}`)
+                .filter((itemValue: string) => {
                     const rowIndex = parseInt(itemValue.split('-')[1]);
                     const row = (question.rows || [])[rowIndex];
-                    const rowText = typeof row === 'string' ? row : row.left;
+                    const rowText = typeof row === 'string' ? row : (row as RowItem).left;
                     return !answer?.[rowText];
                 });
             setOpenItems(unansweredItems);
@@ -65,14 +64,21 @@ export default function MatrixQuestion({
 
     const handleRowChange = (index: number, value: string) => {
         onUpdate(produce(question, draft => {
-            if (draft.rows) draft.rows[index] = value;
+            if (draft.rows) {
+                const existing = draft.rows[index];
+                if (typeof existing === 'object' && existing !== null) {
+                    (existing as any).left = value;
+                } else {
+                    (draft.rows as any[])[index] = value;
+                }
+            }
         }));
     };
 
     const addRow = () => {
         onUpdate(produce(question, draft => {
             if (!draft.rows) draft.rows = [];
-            draft.rows.push(`Row ${draft.rows.length + 1}`);
+            (draft.rows as any[]).push(`Row ${draft.rows.length + 1}`);
         }));
     };
 
@@ -124,7 +130,7 @@ export default function MatrixQuestion({
                 )}
                 <Accordion type="multiple" value={openItems} onValueChange={setOpenItems} className="w-full space-y-2">
                     {(question.rows || []).map((row, rowIndex) => {
-                        const rowText = typeof row === 'string' ? row : row.left;
+                        const rowText = typeof row === 'string' ? row : (row as RowItem).left;
                         const itemValue = `item-${rowIndex}`;
                         const selectedValue = answer?.[rowText];
                         const isRowAnswered = selectedValue !== undefined;
@@ -150,7 +156,7 @@ export default function MatrixQuestion({
                                                 style={value === selectedValue ? { 
                                                     backgroundColor: styles.primaryColor,
                                                     borderColor: styles.primaryColor,
-                                                } : {
+                                                } as React.CSSProperties : {
                                                     '--ring-color': styles.ringColor || styles.primaryColor
                                                 } as React.CSSProperties}
                                             >
@@ -188,7 +194,7 @@ export default function MatrixQuestion({
                          {(question.rows || []).map((row, index) => (
                             <div key={index} className="flex items-center gap-2 group">
                                 <Input 
-                                    value={typeof row === 'object' ? row.left : row} 
+                                    value={typeof row === 'object' ? (row as RowItem).left : row} 
                                     onChange={(e) => handleRowChange(index, e.target.value)}
                                     placeholder={`Row ${index + 1}`}
                                 />

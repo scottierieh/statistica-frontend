@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Question, SkipLogic, Survey, ScaleItem } from "@/entities/Survey";
@@ -39,7 +38,7 @@ const LogicEditor = ({ question, survey, onUpdate, onCancel }: { question: Quest
     };
 
     const removeLogicRule = (index: number) => {
-        setSkipLogic(skipLogic.filter((_, i) => i !== index));
+        setSkipLogic(skipLogic.filter((_: SkipLogic, i: number) => i !== index));
     };
 
     const handleSave = () => {
@@ -56,7 +55,7 @@ const LogicEditor = ({ question, survey, onUpdate, onCancel }: { question: Quest
     return (
         <DialogContent className="sm:max-w-4xl">
             <DialogHeader>
-                <DialogTitle>Edit Skip Logic for "{question.title}"</DialogTitle>
+                <DialogTitle>Edit Skip Logic for &quot;{question.title}&quot;</DialogTitle>
                 <DialogDescription>Define rules to skip to another question or end the survey based on the answer.</DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-[60vh] p-1">
@@ -176,9 +175,9 @@ export default function LikertQuestion({
                             )}
                             style={answer === value ? { 
                                 borderColor: styles.primaryColor, 
-                                backgroundColor: styles.transparentOptionBg ? 'rgba(var(--primary-rgb), 0.1)' : 'rgba(var(--primary-rgb), 0.1)',
+                                backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
                                 '--ring-color': styles.ringColor || styles.primaryColor
-                            } : {
+                            } as React.CSSProperties : {
                                 '--ring-color': styles.ringColor || styles.primaryColor
                             } as React.CSSProperties}
                         >
