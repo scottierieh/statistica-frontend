@@ -40,13 +40,7 @@ export type Question = {
     // NPS labels
     leftLabel?: string;
     rightLabel?: string;
-    // For Conjoint Analysis
-    attributes?: ConjointAttribute[];
-    designMethod?: 'full-factorial' | 'balanced-overlap' | 'randomized' | 'hybrid' | 'd-efficient';
-    sets?: number;
-    cardsPerSet?: number;
-    profiles?: any[]; // For generated profiles
-    tasks?: any[];
+
     // For AHP
     criteria?: Criterion[];
     alternatives?: string[];
