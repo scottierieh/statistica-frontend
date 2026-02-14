@@ -16,12 +16,19 @@ import { cn } from '@/lib/utils';
 import { produce } from 'immer';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { initializeFirebase } from '@/firebase';
+import { surveyService } from '@/services/survey-service';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function SurveyApp() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { firestore } = initializeFirebase();
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const [survey, setSurvey] = useState<Survey>({
     id: surveyId || '',
@@ -53,79 +60,54 @@ export default function SurveyApp() {
 
   useEffect(() => {
     const loadSurvey = async () => {
-      const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-      const foundSurvey = allSurveys.find((s:any) => s.id === surveyId);
-      if (foundSurvey) {
-        setSurvey(prev => ({
-            ...prev,
-            ...foundSurvey,
-            showStartPage: foundSurvey.showStartPage !== undefined ? foundSurvey.showStartPage : true,
-            startPage: foundSurvey.startPage || prev.startPage
-        }));
-        if (foundSurvey.styles) {
-            setStyles(prevStyles => ({...prevStyles, ...foundSurvey.styles}));
+      if (!surveyId) return;
+      try {
+        const loadedSurvey = await surveyService.getSurvey(firestore, surveyId);
+        if (loadedSurvey) {
+          setSurvey(prev => ({
+              ...prev,
+              ...loadedSurvey,
+              showStartPage: loadedSurvey.showStartPage !== undefined ? loadedSurvey.showStartPage : true,
+              startPage: loadedSurvey.startPage || prev.startPage
+          }));
+          if (loadedSurvey.styles) {
+              setStyles(prevStyles => ({...prevStyles, ...loadedSurvey.styles}));
+          }
         }
+      } catch (e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load survey data.' });
       }
     };
 
     if (surveyId) {
         loadSurvey();
     }
-  }, [surveyId]);
+  }, [surveyId, firestore, toast]);
 
   const saveSurveyAction = async (status: 'draft' | 'active' | 'closed' | 'scheduled' = "draft") => {
+    if (!user) return;
     if (!survey.title.trim()) { alert("Please enter a survey title"); return; }
     if (survey.questions.length === 0) { alert("Please add at least one question"); return; }
 
     setIsSaving(true);
     try {
-        const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
-        
-        let finalSurvey: Survey;
+        const surveyData = {
+          ...survey,
+          status,
+          styles,
+          created_date: survey.created_date || new Date().toISOString()
+        };
 
-        if (surveyId) {
-            const index = allSurveys.findIndex((s) => s.id === surveyId);
-            if (index > -1) {
-                const existingSurvey = allSurveys[index];
-                finalSurvey = {
-                    ...existingSurvey,
-                    ...survey,
-                    status,
-                    styles,
-                    created_date: existingSurvey.created_date, // Preserve original creation date
-                };
-                allSurveys[index] = finalSurvey;
-            } else {
-                 finalSurvey = {
-                    ...survey,
-                    status,
-                    styles,
-                    id: surveyId,
-                    created_date: new Date().toISOString(),
-                };
-                allSurveys.push(finalSurvey);
-            }
-        } else {
-             finalSurvey = {
-                ...survey,
-                status,
-                styles,
-                id: Date.now().toString(),
-                created_date: new Date().toISOString(),
-            };
-            allSurveys.push(finalSurvey);
-        }
-
-        localStorage.setItem('surveys', JSON.stringify(allSurveys));
+        await surveyService.saveSurvey(firestore, surveyData, user.email);
+        toast({ title: 'Success', description: `Survey ${status === 'active' ? 'published' : 'saved'} successfully.` });
         router.push("/dashboard/survey2");
     } catch(e) {
         console.error(e);
-        alert('Failed to save survey');
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to save survey to cloud.' });
     } finally {
         setIsSaving(false);
     }
   };
-
 
   const handleSelectQuestionType = (type: string) => {
     const newQuestion: Question = {
@@ -143,14 +125,6 @@ export default function SurveyApp() {
           : type === 'rating' ? [{value: 1, label: '1'},{value: 2, label: '2'},{value: 3, label: '3'},{value: 4, label: '4'},{value: 5, label: '5'}] : [],      
       numScalePoints: ['semantic-differential', 'likert'].includes(type) ? 7 : undefined,
       content: type === 'description' ? 'This is a description block.' : '',
-      attributes: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
-      sets: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 1 : undefined,
-      cardsPerSet: type === 'conjoint' ? 3 : undefined,
-      designMethod: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? 'd-efficient' : undefined,
-      profiles: ['conjoint', 'rating-conjoint', 'ranking-conjoint'].includes(type) ? [] : undefined,
-      tasks: ['conjoint', 'ranking-conjoint'].includes(type) ? [] : undefined,
-      criteria: type === 'ahp' ? [{id:'c1', name:'Quality'}, {id:'c2', name:'Price'}, {id:'c3', name:'Service'}] : [],
-      alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
     setSurvey(prev => ({...prev, questions: [...prev.questions, newQuestion]}));
   };
@@ -171,7 +145,7 @@ export default function SurveyApp() {
                   question.imageUrl = imageUrl;
                 }
               }));
-            } else { // startPage
+            } else {
               setSurvey(produce(draft => {
                 if (!draft.startPage) draft.startPage = { title: '', description: '', buttonText: '' };
                 if (target.field === 'logo') {
@@ -236,8 +210,8 @@ export default function SurveyApp() {
                                 <li><strong>T-Tests:</strong> To compare the average satisfaction between two groups (e.g., Male vs. Female).</li>
                                 <li><strong>ANOVA:</strong> To compare scores across multiple groups (e.g., Age Groups: 20s, 30s, 40s).</li>
                                 <li><strong>Regression:</strong> To predict overall satisfaction based on other rated items.</li>
-                                <li><strong>Reliability Analysis (Cronbach's Alpha):</strong> To check if your scale questions consistently measure the same underlying concept (e.g., "Do my 5 questions about 'Service Quality' all measure service quality reliably?").</li>
-                                <li><strong>Exploratory Factor Analysis (EFA):</strong> To group a large set of question items into a smaller set of underlying factors (e.g., "Can I group my 10 questions about user experience into 'Usability' and 'Aesthetics' factors?").</li>
+                                <li><strong>Reliability Analysis (Cronbach's Alpha):</strong> To check if your scale questions consistently measure the same underlying concept.</li>
+                                <li><strong>Exploratory Factor Analysis (EFA):</strong> To group a large set of question items into a smaller set of underlying factors.</li>
                             </ul>
                         </div>
                         <div>
