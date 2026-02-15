@@ -1,7 +1,5 @@
-
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
+import QRCode from 'qrcode';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,47 +10,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Data to encode is required' }, { status: 400 });
     }
 
-    const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
-    const scriptPath = path.resolve(process.cwd(), 'backend', 'qr_code_generator.py');
-
-    const pythonProcess = spawn(pythonExecutable, [scriptPath, dataToEncode]);
-    
-    let result = '';
-    let error = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      result += data.toString();
+    const image = await QRCode.toDataURL(dataToEncode, {
+      width: 400,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF',
+      },
     });
 
-    pythonProcess.stderr.on('data', (data) => {
-      error += data.toString();
-    });
-
-    return new Promise<NextResponse>((resolve) => {
-      pythonProcess.on('close', (code) => {
-        if (code !== 0) {
-          console.error(`QR Code Script exited with code ${code}`);
-          console.error(error);
-          try {
-            const errorJson = JSON.parse(error);
-            resolve(NextResponse.json({ error: errorJson.error || 'Unknown error occurred in Python script.' }, { status: 500 }));
-          } catch {
-             resolve(NextResponse.json({ error: `Script failed with non-JSON error: ${error}` }, { status: 500 }));
-          }
-        } else {
-          try {
-            const jsonResult = JSON.parse(result);
-            resolve(NextResponse.json(jsonResult));
-          } catch(e) {
-            console.error('Failed to parse python script output for QR code');
-            console.error(result);
-            resolve(NextResponse.json({ error: `Failed to parse script output: ${result}` }, { status: 500 }));
-          }
-        }
-      });
-    });
-
+    return NextResponse.json({ image });
   } catch (e: any) {
+    console.error('QR Code generation error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
