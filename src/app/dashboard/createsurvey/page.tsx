@@ -1,9 +1,7 @@
+'use client';
+
 import { Suspense } from 'react';
-import dynamicImport from 'next/dynamic';
-
-export const dynamic = 'force-dynamic';
-
-const CreateSurveyContent = dynamicImport(() => import('@/components/CreateSurveyPage'), { ssr: false });
+import CreateSurveyContent from '@/components/CreateSurveyPage';
 
 export default function CreateSurveyPage() {
   return (
