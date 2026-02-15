@@ -390,7 +390,25 @@ export default function LandingPage() {
           'Drag & Drop CSV/Excel',
           '100% Client-Side Processing'
         ]
-      }
+      },
+      {
+        id: 'survey',
+        label: 'Survey',
+        image: null,
+        title: 'Survey',
+        features: [
+          '14+ Question Types',
+          'Custom Branding & Design',
+          'QR Code & Link Sharing',
+          'Real-time Analysis',
+          'Filtering & Weighting',
+          'Export to Excel/CSV/JSON',
+          'Skip & Display Logic',
+          'NPS & Likert Scale',
+          'Statistica Integration',
+          'Mobile Responsive'
+        ]
+      },
 
      ];
 
@@ -447,6 +465,7 @@ export default function LandingPage() {
                     <DropdownMenuItem asChild><Link href="/features/strategic">Strategic Decision</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/financial-modeling">Financial Modeling</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/features/map-analysis">Spatial Analysis</Link></DropdownMenuItem> 
+                    <DropdownMenuItem asChild><Link href="/features/survey">Survey</Link></DropdownMenuItem>
 
 
                   </DropdownMenuContent>
@@ -958,6 +977,17 @@ export default function LandingPage() {
     </div>
   </div>
 
+) : activeProcessTab === 'survey' ? (
+  <div className="w-full h-full overflow-hidden flex items-start justify-center pt-10 md:pt-16 px-4 md:px-6 pb-4 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-md translate-x-4 md:translate-x-12">
+      <div className="h-[250px] sm:h-[320px] md:h-[380px] flex flex-col items-center justify-center p-6">
+        <ClipboardList className="w-16 h-16 text-primary mb-4" />
+        <h3 className="text-lg font-bold mb-2">Survey Platform</h3>
+        <p className="text-sm text-muted-foreground text-center">Create, distribute & analyze surveys with Statistica integration</p>
+      </div>
+    </div>
+  </div>
+
 ) : currentProcessTab?.image ? (
   <Image
     src={currentProcessTab.image.imageUrl}
@@ -1002,6 +1032,7 @@ export default function LandingPage() {
                                               activeProcessTab === 'visualize' ? '/features/strategic' :
                                               activeProcessTab === 'financialmodeling' ? '/features/financial-modeling' :
                                               activeProcessTab === 'mapanalysis' ? '/features/map-analysis' :
+                                              activeProcessTab === 'survey' ? '/features/survey' :
                                               '#'
                                             }
                                             className="text-primary text-xs hover:underline"
