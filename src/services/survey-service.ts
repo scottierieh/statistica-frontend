@@ -20,7 +20,6 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 import type { Survey, SurveyResponse } from '@/entities/Survey';
 
 export const surveyService = {
-  // Save or update a survey
   async saveSurvey(db: Firestore, survey: Partial<Survey>, userId: string) {
     const surveyId = survey.id || doc(collection(db, 'surveys')).id;
     const surveyRef = doc(db, 'surveys', surveyId);
@@ -34,9 +33,11 @@ export const surveyService = {
     };
 
     try {
+      console.log('SAVING SURVEY:', surveyId, 'userId:', userId, 'db:', !!db);
       await setDoc(surveyRef, data, { merge: true });
       return surveyId;
     } catch (serverError: any) {
+      console.error('RAW_SAVE_ERROR:', serverError.code, serverError.message, serverError);
       const permissionError = new FirestorePermissionError({
         path: surveyRef.path,
         operation: survey.id ? 'update' : 'create',
@@ -47,7 +48,6 @@ export const surveyService = {
     }
   },
 
-  // Get all surveys for a user
   async getSurveys(db: Firestore, userId: string) {
     const surveysRef = collection(db, 'surveys');
     const q = query(
@@ -60,6 +60,7 @@ export const surveyService = {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => doc.data() as Survey);
     } catch (serverError: any) {
+      console.error('RAW_GET_SURVEYS_ERROR:', serverError.code, serverError.message, serverError);
       const permissionError = new FirestorePermissionError({
         path: surveysRef.path,
         operation: 'list',
@@ -69,13 +70,13 @@ export const surveyService = {
     }
   },
 
-  // Get a single survey by ID
   async getSurvey(db: Firestore, surveyId: string) {
     const surveyRef = doc(db, 'surveys', surveyId);
     try {
       const docSnap = await getDoc(surveyRef);
       return docSnap.exists() ? (docSnap.data() as Survey) : null;
     } catch (serverError: any) {
+      console.error('RAW_GET_SURVEY_ERROR:', serverError.code, serverError.message, serverError);
       const permissionError = new FirestorePermissionError({
         path: surveyRef.path,
         operation: 'get',
@@ -85,7 +86,6 @@ export const surveyService = {
     }
   },
 
-  // Submit a response
   async submitResponse(db: Firestore, surveyId: string, response: Partial<SurveyResponse>) {
     const responsesRef = collection(db, 'surveys', surveyId, 'responses');
     const data = {
@@ -98,6 +98,7 @@ export const surveyService = {
       const docRef = await addDoc(responsesRef, data);
       return docRef.id;
     } catch (serverError: any) {
+      console.error('RAW_SUBMIT_ERROR:', serverError.code, serverError.message, serverError);
       const permissionError = new FirestorePermissionError({
         path: responsesRef.path,
         operation: 'create',
@@ -108,13 +109,13 @@ export const surveyService = {
     }
   },
 
-  // Get all responses for a survey
   async getResponses(db: Firestore, surveyId: string) {
     const responsesRef = collection(db, 'surveys', surveyId, 'responses');
     try {
       const querySnapshot = await getDocs(responsesRef);
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as SurveyResponse);
     } catch (serverError: any) {
+      console.error('RAW_GET_RESPONSES_ERROR:', serverError.code, serverError.message, serverError);
       const permissionError = new FirestorePermissionError({
         path: responsesRef.path,
         operation: 'list',
@@ -124,12 +125,12 @@ export const surveyService = {
     }
   },
 
-  // Delete a survey
   async deleteSurvey(db: Firestore, surveyId: string) {
     const surveyRef = doc(db, 'surveys', surveyId);
     try {
       await deleteDoc(surveyRef);
     } catch (serverError: any) {
+      console.error('RAW_DELETE_ERROR:', serverError.code, serverError.message, serverError);
       const permissionError = new FirestorePermissionError({
         path: surveyRef.path,
         operation: 'delete',
