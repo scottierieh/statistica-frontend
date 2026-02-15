@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -754,6 +754,9 @@ export default function StatisticaApp({ mode }: StatisticaAppProps) {
 
   const { toast } = useToast();
 
+
+
+
   // 모드에 따른 카테고리 필터링
   const modeCategories = useMemo(() => getCategoriesByMode(mode), [mode]);
 
@@ -814,6 +817,20 @@ export default function StatisticaApp({ mode }: StatisticaAppProps) {
       setIsUploading(false);
     }
   }, [toast, handleClearData]);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('source') === 'survey') {
+      const csv = localStorage.getItem('statistica-survey-data');
+      const name = localStorage.getItem('statistica-survey-name');
+      if (csv && name) {
+        processData(csv, `${name}.csv`);
+        localStorage.removeItem('statistica-survey-data');
+        localStorage.removeItem('statistica-survey-name');
+      }
+    }
+  }, [processData]);
 
   const handleFileSelected = useCallback((file: File) => {
     setIsUploading(true);

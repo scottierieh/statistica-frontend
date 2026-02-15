@@ -592,6 +592,33 @@ export default function SurveyAnalysisPage({ survey, responses, specialAnalyses 
                         </div>
                     </div>
                 </div>
+
+                <Button variant="outline" size="sm" className="gap-1.5"
+                              onClick={() => {
+                                const dataToExport = weightedResponses.map(r => {
+                                  const row: any = {};
+                                  survey.questions.forEach(q => {
+                                    const answer = r.answers[q.id];
+                                    if (q.type === 'matrix' && q.rows && typeof answer === 'object' && answer !== null) {
+                                      q.rows.forEach(rowItem => {
+                                        const rowLabel = typeof rowItem === 'object' ? (rowItem as RowItem).left : rowItem;
+                                        row[`${q.title} - ${rowLabel}`] = answer[rowLabel] ?? '';
+                                      });
+                                    } else {
+                                      row[q.title] = Array.isArray(answer) ? answer.join(', ') : (answer ?? '');
+                                    }
+                                  });
+                                  return row;
+                                });
+                                const csv = Papa.unparse(dataToExport);
+                                localStorage.setItem('statistica-survey-data', csv);
+                                localStorage.setItem('statistica-survey-name', survey.title);
+                                router.push('/dashboard/statistica?source=survey');
+                              }}
+                            >
+                              <BeakerIcon className="w-3 h-3" />
+                              Open in Statistica
+                            </Button>
                 
                 {/* Weight Settings Dialog */}
                 <WeightSettingsDialog
