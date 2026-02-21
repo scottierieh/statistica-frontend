@@ -69,4 +69,4 @@ export {
     FirebaseClientProvider,
     useAuth
 };
-export { useCollection } from './use-collection';
+export { useCollection } from './firestore/use-collection';
