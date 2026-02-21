@@ -376,15 +376,21 @@ export default function StockVsMacroDriversPage({
 
   // ── Raw series ─────────────────────────────────────────────
   const stockValues = useMemo(() =>
-    data.map((r) => parseFloat(r[stockCol])).filter((v) => !isNaN(v)),
+    data
+      .map((r) => Number(r[stockCol]))
+      .filter((v) => !isNaN(v)),
     [data, stockCol],
   );
 
   const driverValues = useMemo(() => {
     const result: Record<string, number[]> = {};
+  
     for (const d of drivers) {
-      result[d.key] = data.map((r) => parseFloat(r[d.col])).filter((v) => !isNaN(v));
+      result[d.key] = data
+        .map((r) => Number(r[d.col]))
+        .filter((v) => Number.isFinite(v));
     }
+  
     return result;
   }, [data, drivers]);
 
