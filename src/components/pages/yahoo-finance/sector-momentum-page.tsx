@@ -331,7 +331,7 @@ export default function SectorMomentumPage({
     const result: Record<string, number[]> = {};
     for (const col of sectorCols) {
       result[col] = data
-        .map((row) => parseFloat(row[col]))
+        .map((row) => parseFloat(String(row[col])))
         .filter((v) => !isNaN(v));
     }
     return result;
@@ -376,23 +376,23 @@ export default function SectorMomentumPage({
     [sortedStats, avgReturn],
   );
 
-  // ── Normalized trend data (base 100) ──────────────────────
   const trendData = useMemo(() => {
     if (!dateCol || !sectorCols.length) return [];
     const firsts: Record<string, number> = {};
     for (const col of sectorCols) {
-      const first = data.find((r) => !isNaN(parseFloat(r[col])))?.[col];
-      if (first) firsts[col] = parseFloat(first);
+      const first = data.find((r) => !isNaN(parseFloat(String(r[col]))))?.[col];
+      if (first) firsts[col] = parseFloat(String(first));
     }
     return data.map((row) => {
       const entry: Record<string, any> = { date: String(row[dateCol] ?? '') };
       for (const col of sectorCols) {
-        const v = parseFloat(row[col]);
+        const v = parseFloat(String(row[col]));
         entry[col] = firsts[col] && !isNaN(v) ? parseFloat(((v / firsts[col]) * 100).toFixed(3)) : null;
       }
       return entry;
     }).filter((r) => r.date);
   }, [data, dateCol, sectorCols]);
+
 
   const isConfigured = !!(dateCol && sectorCols.length > 0);
   const isExample       = (fileName ?? '').startsWith('example_');
