@@ -523,11 +523,15 @@ export default function PriceVolumeCorrelationPage({
   const stats = useMemo(() => {
     if (!dailyRows.length) return null;
 
-    const last    = dailyRows[dailyRows.length - 1];
-    const first   = data.find(r => r[dateCol]);
-    const firstPrice = first ? parseFloat(first[priceCol]) : NaN;
-    const pctChg  = isFinite(firstPrice) && firstPrice > 0
-      ? ((last.price - firstPrice) / firstPrice) * 100 : 0;
+    const last = dailyRows[dailyRows.length - 1];
+    const first = data.find((r) => r[dateCol]);
+    
+    const firstPrice = Number(first?.[priceCol]);
+        
+    const pctChg =
+      Number.isFinite(firstPrice) && firstPrice > 0
+        ? ((last.price - firstPrice) / firstPrice) * 100
+        : 0;
 
     const corrVals = dailyRows.map(r => r.rollingCorr).filter((v): v is number => v !== null);
     const avgCorr  = corrVals.length
