@@ -318,8 +318,7 @@ export default function MacroVariableTrendsPage({
     const rows = data.map((row) => {
       const entry: Record<string, any> = { date: String(row[dateCol] ?? '') };
       for (const { col } of activeVars) {
-        entry[col] = parseFloat(row[col]) || null;
-      }
+        entry[col] = row[col] != null ? parseFloat(String(row[col])) : null;      }
       return entry;
     }).filter((r) => r.date);
 
@@ -341,13 +340,25 @@ export default function MacroVariableTrendsPage({
   }, [data, dateCol, activeVars, normalize]);
 
   // ── Per-variable stats ─────────────────────────────────────
-  const varStats = useMemo(() =>
-    activeVars.map(({ col, color }) => {
-      const values = data.map((r) => parseFloat(r[col])).filter((v) => !isNaN(v));
-      return { col, color, ...calcStats(values) };
-    }),
+  const varStats = useMemo(
+    () =>
+      activeVars.map(({ col, color }) => {
+        const values = data
+          .map((r) => {
+            const raw = r[col];
+  
+            if (raw == null) return NaN;
+            if (typeof raw === "number") return raw;
+  
+            return parseFloat(raw);
+          })
+          .filter((v) => !isNaN(v));
+  
+        return { col, color, ...calcStats(values) };
+      }),
     [activeVars, data],
   );
+  
 
   const isConfigured = !!(dateCol && activeVars.length > 0 && chartData.length > 0);
   const isExample       = (fileName ?? '').startsWith('example_');

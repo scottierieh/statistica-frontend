@@ -1047,8 +1047,7 @@ export default function ComparableAnalysisPage({
                   <Bar dataKey="score" name="Relative Score" maxBarSize={48} radius={[3, 3, 0, 0]}>
                     {scoreChartData.map((r, i) => (
                       <Cell key={i}
-                        fill={r.score >= 60 ? OVER_COLOR : r.score <= 40 ? UNDER_COLOR : FAIR_COLOR}
-                        fillOpacity={r.isTarget ? 1.0 : 0.6}
+                      fill={(r.score ?? 0) >= 60 ? OVER_COLOR : (r.score ?? 0) <= 40 ? UNDER_COLOR : FAIR_COLOR}                        fillOpacity={r.isTarget ? 1.0 : 0.6}
                         stroke={r.isTarget ? TARGET_COLOR : 'none'}
                         strokeWidth={r.isTarget ? 2 : 0}
                       />
