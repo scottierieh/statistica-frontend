@@ -28,7 +28,7 @@ interface ToolItem {
 const tools: ToolItem[] = [
   {
     id: "data-studio",
-    href: "/dashboard/data-studio/integrations",
+    href: "/dashboard/data-studio",
     icon: Link2,
     title: "Integrations / Data Sources",
     description: "Connect to external data sources: SNS, Ads API, CRM, and Databases. Automate collection with scheduling.",
