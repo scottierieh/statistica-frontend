@@ -673,8 +673,7 @@ export default function ValueGrowthRotationPage({
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-slate-700"
             onClick={() => {
               const link = document.createElement('a');
-              link.href = URL.createObjectURL(new Blob([Papa.unparse(data)], { type: 'text/csv;charset=utf-8;' }));
-              link.download = displayFileName.replace(/\.csv$/, '') + '_raw.csv';
+              link.href = URL.createObjectURL(new Blob([Papa.unparse(rows as any)], { type: 'text/csv;charset=utf-8;' }));              link.download = displayFileName.replace(/\.csv$/, '') + '_raw.csv';
               link.click();
               toast({ title: 'Raw data downloaded' });
             }} title="Download raw CSV">

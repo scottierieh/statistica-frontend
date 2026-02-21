@@ -477,7 +477,7 @@ export default function MarketRegimePage({
   if (!hasData) return <IntroPage onLoadExample={handleLoadExample} />;
 
   return (
-<div className="flex flex-col gap-4 flex-1 max-w-5xl mx-auto w-full px-4">
+    <div className="w-full max-w-6xl mx-auto space-y-6">
 
       {/* ── File Header Bar ── */}
       <div className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50">

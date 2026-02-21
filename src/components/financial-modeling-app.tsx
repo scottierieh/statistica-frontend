@@ -638,4 +638,3 @@ export default function FinancialModelingApp() {
     </SidebarProvider>
   );
 }
-
