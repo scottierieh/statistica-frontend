@@ -648,8 +648,8 @@ export default function YahooFinanceApp() {
         {/* ── Sidebar ── */}
         <Sidebar collapsible="offcanvas">
           <SidebarHeader>
-            <div className="p-2 space-y-4">
-              <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+          <div className="p-2 pt-16 space-y-4">
+          <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -758,8 +758,8 @@ export default function YahooFinanceApp() {
 
         {/* ── Main Content ── */}
         <SidebarInset>
-        <div className="px-2 py-4 h-full flex flex-col gap-4">
-                  <header className="flex items-center justify-between md:justify-end">
+        <div className="px-0 py-4 h-full flex flex-col gap-4">
+        <header className="flex items-center justify-between md:justify-end">
               <SidebarTrigger />
               <div />
             </header>
