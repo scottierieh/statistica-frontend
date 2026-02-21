@@ -289,12 +289,20 @@ function scoreIndicators(rows: DashRow[]): IndicatorSignal[] {
   // ── 2. EMA Cross ─────────────────────────────────────────
   if (last.ema12 !== null && last.ema26 !== null) {
     const bullish = last.ema12 > last.ema26;
-    const recentCross = prev?.ema12 !== null && prev?.ema26 !== null
-      && ((prev.ema12 <= prev.ema26 && last.ema12 > last.ema26)
-        || (prev.ema12 >= prev.ema26 && last.ema12 < last.ema26));
+  
+    const recentCross =
+      prev != null &&
+      prev.ema12 != null &&
+      prev.ema26 != null &&
+      (
+        (prev.ema12 <= prev.ema26 && last.ema12 > last.ema26) ||
+        (prev.ema12 >= prev.ema26 && last.ema12 < last.ema26)
+      );
+  
     const signal: SignalType = recentCross
       ? (bullish ? 'Strong Buy' : 'Strong Sell')
       : bullish ? 'Buy' : 'Sell';
+  
     signals.push({
       name:   'EMA Cross (12/26)',
       icon:   <Zap className="h-4 w-4" />,
@@ -330,26 +338,49 @@ function scoreIndicators(rows: DashRow[]): IndicatorSignal[] {
   }
 
   // ── 4. MACD ──────────────────────────────────────────────
-  if (last.macdLine !== null && last.signalLine !== null) {
+  if (
+    last.macdLine != null &&
+    last.signalLine != null
+  ) {
     const bullish = last.macdLine > last.signalLine;
     const aboveZero = last.macdLine > 0;
-    const recentCross = prev?.macdLine !== null && prev?.signalLine !== null
-      && ((prev.macdLine <= prev.signalLine && last.macdLine > last.signalLine)
-        || (prev.macdLine >= prev.signalLine && last.macdLine < last.signalLine));
-    const histExpanding = prev?.histogram !== null && last.histogram !== null
-      && Math.abs(last.histogram) > Math.abs(prev.histogram);
+  
+    const recentCross =
+      prev != null &&
+      prev.macdLine != null &&
+      prev.signalLine != null &&
+      (
+        (prev.macdLine <= prev.signalLine && last.macdLine > last.signalLine) ||
+        (prev.macdLine >= prev.signalLine && last.macdLine < last.signalLine)
+      );
+  
+    const histExpanding =
+      prev != null &&
+      prev.histogram != null &&
+      last.histogram != null &&
+      Math.abs(last.histogram) > Math.abs(prev.histogram);
+  
     const signal: SignalType = recentCross
       ? (bullish ? 'Strong Buy' : 'Strong Sell')
       : (bullish && aboveZero) ? 'Buy'
       : (bullish && !aboveZero) ? 'Neutral'
       : (!bullish && !aboveZero) ? 'Sell'
       : 'Neutral';
+  
     signals.push({
-      name:   'MACD (12,26,9)',
-      icon:   <Waves className="h-4 w-4" />,
+      name: 'MACD (12,26,9)',
+      icon: <Waves className="h-4 w-4" />,
       signal,
-      value:  `MACD: ${last.macdLine >= 0 ? '+' : ''}${last.macdLine.toFixed(3)} · Hist: ${last.histogram !== null ? (last.histogram >= 0 ? '+' : '') + last.histogram.toFixed(3) : '—'}`,
-      detail: `MACD ${bullish ? 'above' : 'below'} Signal · ${aboveZero ? 'Above' : 'Below'} zero line${recentCross ? ' — fresh crossover!' : ''}${histExpanding ? ' · Momentum expanding' : ''}`,
+      value: `MACD: ${last.macdLine >= 0 ? '+' : ''}${last.macdLine.toFixed(3)} · Hist: ${
+        last.histogram != null
+          ? (last.histogram >= 0 ? '+' : '') + last.histogram.toFixed(3)
+          : '—'
+      }`,
+      detail: `MACD ${bullish ? 'above' : 'below'} Signal · ${
+        aboveZero ? 'Above' : 'Below'
+      } zero line${
+        recentCross ? ' — fresh crossover!' : ''
+      }${histExpanding ? ' · Momentum expanding' : ''}`,
     });
   }
 
