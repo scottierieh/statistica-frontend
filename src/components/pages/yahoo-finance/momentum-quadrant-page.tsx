@@ -381,8 +381,8 @@ export default function MomentumQuadrantPage({
     if (!tickerCol || !shortCol || !longCol) return [];
     const rows = data.map((row) => ({
       ticker:   String(row[tickerCol] ?? '').trim().toUpperCase(),
-      shortMom: parseFloat(row[shortCol]) || 0,
-      longMom:  parseFloat(row[longCol])  || 0,
+      shortMom: Number(row[shortCol]) || 0,
+      longMom:  Number(row[longCol])  || 0,
     })).filter((r) => r.ticker);
 
     const avgShort = rows.reduce((s, r) => s + r.shortMom, 0) / rows.length;
