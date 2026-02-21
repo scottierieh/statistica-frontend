@@ -622,7 +622,7 @@ export default function ValueGrowthRotationPage({
       : stocks.map(s => ({ ticker: s.ticker, factor: s.factor, ret_1m: s.ret1m, ret_3m: s.ret3m, ret_6m: s.ret6m, per: s.per ?? '', pbr: s.pbr ?? '', roe: s.roe ?? '', revenue_growth: s.revenueGrowth ?? '' }));
     if (!rows.length) return;
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([Papa.unparse(rows)], { type: 'text/csv;charset=utf-8;' }));
+    link.href = URL.createObjectURL(new Blob([Papa.unparse(rows as any)], { type: 'text/csv;charset=utf-8;' }));
     link.download = `ValueGrowthRotation_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     toast({ title: 'CSV Downloaded' });
@@ -666,14 +666,15 @@ export default function ValueGrowthRotationPage({
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-slate-700"
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-slate-700"
             onClick={() => setPreviewOpen(true)} title="Preview data">
             <Eye className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-slate-700"
             onClick={() => {
               const link = document.createElement('a');
-              link.href = URL.createObjectURL(new Blob([Papa.unparse(rows as any)], { type: 'text/csv;charset=utf-8;' }));              link.download = displayFileName.replace(/\.csv$/, '') + '_raw.csv';
+              link.href = URL.createObjectURL(new Blob([Papa.unparse(data as any)], { type: 'text/csv;charset=utf-8;' }));
+              link.download = displayFileName.replace(/\.csv$/, '') + '_raw.csv';
               link.click();
               toast({ title: 'Raw data downloaded' });
             }} title="Download raw CSV">
