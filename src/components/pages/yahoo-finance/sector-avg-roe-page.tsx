@@ -802,12 +802,12 @@ export default function ProductProfitabilityPage({
             <CardContent>
               <ResponsiveContainer width="100%" height={210}>
                 <ComposedChart
-                  data={summaries.map(s => ({
-                    product:         s.product,
-                    grossMargin:     s.grossMargin,
-                    operatingMargin: s.opexCol !== '' ? s.operatingMargin : null,
-                    color:           s.color,
-                  }))}
+               data={summaries.map(s => ({
+                product:         s.product,
+                grossMargin:     s.grossMargin,
+                operatingMargin: s.operatingMargin ?? null,
+                color:           s.color
+              }))}
                   margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
                   <XAxis dataKey="product" tick={{ fontSize: 9, fill: '#94A3B8' }} tickLine={false}
