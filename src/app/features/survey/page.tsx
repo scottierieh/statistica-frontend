@@ -401,8 +401,8 @@ export default function SurveyFeaturePage() {
                               <div className="text-sm font-semibold">Share Survey</div>
                               <div className="text-xs text-muted-foreground">Multiple distribution channels</div>
                             </div>
-                            <div className="flex-1 space-y-4">
-                              <div className="p-3 bg-white border rounded-lg">
+                            <div className="flex-1 overflow-y-auto space-y-4">
+                            <div className="p-3 bg-white border rounded-lg">
                                 <div className="text-xs font-medium mb-2 flex items-center gap-2">
                                   <Link2 className="w-3 h-3" /> Shareable Link
                                 </div>
@@ -504,64 +504,81 @@ export default function SurveyFeaturePage() {
 
                         {/* Statistica Integration Demo */}
                         {activeFeature === 'statistica' && (
-                          <div className="h-full flex flex-col p-4">
-                            <div className="mb-3">
-                              <div className="text-sm font-semibold">Statistica Integration</div>
-                              <div className="text-xs text-muted-foreground">Advanced analysis in one click</div>
-                            </div>
-                            <div className="flex-1 space-y-3">
-                              <div className="flex items-center gap-3 p-3 bg-white border rounded-lg">
-                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                  <ClipboardList className="w-5 h-5 text-primary" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="text-xs font-medium">Survey Results</div>
-                                  <div className="text-xs text-muted-foreground">156 responses collected</div>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <div className="h-full flex flex-col p-4">
+                        <div className="mb-3">
+                          <div className="text-sm font-semibold">One-Click to Statistica</div>
+                          <div className="text-xs text-muted-foreground">Survey → Statistical Analysis</div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-3">
+                          {/* Step 1: Survey Data */}
+                          <div className="p-3 bg-white border rounded-lg">
+                            <div className="text-xs font-medium mb-2">📋 Your Survey Data</div>
+                            <div className="text-[10px] border rounded overflow-hidden">
+                              <div className="grid grid-cols-4 bg-slate-50 border-b">
+                                {['Respondent', 'Satisfaction', 'NPS', 'Age'].map(h => (
+                                  <div key={h} className="px-2 py-1 font-semibold text-slate-500 border-r last:border-r-0">{h}</div>
+                                ))}
                               </div>
-
-                              <div className="flex justify-center py-2">
-                                <motion.div
-                                  animate={{ y: [0, 4, 0] }}
-                                  transition={{ repeat: Infinity, duration: 1.5 }}
-                                  className="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
-                                >
-                                  <Zap className="w-4 h-4 text-primary-foreground" />
-                                </motion.div>
-                              </div>
-
-                              <div className="flex items-center gap-3 p-3 bg-white border-2 border-primary rounded-lg">
-                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                  <Calculator className="w-5 h-5 text-primary" />
+                              {[
+                                ['#001', '5', '9', '28'],
+                                ['#002', '3', '6', '35'],
+                                ['#003', '4', '8', '22'],
+                              ].map((row, i) => (
+                                <div key={i} className="grid grid-cols-4 border-b last:border-b-0">
+                                  {row.map((cell, j) => (
+                                    <div key={j} className="px-2 py-1 border-r last:border-r-0">{cell}</div>
+                                  ))}
                                 </div>
-                                <div className="flex-1">
-                                  <div className="text-xs font-medium">Statistica</div>
-                                  <div className="text-xs text-muted-foreground">80+ statistical analyses</div>
-                                </div>
-                              </div>
-
-                              <div className="space-y-1.5">
-                                {['T-Test', 'ANOVA', 'Regression', 'Factor Analysis', 'Clustering'].map((analysis, i) => (
-                                  <motion.div
-                                    key={analysis}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.5 + i * 0.1 }}
-                                    className="flex items-center gap-2 p-2 bg-slate-50 rounded text-xs"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                    <span>{analysis}</span>
-                                  </motion.div>
+                              ))}
+                              <div className="grid grid-cols-4 bg-slate-50">
+                                {['...', '...', '...', '...'].map((cell, j) => (
+                                  <div key={j} className="px-2 py-1 border-r last:border-r-0 text-slate-400">{cell}</div>
                                 ))}
                               </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground mt-1">156 responses × 12 questions</div>
                           </div>
-                        )}
+
+                          {/* Arrow + Button */}
+                          <div className="flex justify-center">
+                            <motion.div
+                              animate={{ y: [0, 4, 0] }}
+                              transition={{ repeat: Infinity, duration: 1.5 }}
+                              className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-full flex items-center gap-2 shadow-lg"
+                            >
+                              <Zap className="w-3 h-3" />
+                              Open in Statistica
+                            </motion.div>
+                          </div>
+
+                          {/* Step 2: Statistica Results */}
+                          <div className="p-3 bg-white border-2 border-primary/30 rounded-lg">
+                            <div className="text-xs font-medium mb-2">📊 Instant Analysis Results</div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between p-2 bg-green-50 rounded text-[10px]">
+                                <span className="font-medium">One-Way ANOVA</span>
+                                <span className="text-green-700 font-bold">F(2,153) = 4.82, p = .009*</span>
+                              </div>
+                              <div className="flex items-center justify-between p-2 bg-blue-50 rounded text-[10px]">
+                                <span className="font-medium">Correlation</span>
+                                <span className="text-blue-700 font-bold">r = .67, p &lt; .001***</span>
+                              </div>
+                              <div className="flex items-center justify-between p-2 bg-purple-50 rounded text-[10px]">
+                                <span className="font-medium">Regression</span>
+                                <span className="text-purple-700 font-bold">R² = .45, β = .38*</span>
+                              </div>
+                            </div>
+                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-[10px] text-amber-700">
+                              💡 AI: "Satisfaction significantly differs by age group. Younger users report higher NPS scores."
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                       </motion.div>
                     </AnimatePresence>
                   </div>
-
+                  
                   {/* Feature Details */}
                   <div className="p-6 border-t bg-slate-50">
                     <AnimatePresence mode="wait">

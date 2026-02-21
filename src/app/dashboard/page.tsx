@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { 
   Calculator, BrainCircuit, Briefcase, Monitor, Repeat, 
   DatabaseZap, Paintbrush, FlaskConical, Landmark, LayoutDashboard, 
-  ArrowUpRight, LucideIcon, Network, Map, ClipboardList, Target, DollarSign
+  ArrowUpRight, LucideIcon, TrendingUp, Network, Map, ClipboardList, Target, DollarSign
 } from "lucide-react";
 
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
@@ -71,6 +71,7 @@ const tools: ToolItem[] = [
     disabled: false,
     badge: "Beta"
   },
+  
   {
     id: "visualize",
     href: "/dashboard/visualization",
@@ -96,6 +97,15 @@ const tools: ToolItem[] = [
     icon: Map,
     title: "Geospatial Analysis",
     description: "Visualize location data and perform spatial analysis through interactive maps.",
+    disabled: false,
+    badge: "New"
+  },
+  {
+    id: "finance-analytics",
+    href: "/dashboard/finance-analytics",
+    icon: TrendingUp,
+    title: "Finance Analytics",
+    description: "Market data analysis, technical indicators, and stock screening based on live financial data.",
     disabled: false,
     badge: "New"
   },
