@@ -30,6 +30,7 @@ import {
   Bar,
   XAxis,
   YAxis,
+  ReferenceLine,
   CartesianGrid,
   Cell,
 } from 'recharts';
