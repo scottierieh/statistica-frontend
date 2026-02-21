@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { 
   Calculator, BrainCircuit, Briefcase, Monitor, Repeat, 
   DatabaseZap, Paintbrush, FlaskConical, Landmark, LayoutDashboard, 
-  ArrowUpRight, LucideIcon, TrendingUp, Network, Map, ClipboardList, Target, DollarSign
+  ArrowUpRight, LucideIcon, TrendingUp, Link2, Network, Map, ClipboardList, Target, DollarSign
 } from "lucide-react";
 
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,13 +27,13 @@ interface ToolItem {
 
 const tools: ToolItem[] = [
   {
-    id: "prepare",
-    href: "/dashboard/data-preprocessing",
-    icon: DatabaseZap,
-    title: "Data Preparation",
-    description: "Refine and validate your raw data to ensure a reliable foundation.",
+    id: "data-studio",
+    href: "/dashboard/data-studio/integrations",
+    icon: Link2,
+    title: "Integrations / Data Sources",
+    description: "Connect to external data sources: SNS, Ads API, CRM, and Databases. Automate collection with scheduling.",
     disabled: false,
-    badge: "Beta"
+    badge: "New"
   },
   {
     id: "analyze",
