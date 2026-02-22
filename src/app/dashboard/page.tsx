@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator, BrainCircuit, Briefcase, Monitor, Repeat,
   Paintbrush, Landmark, LayoutDashboard, ArrowUpRight,
   LucideIcon, TrendingUp, Link2, Network, Map, ClipboardList, Target,
-  DollarSign, Database, BarChart3, FileQuestion, Workflow, Table2
+  DollarSign, Database, BarChart3, FileQuestion, Workflow, Table2,
+  MoreHorizontal
 } from "lucide-react";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
@@ -86,7 +87,7 @@ const categories: ToolCategory[] = [
         id: "analyze",
         href: "/dashboard/statistica",
         icon: Calculator,
-        title: "Standard Analytics",
+        title: "Statistical Analysis",
         description:
           "Execute fundamental statistical tests to identify patterns.",
         disabled: false,
@@ -103,20 +104,10 @@ const categories: ToolCategory[] = [
         badge: "Beta",
       },
       {
-        id: "finance",
-        href: "/dashboard/financial-modeling",
-        icon: Landmark,
-        title: "Financial Modeling",
-        description:
-          "Optimize portfolios and manage financial risks with professional models.",
-        disabled: false,
-        badge: "Beta",
-      },
-      {
         id: "finance-analytics",
         href: "/dashboard/finance-analytics",
-        icon: TrendingUp,
-        title: "Finance Analysis",
+        icon: Landmark,
+        title: "Financial Analysis",
         description:
           "Market data analysis, technical indicators, and stock screening based on live financial data.",
         disabled: false,
@@ -309,7 +300,7 @@ function ToolCard({ tool }: { tool: ToolItem }) {
   );
 }
 
-// ─── Tab Bar ──────────────────────────────────────────────────────────────────
+// ─── Tab Bar (with overflow dropdown) ─────────────────────────────────────────
 
 function CategoryTabs({
   categories,
@@ -320,17 +311,75 @@ function CategoryTabs({
   activeId: string;
   onChange: (id: string) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [visibleCount, setVisibleCount] = useState(categories.length);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  // ── 넘침 감지: 컨테이너 너비 vs 탭 누적 너비 ──
+  const calcVisible = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const moreButtonWidth = 52; // ... 버튼 예상 너비
+    const containerWidth = container.offsetWidth;
+    let used = 0;
+    let count = 0;
+
+    for (const cat of categories) {
+      const el = tabRefs.current[cat.id];
+      if (!el) break;
+      const w = el.scrollWidth;
+      const needed = used + w + (count < categories.length - 1 ? moreButtonWidth : 0);
+      if (needed > containerWidth && count < categories.length) {
+        break;
+      }
+      used += w;
+      count++;
+    }
+
+    setVisibleCount(count === 0 ? 1 : count);
+  }, [categories]);
+
+  useEffect(() => {
+    calcVisible();
+    const ro = new ResizeObserver(calcVisible);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [calcVisible]);
+
+  // ── 외부 클릭 시 드롭다운 닫기 ──
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [moreOpen]);
+
+  const visibleTabs = categories.slice(0, visibleCount);
+  const overflowTabs = categories.slice(visibleCount);
+  const activeInOverflow = overflowTabs.some((c) => c.id === activeId);
+
   return (
-    <div className="flex items-center gap-1 border-b border-border">
-      {categories.map((cat) => {
+    <div ref={containerRef} className="relative flex items-center border-b border-border">
+      {/* Visible tabs */}
+      {visibleTabs.map((cat) => {
         const isActive = cat.id === activeId;
         const Icon = cat.icon;
         return (
           <button
             key={cat.id}
+            ref={(el) => {
+              if (el) tabRefs.current[cat.id] = el;
+            }}
             onClick={() => onChange(cat.id)}
             className={cn(
-              "relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors",
+              "relative flex shrink-0 items-center gap-2 px-4 py-3 text-sm font-medium transition-colors",
               isActive
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground/80"
@@ -351,6 +400,85 @@ function CategoryTabs({
           </button>
         );
       })}
+
+      {/* Hidden measurement tabs (invisible, for width calc) */}
+      {overflowTabs.map((cat) => (
+        <button
+          key={`measure-${cat.id}`}
+          ref={(el) => {
+            if (el) tabRefs.current[cat.id] = el;
+          }}
+          className="pointer-events-none invisible absolute flex shrink-0 items-center gap-2 px-4 py-3 text-sm font-medium"
+          tabIndex={-1}
+          aria-hidden
+        >
+          <cat.icon className="h-4 w-4" />
+          {cat.label}
+          <span className="ml-1 text-xs">{cat.tools.length}</span>
+        </button>
+      ))}
+
+      {/* More button + dropdown */}
+      {overflowTabs.length > 0 && (
+        <div ref={moreRef} className="relative ml-auto shrink-0">
+          <button
+            onClick={() => setMoreOpen((v) => !v)}
+            className={cn(
+              "flex items-center gap-1 px-3 py-3 text-sm font-medium transition-colors",
+              activeInOverflow
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground/80"
+            )}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            {activeInOverflow && (
+              <motion.div
+                layoutId="tab-indicator"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {moreOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card p-1 shadow-lg"
+              >
+                {overflowTabs.map((cat) => {
+                  const isActive = cat.id === activeId;
+                  const Icon = cat.icon;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        onChange(cat.id);
+                        setMoreOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                        isActive
+                          ? "bg-muted text-foreground font-medium"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {cat.label}
+                      <span className="ml-auto text-xs text-muted-foreground/60">
+                        {cat.tools.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }
@@ -359,7 +487,7 @@ function CategoryTabs({
 
 function DashboardHub() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState(categories[0].id);
+  const [activeTab, setActiveTab] = useState("analytics");
 
   const activeCategory = categories.find((c) => c.id === activeTab)!;
 
