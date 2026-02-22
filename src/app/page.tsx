@@ -799,8 +799,8 @@ export default function LandingPage() {
                          <div className="relative mt-0 w-full overflow-hidden bg-white rounded-b-lg shadow-xl border">
                            <div className="flex flex-col md:flex-row">
                              {/* Image Area */}
-                             <div className="w-full md:w-3/4 aspect-[4/3] sm:aspect-video relative bg-slate-100">
-                               <AnimatePresence mode="wait">
+                             <div className="w-full md:w-3/4 aspect-square relative bg-slate-100">
+                             <AnimatePresence mode="wait">
                                  <motion.div
                                    key={activeProcessTab}
                                    initial={{ opacity: 0, scale: 0.98 }}

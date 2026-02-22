@@ -1,7 +1,7 @@
 'use client';
 
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -73,6 +73,8 @@ import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
 import NextLink from 'next/link';
+import { useFinanceData, parseCSV } from '@/contexts/finance-data-context';
+
 
 // ============================================
 // Page Component Imports
@@ -462,8 +464,29 @@ export default function YahooFinanceApp() {
   const [openCategories, setOpenCategories]   = useState<string[]>([]);
   const [searchTerm, setSearchTerm]           = useState('');
   const [analysisResultForChat, setAnalysisResultForChat] = useState<any>(null);
+  const [showSyncBanner, setShowSyncBanner] = useState(true);
 
   const { toast } = useToast();
+  const { syncResult } = useFinanceData();
+
+useEffect(() => {
+  if (!syncResult || !syncResult.files || syncResult.files.length === 0) return;
+  if (data.length > 0) return;
+
+  if (syncResult.files.length === 1) {
+    const file = syncResult.files[0];
+    const rows = parseCSV(file.csv, file.columnTypes);
+    if (rows.length > 0) {
+      const headers = Object.keys(rows[0]);
+      setData(rows as any);
+      setAllHeaders(headers);
+      setNumericHeaders(headers.filter(h => typeof rows[0][h] === 'number'));
+      setCategoricalHeaders(headers.filter(h => typeof rows[0][h] === 'string'));
+      setFileName(file.fileName);
+      setShowSyncBanner(false);
+    }
+  }
+}, [syncResult]);
 
   const filteredAnalysisCategories = useMemo(
     () => filterCategoriesBySearch(analysisCategories, searchTerm),
