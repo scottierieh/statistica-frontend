@@ -20,7 +20,7 @@ export function useFeatureAccess(featureId: string): { hasAccess: boolean; requi
     return { hasAccess: false, requiredPlan };
   }
 
-  const userPlanLevel = planLevels[user.plan as FeaturePlan] ?? -1;
+  const userPlanLevel = planLevels[(user as any).plan as FeaturePlan] ?? -1;
   const requiredPlanLevel = planLevels[requiredPlan] ?? 99;
 
   const hasAccess = userPlanLevel >= requiredPlanLevel;
@@ -48,7 +48,7 @@ export function useExportAccess(
     return { hasAccess: false, requiredPlan: baseRequiredPlan };
   }
 
-  const userPlanLevel = planLevels[user.plan as FeaturePlan] ?? -1;
+  const userPlanLevel = planLevels[(user as any).plan as FeaturePlan] ?? -1;
   const requiredPlanLevel = planLevels[baseRequiredPlan] ?? 99;
 
   const hasAccess = userPlanLevel >= requiredPlanLevel;
