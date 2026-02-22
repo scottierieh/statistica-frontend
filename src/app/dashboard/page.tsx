@@ -86,7 +86,7 @@ const categories: ToolCategory[] = [
         id: "analyze",
         href: "/dashboard/statistica",
         icon: Calculator,
-        title: "Statistical Analysis",
+        title: "Standard Analytics",
         description:
           "Execute fundamental statistical tests to identify patterns.",
         disabled: false,
@@ -103,10 +103,20 @@ const categories: ToolCategory[] = [
         badge: "Beta",
       },
       {
+        id: "finance",
+        href: "/dashboard/financial-modeling",
+        icon: Landmark,
+        title: "Financial Modeling",
+        description:
+          "Optimize portfolios and manage financial risks with professional models.",
+        disabled: false,
+        badge: "Beta",
+      },
+      {
         id: "finance-analytics",
         href: "/dashboard/finance-analytics",
-        icon: Landmark,
-        title: "Financial Analysis",
+        icon: TrendingUp,
+        title: "Finance Analysis",
         description:
           "Market data analysis, technical indicators, and stock screening based on live financial data.",
         disabled: false,
@@ -349,7 +359,7 @@ function CategoryTabs({
 
 function DashboardHub() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("analytics");
+  const [activeTab, setActiveTab] = useState(categories[0].id);
 
   const activeCategory = categories.find((c) => c.id === activeTab)!;
 
