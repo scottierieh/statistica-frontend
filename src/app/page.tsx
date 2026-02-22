@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,7 +16,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -26,10 +25,6 @@ import { AnimatedGrid } from '@/components/animated-grid';
 const securityImage = PlaceHolderImages.find(p => p.id === 'security-feature');
 const apiIntegrationsImage = PlaceHolderImages.find(p => p.id === 'api-integrations');
 const statisticaFeatureImage = PlaceHolderImages.find(p => p.id === 'statistica-feature');
-
-
-
-
 
 const VisualImage = {
   imageUrl: 'https://raw.githubusercontent.com/scottierieh/statistica/main/CBA461AF-EE60-4FF7-B36E-750F2692E141.png',
@@ -72,7 +67,7 @@ const analysisCategories = [
     subcategories: [
       { name: 'T-Tests', items: ['One-Sample', 'Independent Samples', "Welch's T-test", 'Paired Samples'] },
       { name: 'ANOVA', items: ['One-Way ANOVA', 'Two-Way ANOVA', 'ANCOVA', 'MANOVA', 'Repeated Measure ANOVA'] },
-      { name: 'Non-Parametric', items: ['Mann-Whitney U Test', 'Wilcoxon Signed-Rank', 'Kruskal-Wallis H-Test', 'Friedman Test', 'McNemar’s Test'] },
+      { name: 'Non-Parametric', items: ['Mann-Whitney U Test', 'Wilcoxon Signed-Rank', 'Kruskal-Wallis H-Test', 'Friedman Test', 'McNemar\'s Test'] },
       { name: 'Statistical Design', items: ['Power Analysis'] },
     ],
   },
@@ -246,6 +241,47 @@ const sampleRecommendations = [
   },
 ];
 
+// =============================================
+// Phase 1: Mobile Accordion Component for Sheet Menu
+// =============================================
+function MobileAccordionSection({ 
+  title, 
+  children, 
+  defaultOpen = false 
+}: { 
+  title: string; 
+  children: React.ReactNode; 
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full text-left text-muted-foreground hover:text-foreground py-1"
+      >
+        <span>{title}</span>
+        <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", isOpen && "rotate-180")} />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pl-4 pt-2 pb-1 space-y-2">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 
 export default function LandingPage() {
   const [activeProcessTab, setActiveProcessTab] = useState('analyze');
@@ -254,11 +290,16 @@ export default function LandingPage() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   
   // POINT 01 - Animation State
-  const [point01Step, setPoint01Step] = useState(0); // 0: upload, 1: analyzing, 2: summary, 3: recommendations
+  const [point01Step, setPoint01Step] = useState(0);
 
-  // POINT 03 - Chat Animation State (showing only last 3 messages)
+  // POINT 03 - Chat Animation State
   const [visibleMessages, setVisibleMessages] = useState<{role: 'user' | 'ai', text: string}[]>([]);
   const [chatStep, setChatStep] = useState(0);
+
+  // Phase 2: Mobile category carousel state
+  const [mobileCategoryPage, setMobileCategoryPage] = useState(0);
+  const MOBILE_CATS_PER_PAGE = 6;
+  const totalMobilePages = Math.ceil(analysisCategories.length / MOBILE_CATS_PER_PAGE);
 
   const chatConversations = [
     { role: 'user' as const, text: "What does the p-value of 0.023 mean?" },
@@ -279,19 +320,17 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-animate POINT 03 Chat - show last 2-3 messages, fade out old ones
+  // Auto-animate POINT 03 Chat
   useEffect(() => {
     const timer = setInterval(() => {
       setChatStep(prev => {
-        const nextStep = (prev + 1) % (chatConversations.length + 2); // +2 for pause
+        const nextStep = (prev + 1) % (chatConversations.length + 2);
         
         if (nextStep < chatConversations.length) {
-          // Show messages progressively, keep only last 3
           const endIndex = nextStep + 1;
           const startIndex = Math.max(0, endIndex - 3);
           setVisibleMessages(chatConversations.slice(startIndex, endIndex));
         } else if (nextStep === chatConversations.length + 1) {
-          // Reset
           setVisibleMessages([]);
         }
         
@@ -358,7 +397,7 @@ export default function LandingPage() {
       {
         id: 'financialmodeling',
         label: 'Financial Modeling',
-        image: dashboardImage,  // 또는 별도 이미지
+        image: dashboardImage,
         title: 'Financial Modeling',
         features: [
           '26 Financial Planning Tools',
@@ -373,7 +412,7 @@ export default function LandingPage() {
           'Built-in Guide & Glossary'
         ]
       }, 
-      {                                                        // ← 추가
+      {
         id: 'mapanalysis',
         label: 'Spatial Analysis',
         image: dashboardImage,
@@ -409,7 +448,6 @@ export default function LandingPage() {
           'Mobile Responsive'
         ]
       },
-
      ];
 
   const currentProcessTab = processTabs.find(t => t.id === activeProcessTab);
@@ -452,6 +490,7 @@ export default function LandingPage() {
                     <h1 className="text-xl font-headline font-bold">Skari</h1>
                 </Link>
             </div>
+             {/* Desktop Navigation - unchanged */}
              <nav className="hidden lg:flex items-center gap-4 sm:gap-6 flex-1 justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -459,15 +498,33 @@ export default function LandingPage() {
                       Features <ChevronDown className="w-4 h-4 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                  <DropdownMenuItem asChild><Link href="/features/dataprep">DataPrep</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/standard">Standard Analysis</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/strategic">Strategic Decision</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/financial-modeling">Financial Modeling</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/features/map-analysis">Spatial Analysis</Link></DropdownMenuItem> 
-                    <DropdownMenuItem asChild><Link href="/features/survey">Survey</Link></DropdownMenuItem>
-
-
+                  <DropdownMenuContent className="w-[560px] p-4">
+                    <div className="grid grid-cols-3 gap-6">
+                      {/* Column 1: Data Sources */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Data Sources</h4>
+                        <div className="space-y-1">
+                          <DropdownMenuItem asChild><Link href="/features/dataprep">DataPrep</Link></DropdownMenuItem>
+                        </div>
+                      </div>
+                      {/* Column 2: Analysis */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Analysis</h4>
+                        <div className="space-y-1">
+                          <DropdownMenuItem asChild><Link href="/features/standard">Standard Analysis</Link></DropdownMenuItem>
+                          <DropdownMenuItem asChild><Link href="/features/strategic">Strategic Decision</Link></DropdownMenuItem>
+                          <DropdownMenuItem asChild><Link href="/features/financial-modeling">Financial Modeling</Link></DropdownMenuItem>
+                          <DropdownMenuItem asChild><Link href="/features/map-analysis">Spatial Analysis</Link></DropdownMenuItem>
+                        </div>
+                      </div>
+                      {/* Column 3: Survey */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Survey</h4>
+                        <div className="space-y-1">
+                          <DropdownMenuItem asChild><Link href="/features/survey">Survey</Link></DropdownMenuItem>
+                        </div>
+                      </div>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
@@ -484,7 +541,7 @@ export default function LandingPage() {
                     <DropdownMenuItem asChild>
                       <Link href="/blog">Blog</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/whats-new">What's New</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/whats-new">What&apos;s New</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/crosschecking">Cross-checking</Link></DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -494,70 +551,60 @@ export default function LandingPage() {
                     <Button asChild><Link href="/login">Get Started</Link></Button>
                     <Button variant="ghost" asChild><Link href="/contact">Contact</Link></Button>
                 </div>
-                 <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+
+                {/* ============================================= */}
+                {/* Phase 1: MOBILE MENU - Accordion instead of DropdownMenu */}
+                {/* ============================================= */}
+                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                     <SheetTrigger asChild>
                         <Button variant="outline" size="icon" className="lg:hidden">
                             <Menu className="h-6 w-6" />
                             <span className="sr-only">Toggle navigation menu</span>
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="right">
-                        <nav className="grid gap-6 text-lg font-medium pt-8">
-                           <DropdownMenu>
-                                <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Features <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuItem asChild><Link href="/features/dataprep" onClick={() => setIsMobileMenuOpen(false)}>DataPrep</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/standard" onClick={() => setIsMobileMenuOpen(false)}>Standard Analysis</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/strategic" onClick={() => setIsMobileMenuOpen(false)}>Strategic Decision</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/financial-modeling">Financial Modeling</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/features/map-analysis">Map Analysis</Link></DropdownMenuItem>  
+                    <SheetContent side="right" className="w-[280px] overflow-y-auto">
+                        <nav className="grid gap-4 text-base font-medium pt-8">
+                           {/* Features - Accordion */}
+                           <MobileAccordionSection title="Features">
+                              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-1 mb-1">Data Sources</p>
+                              <Link href="/features/dataprep" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>DataPrep</Link>
+                              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-3 mb-1">Analysis</p>
+                              <Link href="/features/standard" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Standard Analysis</Link>
+                              <Link href="/features/strategic" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Strategic Decision</Link>
+                              <Link href="/features/financial-modeling" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Financial Modeling</Link>
+                              <Link href="/features/map-analysis" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Spatial Analysis</Link>
+                              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-3 mb-1">Survey</p>
+                              <Link href="/features/survey" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Survey</Link>
+                           </MobileAccordionSection>
 
-
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            <Link href="/why-skari" className="text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Why Statistica</Link>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Solutions <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[280px] p-3">
-                                    <Link href="/solutions" className="text-sm font-medium hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>
-                                        Solutions Overview →
-                                    </Link>
-                                    <DropdownMenuSeparator className="my-2" />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Industry</h4>
-                                            <div className="space-y-1 text-sm">
-                                                <DropdownMenuItem asChild><Link href="/solutions/industry/marketing" onClick={() => setIsMobileMenuOpen(false)}>Marketing</Link></DropdownMenuItem>
-                                                <DropdownMenuItem asChild><Link href="/solutions/industry/hr" onClick={() => setIsMobileMenuOpen(false)}>HR</Link></DropdownMenuItem>
-                                                <DropdownMenuItem asChild><Link href="/solutions/industry/education" onClick={() => setIsMobileMenuOpen(false)}>Education</Link></DropdownMenuItem>
-                                                <DropdownMenuItem asChild><Link href="/solutions/industry/finance" onClick={() => setIsMobileMenuOpen(false)}>Finance</Link></DropdownMenuItem>
-                                                <DropdownMenuItem asChild><Link href="/solutions/industry/healthcare" onClick={() => setIsMobileMenuOpen(false)}>Healthcare</Link></DropdownMenuItem>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Role</h4>
-                                            <div className="space-y-1 text-sm">
-                                                <DropdownMenuItem asChild><Link href="/solutions/role/data-analyst" onClick={() => setIsMobileMenuOpen(false)}>Data Analyst</Link></DropdownMenuItem>
-                                                <DropdownMenuItem asChild><Link href="/solutions/role/consultant" onClick={() => setIsMobileMenuOpen(false)}>Consultant</Link></DropdownMenuItem>
-                                                <DropdownMenuItem asChild><Link href="/solutions/role/student" onClick={() => setIsMobileMenuOpen(false)}>Student</Link></DropdownMenuItem>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </DropdownMenuContent>
-                           </DropdownMenu>
                             <Link href="/pricing" className="text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-foreground">Support <ChevronDown className="w-4 h-4 ml-1" /></DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuItem asChild><Link href="/faq" onClick={() => setIsMobileMenuOpen(false)}>Help Center</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/whats-new" onClick={() => setIsMobileMenuOpen(false)}>What's New</Link></DropdownMenuItem>
-                                    <DropdownMenuItem asChild><Link href="/crosschecking" onClick={() => setIsMobileMenuOpen(false)}>Cross-checking</Link></DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+
+                            {/* Solutions - Accordion */}
+                            <MobileAccordionSection title="Solutions">
+                              <Link href="/solutions" className="block text-sm font-medium text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Solutions Overview →</Link>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase mt-2 mb-1">Industry</p>
+                              <Link href="/solutions/industry/marketing" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Marketing</Link>
+                              <Link href="/solutions/industry/hr" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>HR</Link>
+                              <Link href="/solutions/industry/education" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Education</Link>
+                              <Link href="/solutions/industry/finance" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Finance</Link>
+                              <Link href="/solutions/industry/healthcare" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Healthcare</Link>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase mt-3 mb-1">Role</p>
+                              <Link href="/solutions/role/data-analyst" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Data Analyst</Link>
+                              <Link href="/solutions/role/consultant" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Consultant</Link>
+                              <Link href="/solutions/role/student" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Student</Link>
+                            </MobileAccordionSection>
+
+                            {/* Support - Accordion */}
+                            <MobileAccordionSection title="Support">
+                              <Link href="/faq" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Help Center</Link>
+                              <Link href="/blog" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
+                              <Link href="/whats-new" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>What&apos;s New</Link>
+                              <Link href="/crosschecking" className="block text-sm text-muted-foreground hover:text-primary py-1" onClick={() => setIsMobileMenuOpen(false)}>Cross-checking</Link>
+                            </MobileAccordionSection>
+
                             <Separator className="my-2" />
-                            <Button asChild><Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>Get Started</Link></Button>
-                            <Button variant="outline" asChild><Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></Button>
+                            <Button asChild className="w-full"><Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>Get Started</Link></Button>
+                            <Button variant="outline" asChild className="w-full"><Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></Button>
                         </nav>
                     </SheetContent>
                 </Sheet>
@@ -567,145 +614,63 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section with Animated Gradient Background */}
-        <section className="relative pt-20 pb-20 lg:pt-24 lg:pb-32 text-center overflow-hidden">
+        <section className="relative pt-16 pb-16 lg:pt-24 lg:pb-32 text-center overflow-hidden">
             {/* Animated Gradient Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100" style={{ zIndex: 0 }}>
-              {/* Floating Light Beams */}
+              {/* Floating Light Beams - hidden on mobile for performance */}
               <motion.div 
-                  className="absolute w-[200%] h-[3px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent blur-sm"
-                  style={{
-                    top: '15%',
-                    left: '-50%',
-                    rotate: -15,
-                  }}
-                  animate={{
-                    y: [0, 40, 0],
-                    opacity: [0.5, 0.8, 0.5],
-                  }}
-                  transition={{
-                    duration: 12,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                {/* Beam 2 */}
-                <motion.div 
-                  className="absolute w-[200%] h-[4px] bg-gradient-to-r from-transparent via-purple-400/50 to-transparent blur-md"
-                  style={{
-                    top: '35%',
-                    left: '-50%',
-                    rotate: -20,
-                  }}
-                  animate={{
-                    y: [0, -50, 0],
-                    opacity: [0.4, 0.7, 0.4],
-                  }}
-                  transition={{
-                    duration: 16,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                {/* Beam 3 */}
-                <motion.div 
-                  className="absolute w-[200%] h-[3px] bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent blur-sm"
-                  style={{
-                    top: '55%',
-                    left: '-50%',
-                    rotate: -10,
-                  }}
-                  animate={{
-                    y: [0, 35, 0],
-                    opacity: [0.45, 0.75, 0.45],
-                  }}
-                  transition={{
-                    duration: 14,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                {/* Beam 4 */}
-                <motion.div 
-                  className="absolute w-[200%] h-[5px] bg-gradient-to-r from-transparent via-indigo-400/45 to-transparent blur-lg"
-                  style={{
-                    top: '75%',
-                    left: '-50%',
-                    rotate: -18,
-                  }}
-                  animate={{
-                    y: [0, -45, 0],
-                    opacity: [0.35, 0.6, 0.35],
-                  }}
-                  transition={{
-                    duration: 18,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                {/* Soft Glow Orbs */}
-                <motion.div 
-                  className="absolute w-[500px] h-[500px] rounded-full bg-blue-300/40 blur-3xl"
-                  style={{
-                    top: '-10%',
-                    right: '-15%',
-                  }}
-                  animate={{
-                    x: [0, -40, 0],
-                    y: [0, 30, 0],
-                    scale: [1, 1.15, 1],
-                  }}
-                  transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  className="absolute w-[200%] h-[3px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent blur-sm hidden sm:block"
+                  style={{ top: '15%', left: '-50%', rotate: -15 }}
+                  animate={{ y: [0, 40, 0], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                 />
                 <motion.div 
-                  className="absolute w-[450px] h-[450px] rounded-full bg-purple-300/35 blur-3xl"
-                  style={{
-                    bottom: '-5%',
-                    left: '-10%',
-                  }}
-                  animate={{
-                    x: [0, 50, 0],
-                    y: [0, -40, 0],
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{
-                    duration: 25,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  className="absolute w-[200%] h-[4px] bg-gradient-to-r from-transparent via-purple-400/50 to-transparent blur-md hidden sm:block"
+                  style={{ top: '35%', left: '-50%', rotate: -20 }}
+                  animate={{ y: [0, -50, 0], opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
                 />
                 <motion.div 
-                  className="absolute w-[350px] h-[350px] rounded-full bg-pink-300/30 blur-3xl"
-                  style={{
-                    top: '40%',
-                    left: '25%',
-                  }}
-                  animate={{
-                    x: [0, 30, 0],
-                    y: [0, -35, 0],
-                    scale: [1, 1.12, 1],
-                  }}
-                  transition={{
-                    duration: 22,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  className="absolute w-[200%] h-[3px] bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent blur-sm hidden sm:block"
+                  style={{ top: '55%', left: '-50%', rotate: -10 }}
+                  animate={{ y: [0, 35, 0], opacity: [0.45, 0.75, 0.45] }}
+                  transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
                 />
-
-               
+                <motion.div 
+                  className="absolute w-[200%] h-[5px] bg-gradient-to-r from-transparent via-indigo-400/45 to-transparent blur-lg hidden sm:block"
+                  style={{ top: '75%', left: '-50%', rotate: -18 }}
+                  animate={{ y: [0, -45, 0], opacity: [0.35, 0.6, 0.35] }}
+                  transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+                />
+                {/* Soft Glow Orbs - smaller on mobile */}
+                <motion.div 
+                  className="absolute w-[250px] h-[250px] sm:w-[500px] sm:h-[500px] rounded-full bg-blue-300/40 blur-3xl"
+                  style={{ top: '-10%', right: '-15%' }}
+                  animate={{ x: [0, -40, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div 
+                  className="absolute w-[200px] h-[200px] sm:w-[450px] sm:h-[450px] rounded-full bg-purple-300/35 blur-3xl"
+                  style={{ bottom: '-5%', left: '-10%' }}
+                  animate={{ x: [0, 50, 0], y: [0, -40, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div 
+                  className="absolute w-[180px] h-[180px] sm:w-[350px] sm:h-[350px] rounded-full bg-pink-300/30 blur-3xl hidden sm:block"
+                  style={{ top: '40%', left: '25%' }}
+                  animate={{ x: [0, 30, 0], y: [0, -35, 0], scale: [1, 1.12, 1] }}
+                  transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+                />
             </div>
             
-            {/* Gradient Overlay for better text readability */}
+            {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/40" style={{ zIndex: 1 }} />
             
             {/* Content */}
             <div className="container mx-auto px-4 relative" style={{ zIndex: 10 }}>
                  <motion.div initial="hidden" animate="visible" variants={containerVariants}>
                       <motion.h1
-                        className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter mb-6"
+                        className="text-3xl sm:text-4xl md:text-6xl font-extrabold font-headline tracking-tighter mb-4 sm:mb-6"
                         variants={titleVariants}
                       >
                         <span className="text-foreground">
@@ -723,7 +688,7 @@ export default function LandingPage() {
                             ))}
                         </span>
                       </motion.h1>
-                    <motion.p variants={itemVariants} className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground mb-10">
+                    <motion.p variants={itemVariants} className="max-w-3xl mx-auto text-sm sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 px-2">
                         Our intelligent platform automates complex statistical analysis, generates insightful visualizations, and delivers clear, actionable reports.
                     </motion.p>
                     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
@@ -735,30 +700,32 @@ export default function LandingPage() {
                         </Button>
                     </motion.div>
                     
-                     {/* Tabbed Feature Display */}
+                     {/* ============================================= */}
+                     {/* Phase 1: Tab bar with horizontal scroll on mobile */}
+                     {/* ============================================= */}
                      <motion.div 
                         variants={itemVariants} 
-                        className="mt-12 sm:mt-16 md:mt-24 max-w-6xl mx-auto"
+                        className="mt-10 sm:mt-16 md:mt-24 max-w-6xl mx-auto"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
                      >
-                         <div className="flex justify-center gap-0.5 sm:gap-4 md:gap-8 border-b bg-white/80 backdrop-blur-sm rounded-t-xl">
+                         {/* Desktop: all tabs visible */}
+                         <div className="hidden sm:flex gap-4 md:gap-8 border-b bg-white/80 backdrop-blur-sm rounded-t-xl">
                              {processTabs.map(tab => (
                                  <button
                                      key={tab.id}
                                      onClick={() => setActiveProcessTab(tab.id)}
                                      className={cn(
-                                         "py-2.5 sm:py-3 px-2 sm:px-4 text-[11px] sm:text-sm md:text-base font-semibold transition-colors relative whitespace-nowrap",
+                                         "py-3 px-4 text-sm md:text-base font-semibold transition-colors relative whitespace-nowrap",
                                          activeProcessTab === tab.id
                                              ? "text-primary"
                                              : "text-muted-foreground hover:text-primary"
                                      )}
                                  >
-                                     <div className="flex items-center gap-0.5 sm:gap-2">
-                                         {activeProcessTab === tab.id && <motion.div layoutId="active-tab-icon" className="transition-all hidden sm:block"><Zap className="w-3 h-3 sm:w-4 sm:h-4"/></motion.div>}
-                                         <span className="hidden sm:inline">{tab.label}</span>
-                                         <span className="sm:hidden">{tab.label.length > 8 ? tab.label.slice(0, 7) + '.' : tab.label}</span>
+                                     <div className="flex items-center gap-2">
+                                         {activeProcessTab === tab.id && <motion.div layoutId="active-tab-icon" className="transition-all"><Zap className="w-3 h-3 sm:w-4 sm:h-4"/></motion.div>}
+                                         <span>{tab.label}</span>
                                      </div>
                                       {activeProcessTab === tab.id && (
                                         <motion.div
@@ -769,11 +736,69 @@ export default function LandingPage() {
                                  </button>
                              ))}
                          </div>
+
+                         {/* Mobile: show first 3 tabs + "..." more dropdown */}
+                         <div className="flex sm:hidden items-center border-b bg-white/80 backdrop-blur-sm rounded-t-xl">
+                             {processTabs.slice(0, 3).map(tab => (
+                                 <button
+                                     key={tab.id}
+                                     onClick={() => setActiveProcessTab(tab.id)}
+                                     className={cn(
+                                         "py-2.5 px-3 text-xs font-semibold transition-colors relative whitespace-nowrap flex-1 text-center",
+                                         activeProcessTab === tab.id
+                                             ? "text-primary"
+                                             : "text-muted-foreground"
+                                     )}
+                                 >
+                                     <span>{tab.label}</span>
+                                     {activeProcessTab === tab.id && (
+                                        <motion.div
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                            layoutId="underline-mobile"
+                                        />
+                                     )}
+                                 </button>
+                             ))}
+                             {/* If active tab is in the overflow, show it instead of "..." */}
+                             {processTabs.slice(3).some(t => t.id === activeProcessTab) && (
+                               <button
+                                 className="py-2.5 px-3 text-xs font-semibold text-primary relative whitespace-nowrap flex-1 text-center"
+                               >
+                                 <span>{processTabs.find(t => t.id === activeProcessTab)?.label}</span>
+                                 <motion.div
+                                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                   layoutId="underline-mobile"
+                                 />
+                               </button>
+                             )}
+                             {/* "..." more button with dropdown */}
+                             <DropdownMenu>
+                               <DropdownMenuTrigger asChild>
+                                 <button className="py-2.5 px-2.5 text-muted-foreground hover:text-primary flex-shrink-0">
+                                   <span className="text-lg leading-none font-bold">⋯</span>
+                                 </button>
+                               </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end" className="min-w-[160px]">
+                                 {processTabs.slice(3).map(tab => (
+                                   <DropdownMenuItem
+                                     key={tab.id}
+                                     onClick={() => setActiveProcessTab(tab.id)}
+                                     className={cn(
+                                       "cursor-pointer text-sm",
+                                       activeProcessTab === tab.id && "text-primary font-semibold"
+                                     )}
+                                   >
+                                     {tab.label}
+                                   </DropdownMenuItem>
+                                 ))}
+                               </DropdownMenuContent>
+                             </DropdownMenu>
+                         </div>
                          
                          {/* Image + Description Layout */}
                          <div className="relative mt-0 w-full overflow-hidden bg-white rounded-b-lg shadow-xl border">
                            <div className="flex flex-col md:flex-row">
-                             {/* 이미지 영역 */}
+                             {/* Image Area */}
                              <div className="w-full md:w-3/4 aspect-[4/3] sm:aspect-video relative bg-slate-100">
                                <AnimatePresence mode="wait">
                                  <motion.div
@@ -785,7 +810,7 @@ export default function LandingPage() {
                                    className="absolute inset-0"
                                  >
                                    {activeProcessTab === 'edit' ? (
-  /* Before → After Data Cleaning Visual */
+  /* Before → After Data Cleaning Visual - Phase 2: improved font sizes */
   <div className="w-full h-full flex flex-col items-center justify-center px-3 sm:px-6 py-4 bg-gradient-to-br from-slate-50 to-slate-100">
     <div className="w-full max-w-2xl grid grid-cols-[1fr,auto,1fr] gap-2 sm:gap-4 items-center">
       
@@ -793,10 +818,10 @@ export default function LandingPage() {
       <div className="rounded-lg border border-red-200 bg-white overflow-hidden shadow-sm">
         <div className="px-2 sm:px-3 py-1.5 bg-red-50 border-b border-red-200 flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-          <span className="text-[9px] sm:text-[10px] font-bold text-red-600 uppercase tracking-wider">Before</span>
-          <span className="ml-auto text-[8px] sm:text-[9px] text-red-400 hidden sm:inline">3 issues</span>
+          <span className="text-[10px] sm:text-xs font-bold text-red-600 uppercase tracking-wider">Before</span>
+          <span className="ml-auto text-[9px] sm:text-[10px] text-red-400 hidden sm:inline">3 issues</span>
         </div>
-        <div className="text-[9px] sm:text-[10px]">
+        <div className="text-[10px] sm:text-xs">
           <div className="grid grid-cols-4 bg-slate-50 border-b">
             {['Name', 'Age', 'City', '$'].map((h) => (
               <div key={h} className="px-1.5 sm:px-2 py-1 font-semibold text-slate-500 border-r last:border-r-0 truncate">{h}</div>
@@ -820,7 +845,7 @@ export default function LandingPage() {
                   cell === null && "bg-red-50",
                   row.dup && j === 0 && "text-amber-600"
                 )}>
-                  {cell ?? <span className="text-red-400 italic text-[8px]">NULL</span>}
+                  {cell ?? <span className="text-red-400 italic text-[9px] sm:text-[10px]">NULL</span>}
                 </div>
               ))}
             </div>
@@ -835,17 +860,17 @@ export default function LandingPage() {
           <div className="w-4 sm:w-6 h-[2px] bg-primary rounded" />
           <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-primary" />
         </div>
-        <span className="text-[8px] sm:text-[9px] font-bold text-primary uppercase tracking-wider">Clean</span>
+        <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-wider">Clean</span>
       </div>
 
       {/* AFTER Table */}
       <div className="rounded-lg border border-emerald-200 bg-white overflow-hidden shadow-sm">
         <div className="px-2 sm:px-3 py-1.5 bg-emerald-50 border-b border-emerald-200 flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-wider">After</span>
-          <span className="ml-auto text-[8px] sm:text-[9px] text-emerald-400 hidden sm:inline">Clean</span>
+          <span className="text-[10px] sm:text-xs font-bold text-emerald-600 uppercase tracking-wider">After</span>
+          <span className="ml-auto text-[9px] sm:text-[10px] text-emerald-400 hidden sm:inline">Clean</span>
         </div>
-        <div className="text-[9px] sm:text-[10px]">
+        <div className="text-[10px] sm:text-xs">
           <div className="grid grid-cols-4 bg-slate-50 border-b">
             {['Name', 'Age', 'City', '$'].map((h) => (
               <div key={h} className="px-1.5 sm:px-2 py-1 font-semibold text-slate-500 border-r last:border-r-0 truncate">{h}</div>
@@ -874,17 +899,17 @@ export default function LandingPage() {
     </div>
 
     {/* Legend */}
-    <div className="flex gap-3 sm:gap-5 mt-3 text-[8px] sm:text-[10px] text-muted-foreground">
+    <div className="flex gap-3 sm:gap-5 mt-3 text-[9px] sm:text-xs text-muted-foreground">
       <div className="flex items-center gap-1">
-        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-red-50 border border-red-200" />
+        <div className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200" />
         <span>Missing</span>
       </div>
       <div className="flex items-center gap-1">
-        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-amber-50 border border-amber-200" />
+        <div className="w-2.5 h-2.5 rounded bg-amber-50 border border-amber-200" />
         <span>Duplicate</span>
       </div>
       <div className="flex items-center gap-1">
-        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-emerald-50 border border-emerald-200" />
+        <div className="w-2.5 h-2.5 rounded bg-emerald-50 border border-emerald-200" />
         <span>Fixed</span>
       </div>
     </div>
@@ -939,7 +964,6 @@ export default function LandingPage() {
       </div>
     </div>
   </div>
-
 
 ) : activeProcessTab === 'mapanalysis' ? (
   <div className="w-full h-full">
@@ -1001,7 +1025,7 @@ export default function LandingPage() {
                                </AnimatePresence>
                              </div>
                              
-                             {/* 설명 영역 */}
+                             {/* Description Area */}
                              <div className="w-full md:w-1/4 p-4 sm:p-6 bg-slate-50 flex flex-col justify-center border-t md:border-t-0 md:border-l">
                                <AnimatePresence mode="wait">
                                  <motion.div
@@ -1019,7 +1043,7 @@ export default function LandingPage() {
                                    <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5 sm:space-y-2 text-left max-h-[200px] sm:max-h-none overflow-y-auto">
                                      {currentProcessTab?.features.slice(0, 6).map((feature, index) => (
                                        <li key={index} className="flex items-center gap-2">
-                                         <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                                         <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                                          <span className="line-clamp-1">{feature}</span>
                                        </li>
                                      ))}
@@ -1053,11 +1077,13 @@ export default function LandingPage() {
         </section>
 
    
-
-        {/* POINT 01: AI Analysis Recommendation - RecommendationPage Style */}
-        <section className="py-20 lg:py-28 bg-white overflow-hidden">
+        {/* ============================================= */}
+        {/* POINT 01: AI Analysis Recommendation */}
+        {/* Phase 3: Reduced mobile height, simplified animation */}
+        {/* ============================================= */}
+        <section className="py-12 sm:py-16 lg:py-28 bg-white overflow-hidden">
           <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
               {/* Left: Text Content */}
               <motion.div 
                 initial={{ opacity: 0, x: -30 }} 
@@ -1065,26 +1091,26 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <span className="inline-block px-4 py-1.5 bg-primary text-white text-sm font-bold rounded-full mb-6">
+                <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary text-white text-xs sm:text-sm font-bold rounded-full mb-4 sm:mb-6">
                   POINT 01
                 </span>
-                <h2 className="text-3xl md:text-4xl font-bold font-headline mb-4">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-headline mb-3 sm:mb-4">
                   Not sure which analysis to run?<br />
                   <span className="text-primary">Let AI recommend for you.</span>
                 </h2>
-                <p className="text-muted-foreground text-lg mb-6">
+                <p className="text-muted-foreground text-sm sm:text-lg mb-4 sm:mb-6">
                   Upload your data and our AI will analyze your variables, detect their types, and suggest the most suitable statistical methods — all automatically.
                 </p>
-                <ul className="space-y-3">
+                <ul className="space-y-2 sm:space-y-3">
                   {[
                     'Auto-detect numeric, categorical & ordinal variables',
                     'Smart recommendations based on data structure',
                     'Clear explanations for each suggestion',
                     'One-click to run the recommended analysis',
                   ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-slate-700">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-primary" />
+                    <li key={i} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-slate-700">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       </div>
                       {item}
                     </li>
@@ -1100,7 +1126,8 @@ export default function LandingPage() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="relative"
               >
-                <div className="bg-slate-100 rounded-2xl p-4 shadow-xl border border-slate-200 h-[420px] overflow-hidden">
+                {/* Phase 3: Responsive height */}
+                <div className="bg-slate-100 rounded-2xl p-3 sm:p-4 shadow-xl border border-slate-200 h-[320px] sm:h-[420px] overflow-hidden">
                   <AnimatePresence mode="wait">
                     {/* Step 0: File Drop Animation */}
                     {point01Step === 0 && (
@@ -1110,29 +1137,20 @@ export default function LandingPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-white rounded-xl p-6 border-2 border-dashed border-primary/30 h-[388px] flex flex-col items-center justify-center relative overflow-hidden"
+                        className="bg-white rounded-xl p-4 sm:p-6 border-2 border-dashed border-primary/30 h-[296px] sm:h-[388px] flex flex-col items-center justify-center relative overflow-hidden"
                       >
-                        {/* Animated file icon dropping in */}
                         <motion.div
                           initial={{ y: -80, opacity: 0, rotate: -5 }}
                           animate={{ y: 0, opacity: 1, rotate: 0 }}
-                          transition={{ 
-                            duration: 0.6, 
-                            ease: "easeOut",
-                            opacity: { duration: 0.3 }
-                          }}
+                          transition={{ duration: 0.6, ease: "easeOut", opacity: { duration: 0.3 } }}
                           className="relative mb-4"
                         >
-                          {/* File icon with data visualization */}
-                          <div className="w-20 h-24 bg-white rounded-lg border-2 border-slate-200 shadow-lg relative">
-                            {/* File fold corner */}
-                            <div className="absolute top-0 right-0 w-6 h-6 bg-slate-100 rounded-bl-lg border-l-2 border-b-2 border-slate-200" />
-                            {/* CSV text */}
-                            <div className="absolute top-8 left-1/2 -translate-x-1/2">
-                              <span className="text-xs font-bold text-primary">.CSV</span>
+                          <div className="w-16 h-20 sm:w-20 sm:h-24 bg-white rounded-lg border-2 border-slate-200 shadow-lg relative">
+                            <div className="absolute top-0 right-0 w-5 h-5 sm:w-6 sm:h-6 bg-slate-100 rounded-bl-lg border-l-2 border-b-2 border-slate-200" />
+                            <div className="absolute top-7 sm:top-8 left-1/2 -translate-x-1/2">
+                              <span className="text-[10px] sm:text-xs font-bold text-primary">.CSV</span>
                             </div>
-                            {/* Mini data rows */}
-                            <div className="absolute bottom-3 left-2 right-2 space-y-1">
+                            <div className="absolute bottom-2 sm:bottom-3 left-2 right-2 space-y-1">
                               <div className="flex gap-1">
                                 <div className="h-1.5 w-3 bg-primary/40 rounded-full" />
                                 <div className="h-1.5 w-4 bg-slate-200 rounded-full" />
@@ -1150,22 +1168,19 @@ export default function LandingPage() {
                               </div>
                             </div>
                           </div>
-                          {/* Drop shadow */}
-                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-3 bg-slate-300/50 rounded-full blur-sm" />
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-14 sm:w-16 h-3 bg-slate-300/50 rounded-full blur-sm" />
                         </motion.div>
 
-                        {/* Text */}
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.4, duration: 0.3 }}
                           className="text-center"
                         >
-                          <p className="font-semibold text-slate-700">Drop your data file</p>
-                          <p className="text-sm text-muted-foreground mt-1">CSV, Excel, JSON supported</p>
+                          <p className="font-semibold text-slate-700 text-sm sm:text-base">Drop your data file</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">CSV, Excel, JSON supported</p>
                         </motion.div>
 
-                        {/* Subtle pulsing border */}
                         <div className="absolute inset-3 border-2 border-primary/10 rounded-lg pointer-events-none animate-pulse" />
                       </motion.div>
                     )}
@@ -1178,18 +1193,18 @@ export default function LandingPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-white rounded-xl p-8 h-[388px] flex items-center justify-center"
+                        className="bg-white rounded-xl p-6 sm:p-8 h-[296px] sm:h-[388px] flex items-center justify-center"
                       >
-                        <div className="flex flex-col items-center gap-4">
+                        <div className="flex flex-col items-center gap-3 sm:gap-4">
                           <div className="relative">
                             <div className="absolute inset-0 blur-xl bg-primary/20 rounded-full animate-pulse" />
-                            <div className="relative p-4 rounded-full bg-primary/10">
-                              <Wand2 className="w-8 h-8 text-primary animate-pulse" />
+                            <div className="relative p-3 sm:p-4 rounded-full bg-primary/10">
+                              <Wand2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-pulse" />
                             </div>
                           </div>
                           <div className="text-center">
-                            <p className="font-semibold text-slate-700">Analyzing your data...</p>
-                            <p className="text-sm text-muted-foreground">Detecting variable types</p>
+                            <p className="font-semibold text-slate-700 text-sm sm:text-base">Analyzing your data...</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Detecting variable types</p>
                           </div>
                         </div>
                       </motion.div>
@@ -1203,21 +1218,21 @@ export default function LandingPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-white rounded-xl overflow-hidden h-[388px] flex flex-col"
+                        className="bg-white rounded-xl overflow-hidden h-[296px] sm:h-[388px] flex flex-col"
                       >
-                        <div className="p-4 border-b flex items-center gap-2">
+                        <div className="p-3 sm:p-4 border-b flex items-center gap-2">
                           <Table2 className="w-4 h-4 text-primary" />
-                          <span className="font-semibold text-sm">Data Summary</span>
-                          <span className="text-xs text-muted-foreground ml-auto">5 variables detected</span>
+                          <span className="font-semibold text-xs sm:text-sm">Data Summary</span>
+                          <span className="text-[10px] sm:text-xs text-muted-foreground ml-auto">5 variables detected</span>
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
+                        <div className="overflow-x-auto flex-1">
+                          <table className="w-full text-[10px] sm:text-xs">
                             <thead className="bg-slate-50">
                               <tr>
-                                <th className="px-3 py-2 text-left font-semibold">Variable</th>
-                                <th className="px-3 py-2 text-left font-semibold">Type</th>
-                                <th className="px-3 py-2 text-center font-semibold">Missing</th>
-                                <th className="px-3 py-2 text-right font-semibold">Mean</th>
+                                <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left font-semibold">Variable</th>
+                                <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left font-semibold">Type</th>
+                                <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-center font-semibold">Missing</th>
+                                <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-right font-semibold">Mean</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1229,10 +1244,10 @@ export default function LandingPage() {
                                   transition={{ delay: i * 0.1 }}
                                   className="border-t"
                                 >
-                                  <td className="px-3 py-2 font-medium">{row.name}</td>
-                                  <td className="px-3 py-2">
+                                  <td className="px-2 sm:px-3 py-1.5 sm:py-2 font-medium">{row.name}</td>
+                                  <td className="px-2 sm:px-3 py-1.5 sm:py-2">
                                     <span className={cn(
-                                      "px-2 py-0.5 rounded-full text-xs",
+                                      "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-xs",
                                       row.type === 'Numeric' ? "bg-blue-100 text-blue-700" :
                                       row.type === 'Categorical' ? "bg-purple-100 text-purple-700" :
                                       row.type === 'Ordinal' ? "bg-amber-100 text-amber-700" :
@@ -1241,14 +1256,14 @@ export default function LandingPage() {
                                       {row.type}
                                     </span>
                                   </td>
-                                  <td className="px-3 py-2 text-center">
+                                  <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-center">
                                     {row.missing > 0 ? (
                                       <span className="text-amber-600">{row.missing}</span>
                                     ) : (
                                       <span className="text-slate-400">0</span>
                                     )}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-mono">
+                                  <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-right font-mono">
                                     {row.mean?.toLocaleString() ?? '—'}
                                   </td>
                                 </motion.tr>
@@ -1267,38 +1282,38 @@ export default function LandingPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="h-[388px] flex flex-col"
+                        className="h-[296px] sm:h-[388px] flex flex-col"
                       >
-                        <div className="flex items-center gap-2 px-1 mb-3">
+                        <div className="flex items-center gap-2 px-1 mb-2 sm:mb-3">
                           <Bot className="w-4 h-4 text-primary" />
-                          <span className="font-semibold text-sm">Recommended Analyses</span>
+                          <span className="font-semibold text-xs sm:text-sm">Recommended Analyses</span>
                         </div>
-                        <div className="space-y-3 flex-1">
+                        <div className="space-y-2 sm:space-y-3 flex-1 overflow-y-auto">
                         {sampleRecommendations.map((rec, i) => (
                           <motion.div
                             key={rec.name}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.15 }}
-                            className="bg-white rounded-xl p-4 border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group"
+                            className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group"
                           >
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                <rec.icon className="w-4 h-4 text-primary" />
+                            <div className="flex items-start gap-2 sm:gap-3">
+                              <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                <rec.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm text-slate-800 group-hover:text-primary transition-colors">{rec.name}</h4>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{rec.reason}</p>
-                                <div className="flex flex-wrap gap-1 mt-2">
+                                <h4 className="font-semibold text-xs sm:text-sm text-slate-800 group-hover:text-primary transition-colors">{rec.name}</h4>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">{rec.reason}</p>
+                                <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-2">
                                   {rec.variables.slice(0, 3).map((v, vi) => (
-                                    <span key={vi} className="px-2 py-0.5 bg-slate-100 rounded text-xs text-slate-600">{v}</span>
+                                    <span key={vi} className="px-1.5 sm:px-2 py-0.5 bg-slate-100 rounded text-[10px] sm:text-xs text-slate-600">{v}</span>
                                   ))}
                                   {rec.variables.length > 3 && (
-                                    <span className="px-2 py-0.5 bg-slate-100 rounded text-xs text-slate-400">+{rec.variables.length - 3}</span>
+                                    <span className="px-1.5 sm:px-2 py-0.5 bg-slate-100 rounded text-[10px] sm:text-xs text-slate-400">+{rec.variables.length - 3}</span>
                                   )}
                                 </div>
                               </div>
-                              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+                              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
                             </div>
                           </motion.div>
                         ))}
@@ -1312,45 +1327,50 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ============================================= */}
         {/* POINT 02: Interactive Analysis Explorer */}
-        <section className="py-20 lg:py-28 bg-gradient-to-b from-slate-50 to-slate-100 overflow-hidden">
+        {/* Phase 2: Mobile carousel for categories */}
+        {/* ============================================= */}
+        <section className="py-12 sm:py-16 lg:py-28 bg-gradient-to-b from-slate-50 to-slate-100 overflow-hidden">
           <div className="container mx-auto px-4">
             <motion.div 
               initial={{ opacity: 0, y: 20 }} 
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="text-center mb-12"
+              className="text-center mb-8 sm:mb-12"
             >
-              <span className="inline-block px-4 py-1.5 bg-primary text-white text-sm font-bold rounded-full mb-6">
+              <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary text-white text-xs sm:text-sm font-bold rounded-full mb-4 sm:mb-6">
                 POINT 02
               </span>
-              <h2 className="text-3xl md:text-4xl font-bold font-headline mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-headline mb-3 sm:mb-4">
                 Hired a data analyst but running<br />
                 <span className="text-primary">the same basic tests over and over?</span>
               </h2>
-              <p className="text-muted-foreground text-lg max-w-3xl mx-auto mb-4">
+              <p className="text-muted-foreground text-sm sm:text-lg max-w-3xl mx-auto mb-3 sm:mb-4">
                 From descriptive statistics to machine learning, from marketing analytics to supply chain optimization—
               </p>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
                 <motion.span 
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.3, type: "spring" }}
-                  className="text-5xl md:text-6xl font-extrabold text-primary"
+                  className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-primary"
                 >
                   {totalAnalyses}+
                 </motion.span>
-                <span className="text-xl md:text-2xl font-semibold text-slate-700">
-                  statistical analysis + business analysis<br />with automated reports
+                <span className="text-base sm:text-xl md:text-2xl font-semibold text-slate-700 text-left">
+                  statistical analysis +<br className="sm:hidden" /> business analysis<br />with automated reports
                 </span>
               </div>
             </motion.div>
 
             {/* Category Grid */}
             <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+
+              {/* Desktop: Original grid (hidden on mobile) */}
+              <div className="hidden sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
                 {analysisCategories.map((category, index) => (
                   <motion.button
                     key={category.id}
@@ -1393,6 +1413,77 @@ export default function LandingPage() {
                 ))}
               </div>
 
+              {/* ============================================= */}
+              {/* Phase 2: Mobile paginated category grid */}
+              {/* ============================================= */}
+              <div className="sm:hidden mb-6">
+                <div className="grid grid-cols-3 gap-2">
+                  {analysisCategories
+                    .slice(mobileCategoryPage * MOBILE_CATS_PER_PAGE, (mobileCategoryPage + 1) * MOBILE_CATS_PER_PAGE)
+                    .map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
+                      className={cn(
+                        "relative p-3 rounded-xl text-center transition-all duration-200",
+                        activeCategory === category.id 
+                          ? "bg-gradient-to-br " + category.color + " text-white shadow-lg" 
+                          : "bg-white border border-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5",
+                        activeCategory === category.id ? "bg-white/20" : "bg-gradient-to-br " + category.color
+                      )}>
+                        <category.icon className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className={cn(
+                        "text-[11px] font-bold leading-tight",
+                        activeCategory === category.id ? "text-white" : "text-slate-700"
+                      )}>
+                        {category.name}
+                      </h3>
+                      <p className={cn(
+                        "text-[9px] mt-0.5",
+                        activeCategory === category.id ? "text-white/80" : "text-slate-400"
+                      )}>
+                        {category.subcategories.reduce((acc, sub) => acc + sub.items.length, 0)}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Pagination dots + arrows */}
+                <div className="flex items-center justify-center gap-3 mt-3">
+                  <button 
+                    onClick={() => setMobileCategoryPage(Math.max(0, mobileCategoryPage - 1))}
+                    disabled={mobileCategoryPage === 0}
+                    className="p-1 rounded-full hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <div className="flex gap-1.5">
+                    {Array.from({ length: totalMobilePages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setMobileCategoryPage(i)}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-all",
+                          mobileCategoryPage === i ? "bg-primary w-4" : "bg-slate-300"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <button 
+                    onClick={() => setMobileCategoryPage(Math.min(totalMobilePages - 1, mobileCategoryPage + 1))}
+                    disabled={mobileCategoryPage === totalMobilePages - 1}
+                    className="p-1 rounded-full hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               {/* Expanded Analysis Details */}
               <AnimatePresence mode="wait">
                 {activeCategory && (
@@ -1403,21 +1494,21 @@ export default function LandingPage() {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-200">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-200">
                       {(() => {
                         const cat = analysisCategories.find(c => c.id === activeCategory);
                         if (!cat) return null;
                         return (
                           <>
-                            <div className="flex items-center justify-between mb-6">
-                              <div className="flex items-center gap-3">
-                                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br", cat.color)}>
-                                  <cat.icon className="w-6 h-6 text-white" />
+                            <div className="flex items-center justify-between mb-4 sm:mb-6">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className={cn("w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br", cat.color)}>
+                                  <cat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                 </div>
                                 <div>
-                                  <h4 className="text-xl font-bold">{cat.name}</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {cat.subcategories.reduce((acc, sub) => acc + sub.items.length, 0)} statistical methods available
+                                  <h4 className="text-base sm:text-xl font-bold">{cat.name}</h4>
+                                  <p className="text-xs sm:text-sm text-muted-foreground">
+                                    {cat.subcategories.reduce((acc, sub) => acc + sub.items.length, 0)} methods available
                                   </p>
                                 </div>
                               </div>
@@ -1429,7 +1520,7 @@ export default function LandingPage() {
                               </button>
                             </div>
                             
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                               {cat.subcategories.map((sub, subIndex) => (
                                 <motion.div
                                   key={sub.name}
@@ -1438,7 +1529,7 @@ export default function LandingPage() {
                                   transition={{ delay: subIndex * 0.05 }}
                                   className="space-y-2"
                                 >
-                                  <h5 className="font-semibold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                  <h5 className="font-semibold text-xs sm:text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                     <div className={cn("w-2 h-2 rounded-full bg-gradient-to-br", cat.color)}></div>
                                     {sub.name}
                                   </h5>
@@ -1452,14 +1543,14 @@ export default function LandingPage() {
                                         onMouseEnter={() => setHoveredItem(item)}
                                         onMouseLeave={() => setHoveredItem(null)}
                                         className={cn(
-                                          "flex items-center gap-2 p-2 rounded-lg transition-all cursor-pointer text-sm",
+                                          "flex items-center gap-2 p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer text-xs sm:text-sm",
                                           hoveredItem === item 
                                             ? "bg-gradient-to-r " + cat.color + " text-white shadow-md" 
                                             : "hover:bg-slate-50"
                                         )}
                                       >
                                         <Check className={cn(
-                                          "w-4 h-4 flex-shrink-0",
+                                          "w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0",
                                           hoveredItem === item ? "text-white" : "text-primary"
                                         )} />
                                         <span className="truncate">{item}</span>
@@ -1483,11 +1574,11 @@ export default function LandingPage() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ delay: 0.3 }}
-                              className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20"
+                              className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20"
                             >
-                              <div className="flex items-center gap-3">
-                                <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
-                                <p className="text-sm text-slate-700">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                                <p className="text-xs sm:text-sm text-slate-700">
                                   Every analysis includes <span className="font-semibold text-primary">auto-generated APA reports</span> with interpretations, tables, and visualizations.
                                 </p>
                               </div>
@@ -1505,7 +1596,7 @@ export default function LandingPage() {
                 <motion.p 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-center text-muted-foreground text-sm mt-4"
+                  className="text-center text-muted-foreground text-xs sm:text-sm mt-3 sm:mt-4"
                 >
                   👆 Click any category to explore available analyses
                 </motion.p>
@@ -1517,7 +1608,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
-                className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6"
+                className="mt-10 sm:mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6"
               >
                 {[
                   { number: '14', label: 'Analysis Domains', sublabel: 'Statistics to Supply Chain', icon: Layers },
@@ -1531,14 +1622,14 @@ export default function LandingPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: 0.5 + i * 0.1 }}
-                    className="text-center bg-white rounded-2xl p-6 shadow-lg border border-slate-100"
+                    className="text-center bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-slate-100"
                   >
-                    <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
-                      <stat.icon className="w-6 h-6 text-primary" />
+                    <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-xl mb-2 sm:mb-3">
+                      <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     </div>
-                    <div className="text-3xl font-bold text-primary mb-1">{stat.number}</div>
-                    <div className="text-sm font-semibold text-slate-700">{stat.label}</div>
-                    <div className="text-xs text-muted-foreground">{stat.sublabel}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-0.5 sm:mb-1">{stat.number}</div>
+                    <div className="text-xs sm:text-sm font-semibold text-slate-700">{stat.label}</div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground">{stat.sublabel}</div>
                   </motion.div>
                 ))}
               </motion.div>
@@ -1546,11 +1637,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* POINT 03: AI Chat for Results - Messages fade out instead of scroll */}
+        {/* ============================================= */}
+        {/* POINT 03: AI Chat - Phase 3: improved mobile height */}
+        {/* ============================================= */}
         <section className="py-12 sm:py-16 lg:py-28 bg-white overflow-hidden">
           <div className="container mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 items-center">
-              {/* Left: Chat Animation - No scroll, fade in/out */}
+              {/* Left: Chat Animation */}
               <motion.div 
                 initial={{ opacity: 0, x: -30 }} 
                 whileInView={{ opacity: 1, x: 0 }} 
@@ -1561,21 +1654,30 @@ export default function LandingPage() {
                 <div className="bg-slate-900 rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-2xl max-w-lg mx-auto">
                   {/* Chat Header */}
                   <div className="flex items-center gap-2 sm:gap-3 pb-2 sm:pb-4 border-b border-slate-700">
-                    <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center">
-                      <Bot className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center">
+                      <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
                       <p className="font-semibold text-white text-xs sm:text-base">Statistica AI Assistant</p>
-                      <p className="text-[9px] sm:text-xs text-slate-400 hidden sm:block">Ask anything about your results</p>
+                      <p className="text-[10px] sm:text-xs text-slate-400">Ask anything about your results</p>
                     </div>
                     <div className="ml-auto flex items-center gap-1">
                       <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-400 animate-pulse"></span>
-                      <span className="text-[9px] sm:text-xs text-green-400">Online</span>
+                      <span className="text-[10px] sm:text-xs text-green-400">Online</span>
                     </div>
                   </div>
 
-                  {/* Chat Messages - Fixed height, no scroll, fade in/out */}
-                  <div className="py-2 sm:py-4 h-[160px] sm:h-[280px] flex flex-col justify-end">
+                  {/* Chat message area - minimum height ensures good look even when empty */}
+                  <div className="py-2 sm:py-4 min-h-[220px] sm:min-h-[280px] flex flex-col justify-end">
+                    {/* Empty state placeholder when no messages */}
+                    {visibleMessages.length === 0 && (
+                      <div className="flex-1 flex flex-col items-center justify-center gap-2 opacity-40">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-800 flex items-center justify-center">
+                          <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500" />
+                        </div>
+                        <p className="text-[10px] sm:text-xs text-slate-500 text-center">Ask anything about<br/>your analysis results</p>
+                      </div>
+                    )}
                     <AnimatePresence mode="popLayout">
                       {visibleMessages.map((msg, index) => (
                         <motion.div
@@ -1590,21 +1692,21 @@ export default function LandingPage() {
                           )}
                         >
                           {msg.role === 'ai' && (
-                            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center flex-shrink-0">
-                              <Bot className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-white" />
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center flex-shrink-0">
+                              <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                             </div>
                           )}
                           <div className={cn(
-                            "max-w-[85%] sm:max-w-[80%] rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-1.5 sm:py-2.5",
+                            "max-w-[80%] rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5",
                             msg.role === 'user' 
                               ? "bg-primary text-white rounded-br-sm" 
                               : "bg-slate-800 text-slate-100 rounded-bl-sm"
                           )}>
-                            <p className="text-[10px] sm:text-sm leading-relaxed">{msg.text}</p>
+                            <p className="text-[11px] sm:text-sm leading-relaxed">{msg.text}</p>
                           </div>
                           {msg.role === 'user' && (
-                            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
-                              <User className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-slate-300" />
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
+                              <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300" />
                             </div>
                           )}
                         </motion.div>
@@ -1619,14 +1721,14 @@ export default function LandingPage() {
                         exit={{ opacity: 0 }}
                         className="flex gap-2"
                       >
-                        <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-white" />
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center flex-shrink-0">
+                          <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                         </div>
-                        <div className="bg-slate-800 rounded-xl sm:rounded-2xl rounded-bl-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5">
+                        <div className="bg-slate-800 rounded-xl sm:rounded-2xl rounded-bl-sm px-3 sm:px-4 py-2 sm:py-2.5">
                           <div className="flex gap-1">
-                            <span className="w-1 h-1 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                            <span className="w-1 h-1 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                            <span className="w-1 h-1 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                           </div>
                         </div>
                       </motion.div>
@@ -1635,14 +1737,14 @@ export default function LandingPage() {
 
                   {/* Chat Input */}
                   <div className="pt-2 sm:pt-4 border-t border-slate-700">
-                    <div className="flex items-center gap-2 bg-slate-800 rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-2 sm:py-3">
+                    <div className="flex items-center gap-2 bg-slate-800 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3">
                       <input 
                         type="text" 
                         placeholder="Ask about your results..." 
-                        className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-[10px] sm:text-sm"
+                        className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-[11px] sm:text-sm"
                         disabled
                       />
-                      <button className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary flex items-center justify-center hover:bg-primary/80 transition-colors">
+                      <button className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary flex items-center justify-center hover:bg-primary/80 transition-colors">
                         <Send className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       </button>
                     </div>
@@ -1665,7 +1767,7 @@ export default function LandingPage() {
                   Got your results but<br />
                   <span className="text-primary">not sure what they mean?</span>
                 </h2>
-                <p className="text-muted-foreground text-sm sm:text-lg mb-4 sm:mb-8 hidden sm:block">
+                <p className="text-muted-foreground text-sm sm:text-lg mb-4 sm:mb-8">
                   Our AI assistant helps you understand and utilize your statistical results. Ask questions in plain language and get expert-level explanations instantly.
                 </p>
                 
@@ -1710,22 +1812,25 @@ export default function LandingPage() {
         </section>
         
         {/* A World of Knowledge Section */}
-        <section className="py-20 lg:py-24 bg-slate-100">
+        <section className="py-12 sm:py-16 lg:py-24 bg-slate-100">
             <div className="container mx-auto px-4">
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold font-headline mb-4">
+                <div className="text-center mb-10 sm:mb-16">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-headline mb-3 sm:mb-4">
                         A World of Knowledge at Your Fingertips
                     </h2>
-                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto">
                         From basic t-tests to advanced structural equation modeling, our platform supports the full spectrum of statistical analysis.
                     </p>
                 </div>
-                <AnimatedGrid />
+                {/* Mobile: scale down the grid cards */}
+                <div className="transform scale-[0.85] sm:scale-100 origin-top -mb-8 sm:mb-0">
+                  <AnimatedGrid />
+                </div>
             </div>
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 lg:py-24 bg-gradient-to-br from-primary to-primary/80 text-white">
+        <section className="py-12 sm:py-16 lg:py-24 bg-gradient-to-br from-primary to-primary/80 text-white">
             <div className="container mx-auto px-4">
                 <div className="max-w-3xl mx-auto text-center">
                     <motion.div
@@ -1734,13 +1839,13 @@ export default function LandingPage() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
                     >
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold font-headline mb-6">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-headline mb-4 sm:mb-6">
                             Ready to Transform Your Data Analysis?
                         </h2>
-                        <p className="text-lg md:text-xl text-primary-foreground/90 mb-8">
+                        <p className="text-sm sm:text-lg md:text-xl text-primary-foreground/90 mb-6 sm:mb-8">
                             Join thousands of researchers and analysts who trust Statistica for their statistical analysis needs.
                         </p>
-                        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
                             <Button size="lg" variant="secondary" asChild className="text-base px-8 py-6 w-full sm:w-auto">
                                 <Link href="/dashboard">
                                     Start Free Trial
@@ -1751,7 +1856,7 @@ export default function LandingPage() {
                                 <Link href="/contact">Talk to Sales</Link>
                             </Button>
                         </div>
-                        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-primary-foreground/80">
+                        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-primary-foreground/80">
                             <div className="flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
                                 <span>No credit card required</span>
