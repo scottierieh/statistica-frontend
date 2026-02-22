@@ -3,20 +3,20 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Link2, Workflow, Table2, ArrowUpRight,
-  LucideIcon, LayoutDashboard, ArrowLeft, Database,
+  Calculator, BrainCircuit, Briefcase, Monitor, Repeat,
+  Paintbrush, Landmark, LayoutDashboard, ArrowUpRight,
+  LucideIcon, TrendingUp, Link2, Network, Map, ClipboardList, Target,
+  DollarSign, Database, BarChart3, FileQuestion, Workflow, Table2
 } from "lucide-react";
-
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { cn } from "@/lib/utils";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface StudioTool {
+interface ToolItem {
   id: string;
   href: string;
   icon: LucideIcon;
@@ -24,168 +24,300 @@ interface StudioTool {
   description: string;
   disabled: boolean;
   badge?: string;
-  color: {
-    bg: string;
-    icon: string;
-    hover: string;
-    gradient: string;
-  };
-  stats?: string;
 }
 
-// ─── Tool Data ───────────────────────────────────────────────────────────────
+interface ToolCategory {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  description: string;
+  tools: ToolItem[];
+}
 
-const studioTools: StudioTool[] = [
+// ─── Tool Definitions ─────────────────────────────────────────────────────────
+
+const categories: ToolCategory[] = [
   {
-    id: "integration",
-    href: "/dashboard/data-studio/integrations",
-    icon: Link2,
-    title: "Data Integration",
-    description: "Manage API connections and data sources. Connect and monitor REST APIs, databases, file storage, and more.",
-    disabled: false,
-    badge: "Beta",
-    color: {
-      bg: "bg-blue-500/10",
-      icon: "text-blue-600 dark:text-blue-400",
-      hover: "hover:border-blue-500/50 hover:shadow-blue-500/5 hover:ring-blue-500/50",
-      gradient: "from-blue-500/5 via-transparent to-transparent",
-    },
-    stats: "Data Sources",
+    id: "data-studio",
+    label: "Data Studio",
+    icon: Database,
+    description: "Connect, transform, and manage your data pipelines.",
+    tools: [
+      {
+        id: "integration",
+        href: "/dashboard/data-studio/integrations",
+        icon: Link2,
+        title: "Data Integration",
+        description:
+          "Manage API connections and data sources. Connect and monitor REST APIs, databases, file storage, and more.",
+        disabled: false,
+        badge: "Beta",
+      },
+      {
+        id: "pipeline",
+        href: "/dashboard/data-studio/pipeline",
+        icon: Workflow,
+        title: "Data Pipeline",
+        description:
+          "Build automated data processing pipelines. Chain steps from collection to cleaning, transformation, and feature engineering.",
+        disabled: false,
+        badge: "Beta",
+      },
+      {
+        id: "editor",
+        href: "/dashboard/data-studio/data-preprocessing",
+        icon: Table2,
+        title: "Data Editor",
+        description:
+          "Browse and edit data directly. Perform manual preprocessing including missing value handling, sorting, filtering, and encoding.",
+        disabled: false,
+        badge: "Beta",
+      },
+    ],
   },
   {
-    id: "pipeline",
-    href: "/dashboard/data-studio/pipeline",
-    icon: Workflow,
-    title: "Data Pipeline",
-    description: "Build automated data processing pipelines. Chain steps from collection to cleaning, transformation, and feature engineering for automatic execution.",
-    disabled: false,
-    badge: "Beta",
-    color: {
-      bg: "bg-violet-500/10",
-      icon: "text-violet-600 dark:text-violet-400",
-      hover: "hover:border-violet-500/50 hover:shadow-violet-500/5 hover:ring-violet-500/50",
-      gradient: "from-violet-500/5 via-transparent to-transparent",
-    },
-    stats: "Pipelines",
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    description: "Statistical analysis, modeling, and decision optimization.",
+    tools: [
+      {
+        id: "analyze",
+        href: "/dashboard/statistica",
+        icon: Calculator,
+        title: "Standard Analytics",
+        description:
+          "Execute fundamental statistical tests to identify patterns.",
+        disabled: false,
+        badge: "Beta",
+      },
+      {
+        id: "decide",
+        href: "/dashboard/scenario",
+        icon: Briefcase,
+        title: "Strategic Decision",
+        description:
+          "Solve complex business problems with domain-specific optimization.",
+        disabled: false,
+        badge: "Beta",
+      },
+      {
+        id: "finance",
+        href: "/dashboard/financial-modeling",
+        icon: Landmark,
+        title: "Financial Modeling",
+        description:
+          "Optimize portfolios and manage financial risks with professional models.",
+        disabled: false,
+        badge: "Beta",
+      },
+      {
+        id: "finance-analytics",
+        href: "/dashboard/finance-analytics",
+        icon: TrendingUp,
+        title: "Finance Analysis",
+        description:
+          "Market data analysis, technical indicators, and stock screening based on live financial data.",
+        disabled: false,
+        badge: "New",
+      },
+      {
+        id: "geospatial",
+        href: "/dashboard/map-analysis",
+        icon: Map,
+        title: "Geospatial Analysis",
+        description:
+          "Visualize location data and perform spatial analysis through interactive maps.",
+        disabled: false,
+        badge: "New",
+      },
+      {
+        id: "visualize",
+        href: "/dashboard/visualization",
+        icon: Paintbrush,
+        title: "Visual Communication",
+        description:
+          "Transform complex analytical results into clear visual narratives.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+      {
+        id: "sem",
+        href: "/dashboard/sem",
+        icon: Network,
+        title: "Structural Equation Modeling",
+        description:
+          "Build and estimate SEM models by uploading path diagram images.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+      {
+        id: "optimization",
+        href: "/dashboard/optimization",
+        icon: Target,
+        title: "Decision Analytics",
+        description:
+          "Optimize decisions with linear, goal, and transportation programming.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+      {
+        id: "derivatives",
+        href: "/dashboard/derivatives",
+        icon: DollarSign,
+        title: "Derivatives Analysis",
+        description:
+          "Tools for options pricing, greeks, and derivatives modeling.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+      {
+        id: "evaluation",
+        href: "/dashboard/evaluation",
+        icon: Repeat,
+        title: "Integrated Assessment",
+        description:
+          "Synthesize multi-dimensional data to evaluate overall performance.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+      {
+        id: "monitor",
+        href: "/dashboard/dashboards",
+        icon: Monitor,
+        title: "Continuous Monitoring",
+        description:
+          "Establish real-time dashboards to track key metrics.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+      {
+        id: "predict",
+        href: "/dashboard/machine-learning",
+        icon: BrainCircuit,
+        title: "Predictive Modeling",
+        description:
+          "Leverage machine learning to forecast future trends.",
+        disabled: true,
+        badge: "Coming Soon",
+      },
+    ],
   },
   {
-    id: "editor",
-    href: "/dashboard/data-studio/data-preprocessing",
-    icon: Table2,
-    title: "Data Editor",
-    description: "Browse and edit data directly. Perform manual preprocessing tasks including missing value handling, sorting, filtering, transformation, and encoding.",
-    disabled: false,
-    badge: "Beta",
-    color: {
-      bg: "bg-emerald-500/10",
-      icon: "text-emerald-600 dark:text-emerald-400",
-      hover: "hover:border-emerald-500/50 hover:shadow-emerald-500/5 hover:ring-emerald-500/50",
-      gradient: "from-emerald-500/5 via-transparent to-transparent",
-    },
-    stats: "Manual Tool",
+    id: "survey",
+    label: "Survey",
+    icon: FileQuestion,
+    description: "Design surveys and analyze response data.",
+    tools: [
+      {
+        id: "survey",
+        href: "/dashboard/survey2",
+        icon: ClipboardList,
+        title: "Survey Tool",
+        description:
+          "Create surveys and transform responses into statistical and decision-ready analyses.",
+        disabled: false,
+        badge: "Beta",
+      },
+    ],
   },
 ];
 
-// ─── Badge Component ─────────────────────────────────────────────────────────
+// ─── Components ───────────────────────────────────────────────────────────────
 
 const StatusBadge = ({ text }: { text?: string }) => {
   if (!text) return null;
+
+  const colorMap: Record<string, string> = {
+    New: "bg-emerald-50 text-emerald-600 ring-emerald-200",
+    Beta: "bg-blue-50 text-blue-600 ring-blue-200",
+    "Coming Soon": "bg-neutral-100 text-neutral-500 ring-neutral-200",
+    "Comming Soon": "bg-neutral-100 text-neutral-500 ring-neutral-200",
+  };
+
+  const colors = colorMap[text] ?? "bg-neutral-100 text-neutral-500 ring-neutral-200";
+
   return (
-    <span className="absolute top-4 right-4 z-20 inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
+        colors
+      )}
+    >
       {text}
     </span>
   );
 };
 
-
-
-// ─── Tool Card ───────────────────────────────────────────────────────────────
-
-function StudioToolCard({ tool, index }: { tool: StudioTool; index: number }) {
+function ToolCard({ tool }: { tool: ToolItem }) {
   const cardVariants = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { delay: index * 0.1, duration: 0.4, ease: "easeOut" as const }
-    },
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
   };
 
   const CardWrapper = ({ children }: { children: React.ReactNode }) => {
     if (tool.disabled) {
-      return <div className="h-full cursor-not-allowed opacity-60 grayscale-[0.3]">{children}</div>;
+      return (
+        <div className="pointer-events-none opacity-50 cursor-not-allowed">
+          {children}
+        </div>
+      );
     }
     return (
-      <Link
-        href={tool.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block h-full outline-none"
-        aria-label={`${tool.title} - Opens in new tab`}
-      >
+      <Link href={tool.href} target="_blank" rel="noopener noreferrer">
         {children}
       </Link>
     );
   };
 
   return (
-    <motion.div
-      variants={cardVariants}
-      initial="hidden"
-      animate="visible"
-      className="h-full"
-      whileTap={!tool.disabled ? { scale: 0.98 } : undefined}
-    >
+    <motion.div variants={cardVariants}>
       <CardWrapper>
-        <Card className={cn(
-          "group relative flex h-full flex-col overflow-hidden rounded-xl border-border bg-card p-6 shadow-sm transition-all duration-300",
-          !tool.disabled && [tool.color.hover, "hover:shadow-lg hover:ring-1"]
-        )}>
-          {/* Gradient Hover */}
+        <Card
+          className={cn(
+            "group relative overflow-hidden border border-neutral-200 bg-white",
+            "p-5 transition-all duration-300",
+            !tool.disabled &&
+              "hover:border-neutral-300 hover:shadow-md hover:shadow-neutral-200/60"
+          )}
+        >
+          {/* Gradient hover effect */}
           {!tool.disabled && (
-            <div className={cn(
-              "absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-500 group-hover:opacity-100",
-              tool.color.gradient
-            )} />
+            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/60 via-transparent to-purple-50/40" />
+            </div>
           )}
 
-          <StatusBadge text={tool.badge} />
-
-          <div className="relative z-10 flex flex-1 flex-col items-start text-left">
+          <div className="relative z-10 flex flex-col gap-3">
             {/* Icon */}
-            <div className={cn(
-              "mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border transition-all duration-300",
-              tool.disabled
-                ? "border-border bg-muted text-muted-foreground"
-                : cn("border-current/20", tool.color.bg, tool.color.icon, "group-hover:scale-110")
-            )}>
-              <tool.icon className="h-7 w-7" />
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg",
+                "bg-neutral-100 text-neutral-500",
+                !tool.disabled &&
+                  "group-hover:bg-neutral-200/80 group-hover:text-neutral-700"
+              )}
+            >
+              <tool.icon className="h-5 w-5" />
             </div>
 
-            {/* Title */}
-            <div className="flex w-full items-center justify-between">
-              <CardTitle className="mb-2 text-xl font-bold tracking-tight text-foreground">
-                {tool.title}
-              </CardTitle>
+            {/* Title + Badge + Arrow */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm font-semibold text-neutral-800">
+                  {tool.title}
+                </CardTitle>
+                <StatusBadge text={tool.badge} />
+              </div>
               {!tool.disabled && (
-                <ArrowUpRight className="h-5 w-5 text-muted-foreground opacity-0 transition-all duration-300 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary group-hover:opacity-100" />
+                <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all duration-300 group-hover:text-neutral-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               )}
             </div>
 
             {/* Description */}
-            <CardDescription className="flex-1 text-sm leading-relaxed text-muted-foreground">
+            <CardDescription className="text-xs leading-relaxed text-neutral-500">
               {tool.description}
             </CardDescription>
-
-            {/* Stats tag */}
-            {tool.stats && (
-              <div className={cn(
-                "mt-4 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium",
-                tool.color.bg, tool.color.icon
-              )}>
-                {tool.stats}
-              </div>
-            )}
           </div>
         </Card>
       </CardWrapper>
@@ -193,73 +325,109 @@ function StudioToolCard({ tool, index }: { tool: StudioTool; index: number }) {
   );
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
+function CategorySection({ category }: { category: ToolCategory }) {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06 },
+    },
+  };
 
-function DataStudioHub() {
+  const headerVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0 },
+  };
+
+  return (
+    <motion.section
+      variants={headerVariants}
+      initial="hidden"
+      animate="visible"
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      {/* Section Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-neutral-500">
+          <category.icon className="h-4 w-4" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-neutral-700 tracking-wide">
+            {category.label}
+          </h2>
+          <p className="text-xs text-neutral-400">{category.description}</p>
+        </div>
+      </div>
+
+      {/* Tool Grid */}
+      <motion.div
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {category.tools.map((tool) => (
+          <ToolCard key={tool.id} tool={tool} />
+        ))}
+      </motion.div>
+    </motion.section>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+function DashboardHub() {
   const { user } = useAuth();
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-neutral-50">
       {/* Header */}
-      <header className="sticky top-0 z-40 flex h-16 items-center border-b bg-background/80 px-6 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-            <Link href="/dashboard">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Database className="h-5 w-5 text-primary" />
+      <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <LayoutDashboard className="h-5 w-5 text-neutral-400" />
+            <span className="text-sm font-medium text-neutral-700">
+              Workspace
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden text-right sm:block">
+              <p className="text-xs font-medium text-neutral-600">
+                {user?.name}
+              </p>
+              <p className="text-[10px] text-neutral-400">Analytics Team</p>
             </div>
-            <h1 className="text-lg font-bold tracking-tight">Data Studio</h1>
+            <UserNav />
           </div>
-        </div>
-        <div className="ml-auto flex items-center gap-4">
-          <div className="hidden text-sm text-right sm:block">
-            <p className="font-medium leading-none">{user?.name}</p>
-            <p className="text-xs text-muted-foreground mt-1">Data Studio</p>
-          </div>
-          <UserNav />
         </div>
       </header>
 
       {/* Content */}
-      <main className="flex-1 p-6 md:p-10">
-        <div className="mx-auto max-w-5xl">
-          {/* Title Section */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mb-8"
-          >
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Data Studio
-            </h2>
-            <p className="mt-2 text-lg text-muted-foreground">
-              Tools for managing data connections, automated processing, and manual editing.
-            </p>
-          </motion.div>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
+        <div className="mb-10">
+          <h1 className="text-xl font-bold text-neutral-800 tracking-tight">
+            Analytics Tools
+          </h1>
+          <p className="mt-1 text-sm text-neutral-400">
+            Select a tool to open in a new workspace.
+          </p>
+        </div>
 
-          {/* Tool Cards */}
-          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-            {studioTools.map((tool, index) => (
-              <StudioToolCard key={tool.id} tool={tool} index={index} />
-            ))}
-          </div>
+        <div className="space-y-10">
+          {categories.map((category) => (
+            <CategorySection key={category.id} category={category} />
+          ))}
         </div>
       </main>
     </div>
   );
 }
 
-// ─── Export ───────────────────────────────────────────────────────────────────
-
-export default function DataStudioPage() {
+export default function DashboardHubPage() {
   return (
     <DashboardClientLayout>
-      <DataStudioHub />
+      <DashboardHub />
     </DashboardClientLayout>
   );
 }
