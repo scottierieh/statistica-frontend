@@ -52,7 +52,7 @@ export default function DBConnectorPage() {
     try {
       const result = await testDatabaseConnection({ host, port, dbName, username, password });
       if (result.success) {
-        toast({ title: "Connection Success", description: result.message });
+        toast({ title: "Connection Success", description: result.error || "Connected successfully" });
       } else {
         toast({ variant: "destructive", title: "Connection Failed", description: result.error });
       }

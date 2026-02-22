@@ -242,11 +242,19 @@ const Sidebar = React.forwardRef<
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
+        {/* ← 여기에 추가 */}
+        {collapsible === "offcanvas" && expandOnHover && state === "collapsed" && (
+          <div
+            className="fixed inset-y-0 left-0 z-10 w-3 hover:w-5 transition-all"
+            onMouseEnter={handleMouseEnter}
+          />
+        )}
+        
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
             "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
-            "group-data-[collapsible=offcanvas]:!w-0",
+            collapsible === "offcanvas" && "!w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
               ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"

@@ -646,8 +646,8 @@ export default function YahooFinanceApp() {
       <div className="flex min-h-screen w-full">
 
         {/* ── Sidebar ── */}
-        <Sidebar collapsible="offcanvas">
-          <SidebarHeader>
+        <Sidebar collapsible="offcanvas" expandOnHover>
+        <SidebarHeader>
           <div className="p-2 pt-16 space-y-4">
           <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
               <div className="relative">

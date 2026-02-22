@@ -7,16 +7,12 @@ declare module 'react-window' {
     data: T;
   }
 
-  export interface FixedSizeListProps {
-    height: number;
-    width: number | string;
-    itemCount: number;
-    itemSize: number;
-    itemData?: any;
-    overscanCount?: number;
-    children: React.ComponentType<ListChildComponentProps>;
-    style?: CSSProperties;
-  }
-
-  export class FixedSizeList extends Component<FixedSizeListProps> {}
+  export class List extends Component<any> {}
+  export class Grid extends Component<any> {}
+  export function getScrollbarSize(): number;
+  export function useDynamicRowHeight(): any;
+  export function useGridCallbackRef(): any;
+  export function useGridRef(): any;
+  export function useListCallbackRef(): any;
+  export function useListRef(): any;
 }

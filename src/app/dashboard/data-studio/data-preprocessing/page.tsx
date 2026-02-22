@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { FixedSizeList } from 'react-window';
+import { List as FixedSizeList } from 'react-window';
 import {
   SidebarProvider,
   Sidebar,
