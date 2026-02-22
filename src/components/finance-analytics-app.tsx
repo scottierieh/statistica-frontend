@@ -758,7 +758,7 @@ export default function YahooFinanceApp() {
 
         {/* ── Main Content ── */}
         <SidebarInset>
-        <div className="px-0 py-4 h-full flex flex-col gap-4">
+        <div className="p-4 md:p-6 h-full flex flex-col gap-4">
         <header className="flex items-center justify-between md:justify-end">
               <SidebarTrigger />
               <div />
