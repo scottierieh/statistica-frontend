@@ -796,6 +796,55 @@ useEffect(() => {
                 )}
             */}
 
+{syncResult && syncResult.files.length > 0 && showSyncBanner && data.length === 0 && (
+  <div className="rounded-xl border bg-primary/5 border-primary/20 p-4 space-y-3">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Database className="w-5 h-5 text-primary" />
+        <div>
+          <p className="text-sm font-bold">Synced Data Available</p>
+          <p className="text-xs text-muted-foreground">
+            {syncResult.tickers.join(', ')} · {syncResult.files.length} file{syncResult.files.length > 1 ? 's' : ''} · {syncResult.period}
+          </p>
+        </div>
+      </div>
+      <button onClick={() => setShowSyncBanner(false)} className="text-muted-foreground hover:text-foreground">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      {syncResult.files.map((file, i) => (
+        <button
+          key={i}
+          onClick={() => {
+            const rows = parseCSV(file.csv, file.columnTypes);
+            if (rows.length > 0) {
+              const headers = Object.keys(rows[0]);
+              setData(rows as any);
+              setAllHeaders(headers);
+              setNumericHeaders(headers.filter(h => typeof rows[0][h] === 'number'));
+              setCategoricalHeaders(headers.filter(h => typeof rows[0][h] === 'string'));
+              setFileName(file.fileName);
+              setShowSyncBanner(false);
+              toast({ title: 'Data Loaded', description: `${file.fileName} — ${file.rows} rows` });
+            }
+          }}
+          className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 text-left transition-all"
+        >
+          <BarChart3 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">{file.fileName}</p>
+            <p className="text-xs text-muted-foreground">{file.description}</p>
+            <p className="text-xs text-muted-foreground mt-1">{file.rows} rows · {file.columns.length} cols</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
+
+
             <ActivePageComponent
               data={data}
               allHeaders={allHeaders}
