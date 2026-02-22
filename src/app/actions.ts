@@ -79,17 +79,14 @@ export async function getAnalysisRecommendationsByGoal(researchGoal: string) {
 }
 
 // TODO: Integration stubs (미구현)
-export async function triggerIntegrationSync(...params: any[]) {
-  console.log('triggerIntegrationSync not implemented', params);
+export async function triggerIntegrationSync(...params: any[]): Promise<any> {
   return { success: false, error: 'Not implemented' };
 }
 
-export async function fetchIntegrationData(...params: any[]) {
-  console.log('fetchIntegrationData not implemented', params);
+export async function fetchIntegrationData(...params: any[]): Promise<any> {
   return { success: false, error: 'Not implemented' };
 }
 
-export async function testDatabaseConnection(...params: any[]) {
-  console.log('testDatabaseConnection not implemented', params);
+export async function testDatabaseConnection(...params: any[]): Promise<any> {
   return { success: false, error: 'Not implemented' };
 }
